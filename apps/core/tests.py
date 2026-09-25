@@ -196,6 +196,7 @@ class AccessAndSettingsTests(TestCase):
         self.client.post("/settings/lists/implant_systems/new/", {"company": "Zimmer", "line": "TSV", "is_active": "on"})
         self.assertTrue(ImplantSystem.objects.filter(company="Zimmer").exists())
         self.client.post("/settings/options/", {
+            "o-day_start": "09:00", "o-day_end": "17:00", "o-surgery_days": ["3", "4"], "o-dicom_email": "ciapts@gmail.com",
             "o-late_threshold_minutes": 15, "o-default_appointment_minutes": 45, "o-complaint_follow_up_days": 3,
             "o-stock_expiry_days": 30, "o-reminder_days_before": 2, "o-whatsapp_country_code": "20",
             "b-name_ar": "أكاديمية القاهرة لزراعة الأسنان", "b-name_en": "Cairo Implant Academy", "b-phone": "0223456789",
@@ -230,3 +231,146 @@ class DemoDataTests(TestCase):
         self.assertIn("kept as it is", out.getvalue())
         self.assertIn("missing: headcia, teamhead", out.getvalue())
         self.assertNotIn("owner,", out.getvalue())
+
+
+class WidgetTests(TestCase):
+    def test_dates_are_dd_mm_yyyy_and_times_come_in_quarters(self):
+        from datetime import time
+
+        from django import forms as dj_forms
+
+        from apps.core.forms import StyledForm
+
+        class Form(StyledForm):
+            day = dj_forms.DateField()
+            at = dj_forms.DateTimeField()
+            start = dj_forms.TimeField()
+
+        form = Form({"day": "٠٥/٠٩/٢٠٢٦", "at_0": "05/09/2026", "at_1": "09:45", "start": "10:30"})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["day"], date(2026, 9, 5))
+        self.assertEqual((form.cleaned_data["at"].day, form.cleaned_data["at"].month), (5, 9))
+        self.assertEqual(form.cleaned_data["start"], time(10, 30))
+        html = str(Form(initial={"day": date(2026, 9, 5)})["day"])
+        self.assertIn('value="05/09/2026"', html)
+        options = str(Form()["start"])
+        self.assertIn('value="09:15"', options)
+        self.assertNotIn('value="09:10"', options)
+
+
+class PersonAccessTests(TestCase):
+    def test_academy_for_one_secretary_only(self):
+        from apps.core.models import AreaAccess, PersonAreaAccess
+
+        setup_clinic()
+        make_user("owner", "owner")
+        first, second = make_user("sec1", "secretary"), make_user("sec2", "secretary")
+        self.client.login(username="owner", password=PASSWORD)
+        form = self.client.get(f"/settings/users/{second.pk}/").context["form"]
+        self.assertIn("area__academy", form.fields)
+        data = {"username": "sec2", "first_name": "Sara", "roles": ["secretary"], "is_active": "on",
+                "area__academy": "hidden"}
+        self.client.post(f"/settings/users/{second.pk}/", data)
+        self.assertEqual(PersonAreaAccess.objects.get(user=second).level, "hidden")
+        self.client.login(username="sec2", password=PASSWORD)
+        self.assertEqual(self.client.get("/academy/candidates/").status_code, 403)
+        self.assertNotIn("overdue_installments", self.client.get("/").context)
+        self.client.login(username="sec1", password=PASSWORD)
+        self.assertEqual(self.client.get("/academy/candidates/").status_code, 200)
+        # A person rule opens again what the role matrix closed, but never more than the role allows.
+        AreaAccess.objects.create(role="secretary", area="academy", level="hidden")
+        PersonAreaAccess.objects.create(user=first, area="academy", level="full")
+        self.assertEqual(self.client.get("/academy/candidates/").status_code, 200)
+        PersonAreaAccess.objects.create(user=first, area="surgery", level="full")
+        self.assertEqual(self.client.get("/surgery/").status_code, 403)
+
+
+class ApprovalTests(TestCase):
+    def setUp(self):
+        from apps.core.testing import make_patient
+
+        self.branch = setup_clinic()
+        self.secretary = make_user("sec", "secretary")
+        self.head = make_user("head", "head_cia")
+        self.patient = make_patient(self.branch, phone="01001234567")
+
+    def patient_data(self, **changes):
+        from apps.patients.models import ReferralSource
+
+        data = {"full_name": self.patient.full_name, "id_type": "nid", "national_id": self.patient.national_id,
+                "phone_primary": self.patient.phone_primary, "preferred_phone": "primary", "missing_teeth": "unknown",
+                "referral_source": ReferralSource.objects.filter(asks_for_patient=False).first().pk, "status": "active"}
+        data.update(changes)
+        return data
+
+    def test_reception_edits_wait_for_the_head_of_cia(self):
+        from apps.core.models import ChangeRequest
+        from apps.patients.models import MedicalCondition
+
+        diabetes = MedicalCondition.objects.first()
+        self.client.login(username="sec", password=PASSWORD)
+        self.client.post(f"/patients/{self.patient.pk}/edit/",
+                         self.patient_data(phone_primary="01101234567", medical_conditions=[diabetes.pk]))
+        self.patient.refresh_from_db()
+        self.assertEqual(self.patient.phone_primary, "01001234567")  # nothing changes yet
+        change = ChangeRequest.objects.get()
+        self.assertLessEqual({"phone_primary", "medical_conditions"}, {c["field"] for c in change.changes})
+        self.assertTrue(Notification.objects.filter(recipient=self.head).exists())
+        self.assertContains(self.client.get(f"/patients/{self.patient.pk}/"), "01101234567")  # shown as waiting
+        self.assertEqual(self.client.get("/approvals/").status_code, 403)
+
+        self.client.login(username="head", password=PASSWORD)
+        self.assertEqual(self.client.get("/").context["pending_approvals"], 1)
+        self.client.post(f"/approvals/{change.pk}/", {"action": "approve", "note": "ok 100%"})
+        self.patient.refresh_from_db()
+        self.assertEqual(self.patient.phone_primary, "01101234567")
+        self.assertEqual(list(self.patient.medical_conditions.all()), [diabetes])
+        self.assertTrue(Notification.objects.filter(recipient=self.secretary).exists())
+        # The head of CIA edits directly.
+        self.client.post(f"/patients/{self.patient.pk}/edit/", self.patient_data(phone_primary="01201234567",
+                                                                              medical_conditions=[diabetes.pk]))
+        self.patient.refresh_from_db()
+        self.assertEqual((self.patient.phone_primary, ChangeRequest.objects.count()), ("01201234567", 1))
+
+    def test_forgotten_visit_times_are_corrected_after_approval(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.core.models import ChangeRequest
+        from apps.scheduling.models import Appointment
+
+        start = timezone.now().replace(second=0, microsecond=0) - timedelta(hours=3)
+        appointment = Appointment.objects.create(branch=self.branch, patient=self.patient, scheduled_at=start)
+        appointment.mark_arrived(start)
+        appointment.save()
+        local = timezone.localtime(start)
+        times = {"arrived_at_0": local.strftime("%d/%m/%Y"), "arrived_at_1": local.strftime("%H:%M"),
+                 "entered_room_at_0": local.strftime("%d/%m/%Y"),
+                 "entered_room_at_1": (local + timedelta(minutes=20)).strftime("%H:%M"),
+                 "left_at_0": local.strftime("%d/%m/%Y"), "left_at_1": (local + timedelta(minutes=80)).strftime("%H:%M"),
+                 "reason": "forgot to press Left"}
+        self.client.login(username="sec", password=PASSWORD)
+        self.client.post(f"/schedule/appointments/{appointment.pk}/times/", times)
+        appointment.refresh_from_db()
+        self.assertIsNone(appointment.left_at)
+        change = ChangeRequest.objects.get(kind="visit_times")
+        self.client.login(username="head", password=PASSWORD)
+        self.client.post(f"/approvals/{change.pk}/", {"action": "approve"})
+        appointment.refresh_from_db()
+        self.assertEqual((appointment.status, appointment.chair_minutes), ("completed", 60))
+        bad = dict(times, left_at_1=local.strftime("%H:%M"))  # left before entering
+        self.client.post(f"/schedule/appointments/{appointment.pk}/times/", bad)
+        self.assertEqual(ChangeRequest.objects.count(), 1)
+
+    def test_rejected_changes_do_nothing(self):
+        from apps.core.models import ChangeRequest
+
+        self.client.login(username="sec", password=PASSWORD)
+        self.client.post(f"/patients/{self.patient.pk}/edit/", self.patient_data(full_name="اسم آخر"))
+        change = ChangeRequest.objects.get()
+        self.client.login(username="head", password=PASSWORD)
+        self.client.post(f"/approvals/{change.pk}/", {"action": "reject"})
+        self.patient.refresh_from_db()
+        change.refresh_from_db()
+        self.assertEqual((change.status, self.patient.full_name == "اسم آخر"), ("rejected", False))

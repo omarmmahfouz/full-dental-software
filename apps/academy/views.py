@@ -1,3 +1,5 @@
+import calendar
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib import messages
@@ -7,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, ListView, UpdateView
 
 from apps.core.forms import clean_digits_value
@@ -14,6 +17,7 @@ from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_re
 from apps.core.models import branch_for_user
 from apps.core.roles import HEAD_CIA, OWNER, SECRETARY, SUPERVISOR
 from apps.core.utils import normalize_phone
+from apps.scheduling.whatsapp import record_installment
 
 from .forms import (
     CandidateFilterForm,
@@ -25,9 +29,11 @@ from .forms import (
     PaymentForm,
 )
 from .models import Candidate, Course, Enrollment, Installment, Payment, PaymentMethod
+from .reminders import installment_rows
 
 ACADEMY_ROLES = (OWNER, HEAD_CIA, SUPERVISOR, SECRETARY)
 MONEY_DESK = (OWNER, HEAD_CIA, SECRETARY)
+COURSE_MANAGERS = (OWNER, HEAD_CIA)  # courses (batches, fees) are set by the management, not the reception
 
 
 # ------------------------------------------------------------ courses
@@ -42,7 +48,7 @@ class CourseListView(RoleRequiredMixin, ListView):
 
 
 class CourseCreateView(RoleRequiredMixin, AuditMixin, CreateView):
-    allowed_roles = MONEY_DESK
+    allowed_roles = COURSE_MANAGERS
     model = Course
     form_class = CourseForm
     template_name = "includes/form_page.html"
@@ -54,7 +60,7 @@ class CourseCreateView(RoleRequiredMixin, AuditMixin, CreateView):
 
 
 class CourseUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
-    allowed_roles = MONEY_DESK
+    allowed_roles = COURSE_MANAGERS
     model = Course
     form_class = CourseForm
     template_name = "includes/form_page.html"
@@ -184,7 +190,7 @@ def enrollment_detail(request, pk):
         "academy/enrollment_detail.html",
         {
             "enrollment": enrollment,
-            "schedule": enrollment.installment_schedule(),
+            "schedule": installment_rows([enrollment], lambda row: True),
             "payments": enrollment.payments.select_related("created_by"),
             "payment_form": form,
         },
@@ -274,8 +280,46 @@ def overdue_installments(request):
                 }
             )
     rows.sort(key=lambda row: row["oldest"])
+    reminders = installment_rows([row["enrollment"] for row in rows], lambda row: row["state"] == "overdue", today)
+    oldest = {}
+    for reminder in reminders:  # remind about the oldest unpaid installment
+        oldest.setdefault(reminder["enrollment"].pk, reminder)
+    for row in rows:
+        row["reminder"] = oldest.get(row["enrollment"].pk)
     return render(
         request, "academy/overdue.html",
         {"rows": rows, "total": sum((row["amount"] for row in rows), Decimal("0")), "today": today},
     )
 
+
+
+@role_required(*MONEY_DESK)
+def installments_month(request):
+    """Every installment due in one month: how much each candidate pays, what is collected, what is left."""
+    today = timezone.localdate()
+    try:
+        year, month = (int(part) for part in request.GET.get("month", "").split("-"))
+        first = date(year, month, 1)
+    except ValueError:
+        first = today.replace(day=1)
+    last = first.replace(day=calendar.monthrange(first.year, first.month)[1])
+    enrollments = (Enrollment.objects.filter(status=Enrollment.Status.ACTIVE, installments__due_date__range=(first, last))
+                   .distinct().select_related("candidate", "course"))
+    rows = installment_rows(enrollments, lambda row: first <= row["installment"].due_date <= last, today)
+    totals = {key: sum((row[key] for row in rows), Decimal("0")) for key in ("paid", "remaining")}
+    totals["expected"] = totals["paid"] + totals["remaining"]
+    return render(request, "academy/installments_month.html", {
+        "rows": rows, "totals": totals, "month": first,
+        "prev_month": (first - timedelta(days=1)).replace(day=1), "next_month": last + timedelta(days=1),
+    })
+
+
+@role_required(*MONEY_DESK)
+@require_POST
+def installment_whatsapp(request, pk):
+    """Keep the reminder, then open WhatsApp with it ready to send."""
+    installment = get_object_or_404(Installment.objects.select_related("enrollment__candidate", "enrollment__course"),
+                                    pk=pk)
+    enrollment = installment.enrollment
+    row = next(r for r in enrollment.installment_schedule() if r["installment"].pk == installment.pk)
+    return redirect(record_installment(row, enrollment, request.user))

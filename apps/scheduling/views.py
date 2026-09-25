@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -8,7 +8,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.dateparse import parse_date
+from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -16,20 +16,30 @@ from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
 from apps.clinical.models import LabRequest
+from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import SearchMixin, role_required
-from apps.core.models import ClinicSettings, branch_for_user
-from apps.core.roles import FRONT_DESK, PATIENT_VIEWERS, has_role, is_only_dentist
+from apps.core.models import ChangeRequest, ClinicSettings, branch_for_user
+from apps.core.access import area_levels
+from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, SECRETARY, has_role, is_only_dentist
+from apps.core.utils import normalize_digits
 from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403
 from apps.patients.models import Patient
 
-from .forms import AppointmentFilterForm, AppointmentForm, CancelForm, RoomShiftForm, WalkInForm
+from .daygrid import day_grid, week_outline
+from .forms import AppointmentFilterForm, AppointmentForm, CancelForm, RoomShiftForm, VisitTimesForm, WalkInForm
 from .models import Appointment, MessageTemplate, Room, RoomShift, day_bounds
 from .whatsapp import record, whatsapp_number
 
 
 def _parse_day(value, default=None):
-    parsed = parse_date(value) if value else None
+    parsed = None
+    if value:
+        value = normalize_digits(value).strip()
+        try:
+            parsed = parse_date(value) or datetime.strptime(value, "%d/%m/%Y").date()
+        except ValueError:
+            parsed = None
     return parsed or default or timezone.localdate()
 
 
@@ -201,8 +211,12 @@ def appointment_create(request):
     if patient_id and patient_id.isdigit():
         patient = Patient.objects.filter(pk=patient_id).first()
     initial = {}
-    if request.GET.get("at"):
-        initial["scheduled_at"] = request.GET["at"]
+    at = parse_datetime(request.GET.get("at") or "")
+    if at is not None:
+        initial["scheduled_at"] = timezone.make_aware(at) if timezone.is_naive(at) else at
+    for name in ("room", "dentist"):
+        if request.GET.get(name, "").isdigit():
+            initial[name] = int(request.GET[name])
     form = AppointmentForm(request.POST or None, branch=branch, patient=patient, initial=initial)
     if request.method == "POST" and form.is_valid():
         appointment = form.save(commit=False)
@@ -212,8 +226,8 @@ def appointment_create(request):
         messages.success(request, _("Appointment booked. Send the confirmation on WhatsApp."))
         return redirect(appointment)
     return render(
-        request, "includes/form_page.html",
-        {"form": form, "title": _("Book appointment"), "cancel_url": reverse("scheduling:appointment_list")},
+        request, "scheduling/appointment_form.html",
+        {"form": form, "title": _("Book appointment"), "cancel_url": reverse("scheduling:day_planner")},
     )
 
 
@@ -226,7 +240,7 @@ def appointment_update(request, pk):
         messages.success(request, _("Appointment updated."))
         return redirect(appointment)
     return render(
-        request, "includes/form_page.html",
+        request, "scheduling/appointment_form.html",
         {"form": form, "title": _("Edit appointment"), "cancel_url": appointment.get_absolute_url()},
     )
 
@@ -239,12 +253,58 @@ def appointment_detail(request, pk):
         "scheduling/appointment_detail.html",
         {
             "appointment": appointment,
+            "times_form": VisitTimesForm(instance=appointment) if has_role(request.user, *FRONT_DESK) else None,
+            "times_need_approval": needs_approval(request.user),
+            "pending_changes": pending_for(appointment),
             "steps": appointment.treatment_steps.select_related("step_type", "operator"),
             "lab_requests": appointment.lab_requests.select_related("work_type"),
             "rooms": Room.objects.filter(branch=appointment.branch, is_active=True),
             "sent_messages": appointment.messages.select_related("sent_by"),
         },
     )
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def appointment_times(request, pk):
+    """Correct the arrival / room / leaving times. From the reception it waits for the head of CIA."""
+    appointment = get_object_or_404(Appointment, pk=pk)
+    original = Appointment.objects.get(pk=pk)
+    form = VisitTimesForm(request.POST, instance=appointment)
+    if not form.is_valid():
+        for error in form.non_field_errors() or [e for errors in form.errors.values() for e in errors]:
+            messages.error(request, error)
+        return redirect(appointment)
+    values = {name: form.cleaned_data[name] for name in form.changed_data if name in form._meta.fields}
+    if not values:
+        messages.info(request, _("Nothing was changed."))
+    elif needs_approval(request.user):
+        request_change(ChangeRequest.Kind.VISIT_TIMES, original, values, request.user, form.cleaned_data["reason"])
+        messages.warning(request, _("Sent to the head of CIA for approval. The times change once it is approved."))
+    else:
+        appointment.set_status_from_times()
+        appointment.save()
+        messages.success(request, _("Times corrected."))
+    return redirect(appointment)
+
+
+# ------------------------------------------------------------ day planner
+@role_required(*FRONT_DESK)
+def day_planner(request):
+    """The day's appointments room by room in 15-minute steps; click a free place to book it."""
+    day = _parse_day(request.GET.get("day"))
+    branch = branch_for_user(request.user)
+    context = day_grid(branch, day)
+    if request.GET.get("fragment"):
+        return render(request, "scheduling/_day_grid.html", {**context, "in_form": True})
+    start = week_start(day)
+    context.update({
+        "prev_day": day - timedelta(days=1), "next_day": day + timedelta(days=1),
+        "is_today": day == timezone.localdate(),
+        "week": week_outline(branch, [start + timedelta(days=i) for i in range(7)]),
+        "prev_week": start - timedelta(days=7), "next_week": start + timedelta(days=7),
+    })
+    return render(request, "scheduling/day_planner.html", context)
 
 
 # ------------------------------------------------------------ room schedule
@@ -258,6 +318,9 @@ def room_schedule(request):
     shifts = RoomShift.objects.filter(room__in=rooms, date__range=(days[0], days[-1])).select_related(
         "dentist", "supervisor", "room"
     )
+    opened = set(shifts.values_list("room_id", flat=True))
+    extra_rooms = [room for room in rooms if room.is_extra and room.pk not in opened]
+    rooms = [room for room in rooms if not room.is_extra or room.pk in opened]  # extra rooms only when opened
     # CIA dentists see only their own shifts.
     only_mine = request.GET.get("mine") == "1" or is_only_dentist(request.user)
     if only_mine:
@@ -278,6 +341,7 @@ def room_schedule(request):
             "today": timezone.localdate(),
             "can_edit": has_role(request.user, *FRONT_DESK),
             "only_mine": only_mine,
+            "extra_rooms": extra_rooms,
         },
     )
 
@@ -292,8 +356,11 @@ def shift_edit(request, pk=None):
             initial["room"] = int(request.GET["room"])
         if request.GET.get("date"):
             initial["date"] = _parse_day(request.GET["date"])
-        initial.setdefault("start_time", "09:00")
-        initial.setdefault("end_time", "15:00")
+        options = ClinicSettings.get()
+        initial.setdefault("start_time", options.day_start)
+        initial.setdefault("end_time", options.day_end)
+        if "date" in initial and initial["date"].weekday() in options.surgery_weekdays:
+            initial["day_type"] = RoomShift.DayType.SURGERY
     form = RoomShiftForm(request.POST or None, instance=shift, branch=branch, initial=initial)
     if request.method == "POST" and form.is_valid():
         shift = form.save(commit=False)
@@ -382,9 +449,15 @@ def whatsapp_list(request):
     reminders = waiting.filter(scheduled_at__gte=start, scheduled_at__lt=end).order_by("scheduled_at")
     missed = Appointment.objects.filter(status=Appointment.Status.NO_SHOW,
                                         scheduled_at__gte=day_bounds(today - timedelta(days=7))[0]).order_by("-scheduled_at")
+    installments = None
+    if has_role(request.user, OWNER, HEAD_CIA, SECRETARY) and area_levels(request.user).get("academy") != "hidden":
+        from apps.academy.reminders import reminders_due
+
+        installments = reminders_due()
     return render(request, "scheduling/whatsapp.html", {
         "day": day, "prev_day": day - timedelta(days=1), "next_day": day + timedelta(days=1),
         "new_bookings": with_sent(new_bookings, MessageTemplate.Kind.CONFIRMATION),
         "reminders": with_sent(reminders, MessageTemplate.Kind.REMINDER),
         "missed": with_sent(missed, MessageTemplate.Kind.NO_SHOW),
+        "installments": installments,
     })

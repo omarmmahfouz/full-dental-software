@@ -9,7 +9,8 @@ from apps.clinical.models import Lab, LabWorkType, TreatmentStepType
 from apps.surgery.models import ImplantSystem
 from apps.core.models import Branch, ClinicSettings
 from apps.core.roles import ALL_ROLES
-from apps.patients.models import MedicalCondition, ReferralSource
+from apps.billing.models import Service
+from apps.patients.models import MedicalCondition, OutReason, ReferralSource
 from apps.prescriptions.defaults import load_defaults as load_prescription_defaults
 from apps.purchasing.models import PurchaseCategory
 from apps.scheduling.models import Room
@@ -36,6 +37,33 @@ REFERRAL_SOURCES = [
     ("طبيب حوّله", "Referred by a dentist", False),
     ("لافتة / مرّ على المكان", "Sign board / passed by", False),
     ("أخرى", "Other", False),
+]
+
+# Paid services (prices are set by the owner in Settings → Paid services and prices).
+SERVICES = [
+    ("كشف", "Consultation"),
+    ("أشعة مقطعية CBCT", "CBCT"),
+    ("أشعة بانوراما", "Panoramic X-ray"),
+    ("أشعة صغيرة", "Periapical X-ray"),
+    ("تنظيف جير", "Scaling"),
+    ("حشو", "Filling"),
+    ("علاج عصب", "Root canal treatment"),
+    ("خلع", "Extraction"),
+    ("زرعة", "Implant"),
+    ("ترقيع عظم", "Bone graft"),
+    ("دليل جراحي", "Surgical guide"),
+    ("طربوش على زرعة", "Crown on implant"),
+    ("أخرى", "Other"),
+]
+
+OUT_REASONS = [
+    ("انقطع عن الحضور", "Stopped coming"),
+    ("انتقل لعيادة أخرى", "Moved to another clinic"),
+    ("رفض خطة العلاج أو التكلفة", "Refused the plan or the cost"),
+    ("سبب طبي", "Medical reason"),
+    ("عدم الالتزام بالمواعيد أو التعليمات", "Did not follow appointments or instructions"),
+    ("أنهى العلاج في مكان آخر", "Finished the treatment elsewhere"),
+    ("أخرى", "Other"),
 ]
 
 MEDICAL_CONDITIONS = [
@@ -92,6 +120,37 @@ TREATMENT_STEPS = [
     ("متابعة", "Follow-up", "none", "", ""),
     ("أخرى", "Other", "none", "", ""),
 ]
+
+# Plain Arabic explanations of the treatments, for the reception (by English name).
+TREATMENT_EXPLANATIONS = {
+    "Treatment plan": "الطبيب كشف على المريض وكتب خطة العلاج المطلوبة.",
+    "Scaling": "تنظيف الأسنان من الجير والرواسب.",
+    "Composite restoration": "حشو أبيض بلون السن لسد التسوس.",
+    "Amalgam restoration": "حشو فضي (معدني) لسد التسوس.",
+    "Glass ionomer restoration": "حشو أبيض بسيط، غالبًا للأسنان الصغيرة أو كحشو مبدئي.",
+    "Temporary filling": "حشو مؤقت لحين استكمال العلاج في زيارة قادمة.",
+    "Root canal treatment": "علاج عصب السن وتنظيف القنوات من الداخل ثم حشوها.",
+    "Crown preparation": "برد السن لتجهيزه لتركيب طربوش (تلبيسة).",
+    "Crown cementation (natural tooth)": "تركيب الطربوش (التلبيسة) النهائي على السن.",
+    "Extraction": "خلع السن.",
+    "Immediate implant": "خلع السن وتركيب الزرعة في نفس الجلسة.",
+    "Implant placement": "تركيب زرعة (مسمار من التيتانيوم) في العظم مكان السن المفقود.",
+    "Guided implant surgery": "تركيب الزرعة بدليل جراحي مصمم بالكمبيوتر من الأشعة المقطعية: أدق وأسرع.",
+    "Bone graft": "تعويض نقص العظم بمادة عظمية حتى يكفي لتركيب الزرعة.",
+    "Sinus lift": "رفع أرضية الجيب الأنفي من فتحة جانبية وإضافة عظم، لزرع الأضراس العلوية الخلفية.",
+    "Closed sinus lift": "رفع بسيط للجيب الأنفي من مكان الزرعة نفسه وإضافة عظم.",
+    "Ridge expansion / splitting": "توسيع العظم الرفيع أو شقه حتى يتسع للزرعة.",
+    "Suture removal": "فك الغرز بعد العملية (عادة بعد 7 إلى 10 أيام).",
+    "Second stage / healing abutment": "فتح اللثة فوق الزرعة وتركيب قطعة تشكيل اللثة، تمهيدًا للتركيبة.",
+    "Impression": "أخذ مقاس الأسنان أو الزرعات بالمعجون لعمل التركيبة في المعمل.",
+    "Digital scan": "أخذ مقاس الأسنان بالماسح الرقمي بدل المعجون.",
+    "Bite registration": "تسجيل طريقة إطباق الفكين لضبط التركيبة.",
+    "Try-in": "تجربة التركيبة في الفم قبل تجهيزها النهائي.",
+    "Final prosthesis delivery": "تركيب التركيبة النهائية (طربوش أو كوبري أو طقم).",
+    "Temporary prosthesis": "تركيبة مؤقتة لحين تجهيز التركيبة النهائية.",
+    "Implant failure / removal": "الزرعة لم تلتحم بالعظم فتمت إزالتها.",
+    "Follow-up": "زيارة متابعة للاطمئنان على الحالة.",
+}
 
 LAB_WORK_TYPES = [
     ("طربوش زيركون", "Zirconia crown"),
@@ -260,6 +319,8 @@ class Command(BaseCommand):
         counts = {
             "referral sources": _lookup(ReferralSource, REFERRAL_SOURCES, extra_fields=lambda r: {"asks_for_patient": r[2]}),
             "medical conditions": _lookup(MedicalCondition, MEDICAL_CONDITIONS, extra_fields=lambda r: {}),
+            "reasons for being out": _lookup(OutReason, OUT_REASONS, extra_fields=lambda r: {}),
+            "paid services": _lookup(Service, SERVICES, extra_fields=lambda r: {}),
             "treatment steps": _lookup(
                 TreatmentStepType, TREATMENT_STEPS,
                 extra_fields=lambda r: {"chart_effect": r[2], "surgery_procedure": r[3], "default_material": r[4]},
@@ -276,6 +337,8 @@ class Command(BaseCommand):
                 chart_effect=effect)
             if procedure:
                 TreatmentStepType.objects.filter(name_ar=name_ar, surgery_procedure="").update(surgery_procedure=procedure)
+        for name_en, explanation in TREATMENT_EXPLANATIONS.items():
+            TreatmentStepType.objects.filter(name_en=name_en, description_ar="").update(description_ar=explanation)
         for company, line in IMPLANT_SYSTEMS:
             ImplantSystem.objects.get_or_create(company=company, line=line)
         added_photos = 0

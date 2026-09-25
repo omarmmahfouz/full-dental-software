@@ -1,0 +1,4 @@
+{% load i18n %}{% if pending_changes %}<div class="alert alert-warning small">
+  <i class="bi bi-hourglass-split"></i> <b>{% trans "Waiting for the head of CIA to approve" %}:</b>
+  {% for c in pending_changes %}<div>{% for item in c.changes %}{{ item.label|capfirst }}: {{ item.old }} → <b>{{ item.new }}</b>{% if not forloop.last %}؛ {% endif %}{% endfor %} <span class="text-muted">({{ c.requested_by|default:"" }}, {{ c.requested_at|date:"d/m g:i A" }})</span></div>{% endfor %}
+</div>{% endif %}

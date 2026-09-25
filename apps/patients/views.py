@@ -1,40 +1,86 @@
+import io
+import os
+
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
+from PIL import Image
 
+from apps.charting.models import PlanItem
 from apps.clinical.models import LabRequest
 from apps.complaints.models import Complaint
 from apps.core.forms import clean_digits_value
+from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_required
-from apps.core.models import branch_for_user
+from apps.core.models import ChangeRequest, branch_for_user
 from apps.core.roles import FRONT_DESK, PATIENT_VIEWERS, has_role
-from apps.core.utils import normalize_phone
-from apps.scheduling.models import day_bounds
+from apps.core.utils import name_patterns, normalize_phone, validate_phone
 
 from .access import get_visible_patient_or_403, my_patients, visible_patients
-from .forms import LeadCallForm, LeadForm, PatientDocumentForm, PatientFilterForm, PatientForm, PatientRelationForm
+from .forms import (
+    LeadCallForm, LeadForm, PatientDocumentForm, PatientFilterForm, PatientForm, PatientRelationForm,
+    duplicate_phone_error,
+)
 from .models import Lead, LeadCall, Patient, PatientDocument, PatientRelation
 
 
 def _text_search(qs, q, name_field="full_name", extra=()):
+    """Every word of the name (in any spelling of أ/ا, ة/ه, ى/ي), or the mobile, file number or ID."""
     q = clean_digits_value(q)
     if not q:
         return qs
-    query = Q(**{f"{name_field}__icontains": q})
+    query = Q()
+    for pattern in name_patterns(q):
+        query &= Q(**{f"{name_field}__iregex": pattern})
     phone = normalize_phone(q)
     if phone:
         query |= Q(phone_primary__contains=phone) | Q(phone_secondary__contains=phone)
     for field in extra:
         query |= Q(**{f"{field}__icontains": q})
     return qs.filter(query)
+
+
+def patient_lookup(request):
+    """Suggestions for the patient boxes while typing a name, mobile, file number or ID."""
+    q = request.GET.get("q", "").strip()
+    if len(q) < 2 or not has_role(request.user, *PATIENT_VIEWERS):
+        return JsonResponse({"results": []})
+    patients = _text_search(visible_patients(request.user), q, extra=("file_number", "national_id"))
+    return JsonResponse({"results": [
+        {"value": p.file_number, "label": f"{p.full_name} — {p.file_number} — {p.phone_primary}"}
+        for p in patients.order_by("full_name")[:12]
+    ]})
+
+
+def phone_check(request):
+    """While the secretary types a mobile: is it a real number, and does another file already have it?"""
+    phone = normalize_phone(request.GET.get("phone", ""))
+    if not phone or not has_role(request.user, *FRONT_DESK):
+        return JsonResponse({})
+    primary = request.GET.get("field") != "secondary"
+    try:
+        validate_phone(phone, mobile_only=primary)
+    except ValidationError as error:
+        return JsonResponse({"title": _("Check the mobile number"), "message": error.messages[0]})
+    if not primary:
+        return JsonResponse({})
+    pk = request.GET.get("pk", "")
+    if request.GET.get("kind") == "lead":
+        lead = Lead.objects.filter(pk=pk).first() if pk.isdigit() else None
+        message = duplicate_phone_error(phone, exclude_lead=lead or Lead())
+    else:
+        patient = Patient.objects.filter(pk=pk).first() if pk.isdigit() else None
+        message = duplicate_phone_error(phone, exclude_patient=patient or Patient(), exclude_lead=False)
+    return JsonResponse({"title": _("This mobile is already registered"), "message": str(message)} if message else {})
 
 
 # ---------------------------------------------------------------- call list
@@ -52,12 +98,11 @@ class LeadListView(RoleRequiredMixin, SearchMixin, ListView):
         elif status in Lead.Status.values:
             qs = qs.filter(status=status)
         if self.request.GET.get("due"):
-            _start, end = day_bounds(timezone.localdate())
-            qs = qs.filter(Q(next_call_at__lt=end) | Q(next_call_at__isnull=True, status=Lead.Status.NEW))
+            qs = qs.filter(status__in=(Lead.Status.NEW, Lead.Status.FOLLOW_UP))
         if self.request.GET.get("teeth"):
             qs = qs.filter(missing_teeth=self.request.GET["teeth"])
         qs = _text_search(qs, self.get_search_query())
-        return qs.order_by("next_call_at", "-created_at") if self.request.GET.get("due") else qs
+        return qs.order_by("first_call_on", "created_at")  # who called first comes first
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -123,8 +168,7 @@ def lead_add_call(request, pk):
         lead.status = Lead.Status.UNREACHABLE
     elif lead.status == Lead.Status.NEW:
         lead.status = Lead.Status.FOLLOW_UP
-    lead.next_call_at = form.cleaned_data.get("next_call_at")
-    lead.save(update_fields=["status", "next_call_at", "updated_at"])
+    lead.save(update_fields=["status", "updated_at"])
     messages.success(request, _("Call saved."))
     return redirect(lead)
 
@@ -253,7 +297,27 @@ class PatientUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = _("Edit patient data")
+        if needs_approval(self.request.user):
+            context["intro"] = _("Your changes go to the head of CIA and are applied after approval.")
         return context
+
+    def form_valid(self, form):
+        if not needs_approval(self.request.user):
+            return super().form_valid(form)
+        original = Patient.objects.get(pk=self.object.pk)  # the form already changed self.object in memory
+        values = {}
+        for name in form.changed_data:
+            if name == "referred_by_lookup":
+                values["referred_by"] = form.cleaned_data[name]
+            elif name in form._meta.fields:
+                values[name] = form.cleaned_data[name]
+        if "status" in values:
+            values.update(out_reason=form.cleaned_data.get("out_reason"), out_notes=form.cleaned_data.get("out_notes", ""))
+        if request_change(ChangeRequest.Kind.PATIENT, original, values, self.request.user):
+            messages.warning(self.request, _("Sent to the head of CIA for approval. The file changes once it is approved."))
+        else:
+            messages.info(self.request, _("Nothing was changed."))
+        return redirect(original)
 
 
 def patient_detail(request, pk):
@@ -265,16 +329,41 @@ def patient_detail(request, pk):
         "referred_patients": patient.referred_patients.all(),
         "appointments": patient.appointments.select_related("room", "dentist").order_by("-scheduled_at")[:50],
         "steps": patient.treatment_steps.select_related("step_type", "operator", "verified_by")[:100],
+        "plans": patient.treatment_plans.exclude(status="cancelled").select_related("dentist").prefetch_related(
+            Prefetch("items", queryset=PlanItem.objects.select_related("step_type"))),
         "lab_requests": patient.lab_requests.select_related("work_type", "lab", "dentist"),
+        "outside_requests": patient.outside_requests.select_related("dentist"),
+        "id_cards": [d for d in patient.documents.all() if d.kind in PatientDocument.CARD_KINDS and d.is_image][:2],
         "open_labs": patient.open_lab_requests().select_related("work_type"),
         "complaints": patient.complaints.all(),
         "medical_conditions": patient.medical_conditions.all(),
         "can_edit": has_role(request.user, *FRONT_DESK),
+        "pending_changes": pending_for(patient),
+        "exam": patient.examinations.select_related("examined_by").prefetch_related("conditions").first(),
+        "chart_missing": patient.tooth_states.filter(status="missing").exists(),
     }
     if context["can_edit"]:
         context["document_form"] = PatientDocumentForm()
         context["relation_form"] = PatientRelationForm(patient=patient)
     return render(request, "patients/patient_detail.html", context)
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def document_rotate(request, pk, doc_pk):
+    """Turn a scanned card a quarter turn (when it was photographed sideways)."""
+    document = get_object_or_404(PatientDocument, pk=doc_pk, patient_id=pk)
+    if document.is_image:
+        with document.file.open("rb") as handle:
+            image = Image.open(handle)
+            image.load()
+        output = io.BytesIO()
+        image.convert("RGB").rotate(-90 if request.POST.get("way") != "left" else 90, expand=True).save(
+            output, "JPEG", quality=92)
+        old = document.file.name
+        document.file.save(os.path.basename(old).rsplit(".", 1)[0] + ".jpg", ContentFile(output.getvalue()), save=True)
+        document.file.storage.delete(old)
+    return redirect(reverse("patients:detail", args=[pk]))
 
 
 @role_required(*FRONT_DESK)
@@ -300,6 +389,8 @@ def document_upload(request, pk):
 def document_delete(request, pk, doc_pk):
     document = get_object_or_404(PatientDocument, pk=doc_pk, patient_id=pk)
     document.file.delete(save=False)
+    if document.original:
+        document.original.delete(save=False)
     document.delete()
     messages.success(request, _("Document deleted."))
     return redirect(reverse("patients:detail", args=[pk]) + "#documents")

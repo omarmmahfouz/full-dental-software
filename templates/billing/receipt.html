@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load i18n clinic static %}
+{% block title %}{{ payment.receipt_number }}{% endblock %}
+{% block content %}
+<div class="card mx-auto" style="max-width: 640px"><div class="card-body p-4">
+  <div class="text-center border-bottom pb-3 mb-3">
+    <img class="print-logo mb-2" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+    <div class="h5 fw-bold mb-0">{{ payment.patient.branch }}</div>
+    <div class="text-muted">{% trans "Payment receipt" %}</div>
+  </div>
+  <dl class="dl-grid fs-6">
+    <dt>{% trans "Receipt number" %}</dt><dd class="fw-bold">{{ payment.receipt_number }}</dd>
+    <dt>{% trans "Date" %}</dt><dd>{{ payment.paid_on|date:"d/m/Y" }}</dd>
+    <dt>{% trans "Received from" %}</dt><dd>{{ payment.patient.full_name }} — {{ payment.patient.file_number }}</dd>
+    {% if payment.charge %}<dt>{% trans "For" %}</dt><dd>{{ payment.charge.service }}</dd>{% endif %}
+    <dt>{% trans "Amount" %}</dt><dd class="fs-5 fw-bold">{{ payment.amount|money }} {{ CLINIC.CURRENCY }}</dd>
+    <dt>{% trans "Payment method" %}</dt><dd>{{ payment.get_method_display }}{% if payment.reference %} — {{ payment.reference }}{% endif %}</dd>
+    <dt>{% trans "Still to pay" %}</dt><dd>{{ account.balance|money }} {{ CLINIC.CURRENCY }}</dd>
+    {% if payment.notes %}<dt>{% trans "Notes" %}</dt><dd>{{ payment.notes }}</dd>{% endif %}
+    <dt>{% trans "Received by" %}</dt><dd>{{ payment.created_by|default:"—" }}</dd>
+  </dl>
+  <div class="mt-5 d-flex justify-content-between"><span>{% trans "Signature" %}: __________________</span><span>{% trans "Stamp" %}</span></div>
+</div></div>
+<div class="text-center mt-3 no-print d-flex justify-content-center gap-2">
+  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  <a class="btn btn-outline-secondary" href="{% url 'billing:account' payment.patient_id %}">{% trans "Patient account" %}</a>
+</div>
+{% endblock %}

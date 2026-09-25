@@ -17,7 +17,8 @@ from django.utils.translation import gettext_lazy
 from apps.charting.models import PhotoType
 from apps.clinical.models import Lab, LabWorkType, TreatmentStepType
 from apps.dentists.models import Dentist
-from apps.patients.models import MedicalCondition, ReferralSource
+from apps.billing.models import Service
+from apps.patients.models import MedicalCondition, OutReason, ReferralSource
 from apps.prescriptions.models import (
     Drug,
     DrugGroup,
@@ -30,10 +31,11 @@ from apps.scheduling.models import MessageTemplate, Room
 from apps.stock.models import StockCategory
 from apps.surgery.models import ImplantSystem
 
-from .access import AREAS
+from .access import AREA_LABELS, AREAS
 from .forms import BootstrapFormMixin, StyledForm, StyledModelForm
+from .widgets import TimeSelect, WeekdaysWidget
 from .mixins import role_required
-from .models import AreaAccess, Branch, ClinicSettings, UserProfile
+from .models import AreaAccess, Branch, ClinicSettings, PersonAreaAccess, UserProfile
 from .roles import HEAD_CIA, OWNER, ROLE_CHOICES
 
 LOOKUP = ["name_ar", "name_en", "sort_order", "is_active"]
@@ -43,8 +45,9 @@ LISTS = {
     "implant_systems": (gettext_lazy("Implant companies and types"), ImplantSystem, ["company", "line", "is_active"],
                         ["company", "line"], None, gettext_lazy("Clinical")),
     "treatment_types": (gettext_lazy("Treatments"), TreatmentStepType,
-                        ["name_ar", "name_en", "chart_effect", "surgery_procedure", "default_material", "sort_order",
-                         "is_active"], ["name_en", "name_ar", "chart_effect"], None, gettext_lazy("Clinical")),
+                        ["name_ar", "name_en", "description_ar", "chart_effect", "surgery_procedure", "default_material",
+                         "sort_order", "is_active"], ["name_en", "name_ar", "description_ar"], None,
+                        gettext_lazy("Clinical")),
     "photo_types": (gettext_lazy("Photo checklist"), PhotoType, ["stage", "name_ar", "name_en", "optional", "sort_order",
                                                                  "is_active"], ["stage", "name_en"], None,
                     gettext_lazy("Clinical")),
@@ -66,6 +69,11 @@ LISTS = {
     "medical_conditions": (gettext_lazy("Medical conditions"), MedicalCondition,
                            ["name_ar", "name_en", "is_alert", "sort_order", "is_active"], ["name_ar", "name_en"], None,
                            gettext_lazy("Reception")),
+    "services": (gettext_lazy("Paid services and prices"), Service, ["name_ar", "name_en", "price", "sort_order",
+                                                                   "is_active"], ["name_ar", "name_en", "price"], None,
+                 gettext_lazy("Reception")),
+    "out_reasons": (gettext_lazy("Reasons for a patient being out"), OutReason, LOOKUP, ["name_ar", "name_en"], None,
+                    gettext_lazy("Reception")),
     "labs": (gettext_lazy("Labs"), Lab, ["name", "name_en", "branch", "phone", "contact_person", "is_active"],
              ["name", "name_en", "phone"], None, gettext_lazy("Lab")),
     "lab_work_types": (gettext_lazy("Lab work types"), LabWorkType, LOOKUP, ["name_ar", "name_en"], None,
@@ -150,8 +158,10 @@ class BranchForm(StyledModelForm):
 class OptionsForm(StyledModelForm):
     class Meta:
         model = ClinicSettings
-        fields = ["late_threshold_minutes", "default_appointment_minutes", "complaint_follow_up_days",
-                  "stock_expiry_days", "reminder_days_before", "whatsapp_country_code"]
+        fields = ["day_start", "day_end", "default_appointment_minutes", "surgery_days", "late_threshold_minutes",
+                  "complaint_follow_up_days", "stock_expiry_days", "reminder_days_before", "whatsapp_country_code",
+                  "dicom_email"]
+        widgets = {"surgery_days": WeekdaysWidget}
 
 
 @role_required(OWNER)
@@ -186,9 +196,9 @@ class UserForm(StyledForm):
                                             required=False, widget=forms.CheckboxSelectMultiple,
                                             help_text=gettext_lazy("None ticked = every day."))
     access_start = forms.TimeField(label=gettext_lazy("from hour"), required=False,
-                                   widget=forms.TimeInput(attrs={"type": "time"}))
+                                   widget=TimeSelect())
     access_end = forms.TimeField(label=gettext_lazy("to hour"), required=False,
-                                 widget=forms.TimeInput(attrs={"type": "time"}))
+                                 widget=TimeSelect())
 
     fieldsets = [
         (gettext_lazy("Person"), ["username", "first_name", "roles", "is_active", "new_password", "dentist"]),
@@ -202,6 +212,14 @@ class UserForm(StyledForm):
         for name in ("username", "first_name", "new_password", "dentist", "access_from", "access_until",
                      "access_start", "access_end"):
             self.fields[name].col = "col-md-6"
+        choices = [("", gettext_lazy("As the role"))] + list(AreaAccess.Level.choices)
+        for code, label, _prefixes in AREAS:
+            field = forms.ChoiceField(label=label, choices=choices, required=False)
+            field.widget.attrs["class"] = "form-select form-select-sm"
+            field.col = "col-sm-6 col-lg-4"
+            self.fields[f"area__{code}"] = field
+        self.fieldsets = [*self.fieldsets, (gettext_lazy("Parts of the system for this person"),
+                                            [f"area__{code}" for code, _label, _prefixes in AREAS])]
 
     def clean_username(self):
         username = self.cleaned_data["username"].strip()
@@ -224,9 +242,12 @@ class UserForm(StyledForm):
 
 @role_required(OWNER)
 def user_list(request):
-    users = get_user_model().objects.prefetch_related("groups").select_related("profile").order_by("-is_active", "first_name")
+    users = (get_user_model().objects.prefetch_related("groups", "area_access").select_related("profile")
+             .order_by("-is_active", "first_name"))
     labels = dict(ROLE_CHOICES)
-    rows = [(u, [labels.get(g.name, g.name) for g in u.groups.all()], getattr(u, "profile", None)) for u in users]
+    rows = [(u, [labels.get(g.name, g.name) for g in u.groups.all()], getattr(u, "profile", None),
+             [(AREA_LABELS.get(rule.area, rule.area), rule.get_level_display()) for rule in u.area_access.all()])
+            for u in users]
     return render(request, "settings/users.html", {"rows": rows})
 
 
@@ -243,6 +264,7 @@ def user_edit(request, pk=None):
             "read_only": profile.read_only, "access_from": profile.access_from, "access_until": profile.access_until,
             "access_days": [d for d in profile.access_days.split(",") if d], "access_start": profile.access_start,
             "access_end": profile.access_end,
+            **{f"area__{rule.area}": rule.level for rule in PersonAreaAccess.objects.filter(user=target)},
         }
     form = UserForm(request.POST or None, user=target, initial=initial)
     if request.method == "POST" and form.is_valid():
@@ -267,6 +289,12 @@ def user_edit(request, pk=None):
             profile.access_start, profile.access_end = data["access_start"], data["access_end"]
             profile.branch = profile.branch or Branch.default()
             profile.save()
+            for code, _label, _prefixes in AREAS:
+                level = data.get(f"area__{code}")
+                if level:
+                    PersonAreaAccess.objects.update_or_create(user=target, area=code, defaults={"level": level})
+                else:
+                    PersonAreaAccess.objects.filter(user=target, area=code).delete()
             Dentist.objects.filter(user=target).exclude(pk=getattr(data["dentist"], "pk", None)).update(user=None)
             if data["dentist"]:
                 Dentist.objects.filter(pk=data["dentist"].pk).update(user=target)

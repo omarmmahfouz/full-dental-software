@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 from apps.clinical.models import TreatmentStep
 from apps.core.mixins import role_required
 from apps.core.models import UserProfile, branch_for_user
-from apps.core.roles import DENTIST, FRONT_DESK, OWNER, TEAM_HEAD, has_role
+from apps.core.roles import DENTIST, FRONT_DESK, HEAD_CIA, OWNER, TEAM_HEAD, has_role
 from apps.core.utils import normalize_phone
 from apps.patients.models import Patient
 from apps.surgery.models import Surgery, SurgerySite
@@ -119,7 +119,7 @@ def dentist_detail(request, pk):
     })
 
 
-@role_required(*FRONT_DESK)
+@role_required(OWNER, HEAD_CIA)
 def dentist_edit(request, pk=None):
     dentist = get_object_or_404(Dentist, pk=pk) if pk else None
     form = DentistForm(request.POST or None, instance=dentist)

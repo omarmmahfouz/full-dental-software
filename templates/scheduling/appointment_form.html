@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>{{ title }}</h1></div>
+<div class="card mb-3"><div class="card-body">
+  <form method="post" novalidate id="appointment-form">
+    {% csrf_token %}
+    {% include "includes/form_fields.html" %}
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+      <a class="btn btn-outline-secondary" href="{% firstof cancel_url request.META.HTTP_REFERER "/" %}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+<div class="card no-print"><div class="card-header"><i class="bi bi-calendar3-week"></i> {% trans "Appointments on this day" %} <span class="text-muted small" id="day-panel-date"></span>
+  <span class="small text-muted d-block">{% trans "Click a free (green) place to take its time, room and dentist." %}</span></div>
+  <div class="card-body p-2" id="day-panel" data-url="{% url 'scheduling:day_planner' %}?fragment=1"><div class="text-muted small p-2">{% trans "Choose the date to see the day." %}</div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var panel = document.getElementById("day-panel");
+  var dateInput = document.getElementById("id_scheduled_at_0");
+  var timeSelect = document.getElementById("id_scheduled_at_1");
+  if (!panel || !dateInput) return;
+  function load() {
+    var day = dateInput.value.trim();
+    if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day)) return;
+    document.getElementById("day-panel-date").textContent = "— " + day;
+    fetch(panel.getAttribute("data-url") + "&day=" + encodeURIComponent(day), { credentials: "same-origin" })
+      .then(function (r) { return r.text(); })
+      .then(function (html) { panel.innerHTML = html; });
+  }
+  dateInput.addEventListener("change", load);
+  load();
+  panel.addEventListener("click", function (event) {
+    var slot = event.target.closest(".daygrid-slot");
+    if (!slot) return;
+    event.preventDefault();
+    if (timeSelect) timeSelect.value = slot.getAttribute("data-time");
+    var room = document.getElementById("id_room");
+    if (room) room.value = slot.getAttribute("data-room");
+    var dentist = document.getElementById("id_dentist");
+    if (dentist && slot.getAttribute("data-dentist")) dentist.value = slot.getAttribute("data-dentist");
+    panel.querySelectorAll(".daygrid-slot.is-picked").forEach(function (el) { el.classList.remove("is-picked"); });
+    slot.classList.add("is-picked");
+    document.getElementById("appointment-form").scrollIntoView({ behavior: "smooth" });
+  });
+})();
+</script>
+{% endblock %}

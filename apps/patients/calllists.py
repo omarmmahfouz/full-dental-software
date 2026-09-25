@@ -10,6 +10,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
+from apps.clinical.models import TreatmentStepType
 from apps.core.forms import StyledForm
 from apps.core.mixins import role_required
 from apps.core.models import Notification, branch_for_user
@@ -84,9 +85,11 @@ def calllist_detail(request, pk):
         entries = entries.filter(outcome=CallListEntry.Outcome.PENDING)
     rows = [(e, EntryForm(initial={"outcome": e.outcome, "response": e.response}, prefix=f"e{e.pk}")) for e in entries]
     done, total = call_list.progress
+    reasons = " ".join(e.reason for e, _form in rows)
+    glossary = [t for t in TreatmentStepType.objects.exclude(description_ar="") if t.name_ar in reasons]
     return render(request, "patients/calllist_detail.html", {
         "call_list": call_list, "rows": rows, "done": done, "total": total,
-        "can_call": has_role(request.user, *FRONT_DESK),
+        "can_call": has_role(request.user, *FRONT_DESK), "glossary": glossary,
     })
 
 

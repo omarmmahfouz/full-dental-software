@@ -1,4 +1,4 @@
-{% if form.non_field_errors %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+{% load i18n %}{% if form.non_field_errors %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
 {% for hidden in form.hidden_fields %}{{ hidden }}{% if hidden.errors %}<div class="alert alert-danger">{{ hidden.errors }}</div>{% endif %}{% endfor %}
 {% if form.fieldsets %}
   {% for title, fields in form.bound_fieldsets %}
@@ -9,4 +9,16 @@
   {% endfor %}
 {% else %}
 <div class="row g-3">{% for field in form.visible_fields %}{% include "includes/field.html" %}{% endfor %}</div>
+{% endif %}
+{% if form.errors %}
+<div class="modal fade" tabindex="-1" aria-hidden="true" data-show-on-load>
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger">
+    <div class="modal-header bg-danger-subtle"><h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger"></i> {% trans "Not saved yet: please correct this" %}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button></div>
+    <div class="modal-body"><ul class="mb-0">
+      {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      {% for field in form %}{% for error in field.errors %}<li><b>{{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}
+    </ul></div>
+    <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">{% trans "OK" %}</button></div>
+  </div></div>
+</div>
 {% endif %}

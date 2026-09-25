@@ -101,7 +101,7 @@ A screenshot helps a lot.
     - "ماذا نقول للمرضى" shows what to tell them, and "السبب" shows why each patient is on the list.
     - Call a patient from the number shown, choose the result ("حجز موعد"، "لم يرد"...), write the patient's answer and save.
     - The green calendar button opens "حجز موعد" with the patient filled in.
-45. From a patient's dental chart, click "تعليمات بعد العملية". The instructions print in Arabic with the patient's name and the surgery.
+45. From a patient file, click "تعليمات بعد العملية". The instructions print in Arabic with the patient's name and the surgery.
 
 ## J. WhatsApp messages to patients
 For WhatsApp to open on the reception PC, install **WhatsApp Desktop** or open **WhatsApp Web** once with the clinic's WhatsApp number. On a phone or tablet, the WhatsApp app opens.
@@ -121,3 +121,17 @@ For WhatsApp to open on the reception PC, install **WhatsApp Desktop** or open *
 51. Every screen should be in Arabic, right to left, with the CIA logo and colours.
 52. Log out, then try to open a page. You should be sent to the login page.
 53. Log in as **dentist1**. The screens should be in **English**. They should **not** see the call list, patient registration, the academy or purchases. They see every patient and can read the complaints, but cannot record or edit them.
+
+## L. New in this version
+54. **Booking**: open "حجز موعد". In "المريض" type part of a name (e.g. احمد without the hamza) and choose from the list. Choose the date from the calendar (dd/mm/yyyy) and a time from the list (every 15 minutes). Under the form, the day's appointments show room by room; click a green place and the time, room and dentist fill in.
+55. Open "الجدول" → "جدول مواعيد اليوم". Each column is a room with its dentist; every patient is a block. The strip at the top shows each day of the week with the booked and free places. Next week is fully booked in the practice copy (9 to 5, a patient every 30 minutes).
+56. **Room schedule**: "إضافة نوبة". The CIA dentists are in "طبيب الأكاديمية", and supervisors, candidates and training dentists in the second list. Choose a Thursday: the day type becomes "يوم عمليات" by itself. Open the extra room from the button above the grid.
+57. **Patient file** of a patient with a plan: the tabs "خطة العلاج" and "خطوات العلاج" explain each treatment and each tooth in Arabic. The missing teeth show "من مخطط الأسنان". There is no dental chart or treatment log for the secretary.
+58. Click "تعديل", change the second mobile and save: the change goes to the head of CIA. Log in as **headcia**: the ✓ icon at the top shows 2 changes waiting; approve one.
+59. On a past appointment, open "نسيت الضغط على زر؟ صحّح الأوقات", correct the leaving time and send it for approval.
+60. Register a patient with a mobile of 10 digits: a box pops up with the error. Type the mobile of another patient: the box names that patient. Upload a photo of an ID card on a table: the file shows the card cut out; turn it with the arrows if needed.
+61. Write an old date in "تاريخ فتح الملف" for an old paper file. Change a patient's status to "خروج" without a reason: it asks for the reason.
+62. **Payments**: on a patient file click "الحساب والمدفوعات". Add "كشف" with 100% discount (write the reason), add "أشعة مقطعية CBCT", then pay part of it. The receipt prints with what is left. "المرضى" → "مدفوعات المرضى" shows the day's collections.
+63. **CBCT / blood tests**: on a patient file, "أشعة مقطعية / تحاليل" → "طلب أشعة مقطعية": choose the area and print. The request asks the centre to send the DICOM files to ciapts@gmail.com. Do the same for a blood test request.
+64. **Academy**: "الأكاديمية" → "أقساط الشهر" shows what each candidate pays this month, with a WhatsApp reminder button. Log in as **secretary2**: the academy is not in her menu (set in Settings → People and logins).
+65. Every page has a "رجوع" (Back) button at the top.

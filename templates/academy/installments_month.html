@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Installments of the month" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-calendar2-month"></i> {% trans "Installments of the month" %} — {{ month|date:"F Y" }}</h1>
+  <div class="d-flex gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="?month={{ prev_month|date:'Y-m' }}"><i class="bi bi-chevron-right"></i> {{ prev_month|date:"F" }}</a>
+    <a class="btn btn-outline-primary" href="?">{% trans "This month" %}</a>
+    <a class="btn btn-outline-secondary" href="?month={{ next_month|date:'Y-m' }}">{{ next_month|date:"F" }} <i class="bi bi-chevron-left"></i></a>
+    <a class="btn btn-outline-danger" href="{% url 'academy:overdue' %}"><i class="bi bi-exclamation-triangle"></i> {% trans "Overdue installments" %}</a>
+  </div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">{% trans "Due this month" %}</div><div class="fs-4 fw-bold">{{ totals.expected|money }} {{ CLINIC.CURRENCY }}</div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">{% trans "Collected" %}</div><div class="fs-4 fw-bold text-success">{{ totals.paid|money }} {{ CLINIC.CURRENCY }}</div></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">{% trans "Still to collect" %}</div><div class="fs-4 fw-bold text-danger">{{ totals.remaining|money }} {{ CLINIC.CURRENCY }}</div></div></div></div>
+</div>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+  <thead><tr><th>{% trans "Due date" %}</th><th>{% trans "Candidate" %}</th><th>{% trans "Course" %}</th><th>{% trans "Installment" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Left" %}</th><th>{% trans "Status" %}</th><th class="no-print">{% trans "WhatsApp" %}</th></tr></thead>
+  <tbody>
+  {% for row in rows %}
+  <tr>
+    <td class="nowrap">{{ row.installment.due_date|date:"d/m/Y" }}</td>
+    <td><a class="fw-semibold" href="{{ row.enrollment.get_absolute_url }}">{{ row.enrollment.candidate }}</a><div class="small text-muted ltr">{{ row.enrollment.candidate.whatsapp|default:row.enrollment.candidate.phone_primary }}</div></td>
+    <td>{{ row.enrollment.course.code }} <span class="small text-muted">{{ row.enrollment.get_study_mode_display }}</span></td>
+    <td>#{{ row.installment.number }} — {{ row.installment.amount|money }}</td>
+    <td class="text-success">{{ row.paid|money }}</td>
+    <td class="fw-bold{% if row.remaining %} text-danger{% endif %}">{{ row.remaining|money }}</td>
+    <td><span class="badge text-bg-{{ row.state|status_color }}">{% if row.state == "paid" %}{% trans "Paid" %}{% elif row.state == "overdue" %}{% trans "Late" %}{% elif row.state == "partial" %}{% trans "Partly paid" %}{% else %}{% trans "Due" %}{% endif %}</span></td>
+    <td class="no-print nowrap">{% include "academy/_installment_whatsapp.html" %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No installments due this month." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% endblock %}

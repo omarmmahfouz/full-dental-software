@@ -80,3 +80,31 @@ class InstallmentTests(TestCase):
     def test_dentist_has_no_access(self):
         self.client.login(username="dentist", password=PASSWORD)
         self.assertEqual(self.client.get("/academy/candidates/").status_code, 403)
+
+
+class InstallmentReminderTests(TestCase):
+    def test_monthly_list_and_whatsapp_reminder(self):
+        from datetime import date as day
+        from urllib.parse import unquote
+
+        from apps.academy.models import Enrollment, Installment
+        from apps.scheduling.models import SentMessage
+
+        branch = setup_clinic()
+        make_user("sec", "secretary")
+        course = Course.objects.create(branch=branch, name="Implant diploma", code="IMP-1", fee=Decimal("30000"),
+                                       start_date=day(2026, 1, 1))
+        candidate = Candidate.objects.create(code="C-1", full_name="د. أحمد", phone_primary="01001234567")
+        enrollment = Enrollment.objects.create(candidate=candidate, course=course, agreed_fee=Decimal("30000"),
+                                               study_mode=Enrollment.StudyMode.ONLINE)
+        today = timezone.localdate()
+        installment = Installment.objects.create(enrollment=enrollment, number=1, due_date=today, amount=Decimal("5000"))
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/academy/installments/")
+        self.assertEqual(page.context["totals"]["remaining"], Decimal("5000"))
+        response = self.client.post(f"/academy/installments/{installment.pk}/whatsapp/")
+        text = unquote(response["Location"].split("text=", 1)[1])
+        self.assertIn("5,000", text)
+        self.assertIn("د. أحمد", text)
+        self.assertEqual(SentMessage.objects.get().installment, installment)
+        self.assertEqual(len(self.client.get("/schedule/whatsapp/").context["installments"]), 1)

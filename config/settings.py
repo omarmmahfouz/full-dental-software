@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "apps.surgery",
     "apps.complaints",
     "apps.academy",
+    "apps.billing",
     "apps.purchasing",
     "apps.stock",
     "apps.prescriptions",
@@ -211,7 +212,7 @@ CLINIC = {
     # A patient arriving more than this many minutes after the appointment is "late".
     "LATE_THRESHOLD_MINUTES": int(env("LATE_THRESHOLD_MINUTES", "10")),
     # Default appointment length used when the secretary does not set one.
-    "DEFAULT_APPOINTMENT_MINUTES": int(env("DEFAULT_APPOINTMENT_MINUTES", "60")),
+    "DEFAULT_APPOINTMENT_MINUTES": int(env("DEFAULT_APPOINTMENT_MINUTES", "30")),
     # Days a complaint may stay without follow-up before it is flagged overdue.
     "COMPLAINT_FOLLOW_UP_DAYS": int(env("COMPLAINT_FOLLOW_UP_DAYS", "2")),
     # Branch code used when a user has no branch assigned.

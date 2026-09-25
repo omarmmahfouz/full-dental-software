@@ -1,3 +1,5 @@
+from datetime import time
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -136,7 +138,12 @@ class ClinicSettings(models.Model):
 
     late_threshold_minutes = models.PositiveSmallIntegerField(
         _("a patient is late after (minutes)"), default=10)
-    default_appointment_minutes = models.PositiveSmallIntegerField(_("usual appointment length (minutes)"), default=60)
+    default_appointment_minutes = models.PositiveSmallIntegerField(_("usual appointment length (minutes)"), default=30)
+    day_start = models.TimeField(_("appointments start at"), default=time(9))
+    day_end = models.TimeField(_("appointments end at"), default=time(17))
+    surgery_days = models.CharField(
+        _("usual surgery days"), max_length=20, blank=True, default="3,4",
+        help_text=_("A new shift on these days is a surgery day unless you change it."))
     complaint_follow_up_days = models.PositiveSmallIntegerField(_("follow up a complaint within (days)"), default=2)
     stock_expiry_days = models.PositiveSmallIntegerField(_("warn about stock expiring within (days)"), default=60)
     reminder_days_before = models.PositiveSmallIntegerField(
@@ -144,6 +151,9 @@ class ClinicSettings(models.Model):
     whatsapp_country_code = models.CharField(
         _("country code for WhatsApp"), max_length=4, default="20",
         help_text=_("20 for Egypt. Mobiles written as 010... are sent as 2010..."))
+    dicom_email = models.EmailField(
+        _("e-mail for CBCT files"), blank=True, default="ciapts@gmail.com",
+        help_text=_("Printed on CBCT requests: the centre sends the DICOM files here."))
 
     class Meta:
         verbose_name = _("clinic options")
@@ -152,11 +162,15 @@ class ClinicSettings(models.Model):
     def __str__(self):
         return str(_("Clinic options"))
 
+    @property
+    def surgery_weekdays(self):
+        return {int(day) for day in self.surgery_days.split(",") if day.strip().isdigit()}
+
     @classmethod
     def get(cls):
         defaults = {
             "late_threshold_minutes": settings.CLINIC.get("LATE_THRESHOLD_MINUTES", 10),
-            "default_appointment_minutes": settings.CLINIC.get("DEFAULT_APPOINTMENT_MINUTES", 60),
+            "default_appointment_minutes": settings.CLINIC.get("DEFAULT_APPOINTMENT_MINUTES", 30),
             "complaint_follow_up_days": settings.CLINIC.get("COMPLAINT_FOLLOW_UP_DAYS", 2),
         }
         return cls.objects.get_or_create(pk=1, defaults=defaults)[0]
@@ -182,6 +196,65 @@ class AreaAccess(models.Model):
 
     def __str__(self):
         return f"{self.role} / {self.area}: {self.level}"
+
+
+class PersonAreaAccess(models.Model):
+    """One person's access to one part of the system, instead of what their roles give there,
+    e.g. only some secretaries work with the academy. It never goes beyond what the role allows."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="area_access")
+    area = models.CharField(_("part of the system"), max_length=30)
+    level = models.CharField(_("access"), max_length=10, choices=AreaAccess.Level.choices)
+
+    class Meta:
+        verbose_name = _("access of a person")
+        verbose_name_plural = _("access of people")
+        constraints = [models.UniqueConstraint(fields=["user", "area"], name="unique_person_area_access")]
+
+    def __str__(self):
+        return f"{self.user} / {self.area}: {self.level}"
+
+
+class ChangeRequest(models.Model):
+    """A change the reception asked for (patient data, a visit's times) that waits for the head
+    of CIA. Nothing changes until it is approved; every request is kept."""
+
+    class Kind(models.TextChoices):
+        PATIENT = "patient", _("Patient data")
+        VISIT_TIMES = "visit_times", _("Visit times")
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Waiting for approval")
+        APPROVED = "approved", _("Approved")
+        REJECTED = "rejected", _("Rejected")
+
+    kind = models.CharField(_("change of"), max_length=20, choices=Kind.choices)
+    content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    title = models.CharField(_("record"), max_length=200)
+    changes = models.JSONField(_("changes"), default=list)  # [{"field", "label", "old", "new", "value"}]
+    reason = models.CharField(_("why"), max_length=255, blank=True)
+    status = models.CharField(_("status"), max_length=10, choices=Status.choices, default=Status.PENDING, db_index=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("asked by"), null=True,
+                                     on_delete=models.SET_NULL, related_name="+")
+    requested_at = models.DateTimeField(_("asked at"), default=timezone.now)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("decided by"), null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="+")
+    decided_at = models.DateTimeField(_("decided at"), null=True, blank=True)
+    decision_note = models.CharField(_("note"), max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+        verbose_name = _("change waiting for approval")
+        verbose_name_plural = _("changes waiting for approval")
+        indexes = [models.Index(fields=["content_type", "object_id"])]
+
+    def __str__(self):
+        return f"{self.get_kind_display()}: {self.title}"
+
+    @property
+    def target(self):
+        return self.content_type.get_object_for_this_type(pk=self.object_id)
 
 
 class Notification(models.Model):

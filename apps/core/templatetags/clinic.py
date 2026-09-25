@@ -67,6 +67,7 @@ STATUS_COLORS = {
     "received": "success", "delivered": "dark",
     # complaints
     "open": "danger", "in_progress": "warning", "resolved": "success", "closed": "secondary",
+    "out": "danger",
     # patients / enrollments
     "active": "success", "finished": "dark", "inactive": "secondary", "withdrawn": "secondary",
     # installments
@@ -100,3 +101,44 @@ def get_item(mapping, key):
 def attr(obj, name):
     """{{ site|attr:"extraction" }} — read an attribute whose name is in a variable."""
     return getattr(obj, str(name), None)
+
+
+@register.filter
+def teeth_explained(text):
+    """For Arabic pages: each tooth number with its plain Arabic name (empty list in English)."""
+    from django.utils.translation import get_language
+
+    from apps.charting.teeth import teeth_explained_ar
+
+    if not text or not (get_language() or "").startswith("ar"):
+        return []
+    return teeth_explained_ar(text)
+
+
+@register.filter
+def explain(step_type):
+    """The simple Arabic explanation of a treatment, on Arabic pages only."""
+    from django.utils.translation import get_language
+
+    if step_type is None or not (get_language() or "").startswith("ar"):
+        return ""
+    return getattr(step_type, "description_ar", "")
+
+
+@register.filter
+def teeth_in_text(text):
+    """For Arabic pages: the tooth numbers found in a sentence ("Guided implant 36, 46"), each with its name."""
+    import re
+
+    from django.utils.translation import get_language
+
+    from apps.charting.teeth import tooth_name_ar
+
+    if not text or not (get_language() or "").startswith("ar"):
+        return []
+    found = []
+    for number in re.findall(r"(?<!\d)([1-8][1-8])(?!\d)", str(text)):
+        name = tooth_name_ar(number)
+        if name and (number, name) not in found:
+            found.append((number, name))
+    return found

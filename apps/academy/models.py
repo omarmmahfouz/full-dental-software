@@ -116,11 +116,16 @@ class Enrollment(TimeStampedModel):
         COMPLETED = "completed", _("Completed")
         WITHDRAWN = "withdrawn", _("Withdrawn")
 
+    class StudyMode(models.TextChoices):
+        OFFLINE = "offline", _("In the academy (offline)")
+        ONLINE = "online", _("Online")
+
     candidate = models.ForeignKey(
         Candidate, verbose_name=_("candidate"), on_delete=models.PROTECT, related_name="enrollments"
     )
     course = models.ForeignKey(Course, verbose_name=_("course"), on_delete=models.PROTECT, related_name="enrollments")
     enrolled_on = models.DateField(_("enrollment date"), default=timezone.localdate)
+    study_mode = models.CharField(_("attends"), max_length=10, choices=StudyMode.choices, default=StudyMode.OFFLINE)
     agreed_fee = models.DecimalField(
         _("agreed fee"), max_digits=10, decimal_places=2, validators=[MinValueValidator(0)]
     )

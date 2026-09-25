@@ -3,6 +3,7 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-person-vcard"></i> {{ title }}</h1></div>
+{% if intro %}<div class="alert alert-warning small"><i class="bi bi-hourglass-split"></i> {{ intro }}</div>{% endif %}
 {% if lead %}<div class="alert alert-info"><i class="bi bi-telephone"></i> {% blocktrans with name=lead.full_name %}Data copied from the call list ({{ name }}). Complete the ID data and scan the ID card.{% endblocktrans %}</div>{% endif %}
 <div class="card"><div class="card-body">
   <form method="post" enctype="multipart/form-data" novalidate>

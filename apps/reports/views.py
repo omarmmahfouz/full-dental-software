@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.academy.models import Course, Enrollment, Payment, PaymentMethod
+from apps.billing.models import Charge, PatientPayment, account
 from apps.clinical.models import LabRequest, TreatmentStep
 from apps.complaints.models import Complaint
 from apps.core.forms import DateRangeForm
@@ -292,6 +293,17 @@ def money_report(request):
     spent_by_supplier = list(
         items.values("purchase__supplier__name").annotate(total=Sum(line_total)).order_by("-total")[:15]
     )
+    patient_payments = PatientPayment.objects.filter(paid_on__range=(date_from, date_to))
+    charges = Charge.objects.filter(charged_on__range=(date_from, date_to)).select_related("service")
+    by_service = {}
+    for charge in charges:
+        row = by_service.setdefault(str(charge.service), {"service": str(charge.service), "count": 0,
+                                                          "price": Decimal("0"), "discount": Decimal("0")})
+        row["count"] += 1
+        row["price"] += charge.price
+        row["discount"] += charge.discount_amount
+    patients_owe = sum((max(account(p)["balance"], Decimal("0"))
+                        for p in Patient.objects.filter(charges__isnull=False).distinct()), Decimal("0"))
     return render(
         request,
         "reports/money.html",
@@ -305,6 +317,11 @@ def money_report(request):
             "spent_by_category": spent_by_category,
             "spent_by_kind": spent_by_kind,
             "spent_by_supplier": spent_by_supplier,
+            "patient_collected": patient_payments.aggregate(total=Sum("amount"))["total"] or Decimal("0"),
+            "patient_by_method": [(method_labels[row["method"]], row["total"]) for row in
+                                  patient_payments.values("method").annotate(total=Sum("amount")).order_by("-total")],
+            "services": sorted(by_service.values(), key=lambda row: -row["price"]),
+            "patients_owe": patients_owe,
         },
     )
 

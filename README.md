@@ -25,7 +25,7 @@ The language follows the person, not the PC:
 | Head of CIA | `head_cia` | everything except the money report; in the settings, the lists (implant companies, treatments, drugs…) but not logins or access |
 | Head of the CIA dentists team | `team_head` | what a CIA dentist sees, plus the follow-up report of the **CIA dentists** (not the candidates) and the treatment plan finder |
 | CIA dentists (full or part time) | `dentist` | every patient, the complaints (read only), **only their own schedule**, and their cases. They record the clinical work: their own, and the course candidates' work, choosing the candidate's and the supervisor's names. In surgery they are usually the **assistant** |
-| Secretary (reception) | `secretary` | reception, patients, schedule, **WhatsApp messages**, lab send / receive, complaints, academy, purchases, and the **patients to call** lists |
+| Secretary (reception) | `secretary` | reception, patients, the **day planner**, WhatsApp messages, **patient payments**, lab send / receive, CBCT and blood test requests, complaints, academy (if allowed in Settings), purchases, and the **patients to call** lists. Not the dental chart, treatment log or surgeries: the patient file shows her the plan and the treatments done, in plain Arabic. Her edits of patient data and visit times wait for the head of CIA's approval |
 | Stock manager | `stock` | the stock of materials, instruments, food and beverage, and purchases |
 | Supervisors | no login for now | chosen by name: on treatments, surgeries, plans and lab requests |
 | Course candidates | **no login** | followed through their dentist file: batch, payments, implants done and remaining, every case |
@@ -80,9 +80,25 @@ The language follows the person, not the PC:
   - Follow-up timeline with next-follow-up dates, and reminders when a complaint is overdue.
 - **Course candidates and installments**:
   - Courses, candidates, and enrollment with a discount.
-  - A down payment plus a monthly installment plan.
+  - A down payment plus a monthly installment plan. Each enrollment is **in the academy (offline) or online**.
+  - **Installments of the month**: what each candidate pays this month, what is collected and what is left, with a **WhatsApp reminder** button (also on the overdue list and the WhatsApp page).
   - Each payment records the **payment method**: cash, card, InstaPay, mobile wallet, bank transfer or cheque, with the transaction reference.
   - Printable receipts, and an overdue installments list.
+- **Easier booking** (new):
+  - Type part of the patient's **name** (any spelling of أ/ا, ة/ه, ى/ي), mobile or file number, and choose from the list.
+  - Every date is **dd/mm/yyyy**, from a calendar or typed. Times are chosen in **15-minute steps** (9:00, 9:15, 9:30…).
+  - Under the form, the **day's appointments** room by room: click a free (green) place and its time, room and dentist are filled in.
+  - **Schedule → Day planner**: one column per room with the dentist working there, 15-minute steps, every booked patient, and the week at the top (booked and free places per day).
+- **Room schedule** (new): CIA dentists in one list, and supervisors, candidates and training dentists in a second list. Thursday and Friday are surgery days by default (changeable in Settings). A surgery day is set per room, so one room can have a candidate's surgery while the others work as usual. **Extra rooms** appear only on the days they are opened. "Same as last week" fills the week with last week's timetable.
+- **Patient file** (new):
+  - The **ID scan** is cut out of the background, turned upright and shown as a card; the original photo is kept, and it can be turned by hand.
+  - **File opened on** for old paper files, a list of all **governorates**, patients labelled **out** with a reason, and the call list sorted by the **first-call date**.
+  - Mobiles with the wrong number of digits are refused, and duplicates name the other patient, in a **pop-up**.
+  - **Treatment plan** and **treatment steps** tabs in plain Arabic, with a simple explanation of each treatment and each tooth number (36 = الضرس الأول السفلي الأيسر). The **missing teeth** and the **medical history** follow the dentist's chart and examination.
+  - Editing the data, or correcting forgotten arrival / room / leaving times, is sent to the **head of CIA for approval**.
+- **Patient payments** (new): services from a price list (CBCT, consultation, implant…), discounts up to 100% with the reason, payment in parts, receipts, and the day's collections by payment method.
+- **CBCT and blood test requests** (new), printed for the patient to take. The CBCT request asks the centre to send the DICOM files to **ciapts@gmail.com** (changeable in Settings).
+- **Back** button on every page.
 - **Purchases**:
   - Dental and non-dental purchases from different suppliers.
   - Each item goes under a category (tea/coffee, stationery, food/candies, cleaning, implants, consumables…).
@@ -180,7 +196,7 @@ What dentists do:
 
 ### Settings: change the system without changing the program (owner)
 User menu → **Settings**.
-- **Lists** (the owner and the head of CIA):
+- **Lists** (the owner and the head of CIA) — new: paid services and prices, reasons for a patient being out, and a simple Arabic explanation for each treatment:
   - implant companies and types
   - treatments (with what each one does to the dental chart)
   - the photo checklist
@@ -200,6 +216,8 @@ User menu → **Settings**.
   - **from hour / to hour**, e.g. 9:00 to 21:00
 
   Outside these times the login is refused. Anyone already logged in is logged out on their next click.
+- **Parts of the system for one person** (new): on a person's page, choose for each part "as the role", normal, read only or no access, e.g. only some secretaries work with the academy.
+- **Clinic options** (new): appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, and the e-mail for CBCT files.
 - **Access by role**: make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for a role.
   - It can only take access away, never give more than the role normally has.
   - When a person has two roles and either is limited in a part, the person is limited there.
@@ -231,6 +249,7 @@ This makes a **practice copy on your PC** with sample data: patients, visits, la
    | `teamhead` | head of the CIA dentists team (also a CIA dentist) | English |
    | `dentist1`, `dentist2` | CIA dentists | English |
    | `secretary` | secretary | Arabic |
+   | `secretary2` | a second secretary who does not work with the academy | Arabic |
    | `stock` | stock manager | Arabic |
 
    The 4 course candidates (batch IMP-2026-A), the training dentist and the supervisors have no login, as agreed.

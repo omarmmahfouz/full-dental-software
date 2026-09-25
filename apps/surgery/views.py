@@ -8,7 +8,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -18,9 +18,9 @@ from apps.charting.rules import apply_changes, plan_changes
 from apps.clinical.models import ChartEffect, TreatmentStepType
 from apps.core.mixins import role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import CLINICAL, HEAD_CIA, MANAGEMENT, OWNER, PATIENT_VIEWERS, has_role, is_only_dentist
+from apps.core.roles import CLINICAL, HEAD_CIA, MANAGEMENT, OWNER, has_role, is_only_dentist
 from apps.dentists.models import Dentist
-from apps.patients.access import get_visible_patient_or_403, visible_patients
+from apps.patients.access import get_clinical_patient_or_403, visible_patients
 
 from .finder import FinderForm, SiteFacts, export_csv, filter_sites, statistics
 from .forms import ImplantUpdateForm, SurgeryForm, SurgerySiteFormSet
@@ -77,7 +77,7 @@ def _can_edit_surgery(user, surgery):
 
 # ------------------------------------------------------------ surgeries
 def surgery_list(request):
-    if not has_role(request.user, *PATIENT_VIEWERS):
+    if not has_role(request.user, *CLINICAL):
         raise PermissionDenied
     qs = Surgery.objects.select_related("patient", "operator_1", "operator_2", "instructor").prefetch_related("sites")
     if is_only_dentist(request.user):
@@ -143,7 +143,7 @@ def surgery_detail(request, pk):
     surgery = get_object_or_404(
         Surgery.objects.select_related("patient", "instructor", "operator_1", "operator_2", "assistant"), pk=pk
     )
-    get_visible_patient_or_403(request.user, surgery.patient_id)
+    get_clinical_patient_or_403(request.user, surgery.patient_id)
     sites = list(surgery.sites.select_related("implant_system"))
     return render(request, "surgery/surgery_detail.html", {
         "surgery": surgery, "sites": sites, "procedures": SurgerySite.PROCEDURES,
@@ -156,7 +156,7 @@ def surgery_detail(request, pk):
 # ------------------------------------------------------------ implants
 def implant_detail(request, pk):
     site = get_object_or_404(SurgerySite.objects.select_related("surgery__patient", "implant_system"), pk=pk)
-    patient = get_visible_patient_or_403(request.user, site.surgery.patient_id)
+    patient = get_clinical_patient_or_403(request.user, site.surgery.patient_id)
     can_edit = has_role(request.user, *CLINICAL)
     form = ImplantUpdateForm(request.POST or None, instance=site) if can_edit else None
     if request.method == "POST":
@@ -203,15 +203,18 @@ def finder(request):
     saved = SavedSearch.objects.filter(Q(owner=request.user) | Q(shared=True))
     quick = [(label, urlencode(query, doseq=True)) for label, query in QUICK_SEARCHES]
     reasons = {}
-    for site in facts.sites:
-        text = f"{site.tooth} {site.get_implant_status_display() or ', '.join(site.procedure_labels())}"
-        reasons.setdefault(site.surgery.patient, []).append(text)
+    with translation.override("ar"):  # the reasons and the title are read by the reception
+        for site in facts.sites:
+            text = f"{site.tooth} {site.get_implant_status_display() or '، '.join(site.procedure_labels())}"
+            reasons.setdefault(site.surgery.patient, []).append(text)
+        status_labels = [str(label) for code, label in SurgerySite.ImplantStatus.choices
+                         if code in (data.get("status") or [])]
+        call_title = (_("Implant cases: %(what)s") % {"what": "، ".join(status_labels)}
+                      if status_labels else str(_("Implant cases")))
     call_rows = [(patient, "; ".join(texts)) for patient, texts in reasons.items()]
-    status_labels = [label for code, label in SurgerySite.ImplantStatus.choices if code in (data.get("status") or [])]
     return render(request, "surgery/finder.html", {
         "call_rows": call_rows,
-        "call_title": _("Implant cases: %(what)s") % {"what": ", ".join(str(s) for s in status_labels)}
-        if status_labels else _("Implant cases"),
+        "call_title": call_title,
         "form": form, "page_obj": page, "overall": overall, "groups": groups, "query": params.urlencode(),
         "saved": saved, "quick": quick, "group_label": dict(form.fields["group_by"].choices).get(data.get("group_by")),
         "group_label_2": dict(form.fields["group_by_2"].choices).get(data.get("group_by_2")),

@@ -24,6 +24,10 @@ DEFAULT_TEXTS = {
         "أهلًا {patient}، افتقدناك في موعدك يوم {date} في {clinic}. نتمنى أن تكون بخير.\n"
         "برجاء الاتصال بنا على {phone} أو الرد على هذه الرسالة لتحديد موعد جديد."
     ),
+    MessageTemplate.Kind.INSTALLMENT: (
+        "أهلًا {candidate}، نذكّرك بقسط {course} بقيمة {amount} جنيه المستحق يوم {date}.\n"
+        "المتبقي من المصروفات: {balance} جنيه. للاستفسار: {phone} — {clinic}."
+    ),
 }
 
 
@@ -62,12 +66,38 @@ def message_text(kind, appointment):
             "day": formats.date_format(when, "l"),
             "date": when.strftime("%d/%m/%Y"),
             "time": formats.time_format(when, "g:i A"),
-            "dentist": str(appointment.dentist or ""),
+            "dentist": (appointment.dentist.name_ar or appointment.dentist.full_name) if appointment.dentist else "",
             "clinic": branch.name_ar if branch else "",
             "phone": branch.phone if branch else "",
             "address": branch.address if branch else "",
         }
     return text.format_map(_Keep(values))
+
+
+def installment_text(row, enrollment):
+    """``row`` is one line of ``enrollment.installment_schedule()``."""
+    template = MessageTemplate.objects.filter(kind=MessageTemplate.Kind.INSTALLMENT, is_active=True).first()
+    text = template.text if template else DEFAULT_TEXTS[MessageTemplate.Kind.INSTALLMENT]
+    branch = enrollment.course.branch or Branch.default()
+    values = {
+        "candidate": enrollment.candidate.full_name,
+        "course": enrollment.course.name,
+        "amount": f"{row['remaining']:,.0f}",
+        "date": row["installment"].due_date.strftime("%d/%m/%Y"),
+        "balance": f"{enrollment.balance:,.0f}",
+        "clinic": branch.name_ar if branch else "",
+        "phone": branch.phone if branch else "",
+    }
+    return text.format_map(_Keep(values))
+
+
+def record_installment(row, enrollment, user):
+    candidate = enrollment.candidate
+    phone = candidate.whatsapp or candidate.phone_primary
+    text = installment_text(row, enrollment)
+    SentMessage.objects.create(installment=row["installment"], kind=MessageTemplate.Kind.INSTALLMENT, phone=phone,
+                               text=text, sent_by=user)
+    return whatsapp_url(phone, text)
 
 
 def whatsapp_url(phone, text):

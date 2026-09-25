@@ -1,12 +1,14 @@
 from django.conf import settings
 
-from .models import branch_for_user
+from .models import ChangeRequest, branch_for_user
 from .roles import (
     ALL_ROLES,
     CLINICAL,
     DENTISTS,
     FRONT_DESK,
+    HEAD_CIA,
     MANAGEMENT,
+    OWNER,
     PATIENT_VIEWERS,
     PURCHASE_ROLES,
     STOCK_ROLES,
@@ -44,6 +46,8 @@ def app_context(request):
         context["read_only_here"] = (levels.get(area_of(request.path)) or levels.get("*")) == "read"
         context["can_stock"] = context["can_stock"] and "stock" not in context["hidden_areas"]
         context["can_purchase"] = context["can_purchase"] and "purchases" not in context["hidden_areas"]
+        if roles & {OWNER, HEAD_CIA}:
+            context["pending_approvals"] = ChangeRequest.objects.filter(status=ChangeRequest.Status.PENDING).count()
         if roles & set(DENTISTS + (SUPERVISOR,)):
             from apps.dentists.models import Dentist
 

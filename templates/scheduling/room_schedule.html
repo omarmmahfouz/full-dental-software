@@ -11,25 +11,28 @@
     {% if roles.dentist and not only_dentist %}<a class="btn btn-outline-primary" href="?week={{ week|date:'Y-m-d' }}{% if not only_mine %}&mine=1{% endif %}">{% if only_mine %}{% trans "Show all" %}{% else %}{% trans "Only my shifts" %}{% endif %}</a>{% endif %}
     {% if can_edit %}
     <form method="post" action="{% url 'scheduling:copy_week' %}">{% csrf_token %}<input type="hidden" name="week" value="{{ week|date:'Y-m-d' }}">
-      <button class="btn btn-outline-primary" data-confirm="{% trans 'Copy all shifts of the previous week into this week?' %}"><i class="bi bi-copy"></i> {% trans "Copy previous week" %}</button></form>
+      <button class="btn btn-outline-primary" title="{% trans 'Most weeks are the same: this fills this week with last week’s dentists, rooms and hours, so you only change what is different.' %}" data-confirm="{% trans 'Fill this week with the same dentists, rooms and hours as last week? Shifts that clash with ones already here are skipped.' %}"><i class="bi bi-copy"></i> {% trans "Same as last week" %}</button></form>
     <a class="btn btn-primary" href="{% url 'scheduling:shift_create' %}"><i class="bi bi-plus-lg"></i> {% trans "Add shift" %}</a>
     {% endif %}
   </div>
 </div>
+{% if can_edit %}<p class="small text-muted no-print mb-2"><i class="bi bi-info-circle"></i> {% trans "“Same as last week” copies last week’s shifts (who works in which room, the hours and the supervisor) into this week, so a weekly timetable is typed only once. A surgery day is set per room: one room can have a surgery while the others work a regular day." %}</p>{% endif %}
+{% if can_edit and extra_rooms %}<div class="small mb-2 no-print"><i class="bi bi-door-open"></i> {% trans "Extra rooms (open on busy days):" %}
+  {% for room in extra_rooms %}<a class="btn btn-sm btn-outline-secondary ms-1" href="{% url 'scheduling:shift_create' %}?room={{ room.pk }}"><i class="bi bi-plus-lg"></i> {{ room }}</a>{% endfor %}</div>{% endif %}
 <div class="card"><div class="table-responsive">
 <table class="table table-bordered schedule-grid mb-0">
   <thead><tr><th>{% trans "Room" %}</th>{% for d in days %}<th class="{% if d == today %}today-col{% endif %}">{{ d|date:"l" }}<br><span class="fw-normal small">{{ d|date:"d/m" }}</span></th>{% endfor %}</tr></thead>
   <tbody>
   {% for room, cells in rows %}
   <tr>
-    <th class="text-nowrap">{{ room }}</th>
+    <th class="text-nowrap">{{ room }}{% if room.is_extra %}<div class="small fw-normal text-muted">{% trans "extra room" %}</div>{% endif %}</th>
     {% for day, shifts in cells %}
     <td class="{% if day == today %}today-col{% endif %}">
       {% for s in shifts %}
       <span class="shift-chip{% if s.day_type == 'surgery' %} shift-surgery{% endif %}">
         {% if s.day_type == "surgery" %}<span class="badge text-bg-danger mb-1"><i class="bi bi-scissors"></i> {% trans "Surgery day" %}</span><br>{% endif %}
         {% if can_edit %}<a href="{% url 'scheduling:shift_update' s.pk %}" class="text-decoration-none">{% endif %}<strong>{{ s.dentist }}</strong>{% if can_edit %}</a>{% endif %}
-        <br><span class="ltr">{{ s.start_time|time:"H:i" }} - {{ s.end_time|time:"H:i" }}</span>
+        <br><span>{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
         {% if s.supervisor %}<br><span class="text-muted">{% trans "Supervisor" %}: {{ s.supervisor }}</span>{% endif %}
         {% if s.notes %}<br><span class="text-muted">{{ s.notes }}</span>{% endif %}
         {% if can_edit %}<form method="post" action="{% url 'scheduling:shift_delete' s.pk %}" class="d-inline no-print">{% csrf_token %}<button class="btn btn-link btn-sm p-0 text-danger" data-confirm="{% trans 'Delete this shift?' %}"><i class="bi bi-trash"></i></button></form>{% endif %}

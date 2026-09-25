@@ -129,3 +129,54 @@ body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Sego
 .rx-lines li { margin-bottom: .9rem; }
 .instruction-list li { margin-bottom: .35rem; }
 @media print { .patient-print { border: 0 !important; box-shadow: none !important; } }
+
+/* Search-as-you-type suggestions and the date/time pair */
+.autocomplete-menu { width: 100%; max-height: 18rem; overflow-y: auto; top: 100%; inset-inline-start: 0; }
+.autocomplete-menu .dropdown-item { white-space: normal; }
+.datetime-split > .js-date { max-width: 11rem; }
+.flatpickr-calendar { font-family: inherit; }
+
+/* Day planner: one column per room, 15-minute steps */
+.daygrid-wrap { overflow-x: auto; }
+.daygrid { display: grid; grid-template-columns: 4.5rem repeat(var(--cols), minmax(10rem, 1fr)); min-width: calc(4.5rem + var(--cols) * 10rem); }
+.daygrid-head { position: sticky; top: 0; z-index: 3; background: #fff; border-bottom: 2px solid #dee2e6; border-inline-start: 1px solid #dee2e6; padding: .3rem .45rem; font-size: .85rem; }
+.daygrid-head.daygrid-axis { border-inline-start: 0; }
+.daygrid-head.is-surgery { background: #fdecec; }
+.daygrid-body { position: relative; }
+.daygrid-col { border-inline-start: 1px solid #dee2e6; }
+.daygrid-mark { position: absolute; inset-inline: 0; font-size: .7rem; color: #8a8d91; padding-inline: .25rem; border-top: 1px solid #eef0f2; }
+.daygrid-mark.is-hour { color: #3f4043; font-weight: 700; border-top-color: #cfd3d7; }
+.daygrid-slot { position: absolute; inset-inline: 0; display: block; background: #f1f2f3; border-bottom: 1px solid #fff; }
+.daygrid-slot.is-open { background: var(--brand-green-soft); }
+.daygrid-slot:hover, .daygrid-slot.is-picked { background: #d8ebb6; outline: 1px dashed var(--brand-green-dark); z-index: 1; }
+.daygrid-slot:hover::after, .daygrid-slot.is-picked::after { content: "+ " attr(data-time); font-size: .72rem; padding-inline-start: .3rem; color: var(--brand-green-darker); }
+.daygrid-block { position: absolute; z-index: 2; padding: 1px 5px; border-radius: .3rem; font-size: .76rem; line-height: 1.25; overflow: hidden; color: #1d2b3a; background: #dbe8ff; border: 1px solid #9bb8ef; text-decoration: none; border-inline-start-width: 4px; }
+.daygrid-block:hover { filter: brightness(.96); color: #000; }
+.status-confirmed.daygrid-block { background: #cfe2ff; border-color: #6ea8fe; }
+.status-arrived.daygrid-block, .legend-box.status-arrived { background: #fff3cd; border-color: #e5b93a; }
+.status-in_room.daygrid-block, .legend-box.status-in_room { background: #cff4fc; border-color: #39c0d8; }
+.status-completed.daygrid-block, .legend-box.status-completed { background: #e2e3e5; border-color: #adb5bd; }
+.status-no_show.daygrid-block, .legend-box.status-no_show { background: #f8d7da; border-color: #e0848c; }
+.status-no_show.daygrid-block { text-decoration: line-through; }
+.legend-box { display: inline-block; width: .9rem; height: .9rem; vertical-align: middle; border-radius: .2rem; background: #f1f2f3; border: 1px solid #d5d8db; }
+.legend-box.is-open { background: var(--brand-green-soft); border-color: var(--brand-green); }
+.legend-box.status-scheduled { background: #dbe8ff; border-color: #9bb8ef; }
+.week-outline { display: flex; gap: .5rem; overflow-x: auto; }
+.week-outline .week-day { min-width: 9rem; flex: 1 0 9rem; color: inherit; }
+.week-outline .week-day.is-current { border: 2px solid var(--brand-green-dark); }
+
+/* Back link on every page */
+.back-link { display: inline-flex; align-items: center; gap: .3rem; margin-bottom: .4rem; font-size: .85rem; color: var(--brand-gray-dark); text-decoration: none; padding: .15rem .6rem; border: 1px solid #dee2e6; border-radius: 1rem; background: #fff; }
+.back-link:hover { color: var(--brand-green-darker); border-color: var(--brand-green); }
+
+/* Scanned ID cards shown as cards */
+.id-card-view { display: inline-flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--brand-gray-dark); font-size: .8rem; }
+.id-card-view img { width: 20rem; max-width: 100%; aspect-ratio: 85.6 / 54; object-fit: cover; border-radius: .6rem; box-shadow: 0 2px 8px rgba(0, 0, 0, .18); border: 1px solid #dee2e6; }
+.file-preview { display: block; margin-top: .4rem; max-width: 20rem; aspect-ratio: 85.6 / 54; object-fit: contain; border-radius: .5rem; border: 1px solid #dee2e6; background: #f8f9fa; }
+/* Keep the top bar on one line on 1200-1750px screens */
+@media (min-width: 1200px) and (max-width: 1750px) {
+  .app-navbar .navbar-nav .nav-link { padding-inline: .3rem; font-size: .86rem; }
+  .app-navbar form[role=search] input { width: 8.5rem; }
+  .app-navbar .user-name { max-width: 8.5rem; overflow: hidden; text-overflow: ellipsis; }
+  .app-navbar .me-auto > .nav-item > .nav-link > .bi { display: none; }
+}

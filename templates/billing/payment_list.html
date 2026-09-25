@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Patient payments" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-cash-stack"></i> {% trans "Patient payments" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }}{% if date_to != date_from %} — {{ date_to|date:"d/m/Y" }}{% endif %}</small></h1>
+  <span class="fs-5 fw-bold text-success">{{ total|money }} {{ CLINIC.CURRENCY }}</span></div>
+<form class="row g-2 align-items-end mb-3 no-print">
+  {% for field in form %}<div class="col-md-3"><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <div class="col-md-3"><button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Show" %}</button> <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button></div>
+</form>
+{% if by_method %}<div class="mb-3 d-flex flex-wrap gap-2">{% for method, amount in by_method %}<span class="badge text-bg-light border fs-6">{{ method }}: {{ amount|money }}</span>{% endfor %}</div>{% endif %}
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "Receipt" %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "For" %}</th><th>{% trans "Amount" %}</th><th>{% trans "Method" %}</th><th>{% trans "Received by" %}</th></tr></thead>
+  <tbody>{% for p in payments %}<tr>
+    <td><a href="{{ p.get_absolute_url }}">{{ p.receipt_number }}</a></td><td>{{ p.paid_on|date:"d/m/Y" }}</td>
+    <td><a href="{% url 'billing:account' p.patient_id %}">{{ p.patient.full_name }}</a> <span class="small text-muted">{{ p.patient.file_number }}</span></td>
+    <td>{{ p.charge.service|default:"—" }}</td><td class="fw-semibold">{{ p.amount|money }}</td><td>{{ p.get_method_display }}</td><td>{{ p.created_by|default:"—" }}</td>
+  </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No payments in this period." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

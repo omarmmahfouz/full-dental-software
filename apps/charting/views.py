@@ -12,15 +12,16 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from apps.clinical.models import TreatmentStep, TreatmentStepType
-from apps.core.roles import CLINICAL, MANAGEMENT, PATIENT_VIEWERS, has_role
+from apps.core.roles import CLINICAL, MANAGEMENT, has_role
 from apps.dentists.models import Dentist
-from apps.patients.access import get_visible_patient_or_403
+from apps.patients.access import get_clinical_patient_or_403
 
 from . import odontogram
 from .forms import ExaminationForm, PhotoUploadForm, PlanItemFormSet, ToothForm, TreatmentPlanForm
 from .models import ClinicalPhoto, Examination, PhotoStage, PhotoType, PlanItem, ToothChange, ToothState, TreatmentPlan
 from .plans import planned_by_tooth
 from .rules import DEFAULT, apply_changes, current_states, exam_changes, plan_changes, state_label
+from .sync import sync_medical_history
 from .teeth import VALID_TEETH, parse_surfaces, parse_teeth
 
 ALLOWED_MEDIA = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".bmp", ".tif", ".tiff", ".pdf"} | ClinicalPhoto.VIDEO_EXTENSIONS
@@ -39,7 +40,7 @@ def chart_svg(patient, clickable=True):
 
 
 def chart(request, patient_pk):
-    patient = get_visible_patient_or_403(request.user, patient_pk)
+    patient = get_clinical_patient_or_403(request.user, patient_pk)
     states = current_states(patient)
     rows = []
     for tooth, state in sorted(states.items()):
@@ -61,7 +62,7 @@ def chart(request, patient_pk):
 
 
 def tooth_edit(request, patient_pk, tooth):
-    patient = get_visible_patient_or_403(request.user, patient_pk)
+    patient = get_clinical_patient_or_403(request.user, patient_pk)
     _require_clinical(request.user)
     if tooth not in VALID_TEETH:
         raise PermissionDenied
@@ -109,7 +110,7 @@ def chart_preview(request):
         if found is None:
             return JsonResponse({"changes": []})
         patient_id = found.pk
-    patient = get_visible_patient_or_403(request.user, patient_id)
+    patient = get_clinical_patient_or_403(request.user, patient_id)
     step_type = TreatmentStepType.objects.filter(pk=request.GET.get("step_type") or 0).first()
     try:
         teeth = parse_teeth(request.GET.get("teeth"))
@@ -127,7 +128,7 @@ def chart_preview(request):
 def exam_edit(request, patient_pk=None, pk=None):
     _require_clinical(request.user)
     exam = get_object_or_404(Examination, pk=pk) if pk else None
-    patient = get_visible_patient_or_403(request.user, exam.patient_id if exam else patient_pk)
+    patient = get_clinical_patient_or_403(request.user, exam.patient_id if exam else patient_pk)
     initial = {}
     if exam is None:
         me = Dentist.for_user(request.user)
@@ -140,7 +141,8 @@ def exam_edit(request, patient_pk=None, pk=None):
                 if field.name not in ("id", "patient", "exam_date", "created_at", "updated_at", "created_by",
                                       "examined_by", "supervisor") and field.name not in Examination.TOOTH_FIELDS:
                     initial[field.attname] = getattr(previous, field.attname)
-            initial["conditions"] = list(previous.conditions.all())
+            # ...together with anything the reception wrote since (as the patient told them).
+            initial["conditions"] = list(set(previous.conditions.all()) | set(patient.medical_conditions.all()))
         else:
             initial["conditions"] = list(patient.medical_conditions.all())
     form = ExaminationForm(request.POST or None, instance=exam, initial=initial)
@@ -152,6 +154,8 @@ def exam_edit(request, patient_pk=None, pk=None):
                 obj.created_by = request.user
             obj.save()
             form.save_m2m()
+            if obj == patient.examinations.first():
+                sync_medical_history(obj)
             changed = 0
             if form.cleaned_data.get("update_chart"):
                 changed = apply_changes(patient, exam_changes(patient, obj), request.user,
@@ -167,7 +171,7 @@ def exam_edit(request, patient_pk=None, pk=None):
 
 def exam_detail(request, pk):
     exam = get_object_or_404(Examination.objects.select_related("patient", "examined_by", "supervisor"), pk=pk)
-    patient = get_visible_patient_or_403(request.user, exam.patient_id)
+    patient = get_clinical_patient_or_403(request.user, exam.patient_id)
     return render(request, "charting/exam_detail.html", {
         "exam": exam, "patient": patient, "svg": chart_svg(patient, clickable=False),
         "can_edit": has_role(request.user, *CLINICAL),
@@ -178,7 +182,7 @@ def exam_detail(request, pk):
 def plan_edit(request, patient_pk=None, pk=None):
     _require_clinical(request.user)
     plan = get_object_or_404(TreatmentPlan, pk=pk) if pk else None
-    patient = get_visible_patient_or_403(request.user, plan.patient_id if plan else patient_pk)
+    patient = get_clinical_patient_or_403(request.user, plan.patient_id if plan else patient_pk)
     initial = {}
     if plan is None:
         me = Dentist.for_user(request.user)
@@ -205,7 +209,7 @@ def plan_edit(request, patient_pk=None, pk=None):
 
 def plan_detail(request, pk):
     plan = get_object_or_404(TreatmentPlan.objects.select_related("patient", "dentist", "approved_by"), pk=pk)
-    patient = get_visible_patient_or_403(request.user, plan.patient_id)
+    patient = get_clinical_patient_or_403(request.user, plan.patient_id)
     return render(request, "charting/plan_detail.html", {
         "plan": plan, "patient": patient,
         "items": plan.items.select_related("step_type", "done_treatment__operator", "done_surgery"),
@@ -218,7 +222,7 @@ def plan_detail(request, pk):
 @require_POST
 def plan_action(request, pk):
     plan = get_object_or_404(TreatmentPlan, pk=pk)
-    get_visible_patient_or_403(request.user, plan.patient_id)
+    get_clinical_patient_or_403(request.user, plan.patient_id)
     _require_clinical(request.user)
     action = request.POST.get("action")
     if action == "approve":
@@ -243,8 +247,8 @@ def plan_action(request, pk):
 
 # ------------------------------------------------------------ photo checklist
 def photos(request, patient_pk):
-    patient = get_visible_patient_or_403(request.user, patient_pk)
-    can_upload = has_role(request.user, *PATIENT_VIEWERS)
+    patient = get_clinical_patient_or_403(request.user, patient_pk)
+    can_upload = has_role(request.user, *CLINICAL)
     stage = request.POST.get("stage") or request.GET.get("stage") or PhotoStage.DIAGNOSTIC
     if stage not in PhotoStage.values:
         stage = PhotoStage.DIAGNOSTIC
@@ -300,9 +304,7 @@ def photos(request, patient_pk):
 @require_POST
 def photo_delete(request, pk):
     photo = get_object_or_404(ClinicalPhoto, pk=pk)
-    get_visible_patient_or_403(request.user, photo.patient_id)
-    if not has_role(request.user, *PATIENT_VIEWERS):
-        raise PermissionDenied
+    get_clinical_patient_or_403(request.user, photo.patient_id)
     stage = photo.stage
     photo.file.delete(save=False)
     photo.delete()
@@ -313,7 +315,7 @@ def photo_delete(request, pk):
 # ------------------------------------------------------------ full case report
 def case_report(request, patient_pk):
     """Everything documented for one patient, printable (optionally without identity)."""
-    patient = get_visible_patient_or_403(request.user, patient_pk)
+    patient = get_clinical_patient_or_403(request.user, patient_pk)
     anonymous = request.GET.get("anonymous") == "1"
     surgeries = patient.surgeries.select_related("instructor", "operator_1", "operator_2", "assistant").prefetch_related(
         "sites__implant_system", "photos"

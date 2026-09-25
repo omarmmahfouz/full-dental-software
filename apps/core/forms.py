@@ -7,27 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .roles import DENTIST, user_roles, users_with_role
 from .utils import normalize_digits, normalize_phone, validate_phone
-
-
-class DateInput(forms.DateInput):
-    input_type = "date"
-
-    def __init__(self, attrs=None):
-        super().__init__(attrs=attrs, format="%Y-%m-%d")
-
-
-class TimeInput(forms.TimeInput):
-    input_type = "time"
-
-    def __init__(self, attrs=None):
-        super().__init__(attrs=attrs, format="%H:%M")
-
-
-class DateTimeInput(forms.DateTimeInput):
-    input_type = "datetime-local"
-
-    def __init__(self, attrs=None):
-        super().__init__(attrs=attrs, format="%Y-%m-%dT%H:%M")
+from .widgets import DateInput, DateTimeSplitWidget, TimeSelect
 
 
 class BootstrapFormMixin:
@@ -39,13 +19,15 @@ class BootstrapFormMixin:
             if field.label:
                 field.label = capfirst(field.label)
             widget = field.widget
-            if isinstance(field, forms.DateTimeField) and not isinstance(widget, forms.HiddenInput):
-                field.widget = widget = DateTimeInput(attrs=widget.attrs)
-            elif isinstance(field, forms.DateField) and not isinstance(widget, forms.HiddenInput):
-                field.widget = widget = DateInput(attrs=widget.attrs)
-            elif isinstance(field, forms.TimeField) and not isinstance(widget, forms.HiddenInput):
-                field.widget = widget = TimeInput(attrs=widget.attrs)
-            if isinstance(widget, (forms.CheckboxSelectMultiple, forms.RadioSelect)):
+            if isinstance(widget, (forms.HiddenInput, forms.MultiWidget)):
+                pass  # hidden, or already built from styled parts (e.g. a date next to a time list)
+            elif isinstance(field, forms.DateTimeField):
+                field.widget = widget = DateTimeSplitWidget()
+            elif isinstance(field, forms.DateField) and not isinstance(widget, DateInput):
+                field.widget = widget = DateInput(attrs={k: v for k, v in widget.attrs.items() if k != "type"})
+            elif isinstance(field, forms.TimeField) and not isinstance(widget, TimeSelect):
+                field.widget = widget = TimeSelect()
+            if isinstance(widget, (forms.CheckboxSelectMultiple, forms.RadioSelect, forms.MultiWidget)):
                 css = ""
             elif isinstance(widget, forms.CheckboxInput):
                 css = "form-check-input"

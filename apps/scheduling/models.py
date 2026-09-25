@@ -18,10 +18,13 @@ class Room(models.Model):
     name_en = models.CharField(_("name (English)"), max_length=50, blank=True)
     sort_order = models.PositiveIntegerField(_("sort order"), default=0)
     is_active = models.BooleanField(_("active"), default=True)
+    is_extra = models.BooleanField(
+        _("extra room"), default=False,
+        help_text=_("Opened only on busy days: shown on the schedules only on the days it has a shift."))
     notes = models.CharField(_("notes"), max_length=255, blank=True)
 
     class Meta:
-        ordering = ["branch", "sort_order", "name"]
+        ordering = ["branch", "is_extra", "sort_order", "name"]
         verbose_name = _("room")
         verbose_name_plural = _("rooms")
         constraints = [models.UniqueConstraint(fields=["branch", "name"], name="unique_room_name_per_branch")]
@@ -132,7 +135,7 @@ class Appointment(TimeStampedModel):
 
     def __str__(self):
         local = timezone.localtime(self.scheduled_at)
-        return f"{self.patient.full_name} - {local:%Y-%m-%d %H:%M}"
+        return f"{self.patient.full_name} - {local:%d/%m/%Y %H:%M}"
 
     def get_absolute_url(self):
         return reverse("scheduling:appointment_detail", args=[self.pk])
@@ -187,6 +190,17 @@ class Appointment(TimeStampedModel):
         self.left_at = when
         self.status = self.Status.COMPLETED
 
+    def set_status_from_times(self):
+        """After the times were corrected by hand."""
+        if self.left_at:
+            self.status = self.Status.COMPLETED
+        elif self.entered_room_at:
+            self.status = self.Status.IN_ROOM
+        elif self.arrived_at:
+            self.status = self.Status.ARRIVED
+        elif self.status in (self.Status.ARRIVED, self.Status.IN_ROOM, self.Status.COMPLETED):
+            self.status = self.Status.SCHEDULED
+
     def undo_last_step(self):
         """Let the secretary fix a button pressed by mistake."""
         if self.status == self.Status.COMPLETED:
@@ -223,18 +237,21 @@ def day_bounds(day):
 
 
 class MessageTemplate(models.Model):
-    """The WhatsApp texts the reception sends. Words in {braces} are filled in:
-    {patient} {day} {date} {time} {dentist} {clinic} {phone} {address}."""
+    """The WhatsApp texts the reception sends. Words in {braces} are filled in: for appointments
+    {patient} {day} {date} {time} {dentist} {clinic} {phone} {address}; for installments
+    {candidate} {course} {amount} {date} {balance} {clinic} {phone}."""
 
     class Kind(models.TextChoices):
         CONFIRMATION = "confirmation", _("Booking confirmation")
         REMINDER = "reminder", _("Appointment reminder")
         NO_SHOW = "no_show", _("Missed appointment")
+        INSTALLMENT = "installment", _("Installment reminder")
 
     kind = models.CharField(_("message"), max_length=20, choices=Kind.choices, unique=True)
     text = models.TextField(
         _("text"),
-        help_text=_("Words in braces are filled in: {patient} {day} {date} {time} {dentist} {clinic} {phone} {address}"),
+        help_text=_("Words in braces are filled in. Appointments: {patient} {day} {date} {time} {dentist} {clinic} "
+                    "{phone} {address}. Installments: {candidate} {course} {amount} {date} {balance} {clinic} {phone}"),
     )
     is_active = models.BooleanField(_("active"), default=True)
 
@@ -252,7 +269,10 @@ class SentMessage(models.Model):
 
     appointment = models.ForeignKey(Appointment, null=True, blank=True, on_delete=models.CASCADE,
                                     related_name="messages")
-    patient = models.ForeignKey("patients.Patient", on_delete=models.CASCADE, related_name="messages")
+    patient = models.ForeignKey("patients.Patient", null=True, blank=True, on_delete=models.CASCADE,
+                                related_name="messages")
+    installment = models.ForeignKey("academy.Installment", null=True, blank=True, on_delete=models.CASCADE,
+                                    related_name="messages")
     kind = models.CharField(_("message"), max_length=20, choices=MessageTemplate.Kind.choices)
     phone = models.CharField(_("mobile"), max_length=20)
     text = models.TextField(_("text"))

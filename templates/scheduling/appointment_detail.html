@@ -7,10 +7,11 @@
   <h1>{% trans "Appointment" %}: <a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a> {% status_badge a %}</h1>
   <div class="d-flex gap-2 flex-wrap no-print">
     {% if is_front_desk %}<a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_update' a.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
-    <a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>
+    {% if is_clinical %}<a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>{% endif %}
     <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-box-seam"></i> {% trans "New lab request" %}</a>
   </div>
 </div>
+{% include "includes/pending_changes.html" %}
 <div class="row g-3">
   <div class="col-lg-6"><div class="card h-100"><div class="card-body">
     <dl class="dl-grid">
@@ -47,9 +48,18 @@
       {% if a.status != "scheduled" %}<button name="action" value="undo" class="btn btn-link" data-confirm="{% trans 'Undo the last step?' %}">{% trans "Undo last step" %}</button>{% endif %}
     </form>
     {% endif %}
+    {% if times_form %}
+    <details class="mt-3 no-print"{% if times_form.errors %} open{% endif %}><summary class="small"><i class="bi bi-clock-history"></i> {% trans "Forgot to press a button? Correct the times" %}</summary>
+      {% if times_need_approval %}<div class="small text-muted my-1">{% trans "The correction is sent to the head of CIA and applied after approval." %}</div>{% endif %}
+      <form method="post" action="{% url 'scheduling:appointment_times' a.pk %}" class="mt-2">{% csrf_token %}
+        {% with form=times_form %}{% include "includes/form_fields.html" %}{% endwith %}
+        <button class="btn btn-sm btn-outline-primary mt-2"><i class="bi bi-send"></i> {% if times_need_approval %}{% trans "Send for approval" %}{% else %}{% trans "Save" %}{% endif %}</button>
+      </form>
+    </details>
+    {% endif %}
   </div></div></div>
   <div class="col-lg-6"><div class="card"><div class="card-header">{% trans "Steps done in this visit" %}</div><ul class="list-group list-group-flush">
-    {% for s in steps %}<li class="list-group-item"><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a> {{ s.teeth }} — {{ s.operator|default:s.supervisor }}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}
+    {% for s in steps %}<li class="list-group-item">{% if is_clinical %}<a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a>{% else %}<b>{{ s.step_type }}</b>{% endif %} {{ s.teeth }} — {{ s.operator|default:s.supervisor }}{% if s.step_type|explain %}<div class="small text-muted">{{ s.step_type|explain }}</div>{% endif %}{% for tooth, name in s.teeth|teeth_explained %}<div class="small text-muted">{{ tooth }} = {{ name }}</div>{% endfor %}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}
   </ul></div></div>
   <div class="col-lg-6"><div class="card"><div class="card-header">{% trans "Lab requests from this visit" %}</div><ul class="list-group list-group-flush">
     {% for lr in lab_requests %}<li class="list-group-item"><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a> {{ lr.work_type }} {% status_badge lr %}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}

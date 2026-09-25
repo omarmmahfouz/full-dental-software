@@ -92,3 +92,43 @@ def tooth_type(tooth):
 
 def is_anterior(tooth):
     return tooth % 10 <= 3
+
+
+# Plain Arabic names, so the reception understands the numbers: 36 = الضرس الأول السفلي الأيسر.
+_TOOTH_AR = {1: "القاطع الأوسط", 2: "القاطع الجانبي", 3: "الناب", 4: "الضاحك الأول", 5: "الضاحك الثاني",
+             6: "الضرس الأول", 7: "الضرس الثاني", 8: "ضرس العقل"}
+_BABY_TOOTH_AR = {1: "القاطع اللبني الأوسط", 2: "القاطع اللبني الجانبي", 3: "الناب اللبني",
+                  4: "الضرس اللبني الأول", 5: "الضرس اللبني الثاني"}
+_QUADRANT_AR = {1: ("العلوي", "الأيمن"), 2: ("العلوي", "الأيسر"), 3: ("السفلي", "الأيسر"), 4: ("السفلي", "الأيمن")}
+
+
+def tooth_name_ar(number):
+    """"الضرس الأول السفلي الأيسر" for 36; "" for anything that is not an FDI tooth number."""
+    try:
+        quadrant, position = divmod(int(number), 10)
+    except (TypeError, ValueError):
+        return ""
+    names = _TOOTH_AR if quadrant <= 4 else _BABY_TOOTH_AR
+    if quadrant > 4:
+        quadrant -= 4
+    if quadrant not in _QUADRANT_AR or position not in names:
+        return ""
+    jaw, side = _QUADRANT_AR[quadrant]
+    return f"{names[position]} {jaw} {side}"
+
+
+def teeth_explained_ar(text):
+    """[(36, "الضرس الأول السفلي الأيسر"), ...] for what the dentist typed; [] if it cannot be read."""
+    try:
+        teeth = parse_teeth(text)
+    except ValidationError:
+        return []
+    return [(tooth, tooth_name_ar(tooth)) for tooth in teeth]
+
+
+def teeth_ar(text):
+    """"36 (الضرس الأول السفلي الأيسر)، 46 (...)" or the text as typed if it cannot be read."""
+    explained = teeth_explained_ar(text)
+    if not explained:
+        return text or ""
+    return "، ".join(f"{tooth} ({name})" for tooth, name in explained)

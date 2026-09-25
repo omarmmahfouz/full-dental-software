@@ -15,7 +15,7 @@ python manage.py setup_clinic >/dev/null
 python manage.py load_demo_data --password demo12345 --if-empty
 echo
 echo "  The system is running:  http://localhost:8000"
-echo "  Users (password demo12345): owner  headcia  teamhead  dentist1  dentist2  secretary  stock"
+echo "  Users (password demo12345): owner  headcia  teamhead  dentist1  dentist2  secretary  secretary2  stock"
 echo "  Press Ctrl+C to stop."
 echo
 python manage.py runserver 0.0.0.0:8000

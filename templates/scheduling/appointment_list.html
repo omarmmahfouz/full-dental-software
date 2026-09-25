@@ -15,7 +15,7 @@
   <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Time" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Mobile" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Room" %}</th><th>{% trans "Procedure" %}</th><th>{% trans "Status" %}</th></tr></thead>
   <tbody>
   {% for a in page_obj %}
-  {% ifchanged %}<tr class="table-light"><td colspan="8" class="fw-bold">{{ a.scheduled_at|date:"l j F" }}</td></tr>{% endifchanged %}
+  {% ifchanged %}<tr class="table-light"><td colspan="8" class="fw-bold">{{ a.scheduled_at|date:"l d/m" }}</td></tr>{% endifchanged %}
   <tr>
     <td class="nowrap">{{ a.scheduled_at|date:"d/m" }}</td>
     <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|time:"g:i A" }}</a></td>

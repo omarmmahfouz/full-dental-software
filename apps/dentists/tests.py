@@ -69,10 +69,13 @@ class DentistTests(TestCase):
 
     def test_only_cia_dentists_get_a_login(self):
         self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/dentists/new/").status_code, 403)  # dentists are added by the management
+        self.client.login(username="owner", password=PASSWORD)
         for name, kind, phone in [("Dr. Helper", "training", "01112223335"), ("Dr. Staff", "fulltime", "01112223334")]:
             self.client.post("/dentists/new/", {"full_name": name, "kind": kind, "phone": phone, "is_active": "on"})
         helper, staff = Dentist.objects.get(full_name="Dr. Helper"), Dentist.objects.get(full_name="Dr. Staff")
         self.assertEqual(staff.get_kind_display(), Dentist.Kind.FULLTIME.label)
+        self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.post(f"/dentists/{staff.pk}/login/").status_code, 403)  # owner only
         self.client.login(username="owner", password=PASSWORD)
         self.client.post(f"/dentists/{helper.pk}/login/")
@@ -107,6 +110,6 @@ class DentistTests(TestCase):
         self.assertEqual(self.client.get("/reports/visits/").status_code, 403)
 
     def test_candidate_kind_cannot_be_chosen_by_hand(self):
-        self.client.login(username="sec", password=PASSWORD)
+        self.client.login(username="owner", password=PASSWORD)
         response = self.client.post("/dentists/new/", {"full_name": "Dr. X", "kind": "candidate", "is_active": "on"})
         self.assertIn("kind", response.context["form"].errors)

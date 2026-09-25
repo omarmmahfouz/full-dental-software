@@ -5,7 +5,7 @@
 <div class="page-header">
   <h1><i class="bi bi-person-badge"></i> {{ dentist.full_name }} <small class="text-muted fs-6">{{ dentist.get_kind_display }}</small></h1>
   <div class="d-flex flex-wrap gap-2 no-print">
-    {% if is_front_desk %}<a class="btn btn-outline-secondary" href="{% url 'dentists:update' dentist.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
+    {% if roles.owner or roles.head_cia %}<a class="btn btn-outline-secondary" href="{% url 'dentists:update' dentist.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
     {% if dentist.candidate and is_front_desk %}<a class="btn btn-outline-primary" href="{{ dentist.candidate.get_absolute_url }}"><i class="bi bi-mortarboard"></i> {% trans "Academy file" %}</a>{% endif %}
     {% if can_manage and not dentist.user and dentist.can_have_login %}<form method="post" action="{% url 'dentists:create_login' dentist.pk %}">{% csrf_token %}<button class="btn btn-outline-success" data-confirm="{% trans 'Create a system login for this dentist?' %}"><i class="bi bi-key"></i> {% trans "Create login" %}</button></form>{% endif %}
     <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>

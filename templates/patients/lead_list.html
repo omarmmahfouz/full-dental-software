@@ -9,7 +9,7 @@
 
 <ul class="nav nav-pills mb-3 flex-wrap gap-1">
   <li class="nav-item"><a class="nav-link {% if status == 'open' and not request.GET.due %}active{% endif %}" href="?status=open">{% trans "Open" %}</a></li>
-  <li class="nav-item"><a class="nav-link {% if request.GET.due %}active{% endif %}" href="?due=1">{% trans "Calls due today" %}</a></li>
+  <li class="nav-item"><a class="nav-link {% if request.GET.due %}active{% endif %}" href="?due=1">{% trans "To call (first come first)" %}</a></li>
   {% for value, label in statuses %}
   <li class="nav-item"><a class="nav-link {% if status == value %}active{% endif %}" href="?status={{ value }}">{{ label }} <span class="badge text-bg-light">{{ counts|get_item:value|default:0 }}</span></a></li>
   {% endfor %}
@@ -26,7 +26,7 @@
 
 <div class="card"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Preferred mobile" %}</th><th>{% trans "Age" %}</th><th>{% trans "Missing teeth" %}</th><th>{% trans "Source" %}</th><th>{% trans "Status" %}</th><th>{% trans "Next call" %}</th><th>{% trans "Added" %}</th></tr></thead>
+  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Preferred mobile" %}</th><th>{% trans "Age" %}</th><th>{% trans "Missing teeth" %}</th><th>{% trans "Source" %}</th><th>{% trans "Status" %}</th><th>{% trans "First called on" %}</th></tr></thead>
   <tbody>
   {% for lead in page_obj %}
   <tr>
@@ -36,10 +36,9 @@
     <td>{{ lead.get_missing_teeth_display }}</td>
     <td>{{ lead.referral_source|default:"—" }}</td>
     <td>{% status_badge lead %}</td>
-    <td class="nowrap">{{ lead.next_call_at|date:"d/m g:i A"|default:"—" }}</td>
-    <td class="nowrap small text-muted">{{ lead.created_at|date:"d/m/Y" }}</td>
+    <td class="nowrap">{{ lead.first_call_on|date:"d/m/Y" }}</td>
   </tr>
-  {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No records." %}</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No records." %}</td></tr>{% endfor %}
   </tbody>
 </table>
 </div></div>

@@ -27,6 +27,10 @@ class ChartEffect(models.TextChoices):
 
 
 class TreatmentStepType(LookupModel):
+    description_ar = models.CharField(
+        _("simple explanation (Arabic)"), max_length=255, blank=True,
+        help_text=_("Plain words for the reception and the patient, e.g. حشو أبيض بلون السن لسد التسوس."),
+    )
     chart_effect = models.CharField(
         _("effect on dental chart"), max_length=20, choices=ChartEffect.choices, default=ChartEffect.NONE,
         help_text=_("When this step is recorded on tooth numbers, the chart of those teeth is updated this way."),
@@ -249,3 +253,78 @@ class LabRequestEvent(models.Model):
         ordering = ["at", "pk"]
         verbose_name = _("lab request history")
         verbose_name_plural = _("lab request history")
+
+
+class OutsideRequest(TimeStampedModel):
+    """A printed request the patient takes to a CBCT centre or a medical lab (blood tests)."""
+
+    class Kind(models.TextChoices):
+        CBCT = "cbct", _("CBCT request")
+        MEDICAL_LAB = "medical_lab", _("Medical lab request")
+
+    class Region(models.TextChoices):
+        UPPER = "upper", _("Upper jaw")
+        LOWER = "lower", _("Lower jaw")
+        BOTH = "both", _("Both jaws")
+        TEETH = "teeth", _("Only the teeth written below")
+
+    class FieldOfView(models.TextChoices):
+        SMALL = "small", _("Small (a few teeth)")
+        MEDIUM = "medium", _("Medium (one jaw)")
+        LARGE = "large", _("Large (both jaws, sinuses)")
+
+    TESTS = [
+        ("cbc", _("CBC (complete blood count)")),
+        ("fbs", _("Fasting blood sugar")),
+        ("rbs", _("Random blood sugar")),
+        ("hba1c", _("HbA1c")),
+        ("pt_inr", _("PT / INR")),
+        ("ptt", _("PTT")),
+        ("liver", _("Liver function (ALT, AST)")),
+        ("kidney", _("Kidney function (creatinine, urea)")),
+        ("hbsag", _("HBsAg (hepatitis B)")),
+        ("hcv", _("HCV antibodies (hepatitis C)")),
+        ("hiv", _("HIV antibodies")),
+        ("vitamin_d", _("Vitamin D")),
+        ("calcium", _("Serum calcium")),
+    ]
+    PURPOSES = [
+        ("implant", _("Implant planning")),
+        ("guided", _("Guided surgery (surgical guide)")),
+        ("sinus", _("Sinus / bone evaluation")),
+        ("follow_up", _("Follow-up after surgery")),
+        ("other", _("Other")),
+    ]
+
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.PROTECT,
+                                related_name="outside_requests")
+    kind = models.CharField(_("request"), max_length=20, choices=Kind.choices)
+    requested_on = models.DateField(_("date"), default=timezone.localdate)
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("requested by"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="outside_requests")
+    region = models.CharField(_("area to scan"), max_length=10, choices=Region.choices, blank=True)
+    teeth = models.CharField(_("teeth"), max_length=100, blank=True)
+    field_of_view = models.CharField(_("field of view"), max_length=10, choices=FieldOfView.choices, blank=True)
+    purposes = models.JSONField(_("for"), default=list, blank=True)
+    tests = models.JSONField(_("tests"), default=list, blank=True)
+    other_tests = models.CharField(_("other tests"), max_length=255, blank=True)
+    notes = models.TextField(_("notes for the centre"), blank=True)
+
+    class Meta:
+        ordering = ["-requested_on", "-pk"]
+        verbose_name = _("CBCT / medical lab request")
+        verbose_name_plural = _("CBCT / medical lab requests")
+
+    def __str__(self):
+        return f"{self.get_kind_display()} — {self.patient.full_name}"
+
+    def get_absolute_url(self):
+        return reverse("clinical:outside_print", args=[self.pk])
+
+    def test_labels(self):
+        labels = dict(self.TESTS)
+        return [labels[code] for code in self.tests if code in labels]
+
+    def purpose_labels(self):
+        labels = dict(self.PURPOSES)
+        return [labels[code] for code in self.purposes if code in labels]

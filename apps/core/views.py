@@ -23,7 +23,8 @@ from apps.complaints.models import Complaint
 from apps.patients.models import CallList, CallListEntry, Lead, Patient
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
-from .models import ClinicSettings, Notification, UserProfile, branch_for_user
+from .access import area_levels
+from .models import AreaAccess, ClinicSettings, Notification, UserProfile, branch_for_user
 from .roles import (
     FRONT_DESK,
     HEAD_CIA,
@@ -60,9 +61,7 @@ def dashboard(request):
             "no_show": counts.get(Appointment.Status.NO_SHOW, 0),
         }
         context["calls_due"] = (
-            Lead.objects.filter(status__in=Lead.OPEN_STATUSES)
-            .filter(Q(next_call_at__lt=end) | Q(next_call_at__isnull=True, status=Lead.Status.NEW))
-            .order_by("next_call_at", "created_at")[:8]
+            Lead.objects.filter(status__in=(Lead.Status.NEW, Lead.Status.FOLLOW_UP)).order_by("first_call_on", "created_at")[:8]
         )
         context["lab_to_send"] = LabRequest.objects.filter(status=LabRequest.Status.APPROVED).count()
         context["lab_overdue"] = LabRequest.objects.filter(
@@ -87,7 +86,7 @@ def dashboard(request):
             .order_by("-created_at")[:6]
         )
 
-    if has_role(user, SECRETARY, OWNER, HEAD_CIA):
+    if has_role(user, SECRETARY, OWNER, HEAD_CIA) and area_levels(user).get("academy") != AreaAccess.Level.HIDDEN:
         overdue = []
         for enrollment in Enrollment.objects.filter(status=Enrollment.Status.ACTIVE).select_related(
             "candidate", "course"

@@ -95,14 +95,14 @@ class EnrollmentForm(StyledModelForm):
     first_due_date = forms.DateField(label=_("first installment date"), required=False)
 
     fieldsets = [
-        ("", ["course", "enrolled_on", "agreed_fee", "discount", "implants_required_override"]),
+        ("", ["course", "study_mode", "enrolled_on", "agreed_fee", "discount", "implants_required_override"]),
         (_("Installment plan"), ["down_payment", "down_payment_method", "installments_count", "first_due_date"]),
         ("", ["notes"]),
     ]
 
     class Meta:
         model = Enrollment
-        fields = ["course", "enrolled_on", "agreed_fee", "discount", "implants_required_override", "notes"]
+        fields = ["course", "study_mode", "enrolled_on", "agreed_fee", "discount", "implants_required_override", "notes"]
 
     def __init__(self, *args, candidate=None, **kwargs):
         self.candidate = candidate
@@ -111,7 +111,11 @@ class EnrollmentForm(StyledModelForm):
         self.fields["agreed_fee"].required = False
         self.fields["agreed_fee"].help_text = _("Leave empty to use the course fee.")
         self.fields["first_due_date"].help_text = _("Following installments are monthly.")
+        self.fields["study_mode"].required = False
         self.fields["notes"].widget.attrs["rows"] = 2
+
+    def clean_study_mode(self):
+        return self.cleaned_data.get("study_mode") or Enrollment.StudyMode.OFFLINE
 
     def clean(self):
         data = super().clean()

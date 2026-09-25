@@ -25,15 +25,21 @@ from apps.clinical.models import ChartEffect, Lab, LabRequest, LabRequestEvent, 
 from apps.clinical.services import perform_lab_action
 from apps.clinical.views import record_treatment_on_chart
 from apps.complaints.models import Complaint
-from apps.core.models import Branch
+from apps.billing.models import Charge, PatientPayment, Service
+from apps.charting.sync import sync_medical_history
+from apps.clinical.models import OutsideRequest
+from apps.core.approvals import request_change
+from apps.core.models import AreaAccess, Branch, ChangeRequest, ClinicSettings, PersonAreaAccess
 from apps.dentists.models import Dentist
 from apps.patients.calllists import create_call_list
-from apps.patients.models import CallListEntry, Lead, MedicalCondition, MissingTeeth, Patient, ReferralSource
+from apps.patients.models import (
+    CallListEntry, Lead, MedicalCondition, MissingTeeth, OutReason, Patient, ReferralSource,
+)
 from apps.prescriptions.models import Prescription, PrescriptionLine
 from apps.prescriptions.services import best_template, surgery_procedures
 from apps.purchasing.models import Purchase, PurchaseCategory, PurchaseItem, Supplier
 from apps.scheduling.models import Appointment, MessageTemplate, Room, RoomShift
-from apps.scheduling.whatsapp import record
+from apps.scheduling.whatsapp import record, record_installment
 from apps.stock.importer import import_items, parse
 from apps.stock.models import StockCategory, StockItem, StockMovement
 from apps.stock.services import record_movement, sync_purchase
@@ -41,7 +47,7 @@ from apps.surgery.models import ImplantSystem, Surgery, SurgerySite
 from apps.surgery.views import complete_plan_for_surgery, update_chart_for_surgery
 
 STOCK_LIST = Path(__file__).resolve().parents[3] / "stock" / "data" / "cia_material_instrument_list.csv"
-DEMO_USERS = ["owner", "headcia", "teamhead", "dentist1", "dentist2", "secretary", "stock"]
+DEMO_USERS = ["owner", "headcia", "teamhead", "dentist1", "dentist2", "secretary", "secretary2", "stock"]
 
 FIRST = ["محمد", "أحمد", "محمود", "مصطفى", "علي", "حسن", "إبراهيم", "يوسف", "سارة", "منى", "هبة", "فاطمة", "نادية", "سعاد", "أمل"]
 LAST = ["عبد الله", "السيد", "حسين", "عبد الرحمن", "إبراهيم", "مصطفى", "الشريف", "عثمان", "سليمان", "فؤاد"]
@@ -164,6 +170,16 @@ class Command(BaseCommand):
                 user=user(username, name, "", *roles),
             ))
         fulltime = cia_dentists[0]
+        arabic_names = {
+            "Dr. Khaled Mansour": "د. خالد منصور", "Dr. Hesham Fawzy": "د. هشام فوزي", "Dr. Ahmed Samir": "د. أحمد سمير",
+            "Dr. Nour Hassan": "د. نور حسن", "Dr. Karim Adel": "د. كريم عادل", "Dr. Yasmin Ali": "د. ياسمين علي",
+            "Dr. Omar Tarek": "د. عمر طارق", "Dr. Mona Refaat": "د. منى رفعت", "Dr. Sherif Nabil": "د. شريف نبيل",
+            "Dr. Rania Adel": "د. رانيا عادل",
+        }
+        for english, arabic in arabic_names.items():
+            Dentist.objects.filter(full_name=english).update(name_ar=arabic)
+        for dentist in candidates + cia_dentists:
+            dentist.refresh_from_db(fields=["name_ar"])
         treating = candidates + [fulltime]
 
         def recorder(dentist):
@@ -204,20 +220,36 @@ class Command(BaseCommand):
                 missing_teeth=rng.choice(teeth_ranges), referral_source=rng.choice(sources),
                 status=rng.choice([Lead.Status.NEW, Lead.Status.FOLLOW_UP, Lead.Status.BOOKED]),
                 next_call_at=now + timedelta(hours=rng.randint(-24, 48)), created_by=secretary,
+                first_call_on=today - timedelta(days=12 - i),
             )
 
-        # ---------------------------------------------------------- room schedule (Tuesday = surgery day)
-        rooms = list(Room.objects.filter(branch=branch))
-        for offset in range(-14, 7):
+        # ---------------------------------------------------------- room schedule
+        # Saturday to Wednesday regular days, Thursday and Friday surgery days, 9 am to 5 pm. Next Monday one
+        # room has a private surgery with a candidate while the others work as usual; next Thursday the
+        # extra room is opened for extra patients.
+        rooms = list(Room.objects.filter(branch=branch, is_extra=False))
+        extra_room = Room.objects.create(branch=branch, name="غرفة إضافية", name_en="Extra room", sort_order=9,
+                                         is_extra=True, notes="Opened on busy days")
+        surgery_weekdays = ClinicSettings.get().surgery_weekdays
+        coming = [today + timedelta(days=i) for i in range(1, 8)]
+        next_monday = next(day for day in coming if day.weekday() == 0)
+        next_thursday = next(day for day in coming if day.weekday() == 3)
+        for offset in range(-14, 14):
             day = today + timedelta(days=offset)
-            if day.weekday() == 4:  # Friday off
-                continue
-            surgery_day = day.weekday() == 1
-            for room, dentist in zip(rooms, treating):
+            surgery_day = day.weekday() in surgery_weekdays
+            for number, (room, dentist) in enumerate(zip(rooms, treating)):
+                private = day == next_monday and number == 0
                 RoomShift.objects.create(
-                    room=room, date=day, start_time=time(10), end_time=time(16), dentist=dentist,
-                    supervisor=surgery_supervisor if surgery_day else supervisor,
-                    day_type=RoomShift.DayType.SURGERY if surgery_day else RoomShift.DayType.REGULAR, created_by=secretary,
+                    room=room, date=day, start_time=time(9), end_time=time(17), dentist=dentist,
+                    supervisor=surgery_supervisor if surgery_day or private else supervisor,
+                    day_type=RoomShift.DayType.SURGERY if surgery_day or private else RoomShift.DayType.REGULAR,
+                    notes="Private surgery with the candidate" if private else "", created_by=secretary,
+                )
+            if day == next_thursday:
+                RoomShift.objects.create(
+                    room=extra_room, date=day, start_time=time(9), end_time=time(17), dentist=cia_dentists[1],
+                    supervisor=surgery_supervisor, day_type=RoomShift.DayType.SURGERY,
+                    notes="Extra room for extra patients", created_by=secretary,
                 )
 
         types = {t.name_en: t for t in TreatmentStepType.objects.all()}
@@ -260,18 +292,33 @@ class Command(BaseCommand):
                         step.verified_by, step.verified_at, step.grade = head, left, rng.randint(3, 5)
                         step.save()
 
-        # ---------------------------------------------------------- upcoming appointments (WhatsApp reminders)
-        upcoming, pick = [], random.Random(11)  # own generator: the data below stays the same
-        for offset in range(1, 8):
-            day = today + timedelta(days=offset)
-            if day.weekday() == 4:
-                continue
-            for slot, patient in enumerate(pick.sample(patients, 3)):
-                upcoming.append(Appointment.objects.create(
-                    branch=branch, patient=patient, scheduled_at=at(day, 11 + slot), dentist=patient.assigned_dentist,
-                    room=rooms[treating.index(patient.assigned_dentist) % len(rooms)],
-                    purpose=pick.choice(visit_types).name_en, created_by=secretary,
-                ))
+        # ---------------------------------------------------------- the next 7 days fully booked
+        # Every room with a shift, 9 am to 5 pm, one patient every 30 minutes.
+        pick = random.Random(11)  # own generator: the data below stays the same
+        booked_patients = list(patients)
+        for i in range(90):
+            year = pick.randint(55, 99)
+            booked_patients.append(Patient.objects.create(
+                branch=branch, full_name=f"{pick.choice(FIRST)} {pick.choice(FIRST)} {pick.choice(LAST)}",
+                national_id=f"2{year:02d}{pick.randint(1, 12):02d}{pick.randint(1, 28):02d}01{200 + i:03d}"
+                            f"{pick.randint(1, 9)}{pick.randint(0, 9)}",
+                phone_primary=f"012{30000000 + i * 4099:08d}", referral_source=pick.choice(sources),
+                missing_teeth=pick.choice(teeth_ranges), assigned_dentist=treating[i % len(treating)],
+                created_by=secretary,
+            ))
+        upcoming = []
+        for day in coming:
+            queue = pick.sample(booked_patients, len(booked_patients))
+            for shift in RoomShift.objects.filter(room__branch=branch, date=day).select_related("room"):
+                for minute in range(9 * 60, 17 * 60, 30):
+                    upcoming.append(Appointment(
+                        branch=branch, patient=queue.pop() if queue else pick.choice(booked_patients),
+                        scheduled_at=timezone.make_aware(datetime.combine(day, time(minute // 60, minute % 60))),
+                        duration_minutes=30, room=shift.room, dentist=shift.dentist,
+                        purpose=pick.choice(visit_types).name_ar, created_by=secretary,
+                    ))
+        Appointment.objects.bulk_create(upcoming)
+        upcoming = list(Appointment.objects.filter(scheduled_at__gte=at(coming[0], 0)).order_by("pk"))
         # Booked last week, except the last three: new bookings still to confirm on WhatsApp.
         Appointment.objects.filter(pk__in=[a.pk for a in upcoming[:-3]]).update(created_at=now - timedelta(days=8))
 
@@ -465,19 +512,76 @@ class Command(BaseCommand):
             PrescriptionLine.objects.create(prescription=prescription, drug=line.group.drugs.first(),
                                             dose=line.dose or line.group.dose)
         guided = [p for number, p in enumerate(waiting) if number % 2 == 0]
-        call_list = create_call_list("Treatment plans: Guided implant surgery",
-                                     "Please call to book the guided surgery day (Tuesday).",
-                                     [(p, "Guided implant surgery 36, 46") for p in guided], head)
+        call_list = create_call_list("خطط العلاج: زرع بدليل جراحي",
+                                     "برجاء الاتصال لحجز يوم العمليات (الخميس).",
+                                     [(p, "زرع بدليل جراحي 36, 46") for p in guided], head)
         first = call_list.entries.first()
-        first.outcome, first.response = CallListEntry.Outcome.BOOKED, "Booked next Tuesday 11 am"
+        first.outcome, first.response = CallListEntry.Outcome.BOOKED, "حجز الخميس القادم الساعة 11"
         first.attempts, first.called_at, first.called_by = 1, now, secretary
         first.save()
 
         # ---------------------------------------------------------- WhatsApp: one confirmation already sent
         record(MessageTemplate.Kind.CONFIRMATION, upcoming[-3], secretary)
 
+        # ---------------------------------------------------------- reception: files, access, approvals, payments
+        # A second secretary who does not work with the academy (set per person in Settings).
+        reception = user("secretary2", "سارة", "(الاستقبال)", "secretary")
+        PersonAreaAccess.objects.create(user=reception, area="academy", level=AreaAccess.Level.HIDDEN)
+        # Old paper files typed in with the date they were opened, and one patient labelled out.
+        for number, patient in enumerate(patients[:8]):
+            Patient.objects.filter(pk=patient.pk).update(registered_on=today.replace(year=today.year - 1 - number % 4))
+        Patient.objects.filter(pk=patients[-1].pk).update(
+            status=Patient.Status.OUT, out_reason=OutReason.objects.get(name_en="Stopped coming"),
+            out_notes="لم يرد على الاتصال 3 مرات")
+        # The dentists' examinations are the reference for the medical history the reception sees.
+        for patient in patients:
+            exam = patient.examinations.first()
+            if exam is not None:
+                sync_medical_history(exam)
+        # Changes by the reception waiting for the head of CIA.
+        request_change(ChangeRequest.Kind.PATIENT, patients[1], {"phone_secondary": "01223344556"}, secretary)
+        forgot = Appointment.objects.filter(status=Appointment.Status.COMPLETED).exclude(left_at=None).last()
+        request_change(ChangeRequest.Kind.VISIT_TIMES, forgot, {"left_at": forgot.left_at + timedelta(minutes=20)},
+                       secretary, "نسيت الضغط على انصرف في وقته")
+        # Paid services: prices, a free consultation, a CBCT paid in two parts, an implant with a discount.
+        for name_en, price in [("Consultation", 200), ("CBCT", 1200), ("Panoramic X-ray", 300), ("Scaling", 400),
+                               ("Implant", 8000), ("Bone graft", 3000), ("Surgical guide", 2500)]:
+            Service.objects.filter(name_en=name_en).update(price=Decimal(price))
+        services = {s.name_en: s for s in Service.objects.all()}
+
+        def charge(patient, service, days_ago, percent=0, why=""):
+            return Charge.objects.create(patient=patient, service=services[service], price=services[service].price,
+                                         charged_on=today - timedelta(days=days_ago), discount_percent=percent,
+                                         discount_reason=why, created_by=secretary)
+
+        charge(patients[0], "Consultation", 20, 100, "حالة للأكاديمية")
+        cbct = charge(patients[0], "CBCT", 20)
+        PatientPayment.objects.create(patient=patients[0], charge=cbct, amount=Decimal("1200"),
+                                      paid_on=today - timedelta(days=20), created_by=secretary)
+        cbct = charge(patients[1], "CBCT", 5)
+        PatientPayment.objects.create(patient=patients[1], charge=cbct, amount=Decimal("700"),
+                                      paid_on=today - timedelta(days=5), created_by=secretary)
+        charge(patients[2], "Implant", 3, 20, "مريض محوّل من مريض")
+        PatientPayment.objects.create(patient=patients[2], amount=Decimal("3000"), paid_on=today - timedelta(days=3),
+                                      method=PaymentMethod.INSTAPAY, reference="IP-558812", created_by=secretary)
+        # A CBCT and blood tests for a patient waiting for guided surgery.
+        waiting_patient = waiting[0]
+        OutsideRequest.objects.create(patient=waiting_patient, kind=OutsideRequest.Kind.CBCT,
+                                      dentist=waiting_patient.assigned_dentist, region=OutsideRequest.Region.LOWER,
+                                      teeth="36, 46", field_of_view=OutsideRequest.FieldOfView.MEDIUM,
+                                      purposes=["implant", "guided"], created_by=secretary)
+        OutsideRequest.objects.create(patient=waiting_patient, kind=OutsideRequest.Kind.MEDICAL_LAB,
+                                      dentist=waiting_patient.assigned_dentist, tests=["cbc", "hba1c", "pt_inr"],
+                                      created_by=secretary)
+        # One candidate studies online, and one installment reminder was sent on WhatsApp.
+        Enrollment.objects.filter(candidate=candidates[1].candidate).update(study_mode=Enrollment.StudyMode.ONLINE)
+        late = next((row, enrollment) for enrollment in Enrollment.objects.all()
+                    for row in enrollment.installment_schedule(today) if row["state"] == "overdue")
+        record_installment(*late, secretary)
+
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
-            "CIA dentists team), dentist1 and dentist2 (CIA dentists), secretary, stock (stock manager). "
+            "CIA dentists team), dentist1 and dentist2 (CIA dentists), secretary, secretary2 (reception without the "
+            "academy), stock (stock manager). "
             "Candidates, training dentists and supervisors have no login."
         ))

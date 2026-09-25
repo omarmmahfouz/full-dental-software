@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{{ outside.get_kind_display }} — {{ outside.patient.full_name }}{% endblock %}
+{% block content %}
+{% with o=outside p=outside.patient %}
+<div class="card mx-auto" style="max-width: 800px"><div class="card-body p-4">
+  <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+    <div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+      <div><h1 class="h4 fw-bold mb-0">{{ o.get_kind_display }}</h1><div class="text-muted">{{ branch.name }}{% if branch.phone %} — <span class="ltr">{{ branch.phone }}</span>{% endif %}</div></div></div>
+    <div class="text-end"><div>{{ o.requested_on|date:"d/m/Y" }}</div></div>
+  </div>
+  <dl class="dl-grid fs-6">
+    <dt>{% trans "Patient" %}</dt><dd class="fw-bold">{{ p.full_name }} <span class="fw-normal text-muted">({{ p.file_number }})</span></dd>
+    <dt>{% trans "Age / gender" %}</dt><dd>{% if p.age is not None %}{% blocktrans with age=p.age %}{{ age }} years{% endblocktrans %}{% endif %} {{ p.get_gender_display }}</dd>
+    <dt>{% trans "Mobile" %}</dt><dd class="ltr">{{ p.preferred_number }}</dd>
+    <dt>{% trans "Requested by" %}</dt><dd>{{ o.dentist|default:"—" }}</dd>
+    {% if o.kind == "cbct" %}
+    <dt>{% trans "Area to scan" %}</dt><dd class="fw-bold">{{ o.get_region_display }}{% if o.teeth %} — {% trans "teeth" %} {{ o.teeth }}{% endif %}</dd>
+    {% if o.field_of_view %}<dt>{% trans "Field of view" %}</dt><dd>{{ o.get_field_of_view_display }}</dd>{% endif %}
+    {% if o.purposes %}<dt>{% trans "For" %}</dt><dd>{{ o.purpose_labels|join:", " }}</dd>{% endif %}
+    {% else %}
+    <dt>{% trans "Tests" %}</dt><dd><ul class="mb-0 ps-3">{% for label in o.test_labels %}<li class="fw-semibold">{{ label }}</li>{% endfor %}{% if o.other_tests %}<li class="fw-semibold">{{ o.other_tests }}</li>{% endif %}</ul></dd>
+    {% endif %}
+    {% if o.notes %}<dt>{% trans "Notes" %}</dt><dd>{{ o.notes|linebreaksbr }}</dd>{% endif %}
+  </dl>
+  {% if o.kind == "cbct" and dicom_email %}
+  <div class="alert alert-light border mt-3 mb-0">
+    <div class="fw-bold"><i class="bi bi-envelope"></i> {% trans "Please send the DICOM files of this scan to" %} <span class="ltr fs-5">{{ dicom_email }}</span></div>
+    <div class="small">{% trans "with the patient's name in the e-mail subject, and give the patient a copy (CD or USB)." %}</div>
+    <div class="small mt-1" dir="rtl" lang="ar">برجاء إرسال ملفات الأشعة (DICOM) إلى البريد الموضح أعلاه مع كتابة اسم المريض في عنوان الرسالة، وإعطاء المريض نسخة على CD أو فلاشة.</div>
+  </div>
+  {% endif %}
+  <div class="row mt-5 text-center"><div class="col">{% trans "Doctor signature" %}<br><br>__________________</div><div class="col">{% trans "Stamp" %}</div></div>
+</div></div>
+<div class="text-center mt-3 no-print d-flex justify-content-center gap-2">
+  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  <a class="btn btn-outline-secondary" href="{{ p.get_absolute_url }}">{% trans "Patient file" %}</a>
+</div>
+{% endwith %}
+{% endblock %}

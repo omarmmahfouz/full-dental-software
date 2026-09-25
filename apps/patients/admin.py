@@ -37,7 +37,7 @@ class LeadCallInline(admin.TabularInline):
 
 @admin.register(Lead)
 class LeadAdmin(admin.ModelAdmin):
-    list_display = ("full_name", "phone_primary", "missing_teeth", "status", "next_call_at", "created_at")
+    list_display = ("full_name", "phone_primary", "missing_teeth", "status", "first_call_on", "created_at")
     list_filter = ("status", "missing_teeth", "referral_source")
     search_fields = ("full_name", "phone_primary", "phone_secondary")
     inlines = [LeadCallInline]

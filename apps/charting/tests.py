@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-from django.utils import translation
+from django.utils import timezone, translation
 
 from apps.charting.models import Examination, PlanItem, ToothChange, ToothState, TreatmentPlan
 from apps.charting.rules import apply_changes, exam_changes, plan_changes
@@ -146,10 +146,8 @@ class ChartPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("<svg", response.context["svg"])
         self.assertTrue(response.context["can_edit"])
-        self.login("sec")
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.context["can_edit"])
+        self.login("sec")  # the reception reads the plan and treatments on the patient file instead
+        self.assertEqual(self.client.get(self.url).status_code, 403)
         self.assertEqual(self.client.get(f"{self.url}tooth/36/").status_code, 403)
         self.login("dentist2")  # CIA dentists see every patient
         self.assertEqual(self.client.get(self.url).status_code, 200)
@@ -220,3 +218,45 @@ class ChartPageTests(TestCase):
         anonymous = self.client.get(f"{self.url}case-report/?anonymous=1")
         self.assertNotContains(anonymous, self.patient.full_name)
         self.assertEqual(self.client.get(f"{self.url}photos/").status_code, 200)
+
+
+class ReceptionSyncTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        make_user("sec", "secretary")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+
+    def test_missing_teeth_follow_the_chart(self):
+        from apps.patients.models import MissingTeeth
+
+        self.client.login(username="dentist", password=PASSWORD)
+        self.client.post(f"/chart/patient/{self.patient.pk}/tooth/36/", {"status": "missing", "mobility": 0})
+        self.patient.refresh_from_db()
+        self.assertEqual((self.patient.missing_teeth, self.patient.missing_teeth_notes), (MissingTeeth.SINGLE, "36"))
+        for tooth in (11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27):
+            ToothState.objects.create(patient=self.patient, tooth=tooth, status=ToothState.Status.MISSING)
+        self.patient.refresh_from_db()
+        self.assertEqual(self.patient.missing_teeth, MissingTeeth.FULL_ARCH)
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertContains(self.client.get(f"/patients/{self.patient.pk}/"), "الضرس الأول السفلي الأيسر")
+
+    def test_the_dentists_medical_history_reaches_the_reception(self):
+        from apps.patients.models import MedicalCondition
+
+        diabetes = MedicalCondition.objects.get(name_en="Diabetes")
+        smoker = MedicalCondition.objects.get(name_en="Smoker")
+        self.patient.medical_conditions.set([smoker])  # what the patient told the secretary
+        self.client.login(username="dentist", password=PASSWORD)
+        form = self.client.get(f"/chart/patient/{self.patient.pk}/exam/new/").context["form"]
+        self.assertEqual(list(form.initial["conditions"]), [smoker])
+        exam = Examination.objects.create(patient=self.patient, allergy_penicillin=True)
+        response = self.client.post(f"/chart/exam/{exam.pk}/edit/", {
+            "exam_date": timezone.localdate().strftime("%d/%m/%Y"), "conditions": [diabetes.pk, smoker.pk],
+            "allergy_penicillin": "on",
+        })
+        self.assertEqual(response.status_code, 302, response.context and response.context["form"].errors)
+        self.assertEqual(set(self.patient.medical_conditions.all()), {diabetes, smoker})
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get(f"/patients/{self.patient.pk}/")
+        self.assertContains(page, "بنسلين")

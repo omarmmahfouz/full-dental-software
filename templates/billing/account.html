@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Account" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-wallet2"></i> {% trans "Account" %}: <a href="{{ patient.get_absolute_url }}">{{ patient.full_name }}</a> <small class="text-muted fs-6">{{ patient.file_number }}</small></h1>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value">{{ account.price|money }}</div><div class="stat-label">{% trans "Services (before discount)" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value text-info">{{ account.discount|money }}</div><div class="stat-label">{% trans "Discounts" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value text-success">{{ account.paid|money }}</div><div class="stat-label">{% trans "Paid" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value {% if account.balance > 0 %}text-danger{% endif %}">{{ account.balance|money }}</div><div class="stat-label">{% if account.balance < 0 %}{% trans "Credit for the patient" %}{% else %}{% trans "Still to pay" %}{% endif %}</div></div></div></div>
+</div>
+<div class="card mb-3"><div class="card-header">{% trans "Services" %}</div><div class="table-responsive"><table class="table mb-0 align-middle">
+  <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Service" %}</th><th>{% trans "Price" %}</th><th>{% trans "Discount" %}</th><th>{% trans "To pay" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Left" %}</th></tr></thead>
+  <tbody>{% for row in account.rows %}{% with c=row.charge %}
+  <tr class="{% if not row.left %}table-success{% endif %}">
+    <td class="nowrap">{{ c.charged_on|date:"d/m/Y" }}</td>
+    <td><b>{{ c.service }}</b>{% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}</td>
+    <td>{{ c.price|money }}</td>
+    <td>{% if c.discount_percent %}{{ c.discount_percent|floatformat:"-2" }}% ({{ c.discount_amount|money }}){% if c.discount_reason %}<div class="small text-muted">{{ c.discount_reason }}</div>{% endif %}{% else %}—{% endif %}</td>
+    <td class="fw-semibold">{{ c.net|money }}</td>
+    <td class="text-success">{{ row.paid|money }}</td>
+    <td class="fw-bold{% if row.left %} text-danger{% endif %}">{% if row.left %}{{ row.left|money }}{% else %}<i class="bi bi-check2-circle"></i> {% trans "Paid" %}{% endif %}</td>
+  </tr>{% endwith %}{% empty %}<tr><td colspan="7" class="text-muted">{% trans "No services yet." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card no-print"><div class="card-header"><i class="bi bi-plus-circle"></i> {% trans "Add a service" %}</div><div class="card-body">
+    <form method="post" novalidate>{% csrf_token %}<input type="hidden" name="action" value="charge">
+      {% with form=charge_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-primary mt-3"><i class="bi bi-plus-lg"></i> {% trans "Add" %}</button>
+    </form>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card no-print"><div class="card-header"><i class="bi bi-cash"></i> {% trans "Record a payment" %}</div><div class="card-body">
+    {% if account.balance > 0 %}
+    <form method="post" novalidate>{% csrf_token %}<input type="hidden" name="action" value="payment">
+      {% with form=payment_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-success mt-3"><i class="bi bi-cash"></i> {% trans "Save payment and print receipt" %}</button>
+    </form>
+    {% else %}<div class="text-success"><i class="bi bi-check2-circle"></i> {% trans "Nothing to pay." %}</div>{% endif %}
+  </div></div></div>
+</div>
+<div class="card mt-3"><div class="card-header">{% trans "Payments" %}</div><div class="table-responsive"><table class="table mb-0 small">
+  <thead><tr><th>{% trans "Receipt" %}</th><th>{% trans "Date" %}</th><th>{% trans "Amount" %}</th><th>{% trans "For" %}</th><th>{% trans "Method" %}</th><th>{% trans "Received by" %}</th></tr></thead>
+  <tbody>{% for p in account.payments %}<tr>
+    <td><a href="{{ p.get_absolute_url }}">{{ p.receipt_number }}</a></td><td>{{ p.paid_on|date:"d/m/Y" }}</td><td class="fw-semibold">{{ p.amount|money }}</td>
+    <td>{{ p.charge.service|default:"—" }}</td><td>{{ p.get_method_display }}{% if p.reference %} — {{ p.reference }}{% endif %}</td><td>{{ p.created_by|default:"—" }}</td>
+  </tr>{% empty %}<tr><td colspan="6" class="text-muted">{% trans "No payments yet." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

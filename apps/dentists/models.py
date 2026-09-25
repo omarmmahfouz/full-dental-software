@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Branch, TimeStampedModel
@@ -32,6 +33,9 @@ class Dentist(TimeStampedModel):
         FREELANCER = "freelancer", _("Freelance dentist")
 
     full_name = models.CharField(_("full name"), max_length=150, db_index=True)
+    name_ar = models.CharField(
+        _("name in Arabic"), max_length=150, blank=True,
+        help_text=_("e.g. د. منى رفعت — used on the Arabic screens and in the WhatsApp messages to patients."))
     kind = models.CharField(_("type"), max_length=20, choices=Kind.choices, db_index=True)
     candidate = models.OneToOneField(
         "academy.Candidate", verbose_name=_("academy candidate file"), null=True, blank=True,
@@ -61,6 +65,8 @@ class Dentist(TimeStampedModel):
     LOGIN_KINDS = (Kind.FULLTIME, Kind.SPECIALIST, Kind.FREELANCER)
 
     def __str__(self):
+        if self.name_ar and (get_language() or "").startswith("ar"):
+            return self.name_ar
         return self.full_name
 
     @property
@@ -76,8 +82,8 @@ class Dentist(TimeStampedModel):
         if self.kind == self.Kind.CANDIDATE and self.candidate_id:
             enrollment = self.candidate.current_enrollment
             if enrollment:
-                return f"{self.full_name} — {enrollment.course.code}"
-        return f"{self.full_name} — {self.get_kind_display()}"
+                return f"{self} — {enrollment.course.code}"
+        return f"{self} — {self.get_kind_display()}"
 
     @classmethod
     def for_user(cls, user):

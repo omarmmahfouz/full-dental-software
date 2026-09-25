@@ -21,6 +21,18 @@ def normalize_digits(value):
     return str(value).translate(_DIGIT_MAP)
 
 
+# Letters typed in different ways in Arabic names: أحمد / احمد, فاطمة / فاطمه, مصطفى / مصطفي.
+_ARABIC_VARIANTS = {}
+for _group in ("اأإآ", "ةه", "ىي"):
+    for _letter in _group:
+        _ARABIC_VARIANTS[_letter] = f"[{_group}]"
+
+
+def name_patterns(text):
+    """One regular expression per word, matching the usual spelling variants of Arabic letters."""
+    return ["".join(_ARABIC_VARIANTS.get(ch, re.escape(ch)) for ch in word) for word in str(text).split()]
+
+
 def normalize_phone(value):
     """Return a canonical phone string so duplicates can be detected.
 
@@ -56,6 +68,12 @@ def validate_phone(value, mobile_only=True):
         return value
     if not mobile_only and re.match(r"^0\d{7,10}$", value):
         return value  # landline
+    digits = len(re.sub(r"\D", "", value))
+    if value.startswith("01") and digits != 11:
+        raise ValidationError(
+            _("This mobile has %(n)s digits: Egyptian mobiles have exactly 11 (e.g. 01001234567).") % {"n": digits},
+            code="invalid_phone",
+        )
     raise ValidationError(
         _("Enter a valid mobile number, e.g. 01001234567 (or +country code for foreign numbers)."),
         code="invalid_phone",
@@ -69,8 +87,9 @@ EGYPT_GOVERNORATES = {
     "19": _("Ismailia"), "21": _("Giza"), "22": _("Beni Suef"), "23": _("Fayoum"),
     "24": _("Minya"), "25": _("Asyut"), "26": _("Sohag"), "27": _("Qena"),
     "28": _("Aswan"), "29": _("Luxor"), "31": _("Red Sea"), "32": _("New Valley"),
-    "33": _("Matrouh"), "34": _("North Sinai"), "35": _("South Sinai"), "88": _("Born abroad"),
+    "33": _("Matrouh"), "34": _("North Sinai"), "35": _("South Sinai"), "88": _("Outside Egypt"),
 }
+GOVERNORATE_CHOICES = list(EGYPT_GOVERNORATES.items())
 
 
 def parse_egyptian_national_id(value):
@@ -79,7 +98,7 @@ def parse_egyptian_national_id(value):
     Layout: C YYMMDD GG SSS G X
       C  = century (2 → 1900s, 3 → 2000s)
       GG = governorate code, the 13th digit is odd for males / even for females.
-    Returns a dict with ``birth_date``, ``gender`` ("M"/"F") and ``governorate``.
+    Returns a dict with ``birth_date``, ``gender`` ("M"/"F"), ``governorate`` and its ``governorate_code``.
     Raises ValidationError when the number cannot be a real national ID.
     """
     value = normalize_digits(value or "").strip()
@@ -98,6 +117,7 @@ def parse_egyptian_national_id(value):
         "birth_date": birth,
         "gender": "M" if int(value[12]) % 2 else "F",
         "governorate": EGYPT_GOVERNORATES.get(value[7:9], ""),
+        "governorate_code": value[7:9] if value[7:9] in EGYPT_GOVERNORATES else "",
     }
 
 

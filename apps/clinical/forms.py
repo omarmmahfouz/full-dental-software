@@ -9,7 +9,7 @@ from apps.dentists.models import Dentist
 from apps.patients.access import visible_patients
 from apps.patients.forms import PatientLookupField
 
-from .models import ChartEffect, Lab, LabRequest, LabWorkType, TreatmentStep, TreatmentStepType
+from .models import ChartEffect, Lab, LabRequest, LabWorkType, OutsideRequest, TreatmentStep, TreatmentStepType
 
 
 class _PatientScopedForm(StyledModelForm):
@@ -151,3 +151,49 @@ class LabFilterForm(StyledForm):
     lab = forms.ModelChoiceField(label=_("lab"), queryset=Lab.objects.all(), required=False, empty_label=_("All"))
     overdue = forms.BooleanField(label=_("late at the lab"), required=False)
     mine = forms.BooleanField(label=_("my requests"), required=False)
+
+
+class OutsideRequestForm(StyledModelForm):
+    """CBCT or medical lab request, printed for the patient to take."""
+
+    purposes = forms.MultipleChoiceField(label=_("for"), required=False, choices=OutsideRequest.PURPOSES,
+                                         widget=forms.CheckboxSelectMultiple)
+    tests = forms.MultipleChoiceField(label=_("tests"), required=False, choices=OutsideRequest.TESTS,
+                                      widget=forms.CheckboxSelectMultiple)
+    dentist = DentistChoiceField(label=_("requested by"), required=False)
+
+    CBCT_FIELDS = ["requested_on", "dentist", "region", "teeth", "field_of_view", "purposes", "notes"]
+    LAB_FIELDS = ["requested_on", "dentist", "tests", "other_tests", "notes"]
+
+    class Meta:
+        model = OutsideRequest
+        fields = ["requested_on", "dentist", "region", "teeth", "field_of_view", "purposes", "tests", "other_tests",
+                  "notes"]
+
+    def __init__(self, *args, kind=OutsideRequest.Kind.CBCT, **kwargs):
+        self.kind = kind
+        super().__init__(*args, **kwargs)
+        keep = self.CBCT_FIELDS if kind == OutsideRequest.Kind.CBCT else self.LAB_FIELDS
+        for name in list(self.fields):
+            if name not in keep:
+                del self.fields[name]
+        for name in ("requested_on", "dentist", "region", "teeth", "field_of_view", "other_tests"):
+            if name in self.fields:
+                self.fields[name].col = "col-md-6"
+        if "notes" in self.fields:
+            self.fields["notes"].widget.attrs["rows"] = 2
+
+    def clean_teeth(self):
+        teeth = self.cleaned_data.get("teeth", "")
+        return format_teeth(parse_teeth(teeth)) if teeth else ""
+
+    def clean(self):
+        data = super().clean()
+        if self.kind == OutsideRequest.Kind.CBCT:
+            if not data.get("region"):
+                self.add_error("region", _("Choose the area to scan."))
+            elif data["region"] == OutsideRequest.Region.TEETH and not data.get("teeth"):
+                self.add_error("teeth", _("Write the teeth to scan."))
+        elif not data.get("tests") and not data.get("other_tests"):
+            self.add_error("tests", _("Choose at least one test."))
+        return data

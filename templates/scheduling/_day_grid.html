@@ -1,0 +1,29 @@
+{% load i18n %}<div class="daygrid-wrap">
+<div class="daygrid" style="--cols: {{ columns|length }}">
+  <div class="daygrid-head daygrid-axis"></div>
+  {% for col in columns %}
+  <div class="daygrid-head{% if col.surgery %} is-surgery{% endif %}">
+    <div class="fw-bold">{% if col.room %}{{ col.room }}{% else %}{% trans "No room yet" %}{% endif %}</div>
+    {% for s in col.shifts %}<div class="small text-truncate">{% if s.day_type == "surgery" %}<i class="bi bi-scissors text-danger" title="{% trans 'Surgery day' %}"></i> {% endif %}{{ s.dentist|default:"—" }} <span class="text-muted">{{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</span></div>
+    {% empty %}{% if col.room %}<div class="small text-muted">{% trans "no dentist on the schedule" %}</div>{% endif %}{% endfor %}
+  </div>
+  {% endfor %}
+  <div class="daygrid-axis daygrid-body" style="height: {{ height }}px">{% for m in marks %}<div class="daygrid-mark{% if m.hour %} is-hour{% endif %}" style="top: {{ m.top }}px">{{ m.label }}</div>{% endfor %}</div>
+  {% for col in columns %}
+  <div class="daygrid-col daygrid-body" style="height: {{ height }}px">
+    {% if col.room %}{% for slot in col.slots %}<a class="daygrid-slot{% if slot.shift %} is-open{% endif %}" style="top: {{ slot.top }}px; height: {{ row_px }}px" href="{% url 'scheduling:appointment_create' %}?at={{ day|date:'Y-m-d' }}T{{ slot.time }}&amp;room={{ col.room.pk }}{% if slot.dentist_id %}&amp;dentist={{ slot.dentist_id }}{% endif %}" data-time="{{ slot.time }}" data-room="{{ col.room.pk }}" data-dentist="{{ slot.dentist_id }}" title="{% trans 'Book' %} {{ slot.time }}"></a>{% endfor %}{% endif %}
+    {% for b in col.blocks %}{% with a=b.appointment %}<a class="daygrid-block status-{{ a.status }}" style="top: {{ b.top }}px; height: {{ b.height }}px; inset-inline-start: {{ b.left }}%; width: {{ b.width }}%" href="{{ a.get_absolute_url }}"{% if in_form %} target="_blank"{% endif %} title="{{ a.scheduled_at|time:'g:i A' }} {{ a.patient.full_name }} — {{ a.dentist|default:'' }} — {{ a.get_status_display }}"><strong>{{ a.scheduled_at|time:"g:i" }}</strong> {{ a.patient.full_name }}{% if a.purpose %}<span class="d-block text-truncate opacity-75">{{ a.purpose }}</span>{% endif %}</a>{% endwith %}{% endfor %}
+  </div>
+  {% endfor %}
+</div>
+</div>
+<div class="small text-muted mt-2 d-flex flex-wrap gap-3">
+  <span><span class="legend-box is-open"></span> {% trans "free: click to book" %}</span>
+  <span><span class="legend-box"></span> {% trans "no dentist on the schedule" %}</span>
+  <span><span class="legend-box status-scheduled"></span> {% trans "Booked" %}</span>
+  <span><span class="legend-box status-arrived"></span> {% trans "Arrived - waiting" %}</span>
+  <span><span class="legend-box status-in_room"></span> {% trans "In the room" %}</span>
+  <span><span class="legend-box status-completed"></span> {% trans "Left" %}</span>
+  <span><span class="legend-box status-no_show"></span> {% trans "Did not come" %}</span>
+  <span>{% blocktrans count n=booked %}{{ n }} patient booked{% plural %}{{ n }} patients booked{% endblocktrans %}</span>
+</div>

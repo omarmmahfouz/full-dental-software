@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n clinic %}
 {% block title %}{% trans "WhatsApp messages" %}{% endblock %}
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-whatsapp text-success"></i> {% trans "WhatsApp messages to send" %}</h1></div>
@@ -16,4 +16,15 @@
 <div class="card mb-3"><div class="card-header fw-semibold">{% trans "Missed appointments (last 7 days)" %}</div>
   {% include "scheduling/_whatsapp_rows.html" with rows=missed kind="no_show" %}
 </div>
+{% if installments is not None %}
+<div class="card mb-3"><div class="card-header fw-semibold">{% trans "Academy installments: due in the next 3 days or late" %}</div>
+<div class="table-responsive"><table class="table table-sm align-middle mb-0"><tbody>
+  {% for row in installments %}<tr class="{% if row.sent %}table-light{% endif %}">
+    <td class="nowrap">{{ row.installment.due_date|date:"d/m/Y" }}{% if row.state == "overdue" %} <span class="badge text-bg-danger">{% trans "Late" %}</span>{% endif %}</td>
+    <td><a class="fw-semibold" href="{{ row.enrollment.get_absolute_url }}">{{ row.enrollment.candidate }}</a> <span class="small text-muted">{{ row.enrollment.course.code }}</span></td>
+    <td class="fw-bold">{{ row.remaining|money }} {{ CLINIC.CURRENCY }}</td>
+    <td class="text-end nowrap">{% include "academy/_installment_whatsapp.html" %}</td>
+  </tr>{% empty %}<tr><td class="text-muted">{% trans "Nothing to send." %}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
 {% endblock %}

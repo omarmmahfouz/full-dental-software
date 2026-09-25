@@ -18,7 +18,7 @@
     <div class="col-md-3"><b>{% trans "Date of birth" %}:</b> {{ patient.birth_date|date:"d/m/Y"|default:"—" }}</div>
     <div class="col-md-3"><b>{% trans "Occupation" %}:</b> {{ patient.occupation|default:"—" }}</div>
     <div class="col-md-3"><b>{% trans "Marital status" %}:</b> {{ patient.get_marital_status_display|default:"—" }}</div>
-    <div class="col-md-3"><b>{% trans "Governorate" %}:</b> {{ patient.governorate|default:"—" }}</div>
+    <div class="col-md-3"><b>{% trans "Governorate" %}:</b> {{ patient.get_governorate_display|default:"—" }}</div>
     <div class="col-md-3"><b>{% trans "Mobile" %}:</b> {{ patient.phone_primary }}</div>
     <div class="col-md-3"><b>{% trans "Referral" %}:</b> {{ exam.referral|default:"—" }}</div>
     <div class="col-12"><b>{% trans "Chief complaint" %}:</b> {{ exam.chief_complaint|default:"—" }}</div>

@@ -3,7 +3,7 @@
 {% block title %}{% if target %}{{ target.first_name|default:target.username }}{% else %}{% trans "New login" %}{% endif %}{% endblock %}
 {% block content %}
 <div class="page-header"><h1><a class="text-decoration-none" href="{% url 'settings:users' %}"><i class="bi bi-arrow-left"></i></a> {% if target %}{{ target.first_name|default:target.username }}{% else %}{% trans "New login" %}{% endif %}</h1></div>
-<div class="alert alert-light small">{% trans "Roles decide which parts of the system a person uses. “Read only” and the time limits restrict them further. The owner is never limited." %}</div>
+<div class="alert alert-light small">{% trans "Roles decide which parts of the system a person uses. For this person only, you can change one part below (for example the academy for one secretary), make everything read only, or limit the days and hours. A part can be opened again here after Access by role closed it, but never beyond what the role itself allows. The owner is never limited." %}</div>
 <form method="post" novalidate class="card"><div class="card-body">{% csrf_token %}
   {% include "includes/form_fields.html" %}
   <div class="mt-3 d-flex gap-2">

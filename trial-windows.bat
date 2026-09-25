@@ -45,7 +45,7 @@ echo  ============================================================
 echo   The system is running.   Open:  http://localhost:8000
 echo   From other PCs / tablets on the same network:  http://%LANIP%:8000
 echo.
-echo   Users (password demo12345):  owner  headcia  teamhead  dentist1  dentist2  secretary  stock
+echo   Users (password demo12345):  owner  headcia  teamhead  dentist1  dentist2  secretary  secretary2  stock
 echo   Close this window to stop the system.
 echo  ============================================================
 echo.

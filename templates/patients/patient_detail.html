@@ -5,27 +5,38 @@
 <div class="page-header">
   <div>
     <h1>{{ patient.full_name }} <small class="text-muted fs-6">{{ patient.file_number }}</small> {% status_badge patient %}</h1>
+    {% if patient.status == "out" %}<div class="alert alert-danger py-1 px-2 small d-inline-block mb-1"><i class="bi bi-box-arrow-right"></i> {% trans "Out" %}: {{ patient.out_reason|default:"" }}{% if patient.out_notes %} — {{ patient.out_notes }}{% endif %}</div>{% endif %}
     <div class="mt-1">
       {% for lr in open_labs %}<span class="lab-flag"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}: {{ lr.work_type }} — {{ lr.get_status_display }}</span> {% endfor %}
       {% for c in complaints %}{% if c.is_open %}<span class="complaint-flag"><i class="bi bi-exclamation-circle"></i> {% trans "Open complaint" %} {{ c.number }}</span> {% endif %}{% endfor %}
     </div>
   </div>
   <div class="d-flex gap-2 flex-wrap no-print">
-    <a class="btn btn-success" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a>
     {% if is_clinical %}
+    <a class="btn btn-success" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a>
     <a class="btn btn-outline-success" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-nut"></i> {% trans "New surgery chart" %}</a>
     <a class="btn btn-outline-secondary" href="{% url 'charting:case_report' patient.pk %}"><i class="bi bi-journal-medical"></i> {% trans "Case report" %}</a>
     {% endif %}
     {% if can_edit %}
     <a class="btn btn-outline-secondary" href="{% url 'patients:update' patient.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    {% if "billing" not in hidden_areas %}<a class="btn btn-outline-success" href="{% url 'billing:account' patient.pk %}"><i class="bi bi-wallet2"></i> {% trans "Account & payments" %}</a>{% endif %}
     <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>
     <a class="btn btn-outline-warning" href="{% url 'complaints:create' %}?patient={{ patient.pk }}"><i class="bi bi-chat-left-dots"></i> {% trans "Record complaint" %}</a>
     {% endif %}
-    <a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>
+    {% if is_clinical %}<a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>
+    {% else %}<a class="btn btn-outline-secondary" href="{% url 'prescriptions:instructions' patient.pk %}"><i class="bi bi-printer"></i> {% trans "Post-op instructions" %}</a>{% endif %}
+    <div class="btn-group">
+      <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-file-earmark-medical"></i> {% trans "CBCT / medical tests" %}</button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="{% url 'clinical:outside_create' %}?patient={{ patient.pk }}&amp;kind=cbct"><i class="bi bi-radioactive"></i> {% trans "CBCT request" %}</a></li>
+        <li><a class="dropdown-item" href="{% url 'clinical:outside_create' %}?patient={{ patient.pk }}&amp;kind=medical_lab"><i class="bi bi-droplet"></i> {% trans "Medical lab request" %}</a></li>
+      </ul>
+    </div>
     <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-box-seam"></i> {% trans "New lab request" %}</a>
   </div>
 </div>
 
+{% include "includes/pending_changes.html" %}
 {% if medical_conditions %}
 <div class="mb-3"><i class="bi bi-heart-pulse text-danger"></i> {% for c in medical_conditions %}<span class="medical-alert">{{ c }}</span>{% endfor %}{% if patient.medical_notes %} <span class="small">{{ patient.medical_notes }}</span>{% endif %}</div>
 {% endif %}
@@ -33,6 +44,7 @@
 <ul class="nav nav-tabs mb-3" role="tablist">
   <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#info" type="button">{% trans "Data" %}</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#visits" type="button">{% trans "Visits" %} <span class="badge text-bg-light">{{ appointments|length }}</span></button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#plan" type="button">{% trans "Treatment plan" %} <span class="badge text-bg-light">{{ plans|length }}</span></button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#steps" type="button">{% trans "Treatment steps" %} <span class="badge text-bg-light">{{ steps|length }}</span></button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#lab" type="button">{% trans "Lab" %} <span class="badge text-bg-light">{{ lab_requests|length }}</span></button></li>
   {% if can_edit %}
@@ -44,27 +56,41 @@
 
 <div class="tab-content">
   <div class="tab-pane fade show active" id="info">
+    {% if id_cards and can_edit %}<div class="d-flex flex-wrap gap-3 mb-3">{% for d in id_cards %}<a href="{{ d.file.url }}" target="_blank" class="id-card-view"><img src="{{ d.file.url }}" alt="{{ d.get_kind_display }}"><span>{{ d.get_kind_display }}</span></a>{% endfor %}</div>{% endif %}
     <div class="card"><div class="card-body">
       <div class="row">
         <div class="col-md-6"><dl class="dl-grid">
-          <dt>{% trans "File number" %}</dt><dd>{{ patient.file_number }}</dd>
+          <dt>{% trans "File number" %}</dt><dd>{{ patient.file_number }} <span class="small text-muted">— {% trans "opened on" %} {{ patient.registered_on|date:"d/m/Y" }}</span></dd>
           <dt>{{ patient.get_id_type_display }}</dt><dd><span class="ltr">{{ patient.national_id }}</span></dd>
           <dt>{% trans "Date of birth" %}</dt><dd>{{ patient.birth_date|date:"d/m/Y"|default:"—" }} {% if patient.age is not None %}({% blocktrans with age=patient.age %}{{ age }} years{% endblocktrans %}){% endif %}</dd>
           <dt>{% trans "Gender" %}</dt><dd>{{ patient.get_gender_display|default:"—" }}</dd>
           <dt>{% trans "Marital status" %}</dt><dd>{{ patient.get_marital_status_display|default:"—" }}</dd>
           <dt>{% trans "Occupation" %}</dt><dd>{{ patient.occupation|default:"—" }}</dd>
-          <dt>{% trans "Missing teeth" %}</dt><dd>{{ patient.get_missing_teeth_display }} {{ patient.missing_teeth_notes }}</dd>
+          <dt>{% trans "Missing teeth" %}</dt><dd>{{ patient.get_missing_teeth_display }} {{ patient.missing_teeth_notes }}{% if chart_missing %}<div class="small text-success"><i class="bi bi-diagram-3"></i> {% trans "from the dental chart" %}</div>{% for tooth, name in patient.missing_teeth_notes|teeth_explained %}<div class="small text-muted">{{ tooth }} = {{ name }}</div>{% endfor %}{% endif %}</dd>
         </dl></div>
         <div class="col-md-6"><dl class="dl-grid">
           <dt>{% trans "Mobile 1" %}</dt><dd><span class="ltr">{{ patient.phone_primary }}</span>{% if patient.preferred_phone == "primary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
           <dt>{% trans "Mobile 2" %}</dt><dd><span class="ltr">{{ patient.phone_secondary|default:"—" }}</span>{% if patient.preferred_phone == "secondary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
-          <dt>{% trans "Address" %}</dt><dd>{{ patient.governorate }}{% if patient.governorate and patient.city %} — {% endif %}{{ patient.city }} {{ patient.address }}</dd>
+          <dt>{% trans "Address" %}</dt><dd>{{ patient.get_governorate_display }}{% if patient.governorate and patient.city %} — {% endif %}{{ patient.city }} {{ patient.address }}</dd>
           <dt>{% trans "Responsible dentist" %}</dt><dd class="fw-bold">{{ patient.assigned_dentist|default:"—" }}</dd>
           <dt>{% trans "Registered" %}</dt><dd class="small text-muted">{{ patient.created_at|date:"d/m/Y" }} — {{ patient.created_by|default:"" }}</dd>
           <dt>{% trans "Notes" %}</dt><dd>{{ patient.notes|linebreaksbr|default:"—" }}</dd>
         </dl></div>
       </div>
     </div></div>
+    {% if exam %}
+    <div class="card mt-3"><div class="card-header"><i class="bi bi-heart-pulse text-danger"></i> {% trans "Medical history from the dentist's examination" %}
+      <span class="small text-muted">— {{ exam.exam_date|date:"d/m/Y" }}{% if exam.examined_by %}, {{ exam.examined_by }}{% endif %}</span></div>
+      <div class="card-body small"><dl class="dl-grid mb-0">
+        <dt>{% trans "Diseases" %}</dt><dd>{% for c in exam.conditions.all %}<span class="medical-alert">{{ c }}</span>{% empty %}—{% endfor %}{% if exam.other_condition %} {{ exam.other_condition }}{% endif %}{% if exam.conditions_comment %}<div>{{ exam.conditions_comment }}</div>{% endif %}</dd>
+        <dt>{% trans "Allergies" %}</dt><dd>{% if exam.allergy_penicillin %}<span class="medical-alert">{% trans "allergic to penicillin" %}</span>{% endif %}{% if exam.allergy_sulfa %}<span class="medical-alert">{% trans "allergic to sulfa" %}</span>{% endif %}{{ exam.allergy_other }}{% if not exam.allergy_penicillin and not exam.allergy_sulfa and not exam.allergy_other %}—{% endif %}</dd>
+        {% if exam.pregnant == "yes" or exam.lactating == "yes" %}<dt>{% trans "Pregnant / lactating" %}</dt><dd><span class="medical-alert">{% if exam.pregnant == "yes" %}{% trans "pregnant" %}{% else %}{% trans "lactating" %}{% endif %}</span></dd>{% endif %}
+        {% if exam.under_treatment %}<dt>{% trans "Being treated for" %}</dt><dd>{{ exam.under_treatment }}</dd>{% endif %}
+        {% if exam.drugs_taken %}<dt>{% trans "Drugs taken" %}</dt><dd>{{ exam.drugs_taken|linebreaksbr }}</dd>{% endif %}
+        {% if exam.smoker %}<dt>{% trans "Smoker" %}</dt><dd>{% trans "Yes" %}{% if exam.cigarettes_per_day %} — {{ exam.cigarettes_per_day }} / {% trans "day" %}{% endif %}</dd>{% endif %}
+      </dl></div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="tab-pane fade" id="visits">
@@ -87,6 +113,25 @@
     </table></div></div>
   </div>
 
+  <div class="tab-pane fade" id="plan">
+    {% for plan in plans %}
+    <div class="card mb-3"><div class="card-header d-flex flex-wrap gap-2 align-items-center">
+      <b>{{ plan.title }}</b> {% status_badge plan %}
+      {% if plan.difficulty %}<span class="badge text-bg-light">{{ plan.get_difficulty_display }}</span>{% endif %}
+      <span class="small text-muted">{{ plan.dentist|default:"" }} — {{ plan.created_at|date:"d/m/Y" }}</span>
+    </div>
+    <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+      <thead><tr><th>{% trans "Procedure" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Status" %}</th></tr></thead>
+      <tbody>{% for item in plan.items.all %}
+      <tr class="{% if item.status == 'done' %}table-success{% elif item.status == 'cancelled' %}text-muted{% endif %}">
+        <td><b>{{ item.step_type }}</b>{% if item.step_type|explain %}<div class="small text-muted">{{ item.step_type|explain }}</div>{% endif %}{% if item.details %}<div class="small">{{ item.details }}</div>{% endif %}</td>
+        <td>{{ item.teeth|default:"—" }}{% for tooth, name in item.teeth|teeth_explained %}<div class="small text-muted">{{ tooth }} = {{ name }}</div>{% endfor %}</td>
+        <td class="nowrap">{% if item.status == "done" %}<i class="bi bi-check2-circle text-success"></i> {% endif %}{{ item.get_status_display }}{% if item.done_at %}<div class="small text-muted">{{ item.done_at|date:"d/m/Y" }}</div>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div></div>
+    {% empty %}<div class="text-muted">{% trans "No treatment plan yet." %}</div>{% endfor %}
+  </div>
+
   <div class="tab-pane fade" id="steps">
     <div class="card"><div class="table-responsive"><table class="table table-sm mb-0">
       <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Step" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Done by" %}</th><th>{% trans "Details" %}</th><th>{% trans "Supervisor check" %}</th></tr></thead>
@@ -94,8 +139,8 @@
       {% for s in steps %}
       <tr>
         <td class="nowrap">{{ s.performed_at|date:"d/m/Y" }}</td>
-        <td><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a></td>
-        <td>{{ s.teeth|default:"—" }}</td>
+        <td>{% if is_clinical %}<a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a>{% else %}<b>{{ s.step_type }}</b>{% endif %}{% if s.step_type|explain %}<div class="small text-muted">{{ s.step_type|explain }}</div>{% endif %}</td>
+        <td>{{ s.teeth|default:"—" }}{% for tooth, name in s.teeth|teeth_explained %}<div class="small text-muted">{{ tooth }} = {{ name }}</div>{% endfor %}</td>
         <td>{{ s.operator|default:"—" }}{% if s.supervisor %}<div class="small text-muted">{{ s.supervisor }}</div>{% endif %}</td>
         <td class="small">{% if s.surfaces %}{{ s.surfaces }} {% endif %}{% if s.material %}{{ s.material }} — {% endif %}{{ s.notes|truncatechars:80 }}{% if s.next_visit %}<div class="text-muted">{% trans "Next" %}: {{ s.next_visit }}</div>{% endif %}</td>
         <td>{% if s.is_verified %}<span class="badge text-bg-success"><i class="bi bi-check2"></i> {{ s.verified_by }}{% if s.grade %} · {{ s.grade }}/5{% endif %}</span>{% else %}<span class="badge text-bg-warning">{% trans "Not checked" %}</span>{% endif %}</td>
@@ -118,6 +163,11 @@
       {% empty %}<tr><td colspan="7" class="text-muted text-center py-3">{% trans "No lab work." %}</td></tr>{% endfor %}
       </tbody>
     </table></div></div>
+    {% if outside_requests %}
+    <div class="card mt-3"><div class="card-header">{% trans "CBCT and medical lab requests" %}</div><ul class="list-group list-group-flush">
+      {% for o in outside_requests %}<li class="list-group-item d-flex justify-content-between"><span><a href="{{ o.get_absolute_url }}">{{ o.get_kind_display }}</a> — {% if o.kind == "cbct" %}{{ o.get_region_display }} {{ o.teeth }}{% else %}{{ o.test_labels|join:", "|truncatechars:80 }}{% endif %}</span><span class="small text-muted">{{ o.requested_on|date:"d/m/Y" }} — {{ o.dentist|default:"" }}</span></li>{% endfor %}
+    </ul></div>
+    {% endif %}
   </div>
 
   {% if can_edit %}
@@ -128,7 +178,11 @@
         <a href="{{ d.file.url }}" target="_blank">{% if d.is_image %}<img src="{{ d.file.url }}" class="doc-thumb" alt="{{ d.get_kind_display }}">{% else %}<i class="bi bi-file-earmark-pdf display-4 text-danger"></i>{% endif %}</a>
         <div class="fw-semibold small mt-1">{{ d.get_kind_display }}</div>
         <div class="small text-muted">{{ d.created_at|date:"d/m/Y" }} {{ d.notes }}</div>
-        <form method="post" action="{% url 'patients:document_delete' patient.pk d.pk %}" class="mt-1">{% csrf_token %}<button class="btn btn-sm btn-link text-danger" data-confirm="{% trans 'Delete this document?' %}"><i class="bi bi-trash"></i></button></form>
+        {% if d.original %}<a class="small" href="{{ d.original.url }}" target="_blank">{% trans "original scan" %}</a>{% endif %}
+        <div class="d-flex justify-content-center mt-1">
+          {% if d.is_image %}<form method="post" action="{% url 'patients:document_rotate' patient.pk d.pk %}">{% csrf_token %}<button class="btn btn-sm btn-link" name="way" value="left" title="{% trans 'Turn left' %}"><i class="bi bi-arrow-counterclockwise"></i></button><button class="btn btn-sm btn-link" name="way" value="right" title="{% trans 'Turn right' %}"><i class="bi bi-arrow-clockwise"></i></button></form>{% endif %}
+          <form method="post" action="{% url 'patients:document_delete' patient.pk d.pk %}">{% csrf_token %}<button class="btn btn-sm btn-link text-danger" data-confirm="{% trans 'Delete this document?' %}"><i class="bi bi-trash"></i></button></form>
+        </div>
       </div></div></div>
       {% empty %}<div class="col-12"><div class="alert alert-warning">{% trans "No ID scan uploaded yet." %}</div></div>{% endfor %}
     </div>

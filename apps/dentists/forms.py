@@ -26,7 +26,7 @@ class DentistChoiceField(forms.ModelChoiceField):
 class DentistForm(StyledModelForm):
     class Meta:
         model = Dentist
-        fields = ["full_name", "kind", "phone", "branch", "user", "is_active", "notes"]
+        fields = ["full_name", "name_ar", "kind", "phone", "branch", "user", "is_active", "notes"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

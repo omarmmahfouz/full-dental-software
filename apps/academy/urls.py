@@ -19,4 +19,6 @@ urlpatterns = [
     path("payments/", views.payment_list, name="payment_list"),
     path("payments/<int:pk>/receipt/", views.payment_receipt, name="payment_receipt"),
     path("overdue/", views.overdue_installments, name="overdue"),
+    path("installments/", views.installments_month, name="installments_month"),
+    path("installments/<int:pk>/whatsapp/", views.installment_whatsapp, name="installment_whatsapp"),
 ]

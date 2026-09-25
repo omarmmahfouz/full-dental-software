@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -15,14 +16,16 @@ from apps.charting.rules import apply_changes, plan_changes
 from apps.charting.teeth import parse_teeth
 from apps.core.forms import clean_digits_value
 from apps.core.mixins import SearchMixin, role_required
-from apps.core.models import branch_for_user
-from apps.core.roles import MANAGEMENT, PATIENT_VIEWERS, has_role, is_only_dentist
+from apps.core.models import ClinicSettings, branch_for_user
+from apps.core.roles import CLINICAL, MANAGEMENT, PATIENT_VIEWERS, has_role, is_only_dentist
 from apps.dentists.models import Dentist
-from apps.patients.access import get_visible_patient_or_403, visible_patients
+from apps.patients.access import get_clinical_patient_or_403, get_visible_patient_or_403, visible_patients
 from apps.scheduling.models import Appointment, day_bounds
 
-from .forms import LabActionForm, LabFilterForm, LabRequestForm, StepFilterForm, StepReviewForm, TreatmentStepForm
-from .models import LabRequest, LabRequestEvent, TreatmentStep
+from .forms import (
+    LabActionForm, LabFilterForm, LabRequestForm, OutsideRequestForm, StepFilterForm, StepReviewForm, TreatmentStepForm,
+)
+from .models import LabRequest, LabRequestEvent, OutsideRequest, TreatmentStep
 from .services import ACTION_LABELS, TRANSITIONS, available_actions, perform_lab_action
 
 ANY_STAFF = PATIENT_VIEWERS
@@ -61,7 +64,7 @@ class StepListView(SearchMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        if not has_role(self.request.user, *ANY_STAFF):
+        if not has_role(self.request.user, *CLINICAL):
             raise PermissionDenied
         self.filter_form = StepFilterForm(self.request.GET or None)
         qs = TreatmentStep.objects.select_related(
@@ -97,7 +100,7 @@ class StepListView(SearchMixin, ListView):
 
 
 def step_create(request):
-    if not has_role(request.user, *ANY_STAFF):
+    if not has_role(request.user, *CLINICAL):
         raise PermissionDenied
     patient, appointment = _patient_and_appointment(request)
     me = Dentist.for_user(request.user)
@@ -143,7 +146,7 @@ def step_detail(request, pk):
         ),
         pk=pk,
     )
-    get_visible_patient_or_403(request.user, step.patient_id)
+    get_clinical_patient_or_403(request.user, step.patient_id)
     can_review = has_role(request.user, *MANAGEMENT)
     form = StepReviewForm(request.POST or None, instance=step) if can_review else None
     if request.method == "POST":
@@ -301,3 +304,36 @@ def lab_print(request, pk):
     lab_request = get_object_or_404(LabRequest.objects.select_related("patient", "work_type", "lab", "dentist"), pk=pk)
     get_visible_patient_or_403(request.user, lab_request.patient_id)
     return render(request, "clinical/lab_print.html", {"lab_request": lab_request})
+
+
+# ------------------------------------------------------------ CBCT and medical lab requests
+@role_required(*ANY_STAFF)
+def outside_create(request):
+    patient_id = request.GET.get("patient", "")
+    patient = get_visible_patient_or_403(request.user, int(patient_id)) if patient_id.isdigit() else None
+    if patient is None:
+        raise Http404
+    kind = request.GET.get("kind")
+    if kind not in OutsideRequest.Kind.values:
+        kind = OutsideRequest.Kind.CBCT
+    me = Dentist.for_user(request.user)
+    form = OutsideRequestForm(request.POST or None, kind=kind, initial={
+        "requested_on": timezone.localdate(), "dentist": me or patient.assigned_dentist})
+    if request.method == "POST" and form.is_valid():
+        outside = form.save(commit=False)
+        outside.patient, outside.kind, outside.created_by = patient, kind, request.user
+        outside.save()
+        return redirect(outside)
+    return render(request, "includes/form_page.html", {
+        "form": form, "title": f"{OutsideRequest.Kind(kind).label} — {patient.full_name}",
+        "cancel_url": patient.get_absolute_url(), "submit_label": _("Save and print"),
+    })
+
+
+@role_required(*ANY_STAFF)
+def outside_print(request, pk):
+    outside = get_object_or_404(OutsideRequest.objects.select_related("patient", "dentist"), pk=pk)
+    get_visible_patient_or_403(request.user, outside.patient_id)
+    return render(request, "clinical/outside_print.html", {
+        "outside": outside, "dicom_email": ClinicSettings.get().dicom_email, "branch": branch_for_user(request.user),
+    })

@@ -15,7 +15,7 @@ from apps.academy.models import Course
 from apps.charting.models import Examination
 from apps.charting.teeth import is_anterior, jaw, parse_teeth, tooth_type
 from apps.core.forms import StyledForm
-from apps.core.utils import age_from_birth_date
+from apps.core.utils import GOVERNORATE_CHOICES, age_from_birth_date
 from apps.dentists.forms import DentistChoiceField
 from apps.dentists.models import Dentist
 from apps.patients.models import Gender, MedicalCondition, Patient, ReferralSource
@@ -68,7 +68,8 @@ class FinderForm(StyledForm):
     conditions = forms.ModelMultipleChoiceField(
         label=_("medical condition (any of)"), required=False, queryset=MedicalCondition.objects.filter(is_active=True)
     )
-    governorate = forms.CharField(label=_("governorate"), required=False)
+    governorate = forms.ChoiceField(label=_("governorate"), required=False,
+                                    choices=[("", _("All"))] + GOVERNORATE_CHOICES)
     referral_source = forms.ModelChoiceField(
         label=_("referral source"), required=False, queryset=ReferralSource.objects.all(), empty_label=_("Any")
     )
@@ -187,7 +188,7 @@ def filter_sites(data):
             Q(surgery__patient__medical_conditions__in=chosen) | Q(surgery__patient__examinations__conditions__in=chosen)
         )
     if data.get("governorate"):
-        qs = qs.filter(surgery__patient__governorate__icontains=data["governorate"])
+        qs = qs.filter(surgery__patient__governorate=data["governorate"])
     if data.get("referral_source"):
         qs = qs.filter(surgery__patient__referral_source=data["referral_source"])
     # team

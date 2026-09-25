@@ -1,5 +1,6 @@
 from django import forms
 from django.db.models import Q
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -11,10 +12,13 @@ from apps.core.forms import (
     validate_upload,
 )
 from apps.core.utils import normalize_phone, parse_egyptian_national_id
+from apps.core.widgets import AutocompleteInput
 
 from apps.dentists.forms import DentistChoiceField
 
-from .models import Lead, LeadCall, MedicalCondition, Patient, PatientDocument, PatientRelation, ReferralSource
+from .models import (
+    Lead, LeadCall, MedicalCondition, OutReason, Patient, PatientDocument, PatientRelation, ReferralSource,
+)
 
 
 def find_patient(value):
@@ -27,15 +31,21 @@ def find_patient(value):
     if phone:
         query |= Q(phone_primary=phone) | Q(phone_secondary=phone)
     matches = list(Patient.objects.filter(query)[:2])
+    if not matches:
+        # The full name, typed exactly, when only one patient has it.
+        matches = list(Patient.objects.filter(full_name__iexact=value)[:2])
     return matches[0] if len(matches) == 1 else None
 
 
 class PatientLookupField(forms.CharField):
-    """A text box where the secretary types a patient's file number, mobile or ID."""
+    """A box where the secretary types a patient's name, mobile, file number or ID and
+    chooses from the suggestions."""
 
     def __init__(self, **kwargs):
-        kwargs.setdefault("max_length", 30)
-        kwargs.setdefault("help_text", _("Type the patient's file number, mobile or national ID."))
+        kwargs.setdefault("max_length", 150)
+        kwargs.setdefault("help_text", _("Type the name, mobile, file number or national ID and choose the patient."))
+        kwargs.setdefault("widget", AutocompleteInput(reverse_lazy("patients:lookup"), attrs={
+            "placeholder": _("name, mobile or file number")}))
         super().__init__(**kwargs)
 
     def clean(self, value):
@@ -48,7 +58,7 @@ class PatientLookupField(forms.CharField):
         return patient
 
 
-def _duplicate_phone_error(phone, exclude_patient=None, exclude_lead=None):
+def duplicate_phone_error(phone, exclude_patient=None, exclude_lead=None):
     """Explain who already owns a phone number (patients and the call list)."""
     patients = Patient.objects.filter(Q(phone_primary=phone) | Q(phone_secondary=phone))
     if exclude_patient is not None and exclude_patient.pk:
@@ -68,12 +78,17 @@ def _duplicate_phone_error(phone, exclude_patient=None, exclude_lead=None):
     return None
 
 
+def _phone_check_url(kind, instance, name):
+    field = "secondary" if name.endswith("secondary") else "primary"
+    return f"{reverse('patients:phone_check')}?kind={kind}&pk={instance.pk or ''}&field={field}"
+
+
 class LeadForm(StyledModelForm):
     fieldsets = [
         (_("Caller"), ["full_name", "phone_primary", "phone_secondary", "preferred_phone", "age", "gender", "city"]),
         (_("Teeth and health (as told by the caller)"),
          ["missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes"]),
-        (_("Follow-up"), ["referral_source", "referral_notes", "status", "next_call_at", "notes"]),
+        (_("Follow-up"), ["first_call_on", "referral_source", "referral_notes", "status", "notes"]),
     ]
 
     class Meta:
@@ -81,7 +96,7 @@ class LeadForm(StyledModelForm):
         fields = [
             "full_name", "phone_primary", "phone_secondary", "preferred_phone", "age", "gender", "city",
             "missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes",
-            "referral_source", "referral_notes", "status", "next_call_at", "notes",
+            "first_call_on", "referral_source", "referral_notes", "status", "notes",
         ]
         widgets = {"medical_conditions": forms.CheckboxSelectMultiple}
 
@@ -91,15 +106,20 @@ class LeadForm(StyledModelForm):
         self.fields["referral_source"].queryset = ReferralSource.objects.filter(is_active=True)
         for name in ("phone_primary", "phone_secondary"):
             self.fields[name].widget.input_type = "tel"
+            self.fields[name].widget.attrs["data-phone-check-url"] = _phone_check_url("lead", self.instance, name)
         self.fields["age"].widget.attrs.update({"min": 1, "max": 110})
+        self.fields["first_call_on"].required = False
         if not self.instance.pk:
             self.fields["status"].choices = [
                 c for c in Lead.Status.choices if c[0] != Lead.Status.CONVERTED
             ]
 
+    def clean_first_call_on(self):
+        return self.cleaned_data.get("first_call_on") or timezone.localdate()
+
     def clean_phone_primary(self):
         phone = clean_phone_value(self.cleaned_data["phone_primary"])
-        error = _duplicate_phone_error(phone, exclude_lead=self.instance)
+        error = duplicate_phone_error(phone, exclude_lead=self.instance)
         if error:
             raise forms.ValidationError(error)
         return phone
@@ -110,7 +130,6 @@ class LeadForm(StyledModelForm):
 
 class LeadCallForm(StyledModelForm):
     new_status = forms.ChoiceField(label=_("change status to"), required=False)
-    next_call_at = forms.DateTimeField(label=_("next call"), required=False)
 
     class Meta:
         model = LeadCall
@@ -155,7 +174,7 @@ class PatientForm(StyledModelForm):
          ["missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes"]),
         (_("Who referred you?"), ["referral_source", "referred_by_lookup", "referral_notes"]),
         (_("Relatives or friends among our patients"), ["relative_lookup", "relative_relation"]),
-        (_("Follow-up"), ["assigned_dentist", "status", "notes"]),
+        (_("Follow-up"), ["registered_on", "assigned_dentist", "status", "out_reason", "out_notes", "notes"]),
     ]
 
     class Meta:
@@ -164,7 +183,8 @@ class PatientForm(StyledModelForm):
             "full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "occupation",
             "phone_primary", "phone_secondary", "preferred_phone", "governorate", "city", "address",
             "missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes",
-            "referral_source", "referral_notes", "assigned_dentist", "status", "notes",
+            "referral_source", "referral_notes", "registered_on", "assigned_dentist", "status", "out_reason",
+            "out_notes", "notes",
         ]
         widgets = {"medical_conditions": forms.CheckboxSelectMultiple}
 
@@ -175,10 +195,12 @@ class PatientForm(StyledModelForm):
         self.fields["referral_source"].required = True
         for name in ("phone_primary", "phone_secondary"):
             self.fields[name].widget.input_type = "tel"
+            self.fields[name].widget.attrs["data-phone-check-url"] = _phone_check_url("patient", self.instance, name)
         self.fields["national_id"].widget.attrs.update({"data-digits": "1", "autocomplete": "off"})
         self.fields["birth_date"].help_text = _("Filled automatically from the national ID.")
         self.fields["gender"].help_text = _("Filled automatically from the national ID.")
         self.fields["governorate"].help_text = _("Filled automatically from the national ID.")
+        self.fields["registered_on"].required = False
         for name in ("id_front", "id_back"):
             self.fields[name].widget.attrs["accept"] = "image/*,application/pdf"
         if self.instance.pk:
@@ -187,8 +209,11 @@ class PatientForm(StyledModelForm):
                 del self.fields[name]
             if self.instance.referred_by_id:
                 self.fields["referred_by_lookup"].initial = self.instance.referred_by.file_number
+            self.fields["out_reason"].queryset = OutReason.objects.filter(is_active=True)
+            self.fields["out_reason"].help_text = _("Needed when the status is “Out”.")
         else:
-            del self.fields["status"]
+            for name in ("status", "out_reason", "out_notes"):
+                del self.fields[name]
 
     def clean_national_id(self):
         value = clean_digits_value(self.cleaned_data.get("national_id")).upper().replace(" ", "")
@@ -202,9 +227,12 @@ class PatientForm(StyledModelForm):
             )
         return value
 
+    def clean_registered_on(self):
+        return self.cleaned_data.get("registered_on") or self.instance.registered_on or timezone.localdate()
+
     def clean_phone_primary(self):
         phone = clean_phone_value(self.cleaned_data.get("phone_primary"))
-        error = _duplicate_phone_error(phone, exclude_patient=self.instance, exclude_lead=False)
+        error = duplicate_phone_error(phone, exclude_patient=self.instance, exclude_lead=False)
         if error:
             raise forms.ValidationError(error)
         return phone
@@ -218,7 +246,7 @@ class PatientForm(StyledModelForm):
         if nid:
             data["birth_date"] = data.get("birth_date") or nid["birth_date"]
             data["gender"] = data.get("gender") or nid["gender"]
-            data["governorate"] = data.get("governorate") or str(nid["governorate"])
+            data["governorate"] = data.get("governorate") or nid["governorate_code"]
             if data["birth_date"] != nid["birth_date"]:
                 self.add_error("birth_date", _("The date of birth does not match the national ID."))
         if data.get("phone_primary") and data.get("phone_primary") == data.get("phone_secondary"):
@@ -231,6 +259,11 @@ class PatientForm(StyledModelForm):
             self.add_error("referred_by_lookup", _("A patient cannot refer himself."))
         if data.get("relative_lookup") and not data.get("relative_relation"):
             self.add_error("relative_relation", _("Choose the relation."))
+        if "status" in self.fields:
+            if data.get("status") == Patient.Status.OUT and not data.get("out_reason"):
+                self.add_error("out_reason", _("Choose why the patient is out."))
+            elif data.get("status") != Patient.Status.OUT:
+                data["out_reason"], data["out_notes"] = None, ""
         return data
 
     def save(self, commit=True):

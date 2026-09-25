@@ -27,4 +27,18 @@
     {% for r in spent_by_supplier %}<tr><td>{{ r.purchase__supplier__name }}</td><td class="fw-bold">{{ r.total|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
   </tbody></table></div></div>
 </div>
+<h2 class="h5 mt-4"><i class="bi bi-wallet2"></i> {% trans "Patient payments" %}</h2>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-success">{{ patient_collected|money }}</div><div class="stat-label">{% trans "Collected from patients in period" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-danger">{{ patients_owe|money }}</div><div class="stat-label">{% trans "Patients still owe (now)" %}</div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Services given in period" %}</div><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Service" %}</th><th>{% trans "Number" %}</th><th>{% trans "Price" %}</th><th>{% trans "Discounts" %}</th></tr></thead><tbody>
+    {% for r in services %}<tr><td>{{ r.service }}</td><td>{{ r.count }}</td><td class="fw-bold">{{ r.price|money }}</td><td>{{ r.discount|money }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Collected by payment method" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, amount in patient_by_method %}<tr><td>{{ label }}</td><td class="fw-bold">{{ amount|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table></div></div>
+</div>
 {% endblock %}

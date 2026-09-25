@@ -1,0 +1,3 @@
+{% load i18n %}{% if row.remaining %}<form method="post" action="{% url 'academy:installment_whatsapp' row.installment.pk %}" target="_blank" class="d-inline" onsubmit="setTimeout(function(){location.reload()}, 1500)">{% csrf_token %}
+  <button class="btn btn-sm {% if row.sent %}btn-outline-success{% else %}btn-success{% endif %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-whatsapp"></i> {% if row.sent %}{% trans "Send again" %}{% else %}{% trans "Remind" %}{% endif %}</button>
+</form>{% if row.sent %} <span class="small text-success"><i class="bi bi-check2-all"></i> {{ row.sent.sent_at|date:"d/m g:i A" }}</span>{% endif %}{% endif %}

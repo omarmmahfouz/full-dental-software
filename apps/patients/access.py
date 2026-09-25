@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404
 
-from apps.core.roles import PATIENT_VIEWERS, has_role
+from apps.core.roles import CLINICAL, PATIENT_VIEWERS, has_role
 
 from .models import Patient
 
@@ -49,3 +49,11 @@ def get_visible_patient_or_403(user, pk):
             raise PermissionDenied
         raise Http404
     return patient
+
+
+def get_clinical_patient_or_403(user, pk):
+    """For the dental chart, the treatment log and surgeries: the clinical team only. The reception
+    reads the plan and the treatments done, in plain Arabic, on the patient file."""
+    if not has_role(user, *CLINICAL):
+        raise PermissionDenied
+    return get_visible_patient_or_403(user, pk)

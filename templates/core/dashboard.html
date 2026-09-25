@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header">
   <h1>{% blocktrans with name=user %}Welcome, {{ name }}{% endblocktrans %}</h1>
-  <span class="text-muted">{{ today|date:"l j F Y" }}</span>
+  <span class="text-muted">{{ today|date:"l d/m/Y" }}</span>
 </div>
 
 {% if appointment_counts %}
@@ -47,12 +47,12 @@
   {% if calls_due is not None %}
   <div class="col-lg-6">
     <div class="card h-100">
-      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-telephone-outbound"></i> {% trans "Calls to make today" %}</span><a href="{% url 'patients:lead_list' %}?due=1" class="small">{% trans "All" %}</a></div>
+      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-telephone-outbound"></i> {% trans "Expected patients to call" %}</span><a href="{% url 'patients:lead_list' %}?due=1" class="small">{% trans "All" %}</a></div>
       <div class="list-group list-group-flush">
         {% for lead in calls_due %}
         <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ lead.get_absolute_url }}">
           <span>{{ lead.full_name }} <span class="text-muted small ltr">{{ lead.preferred_number }}</span></span>
-          <span class="small text-muted">{% if lead.next_call_at %}{{ lead.next_call_at|date:"d/m g:i A" }}{% else %}{% trans "New" %}{% endif %}</span>
+          <span class="small text-muted">{{ lead.first_call_on|date:"d/m/Y" }}</span>
         </a>
         {% empty %}<div class="list-group-item text-muted">{% trans "No calls due." %}</div>{% endfor %}
       </div>

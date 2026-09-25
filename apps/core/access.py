@@ -10,7 +10,7 @@ from django.shortcuts import redirect
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
-from .models import AreaAccess
+from .models import AreaAccess, PersonAreaAccess
 from .roles import OWNER, user_roles
 
 # Parts of the system and the addresses that belong to them (longest first wins).
@@ -26,6 +26,7 @@ AREAS = [
     ("prescriptions", gettext_lazy("Prescriptions and instructions"), ["/prescriptions/"]),
     ("complaints", gettext_lazy("Complaints"), ["/complaints/"]),
     ("academy", gettext_lazy("Academy"), ["/academy/"]),
+    ("billing", gettext_lazy("Patient payments"), ["/billing/"]),
     ("dentists", gettext_lazy("Dentists"), ["/dentists/"]),
     ("purchases", gettext_lazy("Purchases"), ["/purchases/"]),
     ("stock", gettext_lazy("Stock"), ["/stock/"]),
@@ -60,6 +61,12 @@ def area_levels(user):
         for rule in AreaAccess.objects.filter(role__in=user_roles(user)).exclude(level=AreaAccess.Level.FULL):
             # If any of the person's roles is limited in an area, the person is limited there.
             if rule.area not in levels or RANK[rule.level] < RANK[levels[rule.area]]:
+                levels[rule.area] = rule.level
+        # A rule set for the person replaces the rule of their roles in that area.
+        for rule in PersonAreaAccess.objects.filter(user=user):
+            if rule.level == AreaAccess.Level.FULL:
+                levels.pop(rule.area, None)
+            else:
                 levels[rule.area] = rule.level
         profile = getattr(user, "profile", None)
         if profile is not None and profile.read_only:

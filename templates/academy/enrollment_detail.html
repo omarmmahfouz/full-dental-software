@@ -4,7 +4,7 @@
 {% block content %}
 {% with e=enrollment %}
 <div class="page-header">
-  <h1><i class="bi bi-cash-coin"></i> <a href="{{ e.candidate.get_absolute_url }}">{{ e.candidate }}</a> — {{ e.course }}</h1>
+  <h1><i class="bi bi-cash-coin"></i> <a href="{{ e.candidate.get_absolute_url }}">{{ e.candidate }}</a> — {{ e.course }} <span class="badge text-bg-light border fs-6">{{ e.get_study_mode_display }}</span></h1>
   {% if roles.owner or roles.secretary %}<a class="btn btn-outline-secondary" href="{% url 'academy:enrollment_plan' e.pk %}"><i class="bi bi-calendar3"></i> {% trans "Edit installment plan" %}</a>{% endif %}
 </div>
 <div class="row g-3 mb-3">
@@ -16,12 +16,13 @@
 <div class="row g-3">
   <div class="col-lg-6">
     <div class="card mb-3"><div class="card-header">{% trans "Installments" %}</div><div class="table-responsive"><table class="table mb-0">
-      <thead><tr><th>#</th><th>{% trans "Due date" %}</th><th>{% trans "Amount" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Remaining" %}</th><th>{% trans "Status" %}</th></tr></thead>
+      <thead><tr><th>#</th><th>{% trans "Due date" %}</th><th>{% trans "Amount" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Remaining" %}</th><th>{% trans "Status" %}</th><th class="no-print"></th></tr></thead>
       <tbody>
       {% for row in schedule %}
       <tr><td>{{ row.installment.number }}</td><td>{{ row.installment.due_date|date:"d/m/Y" }}</td><td>{{ row.installment.amount|money }}</td><td>{{ row.paid|money }}</td><td>{{ row.remaining|money }}</td>
-        <td><span class="badge text-bg-{{ row.state|status_color }}">{% if row.state == "paid" %}{% trans "Paid" %}{% elif row.state == "partial" %}{% trans "Partly paid" %}{% elif row.state == "overdue" %}{% trans "Overdue" %}{% else %}{% trans "Not due yet" %}{% endif %}</span></td></tr>
-      {% empty %}<tr><td colspan="6" class="text-muted">{% trans "No installment plan." %}</td></tr>{% endfor %}
+        <td><span class="badge text-bg-{{ row.state|status_color }}">{% if row.state == "paid" %}{% trans "Paid" %}{% elif row.state == "partial" %}{% trans "Partly paid" %}{% elif row.state == "overdue" %}{% trans "Overdue" %}{% else %}{% trans "Not due yet" %}{% endif %}</span></td>
+        <td class="no-print nowrap">{% if row.state != "paid" %}{% include "academy/_installment_whatsapp.html" %}{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="7" class="text-muted">{% trans "No installment plan." %}</td></tr>{% endfor %}
       </tbody>
     </table></div></div>
   </div>

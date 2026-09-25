@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import render
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
@@ -114,6 +114,11 @@ def _summary(items):
     return "; ".join(f"{item.step_type} {item.teeth}".strip() for item in items)
 
 
+def _reception_summary(items):
+    """The reason written for the reception: Arabic names, whatever the sender's language."""
+    return "; ".join(f"{item.step_type.name_ar} {item.teeth}".strip() for item in items)
+
+
 def plan_finder(request):
     if not has_role(request.user, *MANAGEMENT, TEAM_HEAD):
         raise PermissionDenied
@@ -146,9 +151,11 @@ def plan_finder(request):
     params = request.GET.copy()
     for key in ("page", "export"):
         params.pop(key, None)
-    chosen = ", ".join(str(t) for t in data.get("procedures") or [])
+    chosen = "، ".join(t.name_ar for t in data.get("procedures") or [])
+    with translation.override("ar"):  # the list is read by the reception
+        call_title = _("Treatment plans: %(what)s") % {"what": chosen} if chosen else _("Treatment plans")
     return render(request, "charting/plan_finder.html", {
         "form": form, "page_obj": page, "count": len(rows), "query": params.urlencode(),
-        "call_rows": [(plan.patient, summary) for plan, _items, summary, _next in rows],
-        "call_title": _("Treatment plans: %(what)s") % {"what": chosen} if chosen else _("Treatment plans"),
+        "call_rows": [(plan.patient, _reception_summary(items)) for plan, items, _summary_text, _next in rows],
+        "call_title": call_title,
     })

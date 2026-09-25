@@ -8,11 +8,11 @@
 </div>
 <div class="card"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
   <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Username" %}</th><th>{% trans "Roles" %}</th><th>{% trans "Access" %}</th><th>{% trans "Last login" %}</th></tr></thead>
-  <tbody>{% for u, roles, profile in rows %}<tr class="{% if not u.is_active %}text-muted{% endif %}">
+  <tbody>{% for u, roles, profile, custom in rows %}<tr class="{% if not u.is_active %}text-muted{% endif %}">
     <td><a class="fw-semibold" href="{% url 'settings:user_update' u.pk %}">{{ u.first_name|default:u.username }}</a>{% if not u.is_active %} <span class="badge text-bg-secondary">{% trans "cannot log in" %}</span>{% endif %}</td>
     <td class="ltr">{{ u.username }}</td>
     <td class="small">{{ roles|join:", "|default:"—" }}</td>
-    <td class="small">{% if profile.read_only %}<span class="badge text-bg-info">{% trans "read only" %}</span> {% endif %}{% if profile.has_time_limits %}<span class="badge text-bg-warning"><i class="bi bi-clock"></i> {% trans "time limited" %}</span>{% endif %}{% if not profile.read_only and not profile.has_time_limits %}{% trans "normal" %}{% endif %}</td>
+    <td class="small">{% if profile.read_only %}<span class="badge text-bg-info">{% trans "read only" %}</span> {% endif %}{% if profile.has_time_limits %}<span class="badge text-bg-warning"><i class="bi bi-clock"></i> {% trans "time limited" %}</span>{% endif %}{% for area, level in custom %}<span class="badge text-bg-light border">{{ area }}: {{ level }}</span> {% endfor %}{% if not profile.read_only and not profile.has_time_limits and not custom %}{% trans "normal" %}{% endif %}</td>
     <td class="small text-muted">{{ u.last_login|date:"d/m/Y g:i A"|default:"—" }}</td>
   </tr>{% endfor %}</tbody>
 </table></div></div>

@@ -25,7 +25,7 @@
         <dt>{% trans "Missing teeth" %}</dt><dd>{{ object.get_missing_teeth_display }} {{ object.missing_teeth_notes }}</dd>
         <dt>{% trans "Medical history" %}</dt><dd>{% for c in object.medical_conditions.all %}<span class="medical-alert">{{ c }}</span>{% empty %}—{% endfor %}{% if object.medical_notes %}<div class="small">{{ object.medical_notes }}</div>{% endif %}</dd>
         <dt>{% trans "Source" %}</dt><dd>{{ object.referral_source|default:"—" }} {{ object.referral_notes }}</dd>
-        <dt>{% trans "Next call" %}</dt><dd>{{ object.next_call_at|date:"l d/m g:i A"|default:"—" }}</dd>
+        <dt>{% trans "First called on" %}</dt><dd>{{ object.first_call_on|date:"l d/m/Y" }}</dd>
         <dt>{% trans "Notes" %}</dt><dd>{{ object.notes|linebreaksbr|default:"—" }}</dd>
         <dt>{% trans "Added by" %}</dt><dd class="small text-muted">{{ object.created_by|default:"—" }} — {{ object.created_at|date:"d/m/Y g:i A" }}</dd>
       </dl>

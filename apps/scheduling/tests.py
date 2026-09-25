@@ -196,7 +196,13 @@ class WhatsAppTests(TestCase):
         self.assertIn(self.patient.full_name, text)
         self.assertIn("Dr. Mona", text)
         self.assertIn("0223456789", text)
-        message = SentMessage.objects.get()
+        self.dentist.name_ar = "د. منى"
+        self.dentist.save()
+        response = self.client.post(f"/schedule/whatsapp/{self.appointment.pk}/reminder/")
+        text = unquote(response["Location"].split("text=", 1)[1])
+        self.assertIn("د. منى", text)  # the whole message in Arabic
+        self.assertNotIn("Dr. Mona", text)
+        message = SentMessage.objects.get(kind="confirmation")
         self.assertEqual((message.kind, message.sent_by, message.appointment), ("confirmation", self.secretary,
                                                                                   self.appointment))
 
@@ -230,3 +236,55 @@ class WhatsAppTests(TestCase):
         self.assertIn("%7Bunknown%7D", response["Location"])  # unknown words are left as they are
         self.client.login(username="dentist", password=PASSWORD)
         self.assertEqual(self.client.post(f"/schedule/whatsapp/{self.appointment.pk}/reminder/").status_code, 403)
+
+
+class DayPlannerTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.secretary = make_user("sec", "secretary")
+        self.dentist = make_dentist("dentist", kind="fulltime", name="Dr. Mona")
+        self.candidate = make_dentist("cand", kind="candidate", login=False, name="Dr. Candidate")
+        self.room = Room.objects.filter(branch=self.branch).first()
+        self.day = timezone.localdate() + timedelta(days=1)
+        RoomShift.objects.create(room=self.room, date=self.day, start_time=time(9), end_time=time(17),
+                                 dentist=self.dentist)
+        self.patient = make_patient(self.branch)
+        for minute in (0, 30):
+            Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist, room=self.room,
+                                       scheduled_at=at(self.day, 9, minute), duration_minutes=30)
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_the_day_room_by_room(self):
+        page = self.client.get("/schedule/day/", {"day": self.day.isoformat()})
+        column = next(c for c in page.context["columns"] if c["room"] == self.room)
+        self.assertEqual([b["top"] for b in column["blocks"]], [0, 44])
+        free = [slot for slot in column["slots"] if slot["shift"]]
+        self.assertEqual((free[0]["time"], free[-1]["time"], free[0]["dentist_id"]), ("09:00", "16:45", self.dentist.pk))
+        self.assertEqual(sum(w["booked"] for w in page.context["week"]), 2)
+        fragment = self.client.get("/schedule/day/", {"day": self.day.strftime("%d/%m/%Y"), "fragment": "1"})
+        self.assertContains(fragment, f'data-time="10:00" data-room="{self.room.pk}" data-dentist="{self.dentist.pk}"')
+        self.assertContains(fragment, "target=\"_blank\"")
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.client.get("/schedule/day/").status_code, 403)
+
+    def test_overlapping_bookings_sit_side_by_side(self):
+        Appointment.objects.create(branch=self.branch, patient=make_patient(self.branch, nid="29002021234568",
+                                                                            phone="01101234567"),
+                                   room=self.room, scheduled_at=at(self.day, 9, 15), duration_minutes=30)
+        page = self.client.get("/schedule/day/", {"day": self.day.isoformat()})
+        column = next(c for c in page.context["columns"] if c["room"] == self.room)
+        self.assertEqual(sorted((b["left"], b["width"]) for b in column["blocks"]), [(0, 50), (0, 50), (50, 50)])
+
+    def test_shift_dentist_from_either_list_and_surgery_days(self):
+        data = {"room": self.room.pk, "date": (self.day + timedelta(days=7)).strftime("%d/%m/%Y"),
+                "day_type": "regular", "start_time": "09:00", "end_time": "13:00"}
+        response = self.client.post("/schedule/rooms/shift/new/", {**data, "dentist": self.dentist.pk,
+                                                                    "other_dentist": self.candidate.pk})
+        self.assertIn("other_dentist", response.context["form"].errors)
+        self.client.post("/schedule/rooms/shift/new/", {**data, "other_dentist": self.candidate.pk})
+        shift = RoomShift.objects.get(dentist=self.candidate)
+        edit = self.client.get(f"/schedule/rooms/shift/{shift.pk}/")
+        self.assertEqual(edit.context["form"].initial["other_dentist"], self.candidate.pk)
+        thursday = self.day + timedelta(days=(3 - self.day.weekday()) % 7)
+        form = self.client.get("/schedule/rooms/shift/new/", {"date": thursday.isoformat()}).context["form"]
+        self.assertEqual(form.initial["day_type"], RoomShift.DayType.SURGERY)

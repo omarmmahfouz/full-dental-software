@@ -185,3 +185,31 @@ class TreatmentStepTests(TestCase):
         self.client.login(username="dentist", password=PASSWORD)
         response = self.post_step(step_type=self.composite.pk)
         self.assertIn("teeth", response.context["form"].errors)
+
+
+class OutsideRequestTests(TestCase):
+    def test_cbct_and_medical_lab_requests_print_for_the_patient(self):
+        from apps.clinical.models import OutsideRequest
+        from apps.core.testing import make_patient
+
+        branch = setup_clinic()
+        patient = make_patient(branch)
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        url = f"/clinical/requests/new/?patient={patient.pk}&kind=cbct"
+        response = self.client.post(url, {"requested_on": "01/09/2026", "region": "teeth", "teeth": "36 37",
+                                           "purposes": ["implant", "guided"]})
+        cbct = OutsideRequest.objects.get(kind="cbct")
+        self.assertRedirects(response, cbct.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual(cbct.teeth, "36, 37")
+        page = self.client.get(cbct.get_absolute_url())
+        self.assertContains(page, "ciapts@gmail.com")
+        self.assertContains(page, "DICOM")
+        response = self.client.post(f"/clinical/requests/new/?patient={patient.pk}&kind=medical_lab",
+                                    {"requested_on": "01/09/2026"})
+        self.assertIn("tests", response.context["form"].errors)
+        self.client.post(f"/clinical/requests/new/?patient={patient.pk}&kind=medical_lab",
+                         {"requested_on": "01/09/2026", "tests": ["cbc", "hba1c"]})
+        lab = OutsideRequest.objects.get(kind="medical_lab")
+        self.assertNotContains(self.client.get(lab.get_absolute_url()), "ciapts@gmail.com")
+        self.assertEqual(len(lab.test_labels()), 2)

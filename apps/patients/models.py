@@ -5,10 +5,11 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Branch, LookupModel, TimeStampedModel
-from apps.core.utils import age_from_birth_date, parse_egyptian_national_id
+from apps.core.utils import GOVERNORATE_CHOICES, age_from_birth_date, parse_egyptian_national_id
 
 
 class MissingTeeth(models.TextChoices):
@@ -62,6 +63,14 @@ class MedicalCondition(LookupModel):
         verbose_name_plural = _("medical conditions")
 
 
+class OutReason(LookupModel):
+    """Why a patient is labelled out (left, stopped coming, refused the plan...)."""
+
+    class Meta(LookupModel.Meta):
+        verbose_name = _("reason for being out")
+        verbose_name_plural = _("reasons for being out")
+
+
 class Lead(TimeStampedModel):
     """An expected patient: someone who called asking to become a patient."""
 
@@ -98,6 +107,9 @@ class Lead(TimeStampedModel):
     )
     referral_notes = models.CharField(_("referral details"), max_length=255, blank=True)
     status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.NEW, db_index=True)
+    first_call_on = models.DateField(
+        _("first called on"), default=timezone.localdate, db_index=True,
+        help_text=_("Today by itself. Change it only when typing in older calls."))
     next_call_at = models.DateTimeField(_("next call"), null=True, blank=True, db_index=True)
     notes = models.TextField(_("notes"), blank=True)
     converted_patient = models.OneToOneField(
@@ -110,7 +122,7 @@ class Lead(TimeStampedModel):
     )
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["first_call_on", "created_at"]
         verbose_name = _("expected patient")
         verbose_name_plural = _("expected patients (call list)")
 
@@ -162,6 +174,7 @@ class Patient(TimeStampedModel):
         ACTIVE = "active", _("Under treatment")
         FINISHED = "finished", _("Treatment finished")
         INACTIVE = "inactive", _("Stopped / inactive")
+        OUT = "out", _("Out")
 
     branch = models.ForeignKey(Branch, verbose_name=_("branch"), on_delete=models.PROTECT, related_name="patients")
     file_number = models.CharField(_("file number"), max_length=20, unique=True, blank=True, editable=False)
@@ -188,7 +201,7 @@ class Patient(TimeStampedModel):
     )
     address = models.CharField(_("address"), max_length=255, blank=True)
     city = models.CharField(_("city / area"), max_length=100, blank=True)
-    governorate = models.CharField(_("governorate"), max_length=60, blank=True)
+    governorate = models.CharField(_("governorate"), max_length=60, blank=True, choices=GOVERNORATE_CHOICES)
     occupation = models.CharField(_("occupation"), max_length=100, blank=True)
     missing_teeth = models.CharField(
         _("missing teeth"), max_length=20, choices=MissingTeeth.choices, default=MissingTeeth.UNKNOWN
@@ -212,6 +225,12 @@ class Patient(TimeStampedModel):
         on_delete=models.SET_NULL, related_name="assigned_patients",
     )
     status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    out_reason = models.ForeignKey(
+        OutReason, verbose_name=_("why out"), null=True, blank=True, on_delete=models.PROTECT, related_name="+")
+    out_notes = models.CharField(_("details of why out"), max_length=255, blank=True)
+    registered_on = models.DateField(
+        _("file opened on"), default=timezone.localdate, db_index=True,
+        help_text=_("Today by itself. When typing in old paper files, write the date the file was opened."))
     notes = models.TextField(_("notes"), blank=True)
 
     class Meta:
@@ -234,7 +253,7 @@ class Patient(TimeStampedModel):
             if data:
                 self.birth_date = self.birth_date or data["birth_date"]
                 self.gender = self.gender or data["gender"]
-                self.governorate = self.governorate or str(data["governorate"])
+                self.governorate = self.governorate or data["governorate_code"]
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.file_number:
@@ -285,9 +304,13 @@ class PatientDocument(TimeStampedModel):
         XRAY = "xray", _("X-ray / CBCT")
         OTHER = "other", _("Other")
 
+    CARD_KINDS = (Kind.ID_FRONT, Kind.ID_BACK, Kind.PASSPORT)
+
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="documents", verbose_name=_("patient"))
     kind = models.CharField(_("document type"), max_length=20, choices=Kind.choices)
     file = models.FileField(_("file"), upload_to=patient_document_path)
+    original = models.FileField(_("original scan"), upload_to=patient_document_path, blank=True,
+                                help_text=_("The picture as it was uploaded, before the card was cut out."))
     notes = models.CharField(_("notes"), max_length=255, blank=True)
 
     class Meta:
@@ -301,6 +324,15 @@ class PatientDocument(TimeStampedModel):
     @property
     def is_image(self):
         return os.path.splitext(self.file.name)[1].lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.kind in self.CARD_KINDS and self.file and not self.original:
+            from .idcard import clean_card
+
+            card = clean_card(self.file)
+            if card is not None:
+                self.original, self.file = self.file.file, card  # keep the uploaded picture as it was
+        super().save(*args, **kwargs)
 
 
 class PatientRelation(TimeStampedModel):
