@@ -34,6 +34,7 @@ if not exist .env (
 )
 
 python manage.py migrate --verbosity 0 || goto :error
+python manage.py setup_clinic >nul || goto :error
 python manage.py load_demo_data --password demo12345 >nul 2>nul
 
 set "LANIP=this-PC-IP"
@@ -44,7 +45,7 @@ echo  ============================================================
 echo   The system is running.   Open:  http://localhost:8000
 echo   From other PCs / tablets on the same network:  http://%LANIP%:8000
 echo.
-echo   Users (password demo12345):  secretary   intern1   supervisor   owner
+echo   Users (password demo12345):  secretary   dentist1..dentist6   supervisor   owner
 echo   Close this window to stop the system.
 echo  ============================================================
 echo.

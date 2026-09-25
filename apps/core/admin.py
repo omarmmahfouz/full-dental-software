@@ -45,7 +45,7 @@ class UserAdmin(BaseUserAdmin):
             {
                 "fields": ("is_active", "groups", "is_staff", "is_superuser"),
                 "description": _(
-                    "Choose the roles (groups): secretary, intern, supervisor, owner. "
+                    "Choose the roles (groups): secretary, dentist, supervisor, owner. "
                     "'Staff status' allows opening this settings area."
                 ),
             },

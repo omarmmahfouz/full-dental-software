@@ -24,6 +24,13 @@ class Gender(models.TextChoices):
     FEMALE = "F", _("Female")
 
 
+class MaritalStatus(models.TextChoices):
+    SINGLE = "single", _("Single")
+    MARRIED = "married", _("Married")
+    DIVORCED = "divorced", _("Divorced")
+    WIDOWED = "widowed", _("Widowed")
+
+
 class PreferredPhone(models.TextChoices):
     PRIMARY = "primary", _("First mobile")
     SECONDARY = "secondary", _("Second mobile")
@@ -168,6 +175,7 @@ class Patient(TimeStampedModel):
     )
     birth_date = models.DateField(_("date of birth"), null=True, blank=True)
     gender = models.CharField(_("gender"), max_length=1, choices=Gender.choices, blank=True)
+    marital_status = models.CharField(_("marital status"), max_length=10, choices=MaritalStatus.choices, blank=True)
     phone_primary = models.CharField(
         _("mobile 1 (primary)"),
         max_length=20,
@@ -180,6 +188,7 @@ class Patient(TimeStampedModel):
     )
     address = models.CharField(_("address"), max_length=255, blank=True)
     city = models.CharField(_("city / area"), max_length=100, blank=True)
+    governorate = models.CharField(_("governorate"), max_length=60, blank=True)
     occupation = models.CharField(_("occupation"), max_length=100, blank=True)
     missing_teeth = models.CharField(
         _("missing teeth"), max_length=20, choices=MissingTeeth.choices, default=MissingTeeth.UNKNOWN
@@ -198,8 +207,8 @@ class Patient(TimeStampedModel):
         on_delete=models.SET_NULL, related_name="referred_patients",
     )
     referral_notes = models.CharField(_("referral details"), max_length=255, blank=True)
-    assigned_intern = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_("responsible intern"), null=True, blank=True,
+    assigned_dentist = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("responsible dentist"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="assigned_patients",
     )
     status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.ACTIVE)
@@ -217,7 +226,7 @@ class Patient(TimeStampedModel):
         return reverse("patients:detail", args=[self.pk])
 
     def save(self, *args, **kwargs):
-        if self.id_type == self.IdType.NATIONAL_ID and not (self.birth_date and self.gender):
+        if self.id_type == self.IdType.NATIONAL_ID and not (self.birth_date and self.gender and self.governorate):
             try:
                 data = parse_egyptian_national_id(self.national_id)
             except ValidationError:
@@ -225,6 +234,7 @@ class Patient(TimeStampedModel):
             if data:
                 self.birth_date = self.birth_date or data["birth_date"]
                 self.gender = self.gender or data["gender"]
+                self.governorate = self.governorate or str(data["governorate"])
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.file_number:

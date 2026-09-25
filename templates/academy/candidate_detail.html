@@ -3,34 +3,55 @@
 {% block title %}{{ candidate.full_name }}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-person-badge"></i> {{ candidate.full_name }}</h1>
-  <div class="d-flex gap-2">
+  <h1><i class="bi bi-mortarboard"></i> {{ candidate.full_name }}{% if candidate.code %} <small class="text-muted fs-6">{{ candidate.code }}</small>{% endif %}</h1>
+  <div class="d-flex flex-wrap gap-2">
     <a class="btn btn-outline-secondary" href="{% url 'academy:candidate_update' candidate.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
     <a class="btn btn-primary" href="{% url 'academy:enrollment_create' candidate.pk %}"><i class="bi bi-journal-plus"></i> {% trans "Enroll in a course" %}</a>
+    {% if dentist %}<a class="btn btn-outline-success" href="{{ dentist.get_absolute_url }}"><i class="bi bi-person-badge"></i> {% trans "Cases and implants" %}</a>{% endif %}
   </div>
 </div>
 <div class="row g-3">
   <div class="col-lg-5"><div class="card h-100"><div class="card-body">
     <dl class="dl-grid">
+      <dt>{% trans "Name on certificate" %}</dt><dd>{{ candidate.certificate_name|default:"—" }}</dd>
       <dt>{% trans "Mobile 1" %}</dt><dd><span class="ltr">{{ candidate.phone_primary }}</span></dd>
+      <dt>{% trans "WhatsApp" %}</dt><dd><span class="ltr">{{ candidate.whatsapp|default:"—" }}</span></dd>
       <dt>{% trans "Mobile 2" %}</dt><dd><span class="ltr">{{ candidate.phone_secondary|default:"—" }}</span></dd>
       <dt>{% trans "Email" %}</dt><dd>{{ candidate.email|default:"—" }}</dd>
       <dt>{% trans "National ID" %}</dt><dd><span class="ltr">{{ candidate.national_id|default:"—" }}</span></dd>
+      <dt>{% trans "Date of birth" %}</dt><dd>{{ candidate.birth_date|date:"d/m/Y"|default:"—" }}</dd>
+      <dt>{% trans "Nationality" %}</dt><dd>{{ candidate.nationality|default:"—" }}</dd>
       <dt>{% trans "University" %}</dt><dd>{{ candidate.university|default:"—" }} {{ candidate.graduation_year|default:"" }}</dd>
       <dt>{% trans "Syndicate no." %}</dt><dd>{{ candidate.syndicate_number|default:"—" }}</dd>
+      <dt>{% trans "Social media" %}</dt><dd>{% if candidate.facebook %}<span class="ltr me-2"><i class="bi bi-facebook"></i> {{ candidate.facebook }}</span>{% endif %}{% if candidate.instagram %}<span class="ltr me-2"><i class="bi bi-instagram"></i> {{ candidate.instagram }}</span>{% endif %}{% if candidate.linkedin %}<span class="ltr"><i class="bi bi-linkedin"></i> {{ candidate.linkedin }}</span>{% endif %}{% if not candidate.facebook and not candidate.instagram and not candidate.linkedin %}—{% endif %}</dd>
+      <dt>{% trans "How did they hear about us" %}</dt><dd>{{ candidate.referral_source|default:"—" }}</dd>
       <dt>{% trans "ID scan" %}</dt><dd>{% if candidate.id_scan %}<a href="{{ candidate.id_scan.url }}" target="_blank"><i class="bi bi-file-earmark-image"></i> {% trans "Open" %}</a>{% else %}—{% endif %}</dd>
       <dt>{% trans "Notes" %}</dt><dd>{{ candidate.notes|linebreaksbr|default:"—" }}</dd>
     </dl>
   </div></div></div>
-  <div class="col-lg-7"><div class="card h-100"><div class="card-header">{% trans "Courses and balances" %}</div>
-    <div class="table-responsive"><table class="table mb-0">
-      <thead><tr><th>{% trans "Course" %}</th><th>{% trans "Fee after discount" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Remaining" %}</th><th>{% trans "Status" %}</th></tr></thead>
-      <tbody>
-      {% for e in enrollments %}
-      <tr><td><a href="{{ e.get_absolute_url }}">{{ e.course }}</a></td><td>{{ e.net_fee|money }}</td><td class="text-success">{{ e.total_paid|money }}</td><td class="fw-bold">{{ e.balance|money }}</td><td>{% status_badge e %}</td></tr>
-      {% empty %}<tr><td colspan="5" class="text-muted">{% trans "Not enrolled in any course yet." %}</td></tr>{% endfor %}
-      </tbody>
-    </table></div>
-  </div></div>
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header">{% trans "Courses and balances" %}</div>
+      <div class="table-responsive"><table class="table mb-0">
+        <thead><tr><th>{% trans "Course" %}</th><th>{% trans "Fee after discount" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Remaining" %}</th><th>{% trans "Implants required" %}</th><th>{% trans "Status" %}</th></tr></thead>
+        <tbody>
+        {% for e in enrollments %}
+        <tr><td><a href="{{ e.get_absolute_url }}">{{ e.course }}</a></td><td>{{ e.net_fee|money }}</td><td class="text-success">{{ e.total_paid|money }}</td><td class="fw-bold">{{ e.balance|money }}</td><td>{{ e.implants_required|default:"—" }}</td><td>{% status_badge e %}</td></tr>
+        {% empty %}<tr><td colspan="6" class="text-muted">{% trans "Not enrolled in any course yet." %}</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    {% if dentist %}
+    {% with e=candidate.current_enrollment %}
+    <div class="card stat-card"><div class="card-body">
+      <div class="stat-label">{% trans "Implants placed as operator 1" %}</div>
+      <div class="stat-value">{{ implants_placed }}{% if e.implants_required %} <span class="fs-5 text-muted">/ {{ e.implants_required }}</span>{% endif %}</div>
+      {% if e.implants_required %}
+      <div class="progress my-2" style="height:10px"><div class="progress-bar" style="width:{% widthratio implants_placed e.implants_required 100 %}%;background:var(--brand-green-dark)"></div></div>
+      {% endif %}
+      <a href="{{ dentist.get_absolute_url }}">{% trans "Open all cases, surgeries and treatments" %} <i class="bi bi-arrow-right-short"></i></a>
+    </div></div>
+    {% endwith %}
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

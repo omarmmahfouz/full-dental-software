@@ -15,7 +15,7 @@ class ComplaintTests(TestCase):
         self.secretary = make_user("sec", "secretary")
         self.supervisor = make_user("sup", "supervisor")
         self.owner = make_user("owner", "owner")
-        self.intern = make_user("intern", "intern")
+        self.dentist = make_user("dentist", "dentist")
         self.patient = make_patient(self.branch)
 
     def test_new_complaint_notifies_supervisors_and_owner(self):
@@ -31,7 +31,7 @@ class ComplaintTests(TestCase):
             note = Notification.objects.get(recipient=user)
             self.assertIn(complaint.number, note.title)
             self.assertEqual(note.level, Notification.Level.DANGER)
-        self.assertFalse(Notification.objects.filter(recipient__in=[self.secretary, self.intern]).exists())
+        self.assertFalse(Notification.objects.filter(recipient__in=[self.secretary, self.dentist]).exists())
 
     def test_follow_up_until_resolved(self):
         complaint = Complaint.objects.create(branch=self.branch, patient=self.patient, category="pain",
@@ -62,6 +62,6 @@ class ComplaintTests(TestCase):
         call_command("send_reminders", stdout=open("/dev/null", "w"))
         self.assertTrue(Notification.objects.filter(recipient=self.supervisor, level="danger").exists())
 
-    def test_interns_cannot_open_complaints(self):
-        self.client.login(username="intern", password=PASSWORD)
+    def test_dentists_cannot_open_complaints(self):
+        self.client.login(username="dentist", password=PASSWORD)
         self.assertEqual(self.client.get("/complaints/").status_code, 403)

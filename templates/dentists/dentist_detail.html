@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ dentist.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-person-badge"></i> {{ dentist.full_name }} <small class="text-muted fs-6">{{ dentist.get_kind_display }}</small></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    {% if is_front_desk %}<a class="btn btn-outline-secondary" href="{% url 'dentists:update' dentist.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
+    {% if dentist.candidate and is_front_desk %}<a class="btn btn-outline-primary" href="{{ dentist.candidate.get_absolute_url }}"><i class="bi bi-mortarboard"></i> {% trans "Academy file" %}</a>{% endif %}
+    {% if can_manage and not dentist.user %}<form method="post" action="{% url 'dentists:create_login' dentist.pk %}">{% csrf_token %}<button class="btn btn-outline-success" data-confirm="{% trans 'Create a system login for this dentist?' %}"><i class="bi bi-key"></i> {% trans "Create login" %}</button></form>{% endif %}
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  {% if enrollment %}
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "Course" %}</div><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "Batch" %}</dt><dd><a href="{{ enrollment.course.get_absolute_url }}">{{ enrollment.course }}</a></dd>
+      <dt>{% trans "Candidate code" %}</dt><dd>{{ dentist.candidate.code|default:"—" }}</dd>
+      {% if is_front_desk %}
+      <dt>{% trans "Fee after discount" %}</dt><dd>{{ enrollment.net_fee|money }}</dd>
+      <dt>{% trans "Paid" %}</dt><dd class="text-success">{{ enrollment.total_paid|money }}</dd>
+      <dt>{% trans "Remaining" %}</dt><dd class="fw-bold">{{ enrollment.balance|money }}{% if enrollment.overdue_amount %} <span class="badge text-bg-danger">{% trans "Overdue" %} {{ enrollment.overdue_amount|money }}</span>{% endif %}</dd>
+      <dt></dt><dd><a href="{{ enrollment.get_absolute_url }}">{% trans "Installments and receipts" %}</a></dd>
+      {% endif %}
+    </dl>
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100 stat-card"><div class="card-body">
+    <div class="stat-label">{% trans "Implants placed as operator 1" %}</div>
+    <div class="stat-value">{{ placed }}{% if required %} <span class="fs-5 text-muted">/ {{ required }}</span>{% endif %}</div>
+    {% if required %}
+      <div class="progress my-2" style="height:10px"><div class="progress-bar" style="width:{% widthratio placed required 100 %}%;background:var(--brand-green-dark)"></div></div>
+      <div class="fw-bold {% if remaining %}text-primary{% else %}text-success{% endif %}">{% if remaining %}{% blocktrans with n=remaining %}{{ n }} implants remaining{% endblocktrans %}{% else %}{% trans "Implant requirement completed" %}{% endif %}</div>
+    {% else %}<div class="small text-muted">{% trans "No implant requirement set for the course." %}</div>{% endif %}
+    <div class="small text-muted mt-1">{% blocktrans with n=implants_op2 %}Also {{ n }} implants as operator 2.{% endblocktrans %}</div>
+  </div></div></div>
+  {% endif %}
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "Work summary" %}</div><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "Surgeries" %}</dt><dd>{% blocktrans with a=counts.op1 b=counts.op2 c=counts.assistant %}{{ a }} as operator 1 · {{ b }} as operator 2 · {{ c }} as assistant{% endblocktrans %}{% if counts.instructor %} · {% blocktrans with d=counts.instructor %}{{ d }} as instructor{% endblocktrans %}{% endif %}</dd>
+      <dt>{% trans "Implants" %}</dt><dd>{{ placed }}{% if survival is not None %} — {% trans "survival" %} {{ survival }}% ({{ failed }} {% trans "failed" %}){% endif %}</dd>
+      <dt>{% trans "Treatments" %}</dt><dd>{% blocktrans with a=counts.treatments b=counts.assisted %}{{ a }} as operator · {{ b }} as assistant{% endblocktrans %}{% if counts.supervised %} · {% blocktrans with c=counts.supervised %}{{ c }} supervised{% endblocktrans %}{% endif %}</dd>
+      <dt>{% trans "Average grade" %}</dt><dd>{% if grade %}{{ grade }}/5{% else %}—{% endif %}</dd>
+      <dt>{% trans "Login" %}</dt><dd>{{ dentist.user.username|default:"—" }}</dd>
+      <dt>{% trans "Mobile" %}</dt><dd><span class="ltr">{{ dentist.phone|default:"—" }}</span></dd>
+    </dl>
+  </div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-6">
+    <div class="card mb-3"><div class="card-header">{% trans "Cases" %} ({{ cases|length }})</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Role in surgery" %}</th><th>{% trans "Implants" %}</th><th></th></tr></thead>
+        <tbody>{% for c in cases %}<tr>
+          <td><a href="{% url 'charting:chart' c.patient.pk %}">{{ c.patient.full_name }}</a> <span class="small text-muted">{{ c.patient.file_number }}</span></td>
+          <td class="small">{{ c.roles|join:", "|default:"—" }}</td><td>{{ c.implants|default:"—" }}</td>
+          <td class="no-print"><a class="small" href="{% url 'charting:case_report' c.patient.pk %}?anonymous=1"><i class="bi bi-journal-medical"></i> {% trans "Case report" %}</a></td>
+        </tr>{% empty %}<tr><td colspan="4" class="text-muted">{% trans "No cases yet." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    <div class="card mb-3"><div class="card-header">{% trans "Treatments by type" %}</div>
+      <ul class="list-group list-group-flush small">{% for row in by_type %}<li class="list-group-item d-flex justify-content-between"><span>{% if lang_en and row.step_type__name_en %}{{ row.step_type__name_en }}{% else %}{{ row.step_type__name_ar }}{% endif %}</span><b>{{ row.n }}</b></li>{% empty %}<li class="list-group-item text-muted">—</li>{% endfor %}</ul>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="card mb-3"><div class="card-header">{% trans "Implants (operator 1)" %}</div>
+      <div class="list-group list-group-flush small" style="max-height:340px;overflow:auto">
+        {% for site in implants %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="{% url 'surgery:implant' site.pk %}"><span><b>{{ site.tooth }}</b> {{ site.implant_label }} — {{ site.surgery.patient.file_number }}</span><span>{{ site.get_implant_status_display }} · {{ site.surgery.date|date:"d/m/Y" }}</span></a>
+        {% empty %}<div class="list-group-item text-muted">—</div>{% endfor %}
+      </div>
+      <div class="card-footer bg-white small">{% for label, n in status_counts %}{% if n %}<span class="me-3">{{ label }}: <b>{{ n }}</b></span>{% endif %}{% endfor %}</div>
+    </div>
+    <div class="card"><div class="card-header">{% trans "Recent surgeries" %}</div>
+      <ul class="list-group list-group-flush small">{% for s in surgeries %}<li class="list-group-item"><a href="{{ s.get_absolute_url }}">{{ s.number }}</a> {{ s.date|date:"d/m/Y" }} — {{ s.patient.file_number }} — {% for site in s.sites.all %}{{ site.tooth }} {% endfor %}</li>{% empty %}<li class="list-group-item text-muted">—</li>{% endfor %}</ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -44,7 +44,11 @@ class Complaint(TimeStampedModel):
     severity = models.CharField(_("severity"), max_length=10, choices=Severity.choices, default=Severity.MEDIUM)
     description = models.TextField(_("complaint (in the patient's words)"))
     concerned_staff = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_("concerned doctor / staff"), null=True, blank=True,
+        settings.AUTH_USER_MODEL, verbose_name=_("concerned staff member"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="complaints_about",
+    )
+    concerned_dentist = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("concerned dentist"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="complaints_about",
     )
     status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.OPEN, db_index=True)

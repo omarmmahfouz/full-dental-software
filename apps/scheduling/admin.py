@@ -12,15 +12,15 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(RoomShift)
 class RoomShiftAdmin(admin.ModelAdmin):
-    list_display = ("date", "room", "start_time", "end_time", "intern", "supervisor")
-    list_filter = ("room", "intern")
+    list_display = ("date", "day_type", "room", "start_time", "end_time", "dentist", "supervisor")
+    list_filter = ("day_type", "room", "dentist")
     date_hierarchy = "date"
 
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ("scheduled_at", "patient", "intern", "room", "status", "arrived_at", "entered_room_at", "left_at")
-    list_filter = ("status", "room", "intern", "is_walk_in")
+    list_display = ("scheduled_at", "patient", "dentist", "room", "status", "arrived_at", "entered_room_at", "left_at")
+    list_filter = ("status", "room", "dentist", "is_walk_in")
     search_fields = ("patient__full_name", "patient__file_number")
     raw_id_fields = ("patient",)
     date_hierarchy = "scheduled_at"

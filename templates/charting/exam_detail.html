@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Examination & history" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% with active="chart" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="d-flex gap-2 mb-3 no-print">
+  {% if can_edit %}<a class="btn btn-outline-secondary" href="{% url 'charting:exam_edit' exam.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+  <a class="btn btn-outline-primary" href="{% url 'charting:exam_create' patient.pk %}"><i class="bi bi-plus"></i> {% trans "New examination" %}</a>{% endif %}
+  <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+</div>
+<div class="card report-section"><div class="card-body" dir="ltr">
+  <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-3">
+    <img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+    <div class="text-end"><div class="fw-bold">{% trans "Code no." %} {{ patient.file_number }}</div><div>{% trans "Date of examination" %}: {{ exam.exam_date|date:"d/m/Y" }}</div></div>
+  </div>
+  <div class="row g-2 small mb-3">
+    <div class="col-md-6"><b>{% trans "Name" %}:</b> {{ patient.full_name }}</div>
+    <div class="col-md-3"><b>{% trans "Date of birth" %}:</b> {{ patient.birth_date|date:"d/m/Y"|default:"—" }}</div>
+    <div class="col-md-3"><b>{% trans "Occupation" %}:</b> {{ patient.occupation|default:"—" }}</div>
+    <div class="col-md-3"><b>{% trans "Marital status" %}:</b> {{ patient.get_marital_status_display|default:"—" }}</div>
+    <div class="col-md-3"><b>{% trans "Governorate" %}:</b> {{ patient.governorate|default:"—" }}</div>
+    <div class="col-md-3"><b>{% trans "Mobile" %}:</b> {{ patient.phone_primary }}</div>
+    <div class="col-md-3"><b>{% trans "Referral" %}:</b> {{ exam.referral|default:"—" }}</div>
+    <div class="col-12"><b>{% trans "Chief complaint" %}:</b> {{ exam.chief_complaint|default:"—" }}</div>
+  </div>
+  <table class="table table-bordered table-sm">
+    <tbody>
+      <tr><th style="width:28%">{% trans "Carious" %}</th><td>{{ exam.teeth_carious|default:"—" }}</td></tr>
+      <tr><th>{% trans "Filled" %}</th><td>{{ exam.teeth_filled|default:"—" }}</td></tr>
+      <tr><th>{% trans "Missed" %}</th><td>{{ exam.teeth_missing|default:"—" }}</td></tr>
+      <tr><th>{% trans "Not sure" %}</th><td>{{ exam.teeth_not_sure|default:"—" }}</td></tr>
+      <tr><th>{% trans "Mobility" %}</th><td>{{ exam.teeth_mobility|default:"—" }}</td></tr>
+      <tr><th>{% trans "Hopeless teeth" %}</th><td>{{ exam.teeth_hopeless|default:"—" }}</td></tr>
+      <tr><th>{% trans "Inter arch space" %}</th><td>RT: {{ exam.inter_arch_space_right|default:"—" }} &nbsp; LT: {{ exam.inter_arch_space_left|default:"—" }}</td></tr>
+      <tr><th>{% trans "Implant placed (before)" %}</th><td>{{ exam.teeth_implant_placed|default:"—" }}</td></tr>
+      <tr><th>{% trans "Implant failed (before)" %}</th><td>{{ exam.teeth_implant_failed|default:"—" }}</td></tr>
+      <tr><th>{% trans "Operator important notices" %}</th><td>{{ exam.operator_notices|linebreaksbr|default:"—" }}</td></tr>
+      <tr><th>{% trans "Examined by" %}</th><td>{{ exam.examined_by|default:"—" }}{% if exam.supervisor %} — {% trans "Supervisor" %}: {{ exam.supervisor }}{% endif %}</td></tr>
+      <tr><th>CBCT</th><td>{% trans "Requested" %}: {{ exam.cbct_requested|yesno:"✔,✘" }} &nbsp; {% trans "Done" %}: {{ exam.cbct_done|yesno:"✔,✘" }} &nbsp; {% trans "New requested" %}: {{ exam.new_cbct_requested|yesno:"✔,✘" }}</td></tr>
+    </tbody>
+  </table>
+  <div class="odontogram-wrap mb-3">{{ svg }}</div>
+
+  <h2 class="h6 fw-bold border-bottom pb-1 mt-4">{% trans "Medical health" %}</h2>
+  <div class="row g-2 small">
+    <div class="col-md-6"><b>{% trans "General health" %}:</b> {{ exam.general_health|default:"—" }}</div>
+    <div class="col-md-3"><b>{% trans "Pregnant" %}:</b> {{ exam.get_pregnant_display|default:"—" }}</div>
+    <div class="col-md-3"><b>{% trans "Lactating" %}:</b> {{ exam.get_lactating_display|default:"—" }}</div>
+    <div class="col-md-6"><b>{% trans "Being treated for" %}:</b> {{ exam.under_treatment|default:"—" }}</div>
+    <div class="col-md-6"><b>{% trans "Recent surgery" %}:</b> {{ exam.recent_surgery|default:"—" }}</div>
+    <div class="col-12"><b>{% trans "Did you ever have" %}:</b> {% for c in exam.conditions.all %}<span class="medical-alert py-0">{{ c }}</span>{% empty %}—{% endfor %} {{ exam.other_condition }}</div>
+    {% if exam.conditions_comment or exam.medical_comment %}<div class="col-12"><b>{% trans "Comments" %}:</b> {{ exam.medical_comment }} {{ exam.conditions_comment }}</div>{% endif %}
+    <div class="col-md-6"><b>{% trans "Blood pressure" %}:</b> {% trans "last" %} {{ exam.bp_last_systolic|default:"—" }}/{{ exam.bp_last_diastolic|default:"—" }} ({{ exam.bp_last_when|default:"—" }}) · {% trans "drug" %}: {{ exam.bp_drug|default:"—" }} · {% trans "in clinic" %} {{ exam.bp_clinic_systolic|default:"—" }}/{{ exam.bp_clinic_diastolic|default:"—" }}</div>
+    <div class="col-md-6"><b>{% trans "Glucose" %}:</b> {{ exam.glucose_level|default:"" }} {% trans "last" %} {{ exam.glucose_last|default:"—" }} ({{ exam.glucose_last_when|default:"—" }}) · {% trans "random in clinic" %} {{ exam.glucose_random_clinic|default:"—" }} · HbA1c {{ exam.hba1c|default:"—" }} {% if exam.hba1c_date %}({{ exam.hba1c_date|date:"d/m/Y" }}){% endif %}</div>
+    <div class="col-md-6"><b>{% trans "Allergic to" %}:</b> {% if exam.allergy_penicillin %}Penicillin {% endif %}{% if exam.allergy_sulfa %}Sulfa {% endif %}{{ exam.allergy_other|default:"" }}{% if not exam.allergy_penicillin and not exam.allergy_sulfa and not exam.allergy_other %}—{% endif %}</div>
+    <div class="col-md-6"><b>{% trans "Prolonged bleeding / aspirin" %}:</b> {{ exam.bleeding_or_aspirin|default:"—" }}</div>
+    <div class="col-md-6"><b>{% trans "Digestion problem" %}:</b> {{ exam.digestion_problem|default:"—" }}</div>
+    <div class="col-md-6"><b>{% trans "Illegal drugs" %}:</b> {{ exam.illegal_drugs|yesno:"Yes,No" }} {{ exam.illegal_drugs_notes }}</div>
+    <div class="col-12"><b>{% trans "Drugs taken by patient" %}:</b> {{ exam.drugs_taken|linebreaksbr|default:"—" }}</div>
+    <div class="col-12"><b>{% trans "Operator comments" %}:</b> {{ exam.operator_comments|default:"—" }}</div>
+  </div>
+  <h2 class="h6 fw-bold border-bottom pb-1 mt-4">{% trans "Dental history" %}</h2>
+  <div class="row g-2 small">
+    <div class="col-md-6"><b>{% trans "Teeth sensitive to" %}:</b> {% if exam.sensitive_hot_cold %}{% trans "hot or cold" %} {% endif %}{% if exam.sensitive_sweets %}{% trans "sweets" %} {% endif %}{% if exam.sensitive_biting %}{% trans "biting or chewing" %}{% endif %}{% if not exam.sensitive_hot_cold and not exam.sensitive_sweets and not exam.sensitive_biting %}—{% endif %}</div>
+    <div class="col-md-6"><b>{% trans "Clench / grind" %}:</b> {{ exam.bruxism|default:"—" }}</div>
+    <div class="col-md-6"><b>{% trans "Smokes tobacco" %}:</b> {{ exam.smoker|yesno:"Yes,No" }}{% if exam.cigarettes_per_day %} — {{ exam.cigarettes_per_day }}/{% trans "day" %}{% endif %}</div>
+    <div class="col-md-6"><b>{% trans "Serious injury to the mouth" %}:</b> {{ exam.mouth_injury|default:"—" }}</div>
+    <div class="col-md-6"><b>{% trans "Satisfied with appearance" %}:</b> {{ exam.satisfied_appearance|default:"—" }}</div>
+    <div class="col-md-3"><b>{% trans "Cooperative" %}:</b> {{ exam.cooperation_score|default:"—" }}/10</div>
+    <div class="col-md-3"><b>{% trans "Willing for implant" %}:</b> {{ exam.implant_willingness_score|default:"—" }}/10</div>
+  </div>
+</div></div>
+{% endblock %}

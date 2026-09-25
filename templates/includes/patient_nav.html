@@ -1,0 +1,13 @@
+{% load i18n %}<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
+  <div>
+    <h1 class="h4 fw-bold mb-0" style="color: var(--brand-gray-dark)">{{ patient.full_name }} <small class="text-muted fs-6">{{ patient.file_number }}</small></h1>
+    <div class="small text-muted">{% if patient.age is not None %}{% blocktrans with age=patient.age %}{{ age }} years{% endblocktrans %} · {% endif %}{{ patient.get_gender_display }}{% if patient.assigned_dentist %} · {% trans "Responsible dentist" %}: {{ patient.assigned_dentist }}{% endif %}</div>
+  </div>
+  <ul class="nav nav-pills small flex-wrap">
+    <li class="nav-item"><a class="nav-link {% if active == 'file' %}active{% endif %}" href="{{ patient.get_absolute_url }}"><i class="bi bi-person-vcard"></i> {% trans "File" %}</a></li>
+    <li class="nav-item"><a class="nav-link {% if active == 'chart' %}active{% endif %}" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a></li>
+    <li class="nav-item"><a class="nav-link {% if active == 'surgery' %}active{% endif %}" href="{% url 'surgery:list' %}?q={{ patient.file_number }}"><i class="bi bi-scissors"></i> {% trans "Surgeries" %}</a></li>
+    <li class="nav-item"><a class="nav-link {% if active == 'photos' %}active{% endif %}" href="{% url 'charting:photos' patient.pk %}"><i class="bi bi-camera"></i> {% trans "Photos" %}</a></li>
+    <li class="nav-item"><a class="nav-link {% if active == 'report' %}active{% endif %}" href="{% url 'charting:case_report' patient.pk %}"><i class="bi bi-journal-medical"></i> {% trans "Case report" %}</a></li>
+  </ul>
+</div>

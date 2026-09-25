@@ -22,8 +22,8 @@ class PatientDocumentInline(admin.TabularInline):
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ("file_number", "full_name", "national_id", "phone_primary", "assigned_intern", "status")
-    list_filter = ("status", "branch", "assigned_intern")
+    list_display = ("file_number", "full_name", "national_id", "phone_primary", "assigned_dentist", "status")
+    list_filter = ("status", "branch", "assigned_dentist")
     search_fields = ("file_number", "full_name", "national_id", "phone_primary", "phone_secondary")
     readonly_fields = ("file_number", "created_at", "created_by")
     raw_id_fields = ("referred_by",)

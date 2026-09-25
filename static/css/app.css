@@ -80,6 +80,7 @@ body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Sego
 .doc-thumb { width: 100%; max-height: 180px; object-fit: contain; background: #f8f9fa; border-radius: .5rem; }
 .schedule-grid td { min-width: 150px; vertical-align: top; }
 .shift-chip { display: block; background: var(--brand-green-soft); border-inline-start: 3px solid var(--app-primary); border-radius: .35rem; padding: .25rem .4rem; margin-bottom: .3rem; font-size: .82rem; }
+.shift-chip.shift-surgery { background: #FDECEE; border-inline-start-color: #D62839; }
 .today-col { background: #fffbea !important; }
 .board-row.status-arrived { background: #fff8e1; }
 .board-row.status-in_room { background: #EAF4FA; }
@@ -100,3 +101,24 @@ body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Sego
   .card { box-shadow: none; border: 1px solid #ccc; }
   main { padding: 0 !important; }
 }
+/* Dental chart */
+.odontogram-wrap { direction: ltr; overflow-x: auto; }
+.odontogram { width: 100%; min-width: 640px; height: auto; display: block; }
+.odontogram a .tooth:hover rect:first-child { fill: rgba(158, 198, 79, .18); }
+.odontogram a { cursor: pointer; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: .35rem 1rem; color: #495057; direction: ltr; }
+.chart-legend .lg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; border: 1px solid #6c757d; font-style: normal; font-size: 11px; line-height: 12px; text-align: center; }
+.lg-caries { background: #E35D6A; } .lg-filling { background: #3D7FE0; }
+.lg-crown { background: #FFF4CC; border: 3px solid #B8860B !important; }
+.lg-rct { background: linear-gradient(90deg, transparent 40%, #D62839 40%, #D62839 60%, transparent 60%); }
+.lg-implant { background: repeating-linear-gradient(0deg, #8A8D91 0 3px, #5B5E62 3px 4px); }
+.lg-loaded { background: #D6EAB3; border: 2px solid #5C8020 !important; }
+.lg-missing { color: #9AA0A6; border-style: dashed !important; }
+.surgery-grid th, .surgery-grid td { text-align: center; padding: .25rem .35rem; font-size: .85rem; }
+.surgery-grid td.on { background: #D6EAB3; font-weight: 700; }
+.site-card { border: 1px solid #dee2e6; border-radius: .5rem; padding: .75rem; background: #fff; }
+.site-card .form-check { margin-bottom: 0; }
+.photo-thumb { width: 100%; height: 110px; object-fit: cover; border-radius: .35rem; background: #f1f3f5; }
+.checklist-item.done { background: #F2F8E7; }
+.report-section { page-break-inside: avoid; }
+@media print { .report-page-break { page-break-before: always; } }

@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Notification
 from apps.core.notify import notify_roles, notify_users
-from apps.core.roles import FRONT_DESK, INTERN, MANAGEMENT, OWNER, SECRETARY, SUPERVISOR, has_role
+from apps.core.roles import DENTIST, FRONT_DESK, MANAGEMENT, OWNER, SECRETARY, SUPERVISOR, has_role
 
 from .models import LabRequest, LabRequestEvent
 
@@ -17,14 +17,14 @@ A = LabRequestEvent.Action
 
 # action -> (allowed "from" statuses, "to" status, roles allowed, needs work check, needs notes)
 TRANSITIONS = {
-    "submit": ((S.DRAFT,), S.PENDING_REVIEW, FRONT_DESK + (INTERN,), False, False),
+    "submit": ((S.DRAFT,), S.PENDING_REVIEW, FRONT_DESK + (DENTIST,), False, False),
     "approve": ((S.PENDING_REVIEW,), S.APPROVED, MANAGEMENT, False, False),
     "return": ((S.PENDING_REVIEW, S.APPROVED), S.DRAFT, MANAGEMENT, False, True),
     "send": ((S.APPROVED,), S.SENT, FRONT_DESK, True, False),
     "receive": ((S.SENT,), S.RECEIVED, FRONT_DESK, True, False),
-    "remake": ((S.RECEIVED,), S.SENT, FRONT_DESK + (INTERN,), False, True),
-    "deliver": ((S.RECEIVED,), S.DELIVERED, FRONT_DESK + (INTERN,), False, False),
-    "cancel": ((S.DRAFT, S.PENDING_REVIEW, S.APPROVED), S.CANCELLED, MANAGEMENT + (INTERN,), False, True),
+    "remake": ((S.RECEIVED,), S.SENT, FRONT_DESK + (DENTIST,), False, True),
+    "deliver": ((S.RECEIVED,), S.DELIVERED, FRONT_DESK + (DENTIST,), False, False),
+    "cancel": ((S.DRAFT, S.PENDING_REVIEW, S.APPROVED), S.CANCELLED, MANAGEMENT + (DENTIST,), False, True),
 }
 
 EVENT_FOR_ACTION = {
@@ -56,10 +56,10 @@ def available_actions(lab_request, user):
 def _may(user, lab_request, action, roles):
     if not has_role(user, *roles):
         return False
-    only_intern = has_role(user, INTERN) and not has_role(user, *FRONT_DESK)
-    if only_intern:
-        # Interns act only on their own requests; they may cancel only drafts.
-        if lab_request.requested_by_id != user.pk:
+    only_dentist = has_role(user, DENTIST) and not has_role(user, *FRONT_DESK)
+    if only_dentist:
+        # Dentists act only on their own requests; they may cancel only drafts.
+        if lab_request.dentist_id is None or lab_request.dentist.user_id != user.pk:
             return False
         if action == "cancel" and lab_request.status != S.DRAFT:
             return False
@@ -105,6 +105,10 @@ def perform_lab_action(lab_request, action, user, notes="", checked=False):
     return lab_request
 
 
+def _requester(lab_request):
+    return lab_request.dentist.user if lab_request.dentist_id else None
+
+
 def _notify(lab_request, action, user, notes):
     url = lab_request.get_absolute_url()
     params = {"number": lab_request.number, "patient": lab_request.patient.full_name, "notes": notes}
@@ -118,13 +122,13 @@ def _notify(lab_request, action, user, notes):
             (SECRETARY,), _("Lab request %(number)s is reviewed - send it to the lab"),
             _("Patient: %(patient)s"), url, exclude=user, params=params,
         )
-        notify_users([lab_request.requested_by], _("Your lab request %(number)s was approved"), "", url,
+        notify_users([_requester(lab_request)], _("Your lab request %(number)s was approved"), "", url,
                      Notification.Level.SUCCESS, exclude=user, params=params)
     elif action == "return":
-        notify_users([lab_request.requested_by], _("Lab request %(number)s was returned for changes"),
+        notify_users([_requester(lab_request)], _("Lab request %(number)s was returned for changes"),
                      "%(notes)s", url, Notification.Level.WARNING, exclude=user, params=params)
     elif action == "receive":
-        notify_users([lab_request.requested_by], _("Lab work %(number)s arrived from the lab"),
+        notify_users([_requester(lab_request)], _("Lab work %(number)s arrived from the lab"),
                      _("Patient: %(patient)s"), url, Notification.Level.SUCCESS, exclude=user, params=params)
     elif action == "remake":
         notify_roles((SUPERVISOR, OWNER), _("Lab work %(number)s returned to the lab for remake"),

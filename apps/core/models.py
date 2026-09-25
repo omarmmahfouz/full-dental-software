@@ -80,6 +80,10 @@ class UserProfile(models.Model):
         Branch, verbose_name=_("branch"), null=True, blank=True, on_delete=models.SET_NULL, related_name="staff"
     )
     phone = models.CharField(_("mobile"), max_length=20, blank=True)
+    language = models.CharField(
+        _("interface language"), max_length=5, blank=True,
+        choices=[("", _("Automatic (Arabic for secretaries, English for dentists)")), ("ar", _("Arabic")), ("en", _("English"))],
+    )
     notes = models.TextField(_("notes"), blank=True)
 
     class Meta:

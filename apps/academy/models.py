@@ -19,6 +19,7 @@ class PaymentMethod(models.TextChoices):
     INSTAPAY = "instapay", _("InstaPay")
     WALLET = "wallet", _("Mobile wallet (Vodafone Cash...)")
     BANK = "bank", _("Bank transfer")
+    BANK_DEPOSIT = "bank_deposit", _("Bank deposit")
     CHEQUE = "cheque", _("Cheque")
 
 
@@ -30,6 +31,10 @@ class Course(TimeStampedModel):
     end_date = models.DateField(_("end date"), null=True, blank=True)
     fee = models.DecimalField(_("course fee"), max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     capacity = models.PositiveSmallIntegerField(_("capacity"), null=True, blank=True)
+    implants_required = models.PositiveSmallIntegerField(
+        _("implants each candidate should place"), default=0,
+        help_text=_("Used to show how many implants are still remaining for each candidate."),
+    )
     is_active = models.BooleanField(_("open"), default=True)
     description = models.TextField(_("description"), blank=True)
 
@@ -51,9 +56,21 @@ def candidate_id_path(instance, filename):
 
 
 class Candidate(TimeStampedModel):
-    """A dentist who joins an academy course."""
+    """A dentist who pays for an academy course. Their clinical work is recorded on
+    the linked ``dentists.Dentist`` record (type "candidate"), so batch, payments,
+    implants and cases can all be followed from here."""
 
+    code = models.CharField(
+        _("candidate code"), max_length=20, unique=True, null=True, blank=True,
+        error_messages={"unique": _("Another candidate already has this code.")},
+    )
     full_name = models.CharField(_("full name"), max_length=150, db_index=True)
+    certificate_name = models.CharField(
+        _("name for certificate (English)"), max_length=150, blank=True,
+        help_text=_("First, middle and last name exactly as it should appear on the certificate."),
+    )
+    birth_date = models.DateField(_("date of birth"), null=True, blank=True)
+    nationality = models.CharField(_("nationality"), max_length=60, blank=True)
     national_id = models.CharField(
         _("national ID / passport no."), max_length=20, unique=True, null=True, blank=True,
         error_messages={"unique": _("A candidate with this ID number is already registered.")},
@@ -63,21 +80,29 @@ class Candidate(TimeStampedModel):
         error_messages={"unique": _("This mobile number is already registered for another candidate.")},
     )
     phone_secondary = models.CharField(_("mobile 2"), max_length=20, blank=True)
+    whatsapp = models.CharField(_("WhatsApp number"), max_length=20, blank=True)
     email = models.EmailField(_("email"), blank=True)
-    university = models.CharField(_("university"), max_length=120, blank=True)
+    facebook = models.CharField(_("Facebook account"), max_length=200, blank=True)
+    instagram = models.CharField(_("Instagram account"), max_length=200, blank=True)
+    linkedin = models.CharField(_("LinkedIn account"), max_length=200, blank=True)
+    referral_source = models.ForeignKey(
+        "patients.ReferralSource", verbose_name=_("how did they hear about us"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+",
+    )
+    university = models.CharField(_("graduated from (university)"), max_length=120, blank=True)
     graduation_year = models.PositiveSmallIntegerField(_("graduation year"), null=True, blank=True)
     syndicate_number = models.CharField(_("syndicate registration no."), max_length=30, blank=True)
     id_scan = models.FileField(_("ID scan"), upload_to=candidate_id_path, blank=True)
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, verbose_name=_("system login (if intern)"), null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="candidate",
-    )
     notes = models.TextField(_("notes"), blank=True)
 
     class Meta:
         ordering = ["full_name"]
         verbose_name = _("candidate")
         verbose_name_plural = _("candidates")
+
+    @property
+    def current_enrollment(self):
+        return self.enrollments.select_related("course").order_by("-enrolled_on").first()
 
     def __str__(self):
         return self.full_name
@@ -104,6 +129,9 @@ class Enrollment(TimeStampedModel):
         _("discount"), max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)]
     )
     status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    implants_required_override = models.PositiveSmallIntegerField(
+        _("implants required (if different from the course)"), null=True, blank=True
+    )
     notes = models.TextField(_("notes"), blank=True)
 
     class Meta:
@@ -117,6 +145,12 @@ class Enrollment(TimeStampedModel):
 
     def get_absolute_url(self):
         return reverse("academy:enrollment_detail", args=[self.pk])
+
+    @property
+    def implants_required(self):
+        if self.implants_required_override is not None:
+            return self.implants_required_override
+        return self.course.implants_required
 
     @property
     def net_fee(self):
@@ -184,6 +218,10 @@ class Payment(TimeStampedModel):
     reference = models.CharField(
         _("transaction reference"), max_length=100, blank=True,
         help_text=_("Transfer / InstaPay / wallet reference number, if any."),
+    )
+    proof = models.FileField(
+        _("payment scan"), upload_to="candidates/payments/%Y/%m/", blank=True,
+        help_text=_("Photo of the transfer / deposit receipt."),
     )
     notes = models.CharField(_("notes"), max_length=255, blank=True)
 

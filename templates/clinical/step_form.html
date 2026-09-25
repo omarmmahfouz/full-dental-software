@@ -2,17 +2,74 @@
 {% load i18n %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><i class="bi bi-plus-square"></i> {{ title }}</h1></div>
+<div class="page-header">
+  <h1><i class="bi bi-plus-square"></i> {{ title }}</h1>
+  {% if patient %}<a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a>{% endif %}
+</div>
 {% if appointment %}<div class="alert alert-info">{% trans "Visit" %}: {{ appointment }}</div>{% endif %}
-<div class="card"><div class="card-body">
-  <form method="post" novalidate>{% csrf_token %}
-    <input type="hidden" name="patient" value="{% firstof request.GET.patient request.POST.patient %}">
-    <input type="hidden" name="appointment" value="{% firstof request.GET.appointment request.POST.appointment %}">
-    {% include "includes/form_fields.html" %}
-    <div class="mt-2 d-flex gap-2">
-      <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
-      <a class="btn btn-outline-secondary" href="{% firstof request.META.HTTP_REFERER "/" %}">{% trans "Cancel" %}</a>
-    </div>
-  </form>
-</div></div>
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card"><div class="card-body">
+      <form method="post" novalidate id="step-form">{% csrf_token %}
+        <input type="hidden" name="patient" value="{% firstof request.GET.patient request.POST.patient %}">
+        <input type="hidden" name="appointment" value="{% firstof request.GET.appointment request.POST.appointment %}">
+        {% include "includes/form_fields.html" %}
+        <div id="chart-preview" class="alert alert-light border mt-3 d-none">
+          <div class="fw-semibold mb-1"><i class="bi bi-diagram-3"></i> {% trans "The dental chart will change like this:" %}</div>
+          <ul class="mb-0" id="chart-preview-list"></ul>
+        </div>
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+          <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+          <button class="btn btn-outline-primary" name="add_another" value="1"><i class="bi bi-plus"></i> {% trans "Save and add another" %}</button>
+          <a class="btn btn-outline-secondary" href="{% firstof request.META.HTTP_REFERER "/" %}">{% trans "Cancel" %}</a>
+        </div>
+      </form>
+    </div></div>
+  </div>
+  {% if patient %}
+  <div class="col-xl-4">
+    <div class="card"><div class="card-header">{{ patient }}</div><div class="card-body small">
+      {% with exam=patient.examinations.first %}{% if exam %}
+        {% for alert in exam.alerts %}<span class="medical-alert">{{ alert }}</span>{% empty %}<span class="text-muted">{% trans "No medical alerts." %}</span>{% endfor %}
+      {% else %}<a href="{% url 'charting:exam_create' patient.pk %}">{% trans "No examination & history yet — fill it first." %}</a>{% endif %}{% endwith %}
+    </div></div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  // Show what the dental chart will become before saving (the dentist confirms with the checkbox).
+  (function () {
+    var form = document.getElementById("step-form");
+    var box = document.getElementById("chart-preview");
+    var list = document.getElementById("chart-preview-list");
+    var patientId = "{% if patient %}{{ patient.pk }}{% endif %}";
+    var timer;
+    function field(name) { return form.querySelector("[name=" + name + "]"); }
+    function refresh() {
+      if (!field("step_type") || !field("teeth")) return;
+      var params = new URLSearchParams({
+        patient: patientId, lookup: field("patient_lookup").value,
+        step_type: field("step_type").value, teeth: field("teeth").value,
+        surfaces: field("surfaces").value, material: field("material").value
+      });
+      fetch("{% url 'charting:preview' %}?" + params.toString(), { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          list.innerHTML = "";
+          if (data.error) { list.insertAdjacentHTML("beforeend", "<li class='text-danger'></li>"); list.lastChild.textContent = data.error; }
+          (data.changes || []).forEach(function (c) {
+            var li = document.createElement("li");
+            li.textContent = c.tooth + ": " + c.summary;
+            list.appendChild(li);
+          });
+          box.classList.toggle("d-none", !list.children.length);
+        }).catch(function () {});
+    }
+    form.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(refresh, 350); });
+    form.addEventListener("change", refresh);
+    refresh();
+  })();
+</script>
 {% endblock %}

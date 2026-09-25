@@ -14,7 +14,7 @@
   <div class="col-lg-6"><div class="card h-100"><div class="card-body">
     <dl class="dl-grid">
       <dt>{% trans "Patient" %}</dt><dd><a href="{{ lr.patient.get_absolute_url }}">{{ lr.patient }}</a></dd>
-      <dt>{% trans "Doctor" %}</dt><dd>{{ lr.requested_by }}</dd>
+      <dt>{% trans "Doctor" %}</dt><dd>{{ lr.dentist|default:"—" }}</dd>
       <dt>{% trans "Lab" %}</dt><dd>{{ lr.lab }}</dd>
       <dt>{% trans "Work" %}</dt><dd>{{ lr.work_type }} — {% blocktrans with n=lr.units %}{{ n }} unit(s){% endblocktrans %}</dd>
       <dt>{% trans "Teeth" %}</dt><dd>{{ lr.teeth }}</dd>

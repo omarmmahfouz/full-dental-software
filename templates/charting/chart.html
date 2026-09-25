@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Dental chart" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% with active="chart" %}{% include "includes/patient_nav.html" %}{% endwith %}
+
+{% if exam %}
+  {% with alerts=exam.alerts %}{% if alerts %}<div class="mb-2"><i class="bi bi-heart-pulse text-danger"></i> {% for a in alerts %}<span class="medical-alert">{{ a }}</span>{% endfor %}</div>{% endif %}{% endwith %}
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}{% if can_edit %} <span class="small text-muted fw-normal">— {% trans "click a tooth to edit it" %}</span>{% endif %}</span>
+    {% if can_edit %}
+    <div class="d-flex flex-wrap gap-2 no-print">
+      <a class="btn btn-sm btn-primary" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment" %}</a>
+      <a class="btn btn-sm btn-outline-primary" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-scissors"></i> {% trans "Surgery chart" %}</a>
+      <a class="btn btn-sm btn-outline-primary" href="{% url 'charting:plan_create' patient.pk %}"><i class="bi bi-list-ol"></i> {% trans "Treatment plan" %}</a>
+      <a class="btn btn-sm btn-outline-primary" href="{% if exam %}{% url 'charting:exam_detail' exam.pk %}{% else %}{% url 'charting:exam_create' patient.pk %}{% endif %}"><i class="bi bi-clipboard2-pulse"></i> {% trans "Examination & history" %}</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-box-seam"></i> {% trans "Lab request" %}</a>
+    </div>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="d-flex justify-content-between small text-muted mb-1" dir="ltr"><span>{% trans "Patient's right" %}</span><span>{% trans "Patient's left" %}</span></div>
+    <div class="odontogram-wrap">{{ svg }}</div>
+    <div class="mt-2">{% include "charting/_legend.html" %}</div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-5">
+    <div class="card mb-3"><div class="card-header">{% trans "Teeth that are not sound" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <tbody>
+        {% for r in rows %}
+        <tr><td class="fw-bold" style="width:3rem">{% if can_edit %}<a href="{% url 'charting:tooth' patient.pk r.tooth %}">{{ r.tooth }}</a>{% else %}{{ r.tooth }}{% endif %}</td>
+          <td>{{ r.label }}{% if r.site %} — <a href="{% url 'surgery:implant' r.site.pk %}">{{ r.site.implant_label }}</a>{% endif %}{% if r.notes %}<div class="small text-muted">{{ r.notes }}</div>{% endif %}</td></tr>
+        {% empty %}<tr><td class="text-muted">{% trans "All teeth are recorded as sound." %}</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>{% trans "Open treatment plans" %}</span>{% if can_edit %}<a class="small" href="{% url 'charting:plan_create' patient.pk %}">{% trans "New plan" %}</a>{% endif %}</div>
+      <div class="list-group list-group-flush">
+        {% for plan in plans %}
+        <a class="list-group-item list-group-item-action" href="{{ plan.get_absolute_url }}">
+          <div class="d-flex justify-content-between"><strong>{{ plan.title }}</strong>{% status_badge plan %}</div>
+          {% with p=plan.progress %}<div class="progress mt-1" style="height:6px"><div class="progress-bar" style="width:{% widthratio p.0 p.1|default:1 100 %}%;background:var(--brand-green-dark)"></div></div><div class="small text-muted">{{ p.0 }} / {{ p.1 }} {% trans "done" %}</div>{% endwith %}
+        </a>
+        {% empty %}<div class="list-group-item text-muted">{% trans "No open treatment plan." %}</div>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-7">
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>{% trans "Treatment log" %}</span>{% if can_edit %}<a class="small" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}">{% trans "Record treatment" %}</a>{% endif %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Treatment" %}</th><th>{% trans "Operator" %}</th><th>{% trans "Supervisor" %}</th><th>{% trans "Next visit" %}</th></tr></thead>
+        <tbody>
+        {% for s in steps %}<tr>
+          <td class="nowrap">{{ s.performed_at|date:"d/m/Y" }}</td>
+          <td><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a> {% if s.teeth %}<span class="fw-semibold">{{ s.teeth }}</span>{% endif %} {{ s.surfaces }} <span class="text-muted small">{{ s.material }}</span></td>
+          <td>{{ s.operator|default:"—" }}</td><td>{{ s.supervisor|default:"—" }}</td><td class="small">{{ s.next_visit|default:"—" }}</td>
+        </tr>{% empty %}<tr><td colspan="5" class="text-muted">{% trans "No treatments recorded." %}</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card"><div class="card-header">{% trans "Chart history" %}</div>
+      <ul class="list-group list-group-flush small">
+        {% for c in changes %}<li class="list-group-item"><strong>{{ c.tooth }}</strong>: {{ c.summary }} <span class="text-muted">— {{ c.get_source_display }}, {{ c.changed_by|default:"" }}, {{ c.changed_at|date:"d/m/Y" }}</span></li>
+        {% empty %}<li class="list-group-item text-muted">{% trans "No changes yet." %}</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

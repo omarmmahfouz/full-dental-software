@@ -1,18 +1,19 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.forms import StyledForm, StyledModelForm, UserChoiceField
-from apps.core.roles import FRONT_DESK, INTERN, SUPERVISOR, has_role, is_only_intern
+from apps.charting.teeth import format_teeth, parse_surfaces, parse_teeth
+from apps.core.forms import StyledForm, StyledModelForm
+from apps.core.roles import FRONT_DESK, has_role, is_only_dentist
+from apps.dentists.forms import DentistChoiceField
+from apps.dentists.models import Dentist
 from apps.patients.access import visible_patients
 from apps.patients.forms import PatientLookupField
 
-from .models import Lab, LabRequest, LabWorkType, TreatmentStep, TreatmentStepType
+from .models import ChartEffect, Lab, LabRequest, LabWorkType, TreatmentStep, TreatmentStepType
 
 
 class _PatientScopedForm(StyledModelForm):
-    """Adds a patient box and hides the doctor choice for interns (they record their own work)."""
-
-    doctor_field = None
+    """Adds a patient box limited to the patients the user may see."""
 
     def __init__(self, *args, user=None, patient=None, **kwargs):
         self.user = user
@@ -20,38 +21,71 @@ class _PatientScopedForm(StyledModelForm):
         self.fields["patient_lookup"].initial = patient.file_number if patient else None
         if patient:
             self.fields["patient_lookup"].help_text = str(patient)
-        if is_only_intern(user):
-            del self.fields[self.doctor_field]
 
     def clean_patient_lookup(self):
         patient = self.cleaned_data["patient_lookup"]
         if not visible_patients(self.user).filter(pk=patient.pk).exists():
-            raise forms.ValidationError(_("This patient is not assigned to you."))
+            raise forms.ValidationError(_("This patient is not one of your patients."))
         return patient
 
 
 class TreatmentStepForm(_PatientScopedForm):
-    doctor_field = "performed_by"
+    """One line of the treatment log (date, treatment, operator, supervisor, next visit)."""
+
     patient_lookup = PatientLookupField(label=_("patient"))
-    performed_by = UserChoiceField(roles=(INTERN,), label=_("done by (intern)"))
-    supervised_by = UserChoiceField(roles=(SUPERVISOR,), label=_("supervisor present"), required=False)
+    operator = DentistChoiceField(label=_("operator"), required=False)
+    assistant = DentistChoiceField(label=_("assistant"), required=False)
+    supervisor = DentistChoiceField(kinds=(Dentist.Kind.SUPERVISOR,), label=_("supervisor"), required=False)
+    update_chart = forms.BooleanField(
+        label=_("Update the dental chart for these teeth"), required=False, initial=True,
+        help_text=_("The changes are listed below before you save."),
+    )
 
     fieldsets = [
-        ("", ["patient_lookup", "step_type", "teeth", "performed_at", "performed_by", "supervised_by"]),
-        (_("Implant details (if an implant was placed)"), ["implant_system", "implant_size"]),
-        ("", ["notes"]),
+        ("", ["patient_lookup", "performed_at", "step_type", "teeth", "surfaces", "material"]),
+        ("", ["operator", "assistant", "supervisor", "notes", "next_visit", "update_chart"]),
     ]
 
     class Meta:
         model = TreatmentStep
-        fields = [
-            "step_type", "teeth", "performed_at", "performed_by", "supervised_by",
-            "implant_system", "implant_size", "notes",
-        ]
+        fields = ["performed_at", "step_type", "teeth", "surfaces", "material", "operator", "assistant",
+                  "supervisor", "notes", "next_visit"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["step_type"].queryset = TreatmentStepType.objects.filter(is_active=True)
+        self.fields["step_type"].label = _("treatment")
+        self.fields["teeth"].widget.attrs.update({"data-digits": "1", "autocomplete": "off"})
+        self.fields["notes"].widget.attrs["rows"] = 2
+        for name in ("teeth", "surfaces", "material"):
+            self.fields[name].col = "col-md-4"
+        self.fields["step_type"].col = "col-md-8"
+        self.fields["performed_at"].col = "col-md-4"
+        self.fields["patient_lookup"].col = "col-md-4"
+        self.fields["notes"].col = "col-md-8"
+        self.fields["next_visit"].col = "col-md-4"
+        self.fields["update_chart"].col = "col-12"
+
+    def clean_teeth(self):
+        return format_teeth(parse_teeth(self.cleaned_data.get("teeth")))
+
+    def clean_surfaces(self):
+        return parse_surfaces(self.cleaned_data.get("surfaces"))
+
+    def clean(self):
+        data = super().clean()
+        if not data.get("operator") and not data.get("supervisor"):
+            self.add_error("operator", _("Choose who did the treatment (operator) or the supervisor."))
+        elif self.user is not None and is_only_dentist(self.user):
+            me = Dentist.for_user(self.user)
+            if me not in (data.get("operator"), data.get("assistant"), data.get("supervisor")):
+                self.add_error("operator", _("You can only record treatments you did, assisted or supervised."))
+        step_type = data.get("step_type")
+        if step_type and step_type.chart_effect != ChartEffect.NONE and not data.get("teeth"):
+            self.add_error("teeth", _("Write the tooth numbers for this treatment."))
+        if step_type and not data.get("material") and step_type.default_material:
+            data["material"] = step_type.default_material
+        return data
 
 
 class StepReviewForm(StyledModelForm):
@@ -67,19 +101,18 @@ class StepReviewForm(StyledModelForm):
 
 
 class LabRequestForm(_PatientScopedForm):
-    doctor_field = "requested_by"
     patient_lookup = PatientLookupField(label=_("patient"))
-    requested_by = UserChoiceField(roles=(INTERN, SUPERVISOR), label=_("requested by (doctor)"))
+    dentist = DentistChoiceField(label=_("dentist"))
 
     fieldsets = [
-        ("", ["patient_lookup", "requested_by", "lab", "work_type", "teeth", "units", "shade", "material", "due_date"]),
+        ("", ["patient_lookup", "dentist", "lab", "work_type", "teeth", "units", "shade", "material", "due_date"]),
         ("", ["instructions", "lab_cost"]),
     ]
 
     class Meta:
         model = LabRequest
         fields = [
-            "requested_by", "lab", "work_type", "teeth", "units", "shade", "material",
+            "dentist", "lab", "work_type", "teeth", "units", "shade", "material",
             "due_date", "instructions", "lab_cost",
         ]
 
@@ -89,6 +122,12 @@ class LabRequestForm(_PatientScopedForm):
         self.fields["work_type"].queryset = LabWorkType.objects.filter(is_active=True)
         if not has_role(self.user, *FRONT_DESK):
             del self.fields["lab_cost"]
+        if is_only_dentist(self.user):
+            me = Dentist.for_user(self.user)
+            self.fields["dentist"].queryset = Dentist.objects.filter(pk=me.pk if me else None)
+
+    def clean_teeth(self):
+        return format_teeth(parse_teeth(self.cleaned_data.get("teeth")))
 
 
 class LabActionForm(StyledForm):
@@ -100,10 +139,11 @@ class LabActionForm(StyledForm):
 class StepFilterForm(StyledForm):
     date_from = forms.DateField(label=_("From"), required=False)
     date_to = forms.DateField(label=_("To"), required=False)
-    intern = UserChoiceField(roles=(INTERN,), label=_("intern"), required=False, empty_label=_("All"))
+    dentist = DentistChoiceField(label=_("dentist"), required=False, empty_label=_("All"))
     step_type = forms.ModelChoiceField(
-        label=_("step"), queryset=TreatmentStepType.objects.all(), required=False, empty_label=_("All")
+        label=_("treatment"), queryset=TreatmentStepType.objects.all(), required=False, empty_label=_("All")
     )
+    tooth = forms.CharField(label=_("tooth"), required=False, max_length=2)
     unchecked = forms.BooleanField(label=_("not checked yet"), required=False)
 
 

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load i18n static clinic %}
+{% block title %}{{ surgery.number }}{% endblock %}
+{% block content %}
+{% with patient=surgery.patient active="surgery" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="d-flex flex-wrap gap-2 mb-3 no-print">
+  {% if can_edit %}<a class="btn btn-outline-secondary" href="{% url 'surgery:update' surgery.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
+  <a class="btn btn-outline-primary" href="{% url 'charting:photos' surgery.patient_id %}?stage=surgery"><i class="bi bi-camera"></i> {% trans "Surgery photos" %}</a>
+  <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print surgery chart" %}</button>
+</div>
+<div class="card"><div class="card-body" dir="ltr">
+  <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-3">
+    <img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+    <div class="text-end"><div class="h5 fw-bold mb-0">{% trans "Surgery chart" %} {{ surgery.number }}</div><div>{{ surgery.date|date:"l d/m/Y" }} — {{ surgery.get_difficulty_display }}</div></div>
+  </div>
+  <table class="table table-bordered table-sm small">
+    <tbody>
+      <tr><th style="width:18%">{% trans "Name & code" %}</th><td>{{ surgery.patient.full_name }} — {{ surgery.patient.file_number }}</td><th style="width:18%">{% trans "Instructor" %}</th><td>{{ surgery.instructor|default:"—" }}</td></tr>
+      <tr><th>{% trans "Operator 1" %}</th><td>{% if surgery.operator_1 %}<a href="{{ surgery.operator_1.get_absolute_url }}">{{ surgery.operator_1.label }}</a>{% endif %}</td><th>{% trans "Operator 2" %}</th><td>{% if surgery.operator_2 %}<a href="{{ surgery.operator_2.get_absolute_url }}">{{ surgery.operator_2.label }}</a>{% else %}—{% endif %}</td></tr>
+      <tr><th>{% trans "Date" %}</th><td>{{ surgery.date|date:"d/m/Y" }}</td><th>{% trans "Assistant" %}</th><td>{{ surgery.assistant.label|default:"—" }}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="table-responsive"><table class="table table-bordered surgery-grid">
+    <thead><tr><th class="text-start">{% trans "Tooth" %}</th>{% for site in sites %}<th>{{ site.tooth }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for name, label in procedures %}
+      <tr><th class="text-start fw-normal">{{ label }}</th>{% for site in sites %}{% with on=site|attr:name %}<td class="{% if on %}on{% endif %}">{% if on %}✔{% endif %}</td>{% endwith %}{% endfor %}</tr>
+      {% endfor %}
+      <tr><th class="text-start fw-normal">{% trans "Implant diameter" %}</th>{% for site in sites %}<td>{{ site.diameter_mm }}</td>{% endfor %}</tr>
+      <tr><th class="text-start fw-normal">{% trans "Implant length" %}</th>{% for site in sites %}<td>{{ site.length_mm }}</td>{% endfor %}</tr>
+      <tr><th class="text-start fw-normal">{% trans "Implant type" %}</th>{% for site in sites %}<td class="small">{{ site.implant_system|default:"" }}</td>{% endfor %}</tr>
+      <tr><th class="text-start fw-normal">{% trans "Lot / sticker" %}</th>{% for site in sites %}<td class="small">{{ site.lot_number }}{% if site.sticker %} <a href="{{ site.sticker.url }}" target="_blank"><i class="bi bi-image"></i></a>{% endif %}</td>{% endfor %}</tr>
+      <tr><th class="text-start fw-normal">{% trans "Torque / ISQ" %}</th>{% for site in sites %}<td class="small">{{ site.insertion_torque|default:"" }}{% if site.isq %} / {{ site.isq }}{% endif %}</td>{% endfor %}</tr>
+      <tr><th class="text-start fw-normal">{% trans "Implant subcrestal" %}</th>{% for site in sites %}<td>{% if site.subcrestal %}✔{% endif %}</td>{% endfor %}</tr>
+      <tr><th class="text-start fw-normal">{% trans "Implant status" %}</th>{% for site in sites %}<td class="small">{% if site.implant_status %}<a href="{% url 'surgery:implant' site.pk %}">{{ site.get_implant_status_display }}</a>{% endif %}</td>{% endfor %}</tr>
+    </tbody>
+  </table></div>
+
+  <div class="row g-3 small">
+    <div class="col-lg-6"><div class="border rounded p-2 h-100"><div class="fw-bold mb-1">{% trans "Guided bone regeneration" %}</div>
+      <div><b>{% trans "Block graft" %}:</b> {% if surgery.block_graft %}{{ surgery.get_block_donor_display }} {{ surgery.block_donor_other }}{% else %}—{% endif %}</div>
+      <div><b>{% trans "Cut by" %}:</b> {{ surgery.get_cut_by_display|default:"—" }} · <b>{% trans "Screws" %}:</b> {{ surgery.screws_count|default:"—" }}</div>
+      <div><b>{% trans "Bone particle" %}:</b> {{ surgery.get_bone_particle_display|default:"—" }}{% if surgery.xenograft_percent is not None %} — Auto {{ surgery.autogenous_percent }}% : Xeno {{ surgery.xenograft_percent }}%{% endif %} {{ surgery.bone_material }}</div>
+      <div><b>ACM bur:</b> {{ surgery.acm_bur_area|default:"—" }}</div>
+      {% if surgery.gbr_notes %}<div><b>{% trans "Notes" %}:</b> {{ surgery.gbr_notes }}</div>{% endif %}
+    </div></div>
+    <div class="col-lg-6"><div class="border rounded p-2 h-100"><div class="fw-bold mb-1">{% trans "Open sinus lift" %}</div>
+      <div><b>{% trans "Approach" %}:</b> {{ surgery.sinus_approach|default:"—" }}</div>
+      <div><b>{% trans "Fill material" %}:</b> {{ surgery.sinus_fill_material|default:"—" }}</div>
+      <div><b>{% trans "Membrane" %}:</b> {% if surgery.membrane_used %}{{ surgery.membrane_size }} · {{ surgery.membrane_material }} · {{ surgery.membrane_company }}{% else %}—{% endif %}</div>
+      <div><b>{% trans "Tacks" %}:</b> {{ surgery.tacks_count|default:"—" }} {{ surgery.tacks_company }}</div>
+      {% if surgery.sinus_notes %}<div><b>{% trans "Notes" %}:</b> {{ surgery.sinus_notes }}</div>{% endif %}
+    </div></div>
+    <div class="col-lg-6"><div class="border rounded p-2 h-100"><div class="fw-bold mb-1">{% trans "Soft tissue" %}</div>
+      <div><b>{% trans "Graft" %}:</b> {{ surgery.get_soft_tissue_graft_display|default:"—" }} {{ surgery.soft_tissue_technique }}</div>
+      <div><b>{% trans "Exposure" %}:</b> {% if surgery.exposure is None %}—{% else %}{{ surgery.exposure|yesno:"Yes,No" }}{% endif %}{% if surgery.custom_healing_teeth %} · {% trans "customized healing collar" %}: {{ surgery.custom_healing_teeth }}{% endif %}</div>
+      <div><b>{% trans "Donor site" %}:</b> {{ surgery.donor_site|default:"—" }} · <b>{% trans "Recipient" %}:</b> {{ surgery.recipient_area|default:"—" }}</div>
+      <div><b>{% trans "Augmentation site" %}:</b> {{ surgery.augmentation_labels|join:", "|default:"—" }}</div>
+      <div><b>{% trans "Suture" %}:</b> {{ surgery.soft_tissue_suture_material|default:"—" }} {{ surgery.soft_tissue_suture_technique }} · <b>{% trans "Pack" %}:</b> {{ surgery.pack_type|default:"—" }}</div>
+      <div><b>{% trans "Frenectomy" %}:</b> {{ surgery.frenectomy|default:"—" }} · <b>{% trans "Bone graft" %}:</b> {{ surgery.soft_tissue_bone_graft|default:"—" }}</div>
+      {% if surgery.soft_tissue_notes %}<div><b>{% trans "Notes" %}:</b> {{ surgery.soft_tissue_notes }}</div>{% endif %}
+    </div></div>
+    <div class="col-lg-6"><div class="border rounded p-2 h-100"><div class="fw-bold mb-1">{% trans "Suture, temporization and X-ray" %}</div>
+      <div><b>{% trans "Suture" %}:</b> {{ surgery.suture_size|default:"—" }} {{ surgery.get_suture_material_display }} {{ surgery.suture_technique }}</div>
+      <div><b>{% trans "Temporary" %}:</b> {{ surgery.get_temporary_display|default:"—" }}</div>
+      <div><b>X-ray:</b> {{ surgery.xray_taken|yesno:"✔,✘" }} {{ surgery.xray_notes }}</div>
+      {% if surgery.notes %}<div><b>{% trans "Notes" %}:</b> {{ surgery.notes|linebreaksbr }}</div>{% endif %}
+      {% if surgery.complications %}<div class="text-danger"><b>{% trans "Complications" %}:</b> {{ surgery.complications|linebreaksbr }}</div>{% endif %}
+    </div></div>
+  </div>
+  {% if photos %}<div class="row g-2 mt-3">{% for photo in photos %}{% if not photo.is_video %}<div class="col-3 col-md-2"><a href="{{ photo.file.url }}" target="_blank"><img class="photo-thumb" src="{{ photo.file.url }}" alt=""></a><div class="small text-muted">{{ photo.photo_type|default:"" }}</div></div>{% endif %}{% endfor %}</div>{% endif %}
+  <div class="small text-muted mt-3">{% trans "Recorded by" %} {{ surgery.created_by|default:"—" }} — {{ surgery.created_at|date:"d/m/Y g:i A" }}{% if surgery.chart_updated %} · <i class="bi bi-diagram-3"></i> {% trans "Dental chart updated" %}{% endif %}</div>
+</div></div>
+{% endblock %}

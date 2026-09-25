@@ -11,7 +11,7 @@
   <dl class="dl-grid fs-6">
     <dt>{% trans "Lab" %}</dt><dd>{{ lr.lab }}</dd>
     <dt>{% trans "Patient" %}</dt><dd>{{ lr.patient.full_name }} ({{ lr.patient.file_number }})</dd>
-    <dt>{% trans "Doctor" %}</dt><dd>{{ lr.requested_by }}</dd>
+    <dt>{% trans "Doctor" %}</dt><dd>{{ lr.dentist|default:"—" }}</dd>
     <dt>{% trans "Work" %}</dt><dd>{{ lr.work_type }} — {% blocktrans with n=lr.units %}{{ n }} unit(s){% endblocktrans %}</dd>
     <dt>{% trans "Teeth" %}</dt><dd>{{ lr.teeth }}</dd>
     <dt>{% trans "Shade" %}</dt><dd>{{ lr.shade|default:"—" }}</dd>

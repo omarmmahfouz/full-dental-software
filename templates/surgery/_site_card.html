@@ -1,0 +1,26 @@
+{% load i18n %}<div class="col-lg-6 col-xxl-4">
+  <div class="site-card h-100">
+    {% for hidden in site.hidden_fields %}{{ hidden }}{% endfor %}
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="d-flex align-items-center gap-2"><label class="form-label mb-0">{{ site.tooth.label }}</label><div style="width:110px">{{ site.tooth }}</div></div>
+      {% if site.instance.pk %}<label class="small text-danger">{{ site.DELETE }} {% trans "remove" %}</label>{% endif %}
+    </div>
+    {% if site.tooth.errors or site.non_field_errors %}<ul class="errorlist">{% for e in site.non_field_errors %}<li>{{ e }}</li>{% endfor %}{% for e in site.tooth.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="row g-1 mb-2 small">
+      {% for name, label in procedures %}{% for f in site.visible_fields %}{% if f.name == name %}
+      <div class="col-6"><div class="form-check">{{ f }} <label class="form-check-label" for="{{ f.id_for_label }}">{{ f.label }}</label></div>{% if f.errors %}<ul class="errorlist">{% for e in f.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</div>
+      {% endif %}{% endfor %}{% endfor %}
+    </div>
+    <div class="row g-2">
+      <div class="col-12"><label class="form-label small">{{ site.implant_system.label }}</label>{{ site.implant_system }}{% if site.implant_system.errors %}<ul class="errorlist">{% for e in site.implant_system.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</div>
+      <div class="col-6"><label class="form-label small">{{ site.implant_diameter.label }}</label>{{ site.implant_diameter }}{% if site.implant_diameter.errors %}<ul class="errorlist">{% for e in site.implant_diameter.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</div>
+      <div class="col-6"><label class="form-label small">{{ site.implant_length.label }}</label>{{ site.implant_length }}{% if site.implant_length.errors %}<ul class="errorlist">{% for e in site.implant_length.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</div>
+      <div class="col-6"><label class="form-label small">{{ site.lot_number.label }}</label>{{ site.lot_number }}</div>
+      <div class="col-6"><label class="form-label small">{{ site.sticker.label }}</label>{{ site.sticker }}</div>
+      <div class="col-4"><label class="form-label small">{{ site.insertion_torque.label }}</label>{{ site.insertion_torque }}</div>
+      <div class="col-4"><label class="form-label small">{{ site.isq.label }}</label>{{ site.isq }}</div>
+      <div class="col-4 d-flex align-items-end"><div class="form-check">{{ site.subcrestal }} <label class="form-check-label small" for="{{ site.subcrestal.id_for_label }}">{{ site.subcrestal.label }}</label></div></div>
+      <div class="col-12"><label class="form-label small">{{ site.notes.label }}</label>{{ site.notes }}</div>
+    </div>
+  </div>
+</div>

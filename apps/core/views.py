@@ -1,5 +1,8 @@
 import mimetypes
 
+from django.conf import settings
+from django.contrib.auth.decorators import login_not_required
+
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, SuspiciousFileOperation
 from django.core.files.storage import default_storage
@@ -14,12 +17,13 @@ from django.views.decorators.http import require_POST
 
 from apps.academy.models import Enrollment
 from apps.clinical.models import LabRequest, TreatmentStep
+from apps.dentists.models import Dentist
 from apps.complaints.models import Complaint
 from apps.patients.models import Lead, Patient
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
-from .models import Notification, branch_for_user
-from .roles import FRONT_DESK, INTERN, MANAGEMENT, OWNER, SECRETARY, SUPERVISOR, has_role
+from .models import Notification, UserProfile, branch_for_user
+from .roles import DENTIST, FRONT_DESK, MANAGEMENT, OWNER, SECRETARY, SUPERVISOR, has_role
 
 
 def dashboard(request):
@@ -74,21 +78,42 @@ def dashboard(request):
             .order_by("follow_up_due")[:8]
         )
 
-    if has_role(user, INTERN):
-        context["my_shifts"] = RoomShift.objects.filter(intern=user, date=today).select_related("room")
+    dentist = Dentist.for_user(user)
+    if dentist is not None:
+        context["dentist"] = dentist
+        context["my_shifts"] = RoomShift.objects.filter(dentist=dentist, date=today).select_related("room", "supervisor")
         context["my_appointments"] = (
-            Appointment.objects.filter(intern=user, scheduled_at__gte=start, scheduled_at__lt=end)
+            Appointment.objects.filter(dentist=dentist, scheduled_at__gte=start, scheduled_at__lt=end)
             .select_related("patient", "room")
             .order_by("scheduled_at")
         )
         context["my_patient_count"] = Patient.objects.filter(
-            assigned_intern=user, status=Patient.Status.ACTIVE
+            assigned_dentist=dentist, status=Patient.Status.ACTIVE
         ).count()
         context["my_open_labs"] = LabRequest.objects.filter(
-            requested_by=user, status__in=LabRequest.OPEN_STATUSES
+            dentist=dentist, status__in=LabRequest.OPEN_STATUSES
         ).count()
     context["show_supervisor_cards"] = has_role(user, SUPERVISOR, OWNER)
     return render(request, "core/dashboard.html", context)
+
+
+@login_not_required
+@require_POST
+def switch_language(request):
+    """Save the chosen interface language on the user's profile (and in a cookie
+    for the login page), then go back to the page the user was on."""
+    language = request.POST.get("language")
+    target = request.POST.get("next") or "/"
+    if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
+        target = "/"
+    response = redirect(target)
+    if language in dict(settings.LANGUAGES):
+        if request.user.is_authenticated:
+            profile, _created = UserProfile.objects.get_or_create(user=request.user)
+            profile.language = language
+            profile.save(update_fields=["language"])
+        response.set_cookie(settings.LANGUAGE_COOKIE_NAME, language, max_age=365 * 24 * 3600, samesite="Lax")
+    return response
 
 
 def notification_list(request):
@@ -116,7 +141,7 @@ def notification_mark_all_read(request):
 
 # Which roles may download files stored under each media folder.
 MEDIA_FOLDER_ROLES = {
-    "patients": FRONT_DESK + (INTERN,),
+    "patients": FRONT_DESK + (DENTIST,),
     "candidates": (OWNER, SUPERVISOR, SECRETARY),
     "purchases": (OWNER, SECRETARY),
 }
@@ -129,9 +154,11 @@ def protected_media(request, path):
     if allowed is None or not has_role(request.user, *allowed):
         raise PermissionDenied
     if folder == "patients" and not has_role(request.user, *FRONT_DESK):
-        # Interns may only open documents of their own patients.
+        # Dentists may only open documents of their own patients.
         patient_id = path.split("/")[1] if path.count("/") >= 2 else ""
-        if not Patient.objects.filter(pk=patient_id if patient_id.isdigit() else 0, assigned_intern=request.user).exists():
+        from apps.patients.access import visible_patients
+
+        if not visible_patients(request.user).filter(pk=patient_id if patient_id.isdigit() else 0).exists():
             raise PermissionDenied
     try:
         full_path = default_storage.path(path)

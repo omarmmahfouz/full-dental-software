@@ -20,7 +20,7 @@ class InstallmentTests(TestCase):
     def setUp(self):
         self.branch = setup_clinic()
         make_user("sec", "secretary")
-        self.intern = make_user("intern", "intern")
+        self.dentist = make_user("dentist", "dentist")
         self.client.login(username="sec", password=PASSWORD)
         self.course = Course.objects.create(branch=self.branch, name="Implant diploma", code="IMP-1", fee=Decimal("40000"))
         self.candidate = Candidate.objects.create(full_name="Dr. Test", phone_primary="01001234567")
@@ -77,6 +77,6 @@ class InstallmentTests(TestCase):
         self.assertTrue(payment.receipt_number.startswith("RC-"))
         self.assertEqual(enrollment.balance, Decimal("500"))
 
-    def test_intern_has_no_access(self):
-        self.client.login(username="intern", password=PASSWORD)
+    def test_dentist_has_no_access(self):
+        self.client.login(username="dentist", password=PASSWORD)
         self.assertEqual(self.client.get("/academy/candidates/").status_code, 403)

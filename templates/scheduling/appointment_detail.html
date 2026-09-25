@@ -16,7 +16,7 @@
     <dl class="dl-grid">
       <dt>{% trans "Appointment time" %}</dt><dd>{{ a.scheduled_at|date:"l d/m/Y g:i A" }}{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}</dd>
       <dt>{% trans "Expected duration" %}</dt><dd>{{ a.duration_minutes|minutes }}</dd>
-      <dt>{% trans "Intern" %}</dt><dd>{{ a.intern|default:"—" }}</dd>
+      <dt>{% trans "Dentist" %}</dt><dd>{{ a.dentist|default:"—" }}</dd>
       <dt>{% trans "Room" %}</dt><dd>{{ a.room|default:"—" }}</dd>
       <dt>{% trans "Procedure" %}</dt><dd>{{ a.purpose|default:"—" }}</dd>
       <dt>{% trans "Notes" %}</dt><dd>{{ a.notes|linebreaksbr|default:"—" }}</dd>
@@ -49,7 +49,7 @@
     {% endif %}
   </div></div></div>
   <div class="col-lg-6"><div class="card"><div class="card-header">{% trans "Steps done in this visit" %}</div><ul class="list-group list-group-flush">
-    {% for s in steps %}<li class="list-group-item"><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a> {{ s.teeth }} — {{ s.performed_by }}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}
+    {% for s in steps %}<li class="list-group-item"><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a> {{ s.teeth }} — {{ s.operator|default:s.supervisor }}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}
   </ul></div></div>
   <div class="col-lg-6"><div class="card"><div class="card-header">{% trans "Lab requests from this visit" %}</div><ul class="list-group list-group-flush">
     {% for lr in lab_requests %}<li class="list-group-item"><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a> {{ lr.work_type }} {% status_badge lr %}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}

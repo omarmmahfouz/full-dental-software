@@ -5,7 +5,7 @@ from datetime import date
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 
-from apps.core.testing import PASSWORD, make_patient, make_user, setup_clinic
+from apps.core.testing import PASSWORD, make_dentist, make_patient, make_user, setup_clinic
 from apps.patients.models import Lead, Patient, PatientDocument, PatientRelation, ReferralSource
 from apps.scheduling.models import Appointment
 from django.utils import timezone
@@ -23,7 +23,7 @@ class PatientRegistrationTests(TestCase):
     def setUp(self):
         self.branch = setup_clinic()
         self.secretary = make_user("sec", "secretary")
-        self.intern = make_user("intern", "intern")
+        self.dentist = make_dentist("dentist")
         self.client.login(username="sec", password=PASSWORD)
         self.facebook = ReferralSource.objects.get(name_en="Facebook")
 
@@ -36,7 +36,7 @@ class PatientRegistrationTests(TestCase):
             "preferred_phone": "primary",
             "missing_teeth": "single",
             "referral_source": self.facebook.pk,
-            "assigned_intern": self.intern.pk,
+            "assigned_dentist": self.dentist.pk,
         }
         data.update(overrides)
         return data
@@ -49,7 +49,7 @@ class PatientRegistrationTests(TestCase):
         self.assertEqual(patient.file_number, f"CIA-{patient.pk:05d}")
         self.assertEqual(patient.birth_date, date(1990, 1, 15))  # read from the national ID
         self.assertEqual(patient.gender, "M")
-        self.assertEqual(patient.assigned_intern, self.intern)
+        self.assertEqual(patient.assigned_dentist, self.dentist)
         self.assertEqual(patient.created_by, self.secretary)
         document = PatientDocument.objects.get()
         self.assertEqual(document.kind, PatientDocument.Kind.ID_FRONT)
@@ -125,26 +125,35 @@ class PatientRegistrationTests(TestCase):
         self.assertRedirects(response, patient.get_absolute_url(), fetch_redirect_response=False)
 
 
-class InternAccessTests(TestCase):
+class DentistAccessTests(TestCase):
     def setUp(self):
         self.branch = setup_clinic()
-        self.intern = make_user("intern", "intern")
-        self.other_intern = make_user("intern2", "intern")
-        self.mine = make_patient(self.branch, assigned_intern=self.intern)
+        self.dentist = make_dentist("dentist")
+        self.other_dentist = make_dentist("dentist2")
+        self.mine = make_patient(self.branch, assigned_dentist=self.dentist)
         self.not_mine = make_patient(self.branch, nid="28501010101235", phone="01112223334",
-                                     assigned_intern=self.other_intern)
-        self.client.login(username="intern", password=PASSWORD)
+                                     assigned_dentist=self.other_dentist)
+        self.client.login(username="dentist", password=PASSWORD)
 
-    def test_intern_sees_only_own_patients(self):
+    def test_dentist_sees_only_own_patients(self):
         self.assertEqual(self.client.get(self.mine.get_absolute_url()).status_code, 200)
         self.assertEqual(self.client.get(self.not_mine.get_absolute_url()).status_code, 403)
         listing = self.client.get("/patients/")
         self.assertEqual(list(listing.context["page_obj"]), [self.mine])
 
-    def test_intern_sees_patient_booked_with_him(self):
-        Appointment.objects.create(branch=self.branch, patient=self.not_mine, intern=self.intern, scheduled_at=timezone.now())
+    def test_dentist_sees_patient_booked_with_them(self):
+        Appointment.objects.create(branch=self.branch, patient=self.not_mine, dentist=self.dentist, scheduled_at=timezone.now())
         self.assertEqual(self.client.get(self.not_mine.get_absolute_url()).status_code, 200)
 
-    def test_intern_cannot_register_or_open_call_list(self):
+    def test_dentist_sees_patients_of_surgeries_they_instructed(self):
+        from apps.surgery.models import Surgery
+
+        instructor = make_dentist("sup", kind="supervisor")
+        Surgery.objects.create(branch=self.branch, patient=self.not_mine, operator_1=self.other_dentist, instructor=instructor)
+        self.client.login(username="sup", password=PASSWORD)
+        self.assertEqual(self.client.get(self.not_mine.get_absolute_url()).status_code, 200)
+        self.assertEqual(self.client.get(self.mine.get_absolute_url()).status_code, 403)
+
+    def test_dentist_cannot_register_or_open_call_list(self):
         self.assertEqual(self.client.get("/patients/new/").status_code, 403)
         self.assertEqual(self.client.get("/patients/calls/").status_code, 403)

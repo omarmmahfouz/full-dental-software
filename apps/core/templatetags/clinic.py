@@ -94,3 +94,9 @@ def get_item(mapping, key):
         return mapping.get(key)
     except AttributeError:
         return None
+
+
+@register.filter
+def attr(obj, name):
+    """{{ site|attr:"extraction" }} — read an attribute whose name is in a variable."""
+    return getattr(obj, str(name), None)

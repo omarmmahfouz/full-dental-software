@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+{% with active="chart" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<form method="post" novalidate>{% csrf_token %}
+  <div class="card mb-3"><div class="card-header fs-5"><i class="bi bi-list-ol"></i> {{ title }}</div><div class="card-body">{% include "includes/form_fields.html" %}</div></div>
+  <div class="card mb-3" data-formset="items">
+    <div class="card-header">{% trans "Planned treatment (in order)" %}</div>
+    <div class="card-body">
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors }}</div>{% endif %}
+      <div class="table-responsive"><table class="table table-sm align-middle">
+        <thead><tr><th style="min-width:220px">{% trans "Phase" %}</th><th style="min-width:220px">{% trans "Procedure" %}</th><th style="width:140px">{% trans "Teeth" %}</th><th>{% trans "Details" %}</th><th></th></tr></thead>
+        <tbody data-formset-rows>
+        {% for item in formset %}
+          <tr>
+            <td>{% for hidden in item.hidden_fields %}{{ hidden }}{% endfor %}{{ item.phase }}</td>
+            <td>{{ item.step_type }}{{ item.step_type.errors }}</td>
+            <td>{{ item.teeth }}{{ item.teeth.errors }}</td>
+            <td>{{ item.details }}</td>
+            <td>{% if item.instance.pk %}<label class="small text-danger">{{ item.DELETE }} {% trans "delete" %}</label>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      <template><tr>
+        <td>{% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}{{ formset.empty_form.phase }}</td>
+        <td>{{ formset.empty_form.step_type }}</td><td>{{ formset.empty_form.teeth }}</td><td>{{ formset.empty_form.details }}</td><td></td>
+      </tr></template>
+      <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add item" %}</button>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary btn-lg px-5">{% trans "Save" %}</button>
+    <a class="btn btn-outline-secondary btn-lg" href="{% if plan %}{{ plan.get_absolute_url }}{% else %}{% url 'charting:chart' patient.pk %}{% endif %}">{% trans "Cancel" %}</a>
+  </div>
+</form>
+{% endblock %}

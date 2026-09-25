@@ -10,20 +10,20 @@ from django.utils.translation import gettext_lazy as _
 OWNER = "owner"
 SUPERVISOR = "supervisor"
 SECRETARY = "secretary"
-INTERN = "intern"
+DENTIST = "dentist"
 
 ROLE_CHOICES = [
     (OWNER, _("Owner / Manager")),
     (SUPERVISOR, _("Supervisor")),
     (SECRETARY, _("Secretary")),
-    (INTERN, _("Intern doctor")),
+    (DENTIST, _("Dentist")),
 ]
 ALL_ROLES = tuple(code for code, _label in ROLE_CHOICES)
 
 # Common role sets used by views.
 MANAGEMENT = (OWNER, SUPERVISOR)
 FRONT_DESK = (OWNER, SUPERVISOR, SECRETARY)
-CLINICAL = (OWNER, SUPERVISOR, INTERN)
+CLINICAL = (OWNER, SUPERVISOR, DENTIST)
 STAFF = ALL_ROLES
 
 
@@ -44,10 +44,10 @@ def has_role(user, *roles):
     return bool(user_roles(user) & set(roles))
 
 
-def is_only_intern(user):
-    """True for interns who hold no desk/management role (they see only their own work)."""
+def is_only_dentist(user):
+    """True for dentists who hold no desk/management role (they see only their own work)."""
     roles = user_roles(user)
-    return INTERN in roles and not roles & set(FRONT_DESK)
+    return DENTIST in roles and not roles & set(FRONT_DESK)
 
 
 def users_with_role(*roles):

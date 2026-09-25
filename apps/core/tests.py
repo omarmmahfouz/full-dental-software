@@ -70,7 +70,38 @@ class RolesAndNotificationTests(TestCase):
         self.assertIsNotNone(note.read_at)
 
     def test_dashboard_renders_for_each_role(self):
-        for index, role in enumerate(["secretary", "intern", "supervisor", "owner"]):
+        for index, role in enumerate(["secretary", "dentist", "supervisor", "owner"]):
             make_user(f"u{index}", role)
             self.client.login(username=f"u{index}", password=PASSWORD)
             self.assertEqual(self.client.get("/").status_code, 200)
+
+
+class LanguageTests(TestCase):
+    def setUp(self):
+        setup_clinic()
+
+    def language_of_page(self, username):
+        self.client.logout()
+        self.client.login(username=username, password=PASSWORD)
+        return self.client.get("/").context["LANGUAGE_CODE"]
+
+    def test_secretary_arabic_dentist_english(self):
+        make_user("sec", "secretary")
+        make_user("dentist", "dentist")
+        make_user("owner", "owner")
+        self.assertEqual(self.language_of_page("sec"), "ar")
+        self.assertEqual(self.language_of_page("dentist"), "en")
+        self.assertEqual(self.language_of_page("owner"), "en")
+
+    def test_chosen_language_is_kept_per_user(self):
+        make_user("sec", "secretary")
+        make_user("dentist", "dentist")
+        self.client.login(username="dentist", password=PASSWORD)
+        response = self.client.post("/i18n/setlang/", {"language": "ar", "next": "/patients/"})
+        self.assertRedirects(response, "/patients/", fetch_redirect_response=False)
+        self.assertEqual(self.language_of_page("dentist"), "ar")
+        self.assertEqual(self.language_of_page("sec"), "ar")
+        self.client.login(username="sec", password=PASSWORD)
+        self.client.post("/i18n/setlang/", {"language": "en", "next": "https://evil.example/"})
+        self.assertEqual(self.language_of_page("sec"), "en")
+        self.assertEqual(self.language_of_page("dentist"), "ar")  # one user's choice does not change another's

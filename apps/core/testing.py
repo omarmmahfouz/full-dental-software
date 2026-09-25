@@ -25,3 +25,11 @@ def make_patient(branch, name="مريض تجربة", nid="29001011234567", phone
     from apps.patients.models import Patient
 
     return Patient.objects.create(branch=branch, full_name=name, national_id=nid, phone_primary=phone, **extra)
+
+
+def make_dentist(username, kind="training", login=True, name=""):
+    """A dentist record, with a login holding the dentist role unless ``login`` is False."""
+    from apps.dentists.models import Dentist
+
+    user = make_user(username, "dentist") if login else None
+    return Dentist.objects.create(full_name=name or f"Dr. {username}", kind=kind, user=user)

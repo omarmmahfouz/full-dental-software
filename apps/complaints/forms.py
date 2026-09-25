@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.forms import StyledForm, StyledModelForm, UserChoiceField
 from apps.core.roles import MANAGEMENT
+from apps.dentists.forms import DentistChoiceField
 from apps.patients.forms import PatientLookupField
 
 from .models import Complaint, ComplaintFollowUp
@@ -13,14 +14,17 @@ class ComplaintForm(StyledModelForm):
     patient_lookup = PatientLookupField(label=_("patient"))
     assigned_to = UserChoiceField(roles=MANAGEMENT, label=_("followed up by"), required=False,
                                   help_text=_("The supervisor responsible for solving it."))
+    concerned_dentist = DentistChoiceField(label=_("concerned dentist"), required=False)
 
     fieldsets = [
-        ("", ["patient_lookup", "category", "severity", "concerned_staff", "assigned_to", "follow_up_due", "description"]),
+        ("", ["patient_lookup", "category", "severity", "concerned_dentist", "concerned_staff", "assigned_to",
+              "follow_up_due", "description"]),
     ]
 
     class Meta:
         model = Complaint
-        fields = ["category", "severity", "concerned_staff", "assigned_to", "follow_up_due", "description"]
+        fields = ["category", "severity", "concerned_dentist", "concerned_staff", "assigned_to", "follow_up_due",
+                  "description"]
 
     def __init__(self, *args, patient=None, **kwargs):
         super().__init__(*args, **kwargs)

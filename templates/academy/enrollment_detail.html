@@ -28,18 +28,18 @@
   <div class="col-lg-6">
     {% if e.balance > 0 %}
     <div class="card mb-3 no-print"><div class="card-header"><i class="bi bi-plus-circle"></i> {% trans "Record a payment" %}</div><div class="card-body">
-      <form method="post">{% csrf_token %}
+      <form method="post" enctype="multipart/form-data">{% csrf_token %}
         {% with form=payment_form %}{% include "includes/form_fields.html" %}{% endwith %}
         <button class="btn btn-success mt-3"><i class="bi bi-cash"></i> {% trans "Save payment and print receipt" %}</button>
       </form>
     </div></div>
     {% else %}<div class="alert alert-success"><i class="bi bi-check2-circle"></i> {% trans "Fully paid." %}</div>{% endif %}
     <div class="card"><div class="card-header">{% trans "Payments" %}</div><div class="table-responsive"><table class="table mb-0">
-      <thead><tr><th>{% trans "Receipt" %}</th><th>{% trans "Date" %}</th><th>{% trans "Amount" %}</th><th>{% trans "Method" %}</th><th>{% trans "Reference" %}</th><th>{% trans "Received by" %}</th></tr></thead>
+      <thead><tr><th>{% trans "Receipt" %}</th><th>{% trans "Date" %}</th><th>{% trans "Amount" %}</th><th>{% trans "Method" %}</th><th>{% trans "Reference" %}</th><th>{% trans "Proof" %}</th><th>{% trans "Received by" %}</th></tr></thead>
       <tbody>
       {% for p in payments %}
-      <tr><td><a href="{% url 'academy:payment_receipt' p.pk %}">{{ p.receipt_number }}</a></td><td>{{ p.paid_on|date:"d/m/Y" }}</td><td class="fw-bold">{{ p.amount|money }}</td><td>{{ p.get_method_display }}</td><td class="small">{{ p.reference|default:"—" }}</td><td class="small">{{ p.created_by|default:"—" }}</td></tr>
-      {% empty %}<tr><td colspan="6" class="text-muted">{% trans "No payments yet." %}</td></tr>{% endfor %}
+      <tr><td><a href="{% url 'academy:payment_receipt' p.pk %}">{{ p.receipt_number }}</a></td><td>{{ p.paid_on|date:"d/m/Y" }}</td><td class="fw-bold">{{ p.amount|money }}</td><td>{{ p.get_method_display }}</td><td class="small">{{ p.reference|default:"—" }}</td><td>{% if p.proof %}<a href="{{ p.proof.url }}" target="_blank"><i class="bi bi-paperclip"></i></a>{% else %}—{% endif %}</td><td class="small">{{ p.created_by|default:"—" }}</td></tr>
+      {% empty %}<tr><td colspan="7" class="text-muted">{% trans "No payments yet." %}</td></tr>{% endfor %}
       </tbody>
     </table></div></div>
   </div>

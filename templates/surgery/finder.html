@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Case finder" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-funnel"></i> {% trans "Case finder & statistics" %}</h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-success" href="?{{ query }}{% if query %}&{% endif %}export=csv"><i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Export to Excel (CSV)" %}</a>
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap gap-1 mb-2 no-print">
+  <span class="small text-muted me-1">{% trans "Quick:" %}</span>
+  {% for label, q in quick %}<a class="btn btn-sm btn-outline-primary" href="?{{ q }}">{{ label }}</a>{% endfor %}
+</div>
+{% if saved %}
+<div class="d-flex flex-wrap gap-1 mb-3 no-print align-items-center">
+  <span class="small text-muted me-1">{% trans "Saved searches:" %}</span>
+  {% for s in saved %}<span class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="?{{ s.query }}">{{ s.name }}</a>
+    <form method="post" action="{% url 'surgery:finder_delete' s.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary" data-confirm="{% trans 'Delete this saved search?' %}">×</button></form></span>{% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-xl-3 no-print">
+    <form method="get" class="card"><div class="card-body p-2">
+      {% if form.errors %}<div class="alert alert-danger small">{% trans "Please correct the filters." %}</div>{% endif %}
+      <div class="accordion accordion-flush" id="filters">
+        {% for title, fields in form.sections %}
+        <div class="accordion-item">
+          <h2 class="accordion-header"><button class="accordion-button {% if not forloop.first %}collapsed{% endif %} py-2" type="button" data-bs-toggle="collapse" data-bs-target="#f{{ forloop.counter }}">{{ title }}</button></h2>
+          <div id="f{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}">
+            <div class="accordion-body p-2">
+              {% for field in fields %}
+              <div class="mb-2"><label class="form-label small mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for e in field.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="d-flex gap-2 mt-2"><button class="btn btn-primary flex-fill"><i class="bi bi-search"></i> {% trans "Find" %}</button><a class="btn btn-outline-secondary" href="?">{% trans "Clear" %}</a></div>
+      <div class="small text-muted mt-2">{% trans "Hold Ctrl to choose several values in a list." %}</div>
+    </div></form>
+    <form method="post" action="{% url 'surgery:finder_save' %}" class="card mt-3"><div class="card-body p-2">{% csrf_token %}
+      <input type="hidden" name="query" value="{{ query }}">
+      <label class="form-label small">{% trans "Save this search as" %}</label>
+      <div class="input-group input-group-sm"><input name="name" class="form-control" required><button class="btn btn-outline-primary">{% trans "Save" %}</button></div>
+      <div class="form-check small mt-1"><input class="form-check-input" type="checkbox" name="shared" id="shared" checked><label class="form-check-label" for="shared">{% trans "visible to all managers" %}</label></div>
+    </div></form>
+  </div>
+
+  <div class="col-xl-9">
+    <div class="row g-2 mb-3">
+      <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.implants }}</div><div class="stat-label">{% trans "Implants" %}</div><div class="small text-muted">{% blocktrans with s=overall.sites p=overall.patients %}{{ s }} sites · {{ p }} patients{% endblocktrans %}</div></div></div></div>
+      <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{% if overall.survival is not None %}{{ overall.survival }}%{% else %}—{% endif %}</div><div class="stat-label">{% trans "Survival" %}</div><div class="small text-muted">{% blocktrans with f=overall.failed %}{{ f }} failed{% endblocktrans %}</div></div></div></div>
+      <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.loaded }}</div><div class="stat-label">{% trans "Loaded" %}</div><div class="small text-muted">{% blocktrans with w=overall.waiting %}{{ w }} waiting{% endblocktrans %}</div></div></div></div>
+      <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.days_to_loading|default:"—" }}</div><div class="stat-label">{% trans "Mean days to loading" %}</div></div></div></div>
+      <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.torque|default:"—" }}</div><div class="stat-label">{% trans "Mean torque (Ncm)" %}</div></div></div></div>
+    </div>
+
+    {% if groups %}
+    <div class="card mb-3"><div class="card-header">{% trans "Statistics by" %} {{ group_label }}{% if group_label_2 and groups.0.key2 %} / {{ group_label_2 }}{% endif %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+        <thead><tr><th>{{ group_label }}</th>{% if groups.0.key2 %}<th>{{ group_label_2 }}</th>{% endif %}<th>{% trans "Sites" %}</th><th>{% trans "Implants" %}</th><th>{% trans "Patients" %}</th><th>{% trans "Failed" %}</th><th style="min-width:160px">{% trans "Survival" %}</th><th>{% trans "Loaded" %}</th><th>{% trans "Days to loading" %}</th><th>{% trans "Torque" %}</th></tr></thead>
+        <tbody>{% for g in groups %}<tr>
+          <td class="fw-semibold">{{ g.key }}</td>{% if g.key2 %}<td>{{ g.key2 }}</td>{% endif %}
+          <td>{{ g.sites }}</td><td>{{ g.implants }}</td><td>{{ g.patients }}</td><td class="{% if g.failed %}text-danger fw-bold{% endif %}">{{ g.failed }}</td>
+          <td>{% if g.survival is not None %}<div class="d-flex align-items-center gap-2"><div class="bar" style="width:{{ g.survival|floatformat:0 }}%;max-width:110px"></div><span>{{ g.survival }}%</span></div>{% else %}—{% endif %}</td>
+          <td>{{ g.loaded }}</td><td>{{ g.days_to_loading|default:"—" }}</td><td>{{ g.torque|default:"—" }}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% endif %}
+
+    <div class="card"><div class="card-header">{% blocktrans with n=page_obj.paginator.count %}{{ n }} results{% endblocktrans %}</div>
+      <div class="table-responsive"><table class="table table-sm table-hover mb-0">
+        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Tooth" %}</th><th>{% trans "Procedures" %}</th><th>{% trans "Implant" %}</th><th>{% trans "Operator 1" %}</th><th>{% trans "Status" %}</th></tr></thead>
+        <tbody>{% for site in page_obj %}<tr>
+          <td class="nowrap"><a href="{{ site.surgery.get_absolute_url }}">{{ site.surgery.date|date:"d/m/Y" }}</a></td>
+          <td><a href="{% url 'charting:chart' site.surgery.patient_id %}">{{ site.surgery.patient.file_number }}</a> <span class="small text-muted">{{ site.surgery.patient.get_gender_display }}{% if site.surgery.patient.age is not None %}, {{ site.surgery.patient.age }}{% endif %}</span></td>
+          <td class="fw-bold">{{ site.tooth }}</td>
+          <td class="small">{{ site.procedure_labels|join:", " }}</td>
+          <td class="small">{% if site.implant_status %}<a href="{% url 'surgery:implant' site.pk %}">{{ site.implant_label }}</a>{% else %}—{% endif %}</td>
+          <td class="small">{{ site.surgery.operator_1 }}</td>
+          <td class="small">{{ site.get_implant_status_display|default:"—" }}</td>
+        </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No cases match these filters." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% include "includes/pagination.html" %}
+  </div>
+</div>
+{% endblock %}

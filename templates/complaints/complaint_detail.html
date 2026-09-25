@@ -12,6 +12,7 @@
     <dl class="dl-grid">
       <dt>{% trans "Patient" %}</dt><dd><a href="{{ c.patient.get_absolute_url }}">{{ c.patient }}</a> <span class="ltr small">{{ c.patient.preferred_number }}</span></dd>
       <dt>{% trans "Category" %}</dt><dd>{{ c.get_category_display }}</dd>
+      <dt>{% trans "Concerned dentist" %}</dt><dd>{% if c.concerned_dentist %}<a href="{{ c.concerned_dentist.get_absolute_url }}">{{ c.concerned_dentist }}</a>{% else %}—{% endif %}</dd>
       <dt>{% trans "Concerned staff" %}</dt><dd>{{ c.concerned_staff|default:"—" }}</dd>
       <dt>{% trans "Followed up by" %}</dt><dd>{{ c.assigned_to|default:"—" }}</dd>
       <dt>{% trans "Next follow-up" %}</dt><dd>{{ c.follow_up_due|date:"l d/m/Y"|default:"—" }}</dd>

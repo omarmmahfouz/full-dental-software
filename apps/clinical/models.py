@@ -7,14 +7,48 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.models import Branch, LookupModel, TimeStampedModel
 
 
+class ChartEffect(models.TextChoices):
+    """What a procedure does to the teeth it is recorded on (updates the dental chart)."""
+
+    NONE = "none", _("No change to the dental chart")
+    CARIES = "caries", _("Caries found")
+    FILLING = "filling", _("Filling / restoration")
+    RCT = "rct", _("Root canal treatment")
+    CROWN = "crown", _("Crown on natural tooth")
+    EXTRACTION = "extraction", _("Extraction (tooth becomes missing)")
+    IMPLANT = "implant", _("Implant placed")
+    UNCOVER = "uncover", _("Implant uncovered (2nd stage / healing abutment)")
+    IMPRESSION = "impression", _("Impression / digital scan (implant stage)")
+    DELIVERY = "delivery", _("Final prosthesis delivered (implant loaded / tooth crowned)")
+    IMPLANT_FAILED = "implant_failed", _("Implant failed / removed (becomes missing)")
+    HOPELESS = "hopeless", _("Tooth hopeless")
+    SOUND = "sound", _("Tooth sound (clear findings)")
+
+
 class TreatmentStepType(LookupModel):
+    chart_effect = models.CharField(
+        _("effect on dental chart"), max_length=20, choices=ChartEffect.choices, default=ChartEffect.NONE,
+        help_text=_("When this step is recorded on tooth numbers, the chart of those teeth is updated this way."),
+    )
+    default_material = models.CharField(_("default material"), max_length=60, blank=True)
+    surgery_procedure = models.CharField(
+        _("matching surgery-chart procedure"), max_length=20, blank=True,
+        choices=[
+            ("extraction", _("Extraction")), ("flap", _("Flap")), ("simple_implant", _("Simple implant")),
+            ("immediate_implant", _("Immediate implant")), ("expansion", _("Expansion")),
+            ("splitting", _("Splitting")), ("closed_sinus", _("Closed sinus")), ("open_sinus", _("Open sinus")),
+            ("gbr", _("GBR")), ("guided", _("Guided implant")),
+        ],
+        help_text=_("Planned items of this type are ticked automatically when the surgery chart records it."),
+    )
+
     class Meta(LookupModel.Meta):
         verbose_name = _("treatment step type")
         verbose_name_plural = _("treatment step types")
 
 
 class TreatmentStep(TimeStampedModel):
-    """One clinical step done by an intern (so every intern's work can be followed)."""
+    """One line of the treatment log: what was done, on which teeth, by whom, under which supervisor."""
 
     patient = models.ForeignKey(
         "patients.Patient", verbose_name=_("patient"), on_delete=models.PROTECT, related_name="treatment_steps"
@@ -26,14 +60,22 @@ class TreatmentStep(TimeStampedModel):
     step_type = models.ForeignKey(TreatmentStepType, verbose_name=_("step"), on_delete=models.PROTECT)
     teeth = models.CharField(_("teeth (FDI numbers)"), max_length=100, blank=True, help_text=_("e.g. 36, 37 or 11-13"))
     performed_at = models.DateTimeField(_("done at"), default=timezone.now)
-    performed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_("done by (intern)"), on_delete=models.PROTECT,
-        related_name="treatment_steps",
+    operator = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("operator"), null=True, blank=True,
+        on_delete=models.PROTECT, related_name="treatments_operated",
     )
-    supervised_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_("supervisor present"), null=True, blank=True,
-        on_delete=models.SET_NULL, related_name="+",
+    assistant = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("assistant"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="treatments_assisted",
     )
+    supervisor = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("supervisor"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="treatments_supervised",
+    )
+    surfaces = models.CharField(_("surfaces"), max_length=10, blank=True, help_text=_("e.g. MO, DO, MOD"))
+    material = models.CharField(_("material"), max_length=60, blank=True)
+    next_visit = models.CharField(_("next visit"), max_length=255, blank=True)
+    chart_updated = models.BooleanField(_("dental chart updated"), default=False, editable=False)
     implant_system = models.CharField(_("implant system / brand"), max_length=100, blank=True)
     implant_size = models.CharField(_("implant size (diameter x length)"), max_length=50, blank=True)
     notes = models.TextField(_("details"), blank=True)
@@ -117,8 +159,8 @@ class LabRequest(TimeStampedModel):
     shade = models.CharField(_("shade"), max_length=30, blank=True)
     material = models.CharField(_("material"), max_length=100, blank=True)
     instructions = models.TextField(_("instructions to the lab"), blank=True)
-    requested_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_("requested by (doctor)"), on_delete=models.PROTECT,
+    dentist = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("dentist"), null=True, on_delete=models.PROTECT,
         related_name="lab_requests",
     )
     due_date = models.DateField(_("needed back by"), null=True, blank=True)

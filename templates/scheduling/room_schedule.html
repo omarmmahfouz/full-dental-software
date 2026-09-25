@@ -8,7 +8,7 @@
     <a class="btn btn-outline-secondary" href="?week={{ prev_week|date:'Y-m-d' }}{% if only_mine %}&mine=1{% endif %}"><i class="bi bi-chevron-right"></i> {% trans "Previous week" %}</a>
     <a class="btn btn-outline-secondary" href="?{% if only_mine %}mine=1{% endif %}">{% trans "This week" %}</a>
     <a class="btn btn-outline-secondary" href="?week={{ next_week|date:'Y-m-d' }}{% if only_mine %}&mine=1{% endif %}">{% trans "Next week" %} <i class="bi bi-chevron-left"></i></a>
-    {% if roles.intern %}<a class="btn btn-outline-primary" href="?week={{ week|date:'Y-m-d' }}{% if not only_mine %}&mine=1{% endif %}">{% if only_mine %}{% trans "Show all" %}{% else %}{% trans "Only my shifts" %}{% endif %}</a>{% endif %}
+    {% if roles.dentist %}<a class="btn btn-outline-primary" href="?week={{ week|date:'Y-m-d' }}{% if not only_mine %}&mine=1{% endif %}">{% if only_mine %}{% trans "Show all" %}{% else %}{% trans "Only my shifts" %}{% endif %}</a>{% endif %}
     {% if can_edit %}
     <form method="post" action="{% url 'scheduling:copy_week' %}">{% csrf_token %}<input type="hidden" name="week" value="{{ week|date:'Y-m-d' }}">
       <button class="btn btn-outline-primary" data-confirm="{% trans 'Copy all shifts of the previous week into this week?' %}"><i class="bi bi-copy"></i> {% trans "Copy previous week" %}</button></form>
@@ -26,8 +26,9 @@
     {% for day, shifts in cells %}
     <td class="{% if day == today %}today-col{% endif %}">
       {% for s in shifts %}
-      <span class="shift-chip">
-        {% if can_edit %}<a href="{% url 'scheduling:shift_update' s.pk %}" class="text-decoration-none">{% endif %}<strong>{{ s.intern }}</strong>{% if can_edit %}</a>{% endif %}
+      <span class="shift-chip{% if s.day_type == 'surgery' %} shift-surgery{% endif %}">
+        {% if s.day_type == "surgery" %}<span class="badge text-bg-danger mb-1"><i class="bi bi-scissors"></i> {% trans "Surgery day" %}</span><br>{% endif %}
+        {% if can_edit %}<a href="{% url 'scheduling:shift_update' s.pk %}" class="text-decoration-none">{% endif %}<strong>{{ s.dentist }}</strong>{% if can_edit %}</a>{% endif %}
         <br><span class="ltr">{{ s.start_time|time:"H:i" }} - {{ s.end_time|time:"H:i" }}</span>
         {% if s.supervisor %}<br><span class="text-muted">{% trans "Supervisor" %}: {{ s.supervisor }}</span>{% endif %}
         {% if s.notes %}<br><span class="text-muted">{{ s.notes }}</span>{% endif %}

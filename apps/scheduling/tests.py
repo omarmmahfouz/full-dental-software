@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from apps.core.testing import PASSWORD, make_patient, make_user, setup_clinic
+from apps.core.testing import PASSWORD, make_dentist, make_patient, make_user, setup_clinic
 from apps.scheduling.models import Appointment, Room, RoomShift
 from apps.scheduling.views import week_start
 
@@ -52,8 +52,8 @@ class ReceptionBoardTests(TestCase):
     def setUp(self):
         self.branch = setup_clinic()
         self.secretary = make_user("sec", "secretary")
-        self.intern = make_user("intern", "intern")
-        self.patient = make_patient(self.branch, assigned_intern=self.intern)
+        self.dentist = make_dentist("dentist")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
         self.room = Room.objects.filter(branch=self.branch).first()
         self.client.login(username="sec", password=PASSWORD)
 
@@ -76,29 +76,29 @@ class ReceptionBoardTests(TestCase):
         self.assertEqual(appointment.status, Appointment.Status.IN_ROOM)
         self.assertIsNone(appointment.left_at)
 
-    def test_walk_in_uses_the_interns_room_shift(self):
+    def test_walk_in_uses_the_dentists_room_shift(self):
         now = timezone.localtime()
         RoomShift.objects.create(room=self.room, date=now.date(), start_time=time(0, 0), end_time=time(23, 59),
-                                 intern=self.intern)
+                                 dentist=self.dentist)
         self.client.post("/schedule/walk-in/", {"patient_lookup": self.patient.file_number})
         appointment = Appointment.objects.get()
         self.assertTrue(appointment.is_walk_in)
         self.assertEqual(appointment.status, Appointment.Status.ARRIVED)
-        self.assertEqual((appointment.intern, appointment.room), (self.intern, self.room))
+        self.assertEqual((appointment.dentist, appointment.room), (self.dentist, self.room))
 
-    def test_booking_defaults_to_responsible_intern_and_blocks_double_booking(self):
+    def test_booking_defaults_to_responsible_dentist_and_blocks_double_booking(self):
         when = (timezone.localtime() + timedelta(days=1)).replace(hour=11, minute=0, second=0, microsecond=0)
         data = {"patient_lookup": self.patient.phone_primary, "scheduled_at": when.strftime("%Y-%m-%dT%H:%M"),
                 "duration_minutes": 60}
         self.client.post("/schedule/appointments/new/", data)
-        self.assertEqual(Appointment.objects.get().intern, self.intern)
+        self.assertEqual(Appointment.objects.get().dentist, self.dentist)
         data["scheduled_at"] = (when + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M")
         response = self.client.post("/schedule/appointments/new/", data)
         self.assertEqual(Appointment.objects.count(), 1)
         self.assertTrue(response.context["form"].non_field_errors())
 
-    def test_intern_cannot_use_board(self):
-        self.client.login(username="intern", password=PASSWORD)
+    def test_dentist_cannot_use_board(self):
+        self.client.login(username="dentist", password=PASSWORD)
         self.assertEqual(self.client.get("/schedule/today/").status_code, 403)
         self.assertEqual(self.client.get("/schedule/rooms/").status_code, 200)
 
@@ -106,32 +106,34 @@ class ReceptionBoardTests(TestCase):
 class RoomScheduleTests(TestCase):
     def setUp(self):
         self.branch = setup_clinic()
-        self.intern = make_user("intern", "intern")
-        self.intern2 = make_user("intern2", "intern")
+        self.dentist = make_dentist("dentist")
+        self.dentist2 = make_dentist("dentist2")
         self.room1, self.room2 = Room.objects.filter(branch=self.branch)[:2]
         self.day = timezone.localdate()
 
-    def shift(self, room, intern, start, end):
-        return RoomShift(room=room, date=self.day, start_time=time(start), end_time=time(end), intern=intern)
+    def shift(self, room, dentist, start, end):
+        return RoomShift(room=room, date=self.day, start_time=time(start), end_time=time(end), dentist=dentist)
 
-    def test_room_and_intern_clashes_are_blocked(self):
-        self.shift(self.room1, self.intern, 9, 13).save()
+    def test_room_and_dentist_clashes_are_blocked(self):
+        self.shift(self.room1, self.dentist, 9, 13).save()
         with self.assertRaises(ValidationError):
-            self.shift(self.room1, self.intern2, 12, 15).full_clean()  # same room overlaps
+            self.shift(self.room1, self.dentist2, 12, 15).full_clean()  # same room overlaps
         with self.assertRaises(ValidationError):
-            self.shift(self.room2, self.intern, 10, 11).full_clean()  # same intern in two rooms
-        self.shift(self.room1, self.intern2, 13, 17).full_clean()  # back-to-back is fine
+            self.shift(self.room2, self.dentist, 10, 11).full_clean()  # same dentist in two rooms
+        self.shift(self.room1, self.dentist2, 13, 17).full_clean()  # back-to-back is fine
         with self.assertRaises(ValidationError):
-            self.shift(self.room2, self.intern2, 14, 12).full_clean()  # end before start
+            self.shift(self.room2, self.dentist2, 14, 12).full_clean()  # end before start
 
     def test_copy_previous_week(self):
         make_user("sec", "secretary")
         self.client.login(username="sec", password=PASSWORD)
         this_week = week_start(self.day)
         last_week_day = this_week - timedelta(days=7)
-        RoomShift.objects.create(room=self.room1, date=last_week_day, start_time=time(9), end_time=time(13), intern=self.intern)
+        RoomShift.objects.create(room=self.room1, date=last_week_day, start_time=time(9), end_time=time(13), dentist=self.dentist,
+                                 day_type=RoomShift.DayType.SURGERY)
         self.client.post("/schedule/rooms/copy-week/", {"week": this_week.isoformat()})
-        self.assertTrue(RoomShift.objects.filter(date=this_week, room=self.room1, intern=self.intern).exists())
+        self.assertTrue(RoomShift.objects.filter(date=this_week, room=self.room1, dentist=self.dentist,
+                                                 day_type=RoomShift.DayType.SURGERY).exists())
         # Copying twice does not create clashing duplicates.
         self.client.post("/schedule/rooms/copy-week/", {"week": this_week.isoformat()})
         self.assertEqual(RoomShift.objects.filter(date=this_week).count(), 1)

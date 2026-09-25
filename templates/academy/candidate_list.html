@@ -6,18 +6,24 @@
   <h1><i class="bi bi-person-badge"></i> {% trans "Course candidates" %}</h1>
   <a class="btn btn-primary" href="{% url 'academy:candidate_create' %}"><i class="bi bi-plus-lg"></i> {% trans "New candidate" %}</a>
 </div>
-<form class="row g-2 mb-3 no-print"><div class="col-md-5"><input class="form-control" name="q" value="{{ q }}" placeholder="{% trans 'Name, mobile, ID or university' %}"></div><div class="col-auto"><button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Search" %}</button></div></form>
+<form class="row g-2 mb-3 no-print">
+  <div class="col-md-5"><input class="form-control" name="q" value="{{ q }}" placeholder="{% trans 'Name, code, mobile, ID or university' %}"></div>
+  <div class="col-md-3">{{ filter_form.course }}</div>
+  <div class="col-auto"><button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Search" %}</button></div>
+</form>
 <div class="card"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Mobile" %}</th><th>{% trans "University" %}</th><th>{% trans "Graduation" %}</th><th>{% trans "Courses" %}</th></tr></thead>
+  <thead><tr><th>{% trans "Code" %}</th><th>{% trans "Name" %}</th><th>{% trans "Mobile" %}</th><th>{% trans "University" %}</th><th>{% trans "Graduation" %}</th><th>{% trans "Courses" %}</th><th>{% trans "Dentist file" %}</th></tr></thead>
   <tbody>
   {% for c in page_obj %}
   <tr>
+    <td class="small text-muted">{{ c.code|default:"" }}</td>
     <td><a href="{{ c.get_absolute_url }}" class="fw-semibold">{{ c.full_name }}</a></td>
     <td><span class="ltr">{{ c.phone_primary }}</span></td><td>{{ c.university|default:"—" }}</td><td>{{ c.graduation_year|default:"—" }}</td>
     <td>{% for e in c.enrollments.all %}<a class="badge text-bg-light text-decoration-none" href="{{ e.get_absolute_url }}">{{ e.course.code }}</a> {% empty %}—{% endfor %}</td>
+    <td>{% if c.dentist %}<a class="small" href="{{ c.dentist.get_absolute_url }}"><i class="bi bi-person-badge"></i> {% trans "cases & implants" %}</a>{% endif %}</td>
   </tr>
-  {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">{% trans "No candidates." %}</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No candidates." %}</td></tr>{% endfor %}
   </tbody>
 </table>
 </div></div>

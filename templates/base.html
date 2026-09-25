@@ -49,8 +49,18 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-clipboard2-pulse"></i> {% trans "Clinical" %}</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'clinical:step_list' %}"><i class="bi bi-list-check"></i> {% trans "Treatment steps" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'clinical:step_list' %}"><i class="bi bi-list-check"></i> {% trans "Treatment log" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'surgery:list' %}"><i class="bi bi-nut"></i> {% trans "Implant surgeries" %}</a></li>
+            {% if is_clinical %}<li><a class="dropdown-item" href="{% url 'surgery:create' %}"><i class="bi bi-plus-circle"></i> {% trans "New surgery chart" %}</a></li>{% endif %}
             <li><a class="dropdown-item" href="{% url 'clinical:lab_list' %}"><i class="bi bi-box-seam"></i> {% trans "Lab requests" %}</a></li>
+            {% if is_management %}
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i> {% trans "Case finder & statistics" %}</a></li>
+            {% endif %}
+            {% if my_dentist %}
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{{ my_dentist.get_absolute_url }}"><i class="bi bi-person-badge"></i> {% trans "My cases and implants" %}</a></li>
+            {% endif %}
           </ul>
         </li>
         {% if is_front_desk %}
@@ -60,7 +70,8 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-mortarboard"></i> {% trans "Academy" %}</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'academy:candidate_list' %}"><i class="bi bi-person-badge"></i> {% trans "Candidates" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'academy:candidate_list' %}"><i class="bi bi-mortarboard"></i> {% trans "Candidates" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i> {% trans "Dentists" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'academy:course_list' %}"><i class="bi bi-journal-bookmark"></i> {% trans "Courses" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'academy:payment_list' %}"><i class="bi bi-cash-coin"></i> {% trans "Installment payments" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'academy:overdue' %}"><i class="bi bi-exclamation-triangle"></i> {% trans "Overdue installments" %}</a></li>

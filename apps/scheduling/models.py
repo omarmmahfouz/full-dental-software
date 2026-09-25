@@ -29,17 +29,24 @@ class Room(models.Model):
 
 
 class RoomShift(TimeStampedModel):
-    """The room schedule: which intern works in which room, on which day and hours."""
+    """The room schedule: which dentist works in which room, on which day and hours,
+    under which supervisor, on a regular clinic day or a surgery day."""
+
+    class DayType(models.TextChoices):
+        REGULAR = "regular", _("Regular day")
+        SURGERY = "surgery", _("Surgery day")
 
     room = models.ForeignKey(Room, verbose_name=_("room"), on_delete=models.CASCADE, related_name="shifts")
+    day_type = models.CharField(_("day type"), max_length=10, choices=DayType.choices, default=DayType.REGULAR)
     date = models.DateField(_("date"), db_index=True)
     start_time = models.TimeField(_("from"))
     end_time = models.TimeField(_("to"))
-    intern = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_("intern doctor"), on_delete=models.PROTECT, related_name="room_shifts"
+    dentist = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("dentist"), on_delete=models.PROTECT, related_name="room_shifts",
+        null=True,
     )
     supervisor = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_("supervisor"), null=True, blank=True,
+        "dentists.Dentist", verbose_name=_("supervisor"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="supervised_shifts",
     )
     notes = models.CharField(_("notes"), max_length=255, blank=True)
@@ -50,7 +57,7 @@ class RoomShift(TimeStampedModel):
         verbose_name_plural = _("room schedule")
 
     def __str__(self):
-        return f"{self.room} {self.date} {self.start_time:%H:%M}-{self.end_time:%H:%M} {self.intern}"
+        return f"{self.room} {self.date} {self.start_time:%H:%M}-{self.end_time:%H:%M} {self.dentist}"
 
     def clean(self):
         if self.start_time and self.end_time and self.end_time <= self.start_time:
@@ -60,18 +67,18 @@ class RoomShift(TimeStampedModel):
         overlapping = RoomShift.objects.filter(
             date=self.date, start_time__lt=self.end_time, end_time__gt=self.start_time
         ).exclude(pk=self.pk)
-        clash = overlapping.filter(room_id=self.room_id).select_related("intern").first()
+        clash = overlapping.filter(room_id=self.room_id).select_related("dentist").first()
         if clash:
             raise ValidationError(
-                _("%(room)s is already booked for %(intern)s from %(start)s to %(end)s.")
-                % {"room": self.room, "intern": clash.intern, "start": f"{clash.start_time:%H:%M}",
+                _("%(room)s is already booked for %(dentist)s from %(start)s to %(end)s.")
+                % {"room": self.room, "dentist": clash.dentist, "start": f"{clash.start_time:%H:%M}",
                    "end": f"{clash.end_time:%H:%M}"}
             )
-        if self.intern_id:
-            clash = overlapping.filter(intern_id=self.intern_id).select_related("room").first()
+        if self.dentist_id:
+            clash = overlapping.filter(dentist_id=self.dentist_id).select_related("room").first()
             if clash:
                 raise ValidationError(
-                    {"intern": _("This intern already works in %(room)s at that time.") % {"room": clash.room}}
+                    {"dentist": _("This dentist already works in %(room)s at that time.") % {"room": clash.room}}
                 )
 
 
@@ -99,8 +106,8 @@ class Appointment(TimeStampedModel):
     room = models.ForeignKey(
         Room, verbose_name=_("room"), null=True, blank=True, on_delete=models.SET_NULL, related_name="appointments"
     )
-    intern = models.ForeignKey(
-        settings.AUTH_USER_MODEL, verbose_name=_("intern doctor"), null=True, blank=True,
+    dentist = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("dentist"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="appointments",
     )
     purpose = models.CharField(_("planned procedure"), max_length=200, blank=True)
@@ -192,13 +199,13 @@ class Appointment(TimeStampedModel):
             self.cancel_reason = ""
 
     def find_shift(self):
-        """The room shift that covers this appointment for its intern, if any."""
-        if not self.intern_id:
+        """The room shift that covers this appointment for its dentist, if any."""
+        if not self.dentist_id:
             return None
         local = timezone.localtime(self.scheduled_at)
         return (
             RoomShift.objects.filter(
-                intern_id=self.intern_id, date=local.date(), start_time__lte=local.time(), end_time__gt=local.time()
+                dentist_id=self.dentist_id, date=local.date(), start_time__lte=local.time(), end_time__gt=local.time()
             )
             .select_related("room")
             .first()

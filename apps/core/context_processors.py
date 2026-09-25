@@ -1,7 +1,7 @@
 from django.conf import settings
 
 from .models import branch_for_user
-from .roles import ALL_ROLES, FRONT_DESK, MANAGEMENT, user_roles
+from .roles import ALL_ROLES, CLINICAL, DENTIST, FRONT_DESK, MANAGEMENT, SUPERVISOR, user_roles
 
 
 def app_context(request):
@@ -16,6 +16,11 @@ def app_context(request):
                 "is_management": bool(roles & set(MANAGEMENT)),
                 "unread_notifications": user.notifications.filter(read_at__isnull=True).count(),
                 "current_branch": branch_for_user(user),
+                "is_clinical": bool(roles & set(CLINICAL)),
             }
         )
+        if roles & {DENTIST, SUPERVISOR}:
+            from apps.dentists.models import Dentist
+
+            context["my_dentist"] = Dentist.for_user(user)
     return context

@@ -6,13 +6,13 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.forms import (
     StyledForm,
     StyledModelForm,
-    UserChoiceField,
     clean_digits_value,
     clean_phone_value,
     validate_upload,
 )
-from apps.core.roles import INTERN
 from apps.core.utils import normalize_phone, parse_egyptian_national_id
+
+from apps.dentists.forms import DentistChoiceField
 
 from .models import Lead, LeadCall, MedicalCondition, Patient, PatientDocument, PatientRelation, ReferralSource
 
@@ -145,26 +145,26 @@ class PatientForm(StyledModelForm):
         help_text=_("Scanned image or photo (JPG, PNG or PDF)."),
     )
     id_back = forms.FileField(label=_("ID scan - back"), required=False, validators=[validate_upload])
-    assigned_intern = UserChoiceField(roles=(INTERN,), label=_("responsible intern"), required=False)
+    assigned_dentist = DentistChoiceField(label=_("responsible dentist"), required=False)
 
     fieldsets = [
-        (_("Personal data"), ["full_name", "id_type", "national_id", "birth_date", "gender", "occupation"]),
-        (_("Contact"), ["phone_primary", "phone_secondary", "preferred_phone", "city", "address"]),
+        (_("Personal data"), ["full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "occupation"]),
+        (_("Contact"), ["phone_primary", "phone_secondary", "preferred_phone", "governorate", "city", "address"]),
         (_("ID scan"), ["id_front", "id_back"]),
         (_("Teeth and medical history (as told by the patient)"),
          ["missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes"]),
         (_("Who referred you?"), ["referral_source", "referred_by_lookup", "referral_notes"]),
         (_("Relatives or friends among our patients"), ["relative_lookup", "relative_relation"]),
-        (_("Follow-up"), ["assigned_intern", "status", "notes"]),
+        (_("Follow-up"), ["assigned_dentist", "status", "notes"]),
     ]
 
     class Meta:
         model = Patient
         fields = [
-            "full_name", "id_type", "national_id", "birth_date", "gender", "occupation",
-            "phone_primary", "phone_secondary", "preferred_phone", "city", "address",
+            "full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "occupation",
+            "phone_primary", "phone_secondary", "preferred_phone", "governorate", "city", "address",
             "missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes",
-            "referral_source", "referral_notes", "assigned_intern", "status", "notes",
+            "referral_source", "referral_notes", "assigned_dentist", "status", "notes",
         ]
         widgets = {"medical_conditions": forms.CheckboxSelectMultiple}
 
@@ -178,6 +178,7 @@ class PatientForm(StyledModelForm):
         self.fields["national_id"].widget.attrs.update({"data-digits": "1", "autocomplete": "off"})
         self.fields["birth_date"].help_text = _("Filled automatically from the national ID.")
         self.fields["gender"].help_text = _("Filled automatically from the national ID.")
+        self.fields["governorate"].help_text = _("Filled automatically from the national ID.")
         for name in ("id_front", "id_back"):
             self.fields[name].widget.attrs["accept"] = "image/*,application/pdf"
         if self.instance.pk:
@@ -217,6 +218,7 @@ class PatientForm(StyledModelForm):
         if nid:
             data["birth_date"] = data.get("birth_date") or nid["birth_date"]
             data["gender"] = data.get("gender") or nid["gender"]
+            data["governorate"] = data.get("governorate") or str(nid["governorate"])
             if data["birth_date"] != nid["birth_date"]:
                 self.add_error("birth_date", _("The date of birth does not match the national ID."))
         if data.get("phone_primary") and data.get("phone_primary") == data.get("phone_secondary"):
@@ -280,5 +282,5 @@ class PatientFilterForm(StyledForm):
     status = forms.ChoiceField(
         label=_("status"), required=False, choices=[("", _("All"))] + list(Patient.Status.choices)
     )
-    intern = UserChoiceField(roles=(INTERN,), label=_("intern"), required=False, empty_label=_("All"))
+    dentist = DentistChoiceField(label=_("dentist"), required=False, empty_label=_("All"))
     lab = forms.BooleanField(label=_("has open lab work"), required=False)

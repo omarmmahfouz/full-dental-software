@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-scissors"></i> {{ title }}</h1></div>
+<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+  {% for title, fields in form.bound_fieldsets %}
+    {% if forloop.first %}
+      <div class="card mb-3"><div class="card-header">{{ title }}</div><div class="card-body"><div class="row g-3">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div></div></div>
+
+      <div class="card mb-3" data-formset="sites">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-grid-3x3-gap"></i> {% trans "Teeth: procedures and implants" %}</span>
+          <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add tooth" %}</button>
+        </div>
+        <div class="card-body">
+          {{ formset.management_form }}
+          {% if formset.non_form_errors %}<div class="alert alert-danger">{% for e in formset.non_form_errors %}{{ e }} {% endfor %}</div>{% endif %}
+          <div class="row g-3" data-formset-rows>
+            {% for site in formset %}{% include "surgery/_site_card.html" with site=site %}{% endfor %}
+          </div>
+          <template>{% include "surgery/_site_card.html" with site=formset.empty_form %}</template>
+        </div>
+      </div>
+    {% else %}
+      <details class="card mb-3" {% if forloop.last %}open{% endif %}>
+        <summary class="card-header" style="cursor:pointer">{{ title }}</summary>
+        <div class="card-body"><div class="row g-3">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div></div>
+      </details>
+    {% endif %}
+  {% endfor %}
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary btn-lg px-5"><i class="bi bi-check2-circle"></i> {% trans "Save surgery chart" %}</button>
+    <a class="btn btn-outline-secondary btn-lg" href="{% if surgery %}{{ surgery.get_absolute_url }}{% else %}{% url 'surgery:list' %}{% endif %}">{% trans "Cancel" %}</a>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  // Open any collapsed section that contains an error so it is not missed.
+  document.querySelectorAll("details").forEach(function (d) { if (d.querySelector(".errorlist")) d.open = true; });
+</script>
+{% endblock %}

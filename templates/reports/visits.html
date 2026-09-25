@@ -15,9 +15,9 @@
 </div>
 {% endwith %}
 <div class="row g-3 mb-3">
-  <div class="col-xl-7"><div class="card h-100"><div class="card-header">{% trans "Per intern" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
-    <thead><tr><th>{% trans "Intern" %}</th><th>{% trans "Visits" %}</th><th>{% trans "Late patients" %}</th><th>{% trans "Avg wait" %}</th><th>{% trans "Avg in room" %}</th><th>{% trans "Total chair time" %}</th><th>{% trans "No-shows" %}</th></tr></thead>
-    <tbody>{% for r in by_intern %}<tr><td>{{ r.name }}</td><td>{{ r.visits }}</td><td>{{ r.late_pct }}%</td><td>{{ r.avg_wait|minutes }}</td><td>{{ r.avg_chair|minutes }}</td><td>{{ r.chair_total|minutes }}</td><td>{{ r.no_show }}</td></tr>{% empty %}<tr><td colspan="7" class="text-muted">—</td></tr>{% endfor %}</tbody>
+  <div class="col-xl-7"><div class="card h-100"><div class="card-header">{% trans "Per dentist" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Dentist" %}</th><th>{% trans "Visits" %}</th><th>{% trans "Late patients" %}</th><th>{% trans "Avg wait" %}</th><th>{% trans "Avg in room" %}</th><th>{% trans "Total chair time" %}</th><th>{% trans "No-shows" %}</th></tr></thead>
+    <tbody>{% for r in by_dentist %}<tr><td>{{ r.name }}</td><td>{{ r.visits }}</td><td>{{ r.late_pct }}%</td><td>{{ r.avg_wait|minutes }}</td><td>{{ r.avg_chair|minutes }}</td><td>{{ r.chair_total|minutes }}</td><td>{{ r.no_show }}</td></tr>{% empty %}<tr><td colspan="7" class="text-muted">—</td></tr>{% endfor %}</tbody>
   </table></div></div></div>
   <div class="col-xl-5"><div class="card h-100"><div class="card-header">{% trans "Per room" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
     <thead><tr><th>{% trans "Room" %}</th><th>{% trans "Visits" %}</th><th>{% trans "Avg in room" %}</th><th>{% trans "Total chair time" %}</th></tr></thead>
@@ -30,8 +30,8 @@
     <tbody>{% for a in late_list %}<tr><td><a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a></td><td class="nowrap">{{ a.scheduled_at|date:"d/m g:i A" }}</td><td class="nowrap">{{ a.arrived_at|time:"g:i A" }}</td><td class="text-danger fw-bold">{{ a.late_minutes|minutes }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">{% trans "Nobody came late." %}</td></tr>{% endfor %}</tbody>
   </table></div></div></div>
   <div class="col-xl-6"><div class="card h-100"><div class="card-header text-warning">{% trans "Waited more than 30 minutes" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
-    <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Date" %}</th><th>{% trans "Intern" %}</th><th>{% trans "Waited" %}</th></tr></thead>
-    <tbody>{% for a in long_waits %}<tr><td><a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a></td><td class="nowrap">{{ a.arrived_at|date:"d/m g:i A" }}</td><td>{{ a.intern|default:"—" }}</td><td class="fw-bold">{{ a.waiting_minutes|minutes }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">—</td></tr>{% endfor %}</tbody>
+    <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Date" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Waited" %}</th></tr></thead>
+    <tbody>{% for a in long_waits %}<tr><td><a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a></td><td class="nowrap">{{ a.arrived_at|date:"d/m g:i A" }}</td><td>{{ a.dentist|default:"—" }}</td><td class="fw-bold">{{ a.waiting_minutes|minutes }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">—</td></tr>{% endfor %}</tbody>
   </table></div></div></div>
 </div>
 {% endblock %}

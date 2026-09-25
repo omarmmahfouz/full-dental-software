@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Implant" %} {{ site.tooth }}{% endblock %}
+{% block content %}
+{% with active="surgery" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="row g-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header fs-5"><i class="bi bi-nut"></i> {% trans "Implant" %} {{ site.tooth }} — {{ site.get_implant_status_display }}</div><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "Implant" %}</dt><dd>{{ site.implant_label }}</dd>
+      <dt>{% trans "Lot" %}</dt><dd>{{ site.lot_number|default:"—" }}{% if site.sticker %} <a href="{{ site.sticker.url }}" target="_blank"><i class="bi bi-image"></i> {% trans "sticker" %}</a>{% endif %}</dd>
+      <dt>{% trans "Surgery" %}</dt><dd><a href="{{ site.surgery.get_absolute_url }}">{{ site.surgery.number }}</a> — {{ site.surgery.date|date:"d/m/Y" }}</dd>
+      <dt>{% trans "Operator 1" %}</dt><dd>{{ site.surgery.operator_1 }}</dd>
+      <dt>{% trans "Procedures" %}</dt><dd>{{ site.procedure_labels|join:", " }}</dd>
+      <dt>{% trans "Torque / ISQ" %}</dt><dd>{{ site.insertion_torque|default:"—" }} Ncm / {{ site.isq|default:"—" }}</dd>
+      <dt>{% trans "Subcrestal" %}</dt><dd>{{ site.subcrestal|yesno:"Yes,No" }}</dd>
+      <dt>{% trans "Uncovered on" %}</dt><dd>{{ site.uncovered_on|date:"d/m/Y"|default:"—" }}</dd>
+      <dt>{% trans "Impression / scan on" %}</dt><dd>{{ site.impression_on|date:"d/m/Y"|default:"—" }}</dd>
+      <dt>{% trans "Loaded on" %}</dt><dd>{{ site.loaded_on|date:"d/m/Y"|default:"—" }}{% if site.days_to_loading is not None %} ({{ site.days_to_loading }} {% trans "days after surgery" %}){% endif %}</dd>
+      {% if site.failed_on %}<dt class="text-danger">{% trans "Failed on" %}</dt><dd class="text-danger">{{ site.failed_on|date:"d/m/Y" }} — {{ site.failure_reason }}</dd>{% endif %}
+    </dl>
+  </div></div></div>
+  {% if form %}
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header">{% trans "Update implant stage" %}</div><div class="card-body">
+    <p class="small text-muted">{% trans "Stages move automatically when you record 2nd stage, impression / scan, delivery or implant failure in the treatment log. Use this form only to correct them." %}</p>
+    <form method="post">{% csrf_token %}{% include "includes/form_fields.html" %}<button class="btn btn-primary mt-3">{% trans "Save" %}</button></form>
+  </div></div></div>
+  {% endif %}
+</div>
+{% endblock %}

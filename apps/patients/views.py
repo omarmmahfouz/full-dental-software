@@ -136,7 +136,7 @@ class PatientListView(SearchMixin, ListView):
 
     def get_queryset(self):
         self.filter_form = PatientFilterForm(self.request.GET or None)
-        qs = visible_patients(self.request.user).select_related("assigned_intern")
+        qs = visible_patients(self.request.user).select_related("assigned_dentist")
         qs = qs.annotate(
             open_labs=Count("lab_requests", filter=Q(lab_requests__status__in=LabRequest.OPEN_STATUSES), distinct=True),
             open_complaints=Count(
@@ -148,8 +148,8 @@ class PatientListView(SearchMixin, ListView):
             qs = _text_search(qs, data.get("q"), extra=("file_number", "national_id"))
             if data.get("status"):
                 qs = qs.filter(status=data["status"])
-            if data.get("intern"):
-                qs = qs.filter(assigned_intern=data["intern"])
+            if data.get("dentist"):
+                qs = qs.filter(assigned_dentist=data["dentist"])
             if data.get("lab"):
                 qs = qs.filter(open_labs__gt=0)
         return qs.order_by("-created_at")
@@ -258,9 +258,9 @@ def patient_detail(request, pk):
         "documents": patient.documents.all(),
         "relations": patient.relations(),
         "referred_patients": patient.referred_patients.all(),
-        "appointments": patient.appointments.select_related("room", "intern").order_by("-scheduled_at")[:50],
-        "steps": patient.treatment_steps.select_related("step_type", "performed_by", "verified_by")[:100],
-        "lab_requests": patient.lab_requests.select_related("work_type", "lab", "requested_by"),
+        "appointments": patient.appointments.select_related("room", "dentist").order_by("-scheduled_at")[:50],
+        "steps": patient.treatment_steps.select_related("step_type", "operator", "verified_by")[:100],
+        "lab_requests": patient.lab_requests.select_related("work_type", "lab", "dentist"),
         "open_labs": patient.open_lab_requests().select_related("work_type"),
         "complaints": patient.complaints.all(),
         "medical_conditions": patient.medical_conditions.all(),

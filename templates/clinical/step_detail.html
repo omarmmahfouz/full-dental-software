@@ -2,19 +2,27 @@
 {% load i18n %}
 {% block title %}{{ step.step_type }}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><i class="bi bi-clipboard2-check"></i> {{ step.step_type }} — <a href="{{ step.patient.get_absolute_url }}">{{ step.patient.full_name }}</a></h1></div>
+<div class="page-header">
+  <h1><i class="bi bi-clipboard2-check"></i> {{ step.step_type }} — <a href="{% url 'charting:chart' step.patient_id %}">{{ step.patient.full_name }}</a></h1>
+</div>
 <div class="row g-3">
   <div class="col-lg-6"><div class="card h-100"><div class="card-body">
     <dl class="dl-grid">
-      <dt>{% trans "Done at" %}</dt><dd>{{ step.performed_at|date:"l d/m/Y g:i A" }}</dd>
-      <dt>{% trans "Done by" %}</dt><dd class="fw-bold">{{ step.performed_by }}</dd>
-      <dt>{% trans "Supervisor present" %}</dt><dd>{{ step.supervised_by|default:"—" }}</dd>
-      <dt>{% trans "Teeth" %}</dt><dd>{{ step.teeth|default:"—" }}</dd>
-      {% if step.implant_system or step.implant_size %}<dt>{% trans "Implant" %}</dt><dd>{{ step.implant_system }} {{ step.implant_size }}</dd>{% endif %}
+      <dt>{% trans "Date" %}</dt><dd>{{ step.performed_at|date:"l d/m/Y g:i A" }}</dd>
+      <dt>{% trans "Teeth" %}</dt><dd>{{ step.teeth|default:"—" }}{% if step.surfaces %} ({{ step.surfaces }}){% endif %}</dd>
+      {% if step.material %}<dt>{% trans "Material" %}</dt><dd>{{ step.material }}</dd>{% endif %}
+      <dt>{% trans "Operator" %}</dt><dd class="fw-bold">{% if step.operator %}<a href="{{ step.operator.get_absolute_url }}">{{ step.operator }}</a>{% else %}—{% endif %}</dd>
+      <dt>{% trans "Assistant" %}</dt><dd>{{ step.assistant|default:"—" }}</dd>
+      <dt>{% trans "Supervisor" %}</dt><dd>{{ step.supervisor|default:"—" }}</dd>
       <dt>{% trans "Details" %}</dt><dd>{{ step.notes|linebreaksbr|default:"—" }}</dd>
+      <dt>{% trans "Next visit" %}</dt><dd>{{ step.next_visit|default:"—" }}</dd>
       {% if step.appointment %}<dt>{% trans "Visit" %}</dt><dd><a href="{{ step.appointment.get_absolute_url }}">{{ step.appointment.scheduled_at|date:"d/m/Y g:i A" }}</a></dd>{% endif %}
       <dt>{% trans "Recorded by" %}</dt><dd class="small text-muted">{{ step.created_by|default:"—" }} — {{ step.created_at|date:"d/m/Y g:i A" }}</dd>
     </dl>
+    {% if chart_changes %}
+    <div class="fw-semibold mt-3"><i class="bi bi-diagram-3"></i> {% trans "Dental chart changes" %}</div>
+    <ul class="small mb-0">{% for c in chart_changes %}<li>{{ c.tooth }}: {{ c.summary }}</li>{% endfor %}</ul>
+    {% endif %}
   </div></div></div>
   <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Supervisor check" %}</div><div class="card-body">
     {% if step.is_verified %}

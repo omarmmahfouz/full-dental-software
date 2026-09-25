@@ -24,7 +24,7 @@ class ComplaintListView(RoleRequiredMixin, ListView):
 
     def get_queryset(self):
         self.filter_form = ComplaintFilterForm(self.request.GET or {"status": "open"})
-        qs = Complaint.objects.select_related("patient", "assigned_to", "concerned_staff")
+        qs = Complaint.objects.select_related("patient", "assigned_to", "concerned_staff", "concerned_dentist")
         if self.filter_form.is_valid():
             data = self.filter_form.cleaned_data
             if data.get("status") == "open":
@@ -91,7 +91,7 @@ def complaint_update(request, pk):
 @role_required(*FRONT_DESK)
 def complaint_detail(request, pk):
     complaint = get_object_or_404(
-        Complaint.objects.select_related("patient", "assigned_to", "concerned_staff", "resolved_by"), pk=pk
+        Complaint.objects.select_related("patient", "assigned_to", "concerned_staff", "concerned_dentist", "resolved_by"), pk=pk
     )
     return render(
         request,

@@ -18,7 +18,8 @@ from django.views.generic import ListView
 from apps.clinical.models import LabRequest
 from apps.core.mixins import SearchMixin, role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import FRONT_DESK, INTERN, has_role, is_only_intern
+from apps.core.roles import DENTIST, FRONT_DESK, has_role, is_only_dentist
+from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403
 from apps.patients.models import Patient
 
@@ -51,7 +52,7 @@ def today_board(request):
     branch = branch_for_user(request.user)
     appointments = (
         Appointment.objects.filter(branch=branch, scheduled_at__gte=start, scheduled_at__lt=end)
-        .select_related("patient", "room", "intern")
+        .select_related("patient", "room", "dentist")
         .prefetch_related("patient__medical_conditions")
         .annotate(
             open_labs=Count(
@@ -63,7 +64,7 @@ def today_board(request):
         .order_by("scheduled_at")
     )
     rooms = Room.objects.filter(branch=branch, is_active=True).prefetch_related(
-        Prefetch("shifts", queryset=RoomShift.objects.filter(date=day).select_related("intern", "supervisor"),
+        Prefetch("shifts", queryset=RoomShift.objects.filter(date=day).select_related("dentist", "supervisor"),
                  to_attr="day_shifts")
     )
     return render(
@@ -98,7 +99,7 @@ def walk_in(request):
         patient=patient,
         scheduled_at=now,
         duration_minutes=settings.CLINIC["DEFAULT_APPOINTMENT_MINUTES"],
-        intern=form.cleaned_data.get("intern") or patient.assigned_intern,
+        dentist=form.cleaned_data.get("dentist") or patient.assigned_dentist,
         purpose=form.cleaned_data.get("purpose", ""),
         is_walk_in=True,
         created_by=request.user,
@@ -163,9 +164,9 @@ class AppointmentListView(SearchMixin, ListView):
 
     def get_queryset(self):
         self.filter_form = AppointmentFilterForm(self.request.GET or None)
-        qs = Appointment.objects.select_related("patient", "room", "intern")
-        if is_only_intern(self.request.user):
-            qs = qs.filter(intern=self.request.user)
+        qs = Appointment.objects.select_related("patient", "room", "dentist")
+        if is_only_dentist(self.request.user):
+            qs = qs.filter(dentist=Dentist.for_user(self.request.user))
         elif not has_role(self.request.user, *FRONT_DESK):
             raise PermissionDenied
         today = timezone.localdate()
@@ -174,8 +175,8 @@ class AppointmentListView(SearchMixin, ListView):
             data = self.filter_form.cleaned_data
             date_from = data.get("date_from") or date_from
             date_to = data.get("date_to") or date_to
-            if data.get("intern"):
-                qs = qs.filter(intern=data["intern"])
+            if data.get("dentist"):
+                qs = qs.filter(dentist=data["dentist"])
             if data.get("room"):
                 qs = qs.filter(room=data["room"])
             if data.get("status"):
@@ -230,14 +231,14 @@ def appointment_update(request, pk):
 
 
 def appointment_detail(request, pk):
-    appointment = get_object_or_404(Appointment.objects.select_related("patient", "room", "intern"), pk=pk)
+    appointment = get_object_or_404(Appointment.objects.select_related("patient", "room", "dentist"), pk=pk)
     get_visible_patient_or_403(request.user, appointment.patient_id)
     return render(
         request,
         "scheduling/appointment_detail.html",
         {
             "appointment": appointment,
-            "steps": appointment.treatment_steps.select_related("step_type", "performed_by"),
+            "steps": appointment.treatment_steps.select_related("step_type", "operator"),
             "lab_requests": appointment.lab_requests.select_related("work_type"),
             "rooms": Room.objects.filter(branch=appointment.branch, is_active=True),
         },
@@ -246,18 +247,18 @@ def appointment_detail(request, pk):
 
 # ------------------------------------------------------------ room schedule
 def room_schedule(request):
-    if not has_role(request.user, *FRONT_DESK, INTERN):
+    if not has_role(request.user, *FRONT_DESK, DENTIST):
         raise PermissionDenied
     start = week_start(_parse_day(request.GET.get("week")))
     days = [start + timedelta(days=i) for i in range(7)]
     branch = branch_for_user(request.user)
     rooms = list(Room.objects.filter(branch=branch, is_active=True))
     shifts = RoomShift.objects.filter(room__in=rooms, date__range=(days[0], days[-1])).select_related(
-        "intern", "supervisor", "room"
+        "dentist", "supervisor", "room"
     )
     only_mine = request.GET.get("mine") == "1"
     if only_mine:
-        shifts = shifts.filter(intern=request.user)
+        shifts = shifts.filter(dentist=Dentist.for_user(request.user))
     grid = {(s.room_id, s.date): [] for s in shifts}
     for shift in shifts:
         grid[(shift.room_id, shift.date)].append(shift)
@@ -326,7 +327,7 @@ def copy_previous_week(request):
         for shift in RoomShift.objects.filter(room__branch=branch, date__range=(source, source + timedelta(days=6))):
             new = RoomShift(
                 room=shift.room, date=shift.date + timedelta(days=7), start_time=shift.start_time,
-                end_time=shift.end_time, intern=shift.intern, supervisor=shift.supervisor,
+                end_time=shift.end_time, dentist=shift.dentist, supervisor=shift.supervisor, day_type=shift.day_type,
                 notes=shift.notes, created_by=request.user,
             )
             try:

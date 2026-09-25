@@ -1,6 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 
 from .roles import users_with_role
@@ -34,6 +35,8 @@ class BootstrapFormMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
+            if field.label:
+                field.label = capfirst(field.label)
             widget = field.widget
             if isinstance(field, forms.DateTimeField) and not isinstance(widget, forms.HiddenInput):
                 field.widget = widget = DateTimeInput(attrs=widget.attrs)

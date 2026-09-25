@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Photos" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% with active="photos" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<ul class="nav nav-tabs mb-3 flex-wrap">
+  {% for s in stages %}
+  <li class="nav-item"><a class="nav-link {% if s.code == stage %}active{% endif %}" href="?stage={{ s.code }}">{{ s.label }} <span class="badge {% if s.required and s.done == s.required %}text-bg-success{% else %}text-bg-light{% endif %}">{{ s.done }}/{{ s.required }}</span></a></li>
+  {% endfor %}
+</ul>
+{% for s in stages %}{% if s.code == stage %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+  <input type="hidden" name="stage" value="{{ s.code }}">
+  {% if can_upload %}
+  <div class="card mb-3"><div class="card-body">
+    {% include "includes/form_fields.html" %}
+    <div class="small text-muted mt-2"><i class="bi bi-camera"></i> {% trans "Extra oral: shutter 1/180, F 11, ISO 100, 1.5 m distance, Frankfort plane parallel to the floor. Intra oral: shutter 1/180, F 22, ISO 100, clean dry mirror." %}</div>
+  </div></div>
+  {% endif %}
+  <div class="row g-2">
+    {% for item in s.items %}
+    <div class="col-sm-6 col-lg-4 col-xl-3">
+      <div class="card h-100 checklist-item {% if item.photos %}done{% endif %}"><div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="small fw-semibold">{% if item.photos %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-circle text-muted"></i>{% endif %} {{ item.type }}{% if item.type.optional %} <span class="text-muted fw-normal">({% trans "optional" %})</span>{% endif %}</div>
+        </div>
+        <div class="row g-1 mt-1">
+          {% for photo in item.photos %}
+          <div class="col-6 position-relative">
+            <a href="{{ photo.file.url }}" target="_blank">{% if photo.is_video %}<div class="photo-thumb d-flex align-items-center justify-content-center"><i class="bi bi-play-circle fs-2"></i></div>{% else %}<img class="photo-thumb" src="{{ photo.file.url }}" alt="{{ item.type }}">{% endif %}</a>
+            <div class="small text-muted">{{ photo.taken_on|date:"d/m/Y" }} {{ photo.teeth }}{% if can_upload %} <button form="del-{{ photo.pk }}" class="btn btn-link btn-sm p-0 text-danger" data-confirm="{% trans 'Delete this file?' %}"><i class="bi bi-trash"></i></button>{% endif %}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if can_upload %}<input type="file" class="form-control form-control-sm mt-2" name="type_{{ item.type.pk }}" accept="image/*,video/*" multiple>{% endif %}
+      </div></div>
+    </div>
+    {% endfor %}
+    <div class="col-sm-6 col-lg-4 col-xl-3">
+      <div class="card h-100"><div class="card-body p-2">
+        <div class="small fw-semibold">{% trans "Other photos / videos" %}</div>
+        <div class="row g-1 mt-1">{% for photo in s.extra %}<div class="col-6"><a href="{{ photo.file.url }}" target="_blank">{% if photo.is_video %}<div class="photo-thumb d-flex align-items-center justify-content-center"><i class="bi bi-play-circle fs-2"></i></div>{% else %}<img class="photo-thumb" src="{{ photo.file.url }}" alt="">{% endif %}</a><div class="small text-muted">{{ photo.notes|truncatechars:30 }}</div></div>{% endfor %}</div>
+        {% if can_upload %}<input type="file" class="form-control form-control-sm mt-2" name="extra" accept="image/*,video/*,application/pdf" multiple>{% endif %}
+      </div></div>
+    </div>
+  </div>
+  {% if can_upload %}<button class="btn btn-primary btn-lg mt-3 px-5"><i class="bi bi-upload"></i> {% trans "Upload" %}</button>{% endif %}
+</form>
+{% if can_upload %}{% for item in s.items %}{% for photo in item.photos %}<form id="del-{{ photo.pk }}" method="post" action="{% url 'charting:photo_delete' photo.pk %}">{% csrf_token %}</form>{% endfor %}{% endfor %}{% endif %}
+{% endif %}{% endfor %}
+{% endblock %}

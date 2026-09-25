@@ -40,18 +40,18 @@ A screenshot helps a lot.
 13. Upload **ID scans**: both the front and the back. Use a phone photo, a scanner file or a PDF. They should show under the "البطاقة والمستندات" tab and open when clicked.
 14. Choose the source "مريض عندنا (قريب أو صديق)" **without** filling in the referring patient. It should ask for it. Then enter another patient's file number or mobile, and it should be accepted.
 15. Under "أقارب أو أصدقاء من مرضانا", enter another patient's file number and the relation "أخ / أخت". The link should show on **both** patients' files.
-16. Choose the responsible intern ("طبيب الامتياز المسؤول"). It should show on the file and in the patients list.
+16. Choose the responsible dentist ("الطبيب المسؤول"). It should show on the file and in the patients list.
 17. Use the search box at the top. Try a name, a mobile, a file number and a national ID. An exact match should open the file directly.
 
 ## C. Room schedule
 18. Open "الجدول" → "جدول الغرف". You should see 5 rooms × 7 days (Saturday to Friday).
-19. Click "إضافة" in a cell. Choose an intern, a supervisor and the hours. It should appear in the grid.
-20. Book the **same room** at an overlapping time for another intern. It should be refused.
-21. Book the **same intern** in another room at the same time. It should be refused.
+19. Click "إضافة" in a cell. Choose a dentist, a supervisor, the day type (regular or surgery day) and the hours. It should appear in the grid; surgery days show a red "يوم عمليات" badge.
+20. Book the **same room** at an overlapping time for another dentist. It should be refused.
+21. Book the **same dentist** in another room at the same time. It should be refused.
 22. Go to next week and click "نسخ الأسبوع السابق". All shifts should be copied. Clashes are skipped and counted.
 
 ## D. Appointments and the reception board (arrival / room / leaving)
-23. From a patient file, click "حجز موعد". Leave the intern and room empty. The patient's responsible intern and that intern's room should be filled in automatically.
+23. From a patient file, click "حجز موعد". Leave the dentist and room empty. The patient's responsible dentist and that dentist's room should be filled in automatically.
 24. Book the same patient again 30 minutes later. It should be refused as a double booking.
 25. Open "الاستقبال اليوم". For the appointment:
     1. Click "وصل". The arrival time is recorded, and "متأخر" shows the minutes late if the patient is more than 10 minutes late.
@@ -99,4 +99,4 @@ A screenshot helps a lot.
 ## I. General
 44. Every screen should be in Arabic, right to left, with the CIA logo and colours.
 45. Log out, then try to open a page. You should be sent to the login page.
-46. Log in as **intern1**. They should **not** see the call list, patient registration, complaints, the academy or purchases, and they should see only their own patients.
+46. Log in as **dentist1**. The screens should be in **English**. They should **not** see the call list, patient registration, complaints, the academy or purchases, and they should see only their own patients.

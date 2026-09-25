@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Case report" %} — {% if anonymous %}{{ initials }}{% else %}{{ patient.full_name }}{% endif %}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 mb-3 no-print">
+  <a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-arrow-left"></i> {% trans "Back to chart" %}</a>
+  {% if anonymous %}<a class="btn btn-outline-primary" href="?">{% trans "Show patient identity" %}</a>{% else %}<a class="btn btn-outline-primary" href="?anonymous=1"><i class="bi bi-incognito"></i> {% trans "Hide patient identity (for teaching / publication)" %}</a>{% endif %}
+  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print / save as PDF" %}</button>
+</div>
+<div class="card"><div class="card-body p-4" dir="ltr">
+  <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+    <img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+    <div class="text-end">
+      <div class="h5 fw-bold mb-0">{% trans "Case report" %}</div>
+      <div class="small text-muted">{% trans "Generated" %} {{ now|date:"d/m/Y" }}</div>
+    </div>
+  </div>
+
+  <section class="report-section mb-4">
+    <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Patient" %}</h2>
+    <div class="row g-2 small">
+      <div class="col-md-4"><b>{% trans "Patient" %}:</b> {% if anonymous %}{{ initials }} — {{ patient.file_number }}{% else %}{{ patient.full_name }} ({{ patient.file_number }}){% endif %}</div>
+      <div class="col-md-2"><b>{% trans "Gender" %}:</b> {{ patient.get_gender_display|default:"—" }}</div>
+      <div class="col-md-2"><b>{% trans "Age" %}:</b> {{ patient.age|default:"—" }}</div>
+      {% if not anonymous %}<div class="col-md-4"><b>{% trans "Mobile" %}:</b> {{ patient.phone_primary }}</div>{% endif %}
+      {% if exam %}<div class="col-12"><b>{% trans "Chief complaint" %}:</b> {{ exam.chief_complaint|default:"—" }}</div>
+      <div class="col-12"><b>{% trans "Medical alerts" %}:</b> {% for a in exam.alerts %}<span class="medical-alert py-0">{{ a }}</span>{% empty %}{% trans "none" %}{% endfor %}</div>{% endif %}
+    </div>
+  </section>
+
+  <section class="report-section mb-4">
+    <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Current dental chart" %}</h2>
+    <div class="odontogram-wrap">{{ svg }}</div>
+    <div class="mt-1">{% include "charting/_legend.html" %}</div>
+  </section>
+
+  {% if plans %}
+  <section class="report-section mb-4">
+    <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Treatment plans" %}</h2>
+    {% for plan in plans %}
+      <div class="small fw-semibold">{{ plan.title }} — {{ plan.get_status_display }}{% if plan.approved_by %} ({% trans "approved by" %} {{ plan.approved_by }}){% endif %}</div>
+      <ul class="small">{% for item in plan.items.all %}<li>{{ item.step_type }} {{ item.teeth }} {{ item.details }} — <b>{{ item.get_status_display }}</b></li>{% endfor %}</ul>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% for s in surgeries %}
+  <section class="report-section mb-4">
+    <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Surgery" %} {{ s.number }} — {{ s.date|date:"d/m/Y" }} ({{ s.get_difficulty_display }})</h2>
+    <div class="small mb-2"><b>{% trans "Instructor" %}:</b> {{ s.instructor|default:"—" }} · <b>{% trans "Operator 1" %}:</b> {{ s.operator_1 }} · <b>{% trans "Operator 2" %}:</b> {{ s.operator_2|default:"—" }} · <b>{% trans "Assistant" %}:</b> {{ s.assistant|default:"—" }}</div>
+    <table class="table table-sm table-bordered small">
+      <thead><tr><th>{% trans "Tooth" %}</th><th>{% trans "Procedures" %}</th><th>{% trans "Implant" %}</th><th>{% trans "Torque / ISQ" %}</th><th>{% trans "Status" %}</th></tr></thead>
+      <tbody>{% for site in s.sites.all %}<tr>
+        <td class="fw-bold">{{ site.tooth }}</td><td>{{ site.procedure_labels|join:", " }}</td>
+        <td>{% if site.implant_status %}{{ site.implant_label }}{% if site.lot_number %} · LOT {{ site.lot_number }}{% endif %}{% if site.subcrestal %} · {% trans "subcrestal" %}{% endif %}{% else %}—{% endif %}</td>
+        <td>{{ site.insertion_torque|default:"—" }} / {{ site.isq|default:"—" }}</td>
+        <td>{{ site.get_implant_status_display|default:"—" }}{% if site.loaded_on %} ({{ site.loaded_on|date:"d/m/Y" }}){% endif %}{% if site.failed_on %} ({{ site.failed_on|date:"d/m/Y" }} {{ site.failure_reason }}){% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+    <div class="row g-1 small">
+      {% if s.bone_particle or s.block_graft %}<div class="col-12"><b>GBR:</b> {% if s.block_graft %}{% trans "block" %} ({{ s.get_block_donor_display }} {{ s.block_donor_other }}), {% trans "cut by" %} {{ s.get_cut_by_display|default:"—" }}, {% trans "screws" %} {{ s.screws_count|default:"—" }}; {% endif %}{{ s.get_bone_particle_display }}{% if s.xenograft_percent is not None %} ({{ s.autogenous_percent }}:{{ s.xenograft_percent }}){% endif %} {{ s.bone_material }} {% if s.acm_bur_area %}· ACM bur {{ s.acm_bur_area }}{% endif %} {{ s.gbr_notes }}</div>{% endif %}
+      {% if s.sinus_approach or s.sinus_fill_material %}<div class="col-12"><b>{% trans "Open sinus" %}:</b> {{ s.sinus_approach }} · {{ s.sinus_fill_material }} {{ s.sinus_notes }}</div>{% endif %}
+      {% if s.membrane_used %}<div class="col-12"><b>{% trans "Membrane" %}:</b> {{ s.membrane_size }} {{ s.membrane_material }} {{ s.membrane_company }}{% if s.tacks_count %} · {% trans "tacks" %} {{ s.tacks_count }} {{ s.tacks_company }}{% endif %}</div>{% endif %}
+      {% if s.soft_tissue_graft %}<div class="col-12"><b>{% trans "Soft tissue" %}:</b> {{ s.get_soft_tissue_graft_display }} {{ s.soft_tissue_technique }} · {% trans "donor" %} {{ s.donor_site }} · {% trans "recipient" %} {{ s.recipient_area }} {{ s.augmentation_labels|join:", " }} {{ s.soft_tissue_notes }}</div>{% endif %}
+      <div class="col-12"><b>{% trans "Suture" %}:</b> {{ s.suture_size|default:"—" }} {{ s.get_suture_material_display }} {{ s.suture_technique }} · <b>{% trans "Temporary" %}:</b> {{ s.get_temporary_display|default:"—" }} · <b>X-ray:</b> {{ s.xray_taken|yesno:"✔,✘" }} {{ s.xray_notes }}</div>
+      {% if s.notes %}<div class="col-12"><b>{% trans "Notes" %}:</b> {{ s.notes }}</div>{% endif %}
+      {% if s.complications %}<div class="col-12 text-danger"><b>{% trans "Complications" %}:</b> {{ s.complications }}</div>{% endif %}
+    </div>
+  </section>
+  {% endfor %}
+
+  <section class="report-section mb-4">
+    <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Treatment log" %}</h2>
+    <table class="table table-sm table-bordered small">
+      <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Treatment" %}</th><th>{% trans "Operator" %}</th><th>{% trans "Supervisor" %}</th><th>{% trans "Next visit" %}</th></tr></thead>
+      <tbody>{% for st in steps %}<tr><td class="nowrap">{{ st.performed_at|date:"d/m/Y" }}</td><td>{{ st.step_type }} {{ st.teeth }} {{ st.surfaces }} {{ st.material }}{% if st.notes %}<div class="text-muted">{{ st.notes }}</div>{% endif %}</td><td>{{ st.operator|default:"—" }}{% if st.assistant %} + {{ st.assistant }}{% endif %}</td><td>{{ st.supervisor|default:"—" }}</td><td>{{ st.next_visit }}</td></tr>
+      {% empty %}<tr><td colspan="5" class="text-muted">—</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+
+  {% for label, items in photos_by_stage %}
+  <section class="report-section mb-4">
+    <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Photos" %} — {{ label }}</h2>
+    <div class="row g-2">{% for photo in items %}{% if not photo.is_video %}<div class="col-4 col-md-3"><img class="photo-thumb" style="height:150px" src="{{ photo.file.url }}" alt=""><div class="small text-muted">{{ photo.photo_type|default:"" }} {{ photo.taken_on|date:"d/m/Y" }}</div></div>{% endif %}{% endfor %}</div>
+  </section>
+  {% endfor %}
+</div></div>
+{% endblock %}

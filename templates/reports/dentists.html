@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Dentist follow-up" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-person-workspace"></i> {% trans "Dentist follow-up" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1></div>
+<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  <div class="col-6 col-md-2"><label class="form-label">{{ form.date_from.label }}</label>{{ form.date_from }}</div>
+  <div class="col-6 col-md-2"><label class="form-label">{{ form.date_to.label }}</label>{{ form.date_to }}</div>
+  <div class="col-6 col-md-3"><label class="form-label">{{ extra.kind.label }}</label>{{ extra.kind }}</div>
+  <div class="col-6 col-md-3"><label class="form-label">{{ extra.course.label }}</label>{{ extra.course }}</div>
+  <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-arrow-repeat"></i> {% trans "Show" %}</button></div>
+</div></form>
+<div class="card mb-3"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+  <thead><tr>
+    <th>{% trans "Dentist" %}</th><th>{% trans "Surgeries" %}</th><th>{% trans "Implants" %}</th><th>{% trans "Remaining (course)" %}</th><th>{% trans "Failed" %}</th>
+    <th>{% trans "Treatments" %}</th><th>{% trans "Checked" %}</th><th>{% trans "Average grade" %}</th><th>{% trans "Lab requests" %}</th>
+    <th>{% trans "Active patients" %}</th><th>{% trans "Complaints" %}</th><th>{% trans "Scheduled hours" %}</th><th>{% trans "Chair hours" %}</th><th>{% trans "Patient no-shows" %}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td><a class="fw-semibold" href="{{ r.dentist.get_absolute_url }}">{{ r.dentist.full_name }}</a><div class="small text-muted">{{ r.dentist.get_kind_display }}</div></td>
+    <td>{{ r.surgeries }}{% if r.surgeries_op2 %} <span class="small text-muted">+{{ r.surgeries_op2 }}</span>{% endif %}</td>
+    <td class="fw-bold">{{ r.implants }}</td>
+    <td>{% if r.required %}{% if r.remaining %}<span class="text-primary fw-bold">{{ r.remaining }}</span> / {{ r.required }}{% else %}<span class="badge text-bg-success">{% trans "done" %}</span>{% endif %}{% else %}—{% endif %}</td>
+    <td>{% if r.failed %}<span class="text-danger">{{ r.failed }}</span>{% else %}0{% endif %}</td>
+    <td>{{ r.steps }}</td>
+    <td>{{ r.checked }}{% if r.steps %} <span class="text-muted small">({% widthratio r.checked r.steps 100 %}%)</span>{% endif %}</td>
+    <td>{% if r.grade %}{{ r.grade }}/5{% else %}—{% endif %}</td>
+    <td>{{ r.labs }}{% if r.remakes %} <span class="text-danger small">({{ r.remakes }} {% trans "remake" %})</span>{% endif %}</td>
+    <td>{{ r.patients }}</td><td>{% if r.complaints %}<span class="text-danger fw-bold">{{ r.complaints }}</span>{% else %}0{% endif %}</td>
+    <td>{{ r.shift_hours }}</td><td>{{ r.chair_hours }}</td><td>{{ r.no_shows }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="14" class="text-muted text-center py-4">{% trans "No dentists found." %}</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% if step_types %}
+<div class="card"><div class="card-header">{% trans "Treatments by type" %}</div><div class="table-responsive"><table class="table table-sm table-bordered mb-0 text-center">
+  <thead><tr><th class="text-start">{% trans "Dentist" %}</th>{% for type_id, name in step_types %}<th class="small">{{ name }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for r in rows %}<tr><td class="text-start">{{ r.dentist.full_name }}</td>{% for n in r.by_type %}<td>{% if n %}<strong>{{ n }}</strong>{% else %}<span class="text-muted">·</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

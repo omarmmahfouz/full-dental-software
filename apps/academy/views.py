@@ -15,7 +15,15 @@ from apps.core.models import branch_for_user
 from apps.core.roles import OWNER, SECRETARY, SUPERVISOR
 from apps.core.utils import normalize_phone
 
-from .forms import CandidateForm, CourseForm, EnrollmentForm, InstallmentFormSet, PaymentFilterForm, PaymentForm
+from .forms import (
+    CandidateFilterForm,
+    CandidateForm,
+    CourseForm,
+    EnrollmentForm,
+    InstallmentFormSet,
+    PaymentFilterForm,
+    PaymentForm,
+)
 from .models import Candidate, Course, Enrollment, Installment, Payment, PaymentMethod
 
 ACADEMY_ROLES = (OWNER, SUPERVISOR, SECRETARY)
@@ -78,15 +86,24 @@ class CandidateListView(RoleRequiredMixin, SearchMixin, ListView):
     paginate_by = 40
 
     def get_queryset(self):
-        qs = Candidate.objects.prefetch_related("enrollments__course")
+        self.filter_form = CandidateFilterForm(self.request.GET or None)
+        qs = Candidate.objects.prefetch_related("enrollments__course").select_related("dentist")
+        if self.filter_form.is_valid() and self.filter_form.cleaned_data.get("course"):
+            qs = qs.filter(enrollments__course=self.filter_form.cleaned_data["course"])
         q = clean_digits_value(self.get_search_query())
         if q:
-            query = Q(full_name__icontains=q) | Q(national_id__icontains=q) | Q(university__icontains=q)
+            query = (Q(full_name__icontains=q) | Q(national_id__icontains=q) | Q(university__icontains=q)
+                     | Q(code__iexact=q))
             phone = normalize_phone(q)
             if phone:
                 query |= Q(phone_primary__contains=phone) | Q(phone_secondary__contains=phone)
-            qs = qs.filter(query)
-        return qs
+            qs = qs.filter(query).distinct()
+        return qs.distinct()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["filter_form"] = self.filter_form
+        return context
 
 
 class CandidateCreateView(RoleRequiredMixin, AuditMixin, CreateView):
@@ -107,9 +124,17 @@ class CandidateUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
 
 @role_required(*ACADEMY_ROLES)
 def candidate_detail(request, pk):
-    candidate = get_object_or_404(Candidate, pk=pk)
+    candidate = get_object_or_404(Candidate.objects.select_related("dentist", "referral_source"), pk=pk)
     enrollments = candidate.enrollments.select_related("course")
-    return render(request, "academy/candidate_detail.html", {"candidate": candidate, "enrollments": enrollments})
+    dentist = getattr(candidate, "dentist", None)
+    placed = 0
+    if dentist is not None:
+        from apps.surgery.models import SurgerySite
+
+        placed = SurgerySite.objects.filter(surgery__operator_1=dentist).exclude(implant_status="").count()
+    return render(request, "academy/candidate_detail.html", {
+        "candidate": candidate, "enrollments": enrollments, "dentist": dentist, "implants_placed": placed,
+    })
 
 
 @role_required(*ACADEMY_ROLES)
@@ -144,7 +169,8 @@ def enrollment_create(request, candidate_pk):
 @role_required(*ACADEMY_ROLES)
 def enrollment_detail(request, pk):
     enrollment = get_object_or_404(Enrollment.objects.select_related("candidate", "course"), pk=pk)
-    form = PaymentForm(request.POST or None, enrollment=enrollment, initial={"paid_on": timezone.localdate()})
+    form = PaymentForm(request.POST or None, request.FILES or None, enrollment=enrollment,
+                       initial={"paid_on": timezone.localdate()})
     if request.method == "POST" and form.is_valid():
         payment = form.save(commit=False)
         payment.enrollment = enrollment

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 10:55+0300\n"
+"POT-Creation-Date: 2026-09-25 13:55+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -23,6 +23,9 @@ msgstr "الأكاديمية"
 
 msgid "Personal data"
 msgstr "البيانات الشخصية"
+
+msgid "Contact"
+msgstr "التواصل"
 
 msgid "Professional data"
 msgstr "البيانات المهنية"
@@ -85,6 +88,12 @@ msgstr "الكل"
 msgid "course"
 msgstr "الكورس"
 
+msgid "Search"
+msgstr "بحث"
+
+msgid "batch / course"
+msgstr "الدفعة / الكورس"
+
 msgid "Cash"
 msgstr "كاش"
 
@@ -99,6 +108,9 @@ msgstr "محفظة موبايل (فودافون كاش...)"
 
 msgid "Bank transfer"
 msgstr "تحويل بنكي"
+
+msgid "Bank deposit"
+msgstr "إيداع بنكي"
 
 msgid "Cheque"
 msgstr "شيك"
@@ -124,6 +136,12 @@ msgstr "رسوم الكورس"
 msgid "capacity"
 msgstr "العدد الأقصى"
 
+msgid "implants each candidate should place"
+msgstr "عدد الزرعات المطلوبة من كل دارس"
+
+msgid "Used to show how many implants are still remaining for each candidate."
+msgstr "يُستخدم لمعرفة عدد الزرعات المتبقية لكل دارس."
+
 msgid "open"
 msgstr "مفتوح"
 
@@ -133,8 +151,27 @@ msgstr "الوصف"
 msgid "courses"
 msgstr "الكورسات"
 
+msgid "candidate code"
+msgstr "كود الدارس"
+
+msgid "Another candidate already has this code."
+msgstr "هذا الكود مسجل لدارس آخر."
+
 msgid "full name"
 msgstr "الاسم بالكامل"
+
+msgid "name for certificate (English)"
+msgstr "الاسم في الشهادة (إنجليزي)"
+
+msgid ""
+"First, middle and last name exactly as it should appear on the certificate."
+msgstr "الاسم الأول والأوسط والأخير كما يجب أن يُكتب في الشهادة بالضبط."
+
+msgid "date of birth"
+msgstr "تاريخ الميلاد"
+
+msgid "nationality"
+msgstr "الجنسية"
 
 msgid "national ID / passport no."
 msgstr "الرقم القومي / رقم الجواز"
@@ -151,11 +188,26 @@ msgstr "رقم الموبايل هذا مسجل لدارس آخر."
 msgid "mobile 2"
 msgstr "موبايل 2"
 
+msgid "WhatsApp number"
+msgstr "رقم الواتساب"
+
 msgid "email"
 msgstr "البريد الإلكتروني"
 
-msgid "university"
-msgstr "الجامعة"
+msgid "Facebook account"
+msgstr "حساب فيسبوك"
+
+msgid "Instagram account"
+msgstr "حساب إنستجرام"
+
+msgid "LinkedIn account"
+msgstr "حساب لينكدإن"
+
+msgid "how did they hear about us"
+msgstr "عرف عنا منين"
+
+msgid "graduated from (university)"
+msgstr "تخرج من (الجامعة)"
 
 msgid "graduation year"
 msgstr "سنة التخرج"
@@ -165,9 +217,6 @@ msgstr "رقم القيد بالنقابة"
 
 msgid "ID scan"
 msgstr "صورة البطاقة"
-
-msgid "system login (if intern)"
-msgstr "حساب الدخول على النظام (لو امتياز)"
 
 msgid "notes"
 msgstr "ملاحظات"
@@ -198,6 +247,9 @@ msgstr "الخصم"
 
 msgid "status"
 msgstr "الحالة"
+
+msgid "implants required (if different from the course)"
+msgstr "الزرعات المطلوبة (لو مختلفة عن الكورس)"
 
 msgid "enrollment"
 msgstr "تسجيل"
@@ -234,6 +286,12 @@ msgstr "رقم العملية"
 
 msgid "Transfer / InstaPay / wallet reference number, if any."
 msgstr "رقم التحويل / إنستاباي / المحفظة إن وجد."
+
+msgid "payment scan"
+msgstr "صورة إيصال الدفع"
+
+msgid "Photo of the transfer / deposit receipt."
+msgstr "صورة إيصال التحويل / الإيداع."
 
 msgid "payment"
 msgstr "دفعة"
@@ -274,41 +332,596 @@ msgstr "مجموع الأقساط %(total)s بينما الرسوم بعد ال�
 msgid "Installment plan saved."
 msgstr "تم حفظ خطة الأقساط."
 
-msgid "Clinical"
-msgstr "العلاج"
+msgid "Dental chart"
+msgstr "شارت الأسنان"
 
-msgid "This patient is not assigned to you."
-msgstr "هذا المريض ليس مسؤوليتك."
+msgid "examined by"
+msgstr "الكشف بواسطة"
+
+msgid "supervisor"
+msgstr "المشرف"
+
+msgid "Write these teeth onto the dental chart"
+msgstr "تسجيل هذه الأسنان على شارت الأسنان"
+
+msgid "Examination"
+msgstr "الكشف"
+
+msgid "Teeth (write tooth numbers, e.g. 16, 26 or 34-36)"
+msgstr "الأسنان (اكتب أرقام الأسنان مثل 16، 26 أو 34-36)"
+
+msgid "Medical health"
+msgstr "الحالة الصحية"
+
+msgid "Blood pressure and glucose"
+msgstr "الضغط والسكر"
+
+msgid "Allergies, bleeding and drugs"
+msgstr "الحساسية والنزيف والأدوية"
+
+msgid "Dental history"
+msgstr "التاريخ السني"
+
+msgid "caries surfaces"
+msgstr "أسطح التسوس"
+
+msgid "filled surfaces"
+msgstr "أسطح الحشو"
+
+msgid "M mesial, O occlusal/incisal, D distal, B buccal, L lingual/palatal"
+msgstr ""
+"M أمامي (ميزيال)، O إطباقي/قاطع، D خلفي (ديستال)، B شدقي، L لساني/حنكي"
+
+msgid "planned by"
+msgstr "خطة بواسطة"
+
+msgid "e.g. implant 4.5 x 10, zirconia crown"
+msgstr "مثال: زرعة 4.5 × 10، طربوش زيركون"
+
+msgid "date"
+msgstr "التاريخ"
+
+msgid "surgery"
+msgstr "العملية"
+
+msgid "teeth"
+msgstr "الأسنان"
+
+msgid "Yes"
+msgstr "نعم"
+
+msgid "No"
+msgstr "لا"
 
 msgid "patient"
 msgstr "المريض"
 
-msgid "done by (intern)"
-msgstr "قام بها (طبيب الامتياز)"
+msgid "date of examination"
+msgstr "تاريخ الكشف"
 
-msgid "supervisor present"
-msgstr "المشرف الحاضر"
+msgid "referral"
+msgstr "التحويل"
 
-msgid "Implant details (if an implant was placed)"
-msgstr "بيانات الزرعة (لو تم تركيب زرعة)"
+msgid "chief complaint"
+msgstr "الشكوى الرئيسية"
 
-msgid "requested by (doctor)"
-msgstr "الطبيب الطالب"
+msgid "carious"
+msgstr "مسوّسة"
+
+msgid "filled"
+msgstr "محشوّة"
+
+msgid "missed"
+msgstr "مفقودة"
+
+msgid "not sure"
+msgstr "غير متأكد"
+
+msgid "mobility"
+msgstr "حركة (خلخلة)"
+
+msgid "hopeless teeth"
+msgstr "أسنان ميؤوس منها"
+
+msgid "implant placed (before coming to us)"
+msgstr "زرعات موجودة (قبل حضوره لنا)"
+
+msgid "implant failed (before coming to us)"
+msgstr "زرعات فاشلة (قبل حضوره لنا)"
+
+msgid "inter-arch space - right"
+msgstr "المسافة بين الفكين - يمين"
+
+msgid "inter-arch space - left"
+msgstr "المسافة بين الفكين - يسار"
+
+msgid "operator important notices"
+msgstr "ملاحظات مهمة من الطبيب"
+
+msgid "CBCT requested"
+msgstr "تم طلب أشعة CBCT"
+
+msgid "CBCT done"
+msgstr "تم عمل أشعة CBCT"
+
+msgid "new CBCT requested"
+msgstr "تم طلب أشعة CBCT جديدة"
+
+msgid "general health"
+msgstr "الصحة العامة"
+
+msgid "pregnant?"
+msgstr "حامل؟"
+
+msgid "lactating?"
+msgstr "مرضع؟"
+
+msgid "being treated for anything now?"
+msgstr "يعالج من أي شيء حاليًا؟"
+
+msgid "recent surgery?"
+msgstr "عملية جراحية حديثة؟"
+
+msgid "comment"
+msgstr "تعليق"
+
+msgid "did you ever have?"
+msgstr "هل أصبت من قبل بـ؟"
+
+msgid "other disease"
+msgstr "مرض آخر"
+
+msgid "comments on diseases"
+msgstr "تعليقات على الأمراض"
+
+msgid "last BP reading - systolic"
+msgstr "آخر قراءة ضغط - الانقباضي"
+
+msgid "last BP reading - diastolic"
+msgstr "آخر قراءة ضغط - الانبساطي"
+
+msgid "BP - when?"
+msgstr "الضغط - متى؟"
+
+msgid "BP drug"
+msgstr "دواء الضغط"
+
+msgid "BP in clinic - systolic"
+msgstr "الضغط في العيادة - الانقباضي"
+
+msgid "BP in clinic - diastolic"
+msgstr "الضغط في العيادة - الانبساطي"
+
+msgid "glucose level"
+msgstr "مستوى السكر"
+
+msgid "last glucose reading (mg/dl)"
+msgstr "آخر قراءة سكر (mg/dl)"
+
+msgid "glucose - when?"
+msgstr "السكر - متى؟"
+
+msgid "random glucose in clinic (mg/dl)"
+msgstr "سكر عشوائي في العيادة (mg/dl)"
+
+msgid "HbA1c (%)"
+msgstr "السكر التراكمي HbA1c (%)"
+
+msgid "HbA1c date"
+msgstr "تاريخ السكر التراكمي"
+
+msgid "allergic to penicillin"
+msgstr "حساسية من البنسلين"
+
+msgid "allergic to sulfa"
+msgstr "حساسية من السلفا"
+
+msgid "other allergy"
+msgstr "حساسية أخرى"
+
+msgid "prolonged bleeding or taking aspirin?"
+msgstr "نزيف لفترة طويلة أو يأخذ أسبرين؟"
+
+msgid "chronic problem with digestion?"
+msgstr "مشكلة مزمنة في الهضم؟"
+
+msgid "illegal drugs"
+msgstr "مخدرات"
+
+msgid "illegal drugs - details"
+msgstr "المخدرات - تفاصيل"
+
+msgid "operator comments"
+msgstr "تعليقات الطبيب"
+
+msgid "drugs taken by patient"
+msgstr "الأدوية التي يأخذها المريض"
+
+msgid "One drug per line."
+msgstr "دواء في كل سطر."
+
+msgid "sensitive to hot or cold"
+msgstr "حساسية من الساخن أو البارد"
+
+msgid "sensitive to sweets"
+msgstr "حساسية من الحلويات"
+
+msgid "sensitive to biting or chewing"
+msgstr "ألم عند العض أو المضغ"
+
+msgid "clench or grind teeth (awake / sleep)?"
+msgstr "يضغط أو يطحن أسنانه (يقظة / نوم)؟"
+
+msgid "smokes tobacco"
+msgstr "يدخن"
+
+msgid "cigarettes per day"
+msgstr "عدد السجائر في اليوم"
+
+msgid "serious injury to the mouth?"
+msgstr "إصابة شديدة في الفم؟"
+
+msgid "satisfied with teeth appearance?"
+msgstr "راضٍ عن شكل أسنانه؟"
+
+msgid "patient cooperative (0-10)"
+msgstr "تعاون المريض (0-10)"
+
+msgid "willing for implant treatment (0-10)"
+msgstr "رغبته في علاج الزرع (0-10)"
+
+msgid "examination & history"
+msgstr "الكشف والتاريخ المرضي"
+
+msgid "examinations & histories"
+msgstr "الكشوفات والتاريخ المرضي"
+
+msgid "Penicillin allergy"
+msgstr "حساسية بنسلين"
+
+msgid "Sulfa allergy"
+msgstr "حساسية سلفا"
+
+#, python-format
+msgid "Allergy: %(what)s"
+msgstr "حساسية: %(what)s"
+
+msgid "Pregnant"
+msgstr "حامل"
+
+msgid "Smoker"
+msgstr "مدخن"
+
+#, python-format
+msgid "Bleeding / aspirin: %(what)s"
+msgstr "نزيف / أسبرين: %(what)s"
+
+msgid "Natural tooth"
+msgstr "سن طبيعي"
+
+msgid "Missing"
+msgstr "مفقود"
+
+msgid "Implant"
+msgstr "الزرعة"
+
+msgid "Root remnant"
+msgstr "جذر متبقي"
+
+msgid "Impacted"
+msgstr "مدفون"
+
+msgid "Bridge pontic"
+msgstr "دمية كوبري"
+
+msgid "tooth"
+msgstr "السن"
+
+msgid "caries"
+msgstr "تسوس"
+
+msgid "filling material"
+msgstr "خامة الحشو"
+
+msgid "root canal treated"
+msgstr "علاج عصب"
+
+msgid "crown"
+msgstr "طربوش"
+
+msgid "crown material"
+msgstr "خامة الطربوش"
+
+msgid "hopeless"
+msgstr "ميؤوس منه"
+
+msgid "fractured"
+msgstr "مكسور"
+
+msgid "mobility grade"
+msgstr "درجة الحركة"
+
+msgid "implant"
+msgstr "الزرعة"
+
+msgid "updated at"
+msgstr "آخر تعديل"
+
+msgid "updated by"
+msgstr "عُدّل بواسطة"
+
+msgid "tooth condition"
+msgstr "حالة السن"
+
+msgid "dental chart"
+msgstr "شارت الأسنان"
+
+msgid "Treatment"
+msgstr "علاج"
+
+msgid "Surgery"
+msgstr "عملية"
+
+msgid "Edited on the chart"
+msgstr "تعديل يدوي على الشارت"
+
+msgid "time"
+msgstr "الوقت"
+
+msgid "by"
+msgstr "بواسطة"
+
+msgid "source"
+msgstr "المصدر"
+
+msgid "change"
+msgstr "التغيير"
+
+msgid "chart change"
+msgstr "تغيير في الشارت"
+
+msgid "chart history"
+msgstr "سجل الشارت"
+
+msgid "Proposed"
+msgstr "مقترحة"
+
+msgid "Approved by supervisor"
+msgstr "اعتمدها المشرف"
+
+msgid "Cancelled"
+msgstr "ملغي"
+
+msgid "plan title"
+msgstr "عنوان الخطة"
+
+msgid "Treatment plan"
+msgstr "خطة العلاج"
+
+msgid "approved by"
+msgstr "اعتمدها"
+
+msgid "approved at"
+msgstr "وقت الاعتماد"
+
+msgid "treatment plan"
+msgstr "خطة العلاج"
+
+msgid "treatment plans"
+msgstr "خطط العلاج"
+
+msgid "1 - Urgent / disease control"
+msgstr "1 - عاجل / السيطرة على المرض"
+
+msgid "2 - Preparation (extractions, perio, restorations)"
+msgstr "2 - التجهيز (خلع، لثة، حشوات)"
+
+msgid "3 - Surgical (implants, grafts)"
+msgstr "3 - جراحي (زرعات، ترقيع)"
+
+msgid "4 - Prosthetic (impression, delivery)"
+msgstr "4 - تركيبات (طبعة، تركيب)"
+
+msgid "5 - Follow-up / maintenance"
+msgstr "5 - متابعة / صيانة"
+
+msgid "Planned"
+msgstr "مخطط"
+
+msgid "Done"
+msgstr "تم"
+
+msgid "phase"
+msgstr "المرحلة"
+
+msgid "procedure"
+msgstr "الإجراء"
+
+msgid "details"
+msgstr "التفاصيل"
+
+msgid "done at"
+msgstr "وقت التنفيذ"
+
+msgid "plan item"
+msgstr "بند في الخطة"
+
+msgid "plan items"
+msgstr "بنود الخطة"
+
+msgid "1st visit (diagnostic)"
+msgstr "الزيارة الأولى (تشخيص)"
+
+msgid "Surgery: simple, moderate, guided"
+msgstr "العملية: بسيطة، متوسطة، بدليل جراحي"
+
+msgid "Sinus lifting and GBR"
+msgstr "رفع الجيب الأنفي وترقيع العظم"
+
+msgid "Follow-up after surgery"
+msgstr "المتابعة بعد العملية"
+
+msgid "Soft tissue surgery"
+msgstr "جراحة الأنسجة الرخوة"
+
+msgid "2nd stage surgery"
+msgstr "المرحلة الثانية"
+
+msgid "Impression"
+msgstr "الطبعة"
+
+msgid "Try-in & delivery"
+msgstr "التجربة والتركيب"
+
+msgid "stage"
+msgstr "المرحلة"
+
+msgid "optional"
+msgstr "اختياري"
+
+msgid "photo checklist item"
+msgstr "صورة في قائمة التصوير"
+
+msgid "photo checklist"
+msgstr "قائمة التصوير"
+
+msgid "shot"
+msgstr "اللقطة"
+
+msgid "photo / video"
+msgstr "صورة / فيديو"
+
+msgid "clinical photo"
+msgstr "صورة إكلينيكية"
+
+msgid "clinical photos"
+msgstr "صور إكلينيكية"
+
+msgid "missing"
+msgstr "مفقود"
+
+msgid "bridge pontic"
+msgstr "دمية كوبري"
+
+#, python-format
+msgid "implant (%(stage)s)"
+msgstr "زرعة (%(stage)s)"
+
+msgid "root remnant"
+msgstr "جذر متبقي"
+
+msgid "impacted"
+msgstr "مدفون"
+
+msgid "RCT"
+msgstr "علاج عصب"
+
+#, python-format
+msgid "mobility %(grade)s"
+msgstr "حركة %(grade)s"
+
+msgid "sound"
+msgstr "سليم"
+
+#, python-format
+msgid "implant: %(old)s → %(new)s"
+msgstr "الزرعة: %(old)s ← %(new)s"
+
+#, python-format
+msgid "%(range)s is not a valid range: both teeth must be in the same jaw."
+msgstr "%(range)s نطاق غير صحيح: يجب أن يكون السنّان في نفس الفك."
+
+#, python-format
+msgid ""
+"%(tooth)s is not a tooth number. Use FDI numbers 11-18, 21-28, 31-38, 41-48."
+msgstr "%(tooth)s ليس رقم سن. استخدم ترقيم FDI‏ 11-18، 21-28، 31-38، 41-48."
+
+msgid ""
+"Surfaces must be letters among M, O, D, B, L (I, F, P are also accepted)."
+msgstr "الأسطح يجب أن تكون من الحروف M, O, D, B, L (ويُقبل أيضًا I, F, P)."
+
+#, python-format
+msgid "Tooth %(tooth)s updated."
+msgstr "تم تحديث السن %(tooth)s."
+
+msgid "Examination and history saved."
+msgstr "تم حفظ الكشف والتاريخ المرضي."
+
+#, python-format
+msgid "Dental chart updated for %(n)s teeth."
+msgstr "تم تحديث شارت الأسنان لعدد %(n)s سن."
+
+msgid "Edit examination & history"
+msgstr "تعديل الكشف والتاريخ المرضي"
+
+msgid "New examination & history"
+msgstr "كشف وتاريخ مرضي جديد"
+
+msgid "Treatment plan saved."
+msgstr "تم حفظ خطة العلاج."
+
+msgid "Edit treatment plan"
+msgstr "تعديل خطة العلاج"
+
+msgid "New treatment plan"
+msgstr "خطة علاج جديدة"
+
+msgid "Treatment plan updated."
+msgstr "تم تحديث خطة العلاج."
+
+#, python-format
+msgid "%(name)s: only photos, PDF or videos can be uploaded."
+msgstr "%(name)s: يمكن رفع الصور أو ملفات PDF أو الفيديو فقط."
+
+#, python-format
+msgid "%(name)s is larger than %(mb)s MB."
+msgstr "%(name)s أكبر من %(mb)s ميجابايت."
+
+#, python-format
+msgid "%(n)s files uploaded."
+msgstr "تم رفع %(n)s ملف."
+
+msgid "File deleted."
+msgstr "تم حذف الملف."
+
+msgid "Clinical"
+msgstr "العلاج"
+
+msgid "This patient is not one of your patients."
+msgstr "هذا المريض ليس من مرضاك."
+
+msgid "operator"
+msgstr "الطبيب المنفذ"
+
+msgid "assistant"
+msgstr "المساعد"
+
+msgid "Update the dental chart for these teeth"
+msgstr "تحديث شارت الأسنان لهذه الأسنان"
+
+msgid "The changes are listed below before you save."
+msgstr "التغييرات معروضة بالأسفل قبل الحفظ."
+
+msgid "treatment"
+msgstr "العلاج"
+
+msgid "Choose who did the treatment (operator) or the supervisor."
+msgstr "اختر من قام بالعلاج (الطبيب المنفذ) أو المشرف."
+
+msgid "You can only record treatments you did, assisted or supervised."
+msgstr "يمكنك تسجيل العلاج الذي قمت به أو ساعدت فيه أو أشرفت عليه فقط."
+
+msgid "Write the tooth numbers for this treatment."
+msgstr "اكتب أرقام الأسنان لهذا العلاج."
+
+msgid "dentist"
+msgstr "الطبيب"
 
 msgid "I checked the work against the lab request"
 msgstr "راجعت الشغل على طلب المعمل"
 
-msgid "intern"
-msgstr "طبيب الامتياز"
-
-msgid "step"
-msgstr "الخطوة"
-
 msgid "not checked yet"
 msgstr "لم تتم مراجعتها"
-
-msgid "Search"
-msgstr "بحث"
 
 msgid "Open (not delivered)"
 msgstr "مفتوح (لم يُسلَّم)"
@@ -322,6 +935,97 @@ msgstr "متأخر في المعمل"
 msgid "my requests"
 msgstr "طلباتي"
 
+msgid "No change to the dental chart"
+msgstr "لا يغير شارت الأسنان"
+
+msgid "Caries found"
+msgstr "اكتشاف تسوس"
+
+msgid "Filling / restoration"
+msgstr "حشو"
+
+msgid "Root canal treatment"
+msgstr "علاج عصب"
+
+msgid "Crown on natural tooth"
+msgstr "طربوش على سن طبيعي"
+
+msgid "Extraction (tooth becomes missing)"
+msgstr "خلع (السن يصبح مفقودًا)"
+
+msgid "Implant placed"
+msgstr "تركيب زرعة"
+
+msgid "Implant uncovered (2nd stage / healing abutment)"
+msgstr "كشف الزرعة (المرحلة الثانية / Healing abutment)"
+
+msgid "Impression / digital scan (implant stage)"
+msgstr "طبعة / مسح رقمي (مرحلة الزرعة)"
+
+msgid "Final prosthesis delivered (implant loaded / tooth crowned)"
+msgstr "تركيب التركيبة النهائية (تحميل الزرعة / طربوش السن)"
+
+msgid "Implant failed / removed (becomes missing)"
+msgstr "فشل الزرعة / إزالتها (يصبح مفقودًا)"
+
+msgid "Tooth hopeless"
+msgstr "سن ميؤوس منه"
+
+msgid "Tooth sound (clear findings)"
+msgstr "سن سليم (مسح الملاحظات)"
+
+msgid "effect on dental chart"
+msgstr "التأثير على شارت الأسنان"
+
+msgid ""
+"When this step is recorded on tooth numbers, the chart of those teeth is "
+"updated this way."
+msgstr ""
+"عند تسجيل هذه الخطوة على أرقام أسنان، يتحدث الشارت لهذه الأسنان بهذه "
+"الطريقة."
+
+msgid "default material"
+msgstr "الخامة الافتراضية"
+
+msgid "matching surgery-chart procedure"
+msgstr "الإجراء المقابل في شارت العمليات"
+
+msgid "Extraction"
+msgstr "خلع"
+
+msgid "Flap"
+msgstr "فلاب"
+
+msgid "Simple implant"
+msgstr "زرعة عادية"
+
+msgid "Immediate implant"
+msgstr "زرعة فورية"
+
+msgid "Expansion"
+msgstr "توسيع العظم"
+
+msgid "Splitting"
+msgstr "شق العظم"
+
+msgid "Closed sinus"
+msgstr "رفع جيب مغلق"
+
+msgid "Open sinus"
+msgstr "رفع جيب مفتوح"
+
+msgid "GBR"
+msgstr "ترقيع عظم GBR"
+
+msgid "Guided implant"
+msgstr "زرعة بدليل جراحي"
+
+msgid ""
+"Planned items of this type are ticked automatically when the surgery chart "
+"records it."
+msgstr ""
+"بنود الخطة من هذا النوع تُعلَّم تلقائيًا عند تسجيلها في شارت العمليات."
+
 msgid "treatment step type"
 msgstr "نوع خطوة علاج"
 
@@ -331,23 +1035,35 @@ msgstr "أنواع خطوات العلاج"
 msgid "visit"
 msgstr "الزيارة"
 
+msgid "step"
+msgstr "الخطوة"
+
 msgid "teeth (FDI numbers)"
 msgstr "الأسنان (ترقيم FDI)"
 
 msgid "e.g. 36, 37 or 11-13"
 msgstr "مثال: 36، 37 أو 11-13"
 
-msgid "done at"
-msgstr "وقت التنفيذ"
+msgid "surfaces"
+msgstr "الأسطح"
+
+msgid "e.g. MO, DO, MOD"
+msgstr "مثال: MO، DO، MOD"
+
+msgid "material"
+msgstr "الخامة"
+
+msgid "next visit"
+msgstr "الزيارة القادمة"
+
+msgid "dental chart updated"
+msgstr "تم تحديث شارت الأسنان"
 
 msgid "implant system / brand"
 msgstr "نوع / ماركة الزرعة"
 
 msgid "implant size (diameter x length)"
 msgstr "مقاس الزرعة (القطر × الطول)"
-
-msgid "details"
-msgstr "التفاصيل"
 
 msgid "checked by"
 msgstr "راجعها"
@@ -415,9 +1131,6 @@ msgstr "تم الاستلام من المعمل"
 msgid "Delivered to patient"
 msgstr "تم التركيب للمريض"
 
-msgid "Cancelled"
-msgstr "ملغي"
-
 msgid "request number"
 msgstr "رقم الطلب"
 
@@ -429,9 +1142,6 @@ msgstr "عدد الوحدات"
 
 msgid "shade"
 msgstr "اللون"
-
-msgid "material"
-msgstr "الخامة"
 
 msgid "instructions to the lab"
 msgstr "تعليمات للمعمل"
@@ -492,12 +1202,6 @@ msgstr "أُرجع للمعمل لإعادة العمل"
 
 msgid "action"
 msgstr "الإجراء"
-
-msgid "by"
-msgstr "بواسطة"
-
-msgid "time"
-msgstr "الوقت"
 
 msgid "work checked against the request"
 msgstr "تمت مراجعة الشغل على الطلب"
@@ -569,14 +1273,18 @@ msgstr "شغل المعمل %(number)s وصل من المعمل"
 msgid "Lab work %(number)s returned to the lab for remake"
 msgstr "شغل المعمل %(number)s أُرجع للمعمل لإعادته"
 
-msgid "Treatment step saved."
-msgstr "تم حفظ خطوة العلاج."
+msgid "Treatment saved."
+msgstr "تم حفظ العلاج."
 
-msgid "Record treatment step"
-msgstr "تسجيل خطوة علاج"
+#, python-format
+msgid "%(n)s treatment plan items marked as done."
+msgstr "تم تعليم %(n)s بند من خطة العلاج كمنفذ."
 
-msgid "Step checked."
-msgstr "تمت مراجعة الخطوة."
+msgid "Record treatment"
+msgstr "تسجيل علاج"
+
+msgid "Treatment checked."
+msgstr "تمت مراجعة العلاج."
 
 msgid "Lab request saved and sent to the supervisor for review."
 msgstr "تم حفظ طلب المعمل وإرساله للمشرف للمراجعة."
@@ -605,6 +1313,9 @@ msgstr "المتابع"
 
 msgid "The supervisor responsible for solving it."
 msgstr "المشرف المسؤول عن حلها."
+
+msgid "concerned dentist"
+msgstr "الطبيب المعني"
 
 msgid "Leave empty for the default follow-up period."
 msgstr "اتركه فارغًا لمدة المتابعة الافتراضية."
@@ -681,8 +1392,8 @@ msgstr "الأهمية"
 msgid "complaint (in the patient's words)"
 msgstr "الشكوى (بكلام المريض)"
 
-msgid "concerned doctor / staff"
-msgstr "الطبيب / الموظف المعني"
+msgid "concerned staff member"
+msgstr "الموظف المعني"
 
 msgid "next follow-up date"
 msgstr "موعد المتابعة القادمة"
@@ -766,11 +1477,11 @@ msgid "Roles and access"
 msgstr "الأدوار والصلاحيات"
 
 msgid ""
-"Choose the roles (groups): secretary, intern, supervisor, owner. 'Staff "
+"Choose the roles (groups): secretary, dentist, supervisor, owner. 'Staff "
 "status' allows opening this settings area."
 msgstr ""
-"اختر الأدوار (المجموعات): secretary = سكرتارية، intern = امتياز، supervisor "
-"= مشرف، owner = المالك. خيار \"حالة الطاقم\" يسمح بفتح شاشة الإعدادات هذه."
+"اختر الأدوار (المجموعات): secretary = سكرتارية، dentist = طبيب، supervisor ="
+" مشرف، owner = المالك. خيار \"حالة الطاقم\" يسمح بفتح شاشة الإعدادات هذه."
 
 msgid "Important dates"
 msgstr "تواريخ مهمة"
@@ -801,9 +1512,6 @@ msgstr "تم الحفظ بنجاح."
 
 msgid "created at"
 msgstr "تاريخ الإنشاء"
-
-msgid "updated at"
-msgstr "آخر تعديل"
 
 msgid "created by"
 msgstr "أنشأه"
@@ -846,6 +1554,18 @@ msgstr "المستخدم"
 
 msgid "mobile"
 msgstr "الموبايل"
+
+msgid "interface language"
+msgstr "لغة الواجهة"
+
+msgid "Automatic (Arabic for secretaries, English for dentists)"
+msgstr "تلقائي (عربي للسكرتارية، إنجليزي للأطباء)"
+
+msgid "Arabic"
+msgstr "العربية"
+
+msgid "English"
+msgstr "الإنجليزية"
 
 msgid "staff profiles"
 msgstr "بيانات الموظفين"
@@ -895,8 +1615,8 @@ msgstr "مشرف"
 msgid "Secretary"
 msgstr "سكرتارية"
 
-msgid "Intern doctor"
-msgstr "طبيب امتياز"
+msgid "Dentist"
+msgstr "الطبيب"
 
 #, python-format
 msgid "%(m)s min"
@@ -1011,6 +1731,90 @@ msgstr "تاريخ الميلاد داخل الرقم القومي في المس
 msgid "All notifications marked as read."
 msgstr "تم تعليم كل الإشعارات كمقروءة."
 
+msgid "Dentists"
+msgstr "الأطباء"
+
+msgid "The login this dentist uses, so the system knows which work is theirs."
+msgstr "حساب الدخول الذي يستخدمه هذا الطبيب، ليعرف النظام أي شغل يخصه."
+
+msgid "Working now"
+msgstr "يعمل حاليًا"
+
+msgid "Left"
+msgstr "انصرف"
+
+msgid "Course candidate"
+msgstr "دارس بالكورس"
+
+msgid "Training dentist"
+msgstr "طبيب متدرب"
+
+msgid "Full-time dentist"
+msgstr "طبيب متفرغ"
+
+msgid "Specialist"
+msgstr "أخصائي"
+
+msgid "Freelance dentist"
+msgstr "طبيب حر (فري لانس)"
+
+msgid "academy candidate file"
+msgstr "ملف الدارس بالأكاديمية"
+
+msgid ""
+"For course candidates: links the dentist to their batch, payments and "
+"implant count."
+msgstr "لدارسي الكورسات: يربط الطبيب بدفعته ومدفوعاته وعدد زرعاته."
+
+msgid "system login"
+msgstr "حساب الدخول على النظام"
+
+msgid "working now"
+msgstr "يعمل حاليًا"
+
+msgid "Untick when they leave, so they no longer appear in the lists."
+msgstr "أزل العلامة عند تركه العمل حتى لا يظهر في القوائم."
+
+msgid "dentists"
+msgstr "الأطباء"
+
+msgid "operator 1"
+msgstr "الطبيب الأول"
+
+msgid "operator 2"
+msgstr "الطبيب الثاني"
+
+msgid "instructor"
+msgstr "المشرف المدرب"
+
+msgid "Dentist saved."
+msgstr "تم حفظ الطبيب."
+
+msgid "Edit dentist"
+msgstr "تعديل الطبيب"
+
+msgid "New dentist"
+msgstr "طبيب جديد"
+
+msgid ""
+"Course candidates are added from Academy → Candidates; they get their "
+"dentist record automatically."
+msgstr ""
+"دارسو الكورسات يُضافون من الأكاديمية ← الدارسون؛ ويُنشأ لهم ملف طبيب "
+"تلقائيًا."
+
+#, python-format
+msgid "This dentist already has a login: %(u)s"
+msgstr "هذا الطبيب لديه حساب دخول بالفعل: %(u)s"
+
+#, python-format
+msgid ""
+"Login created. Username: %(u)s — first password: %(p)s (write it down now; "
+"it will not be shown again)."
+msgstr ""
+"تم إنشاء حساب الدخول. اسم المستخدم: %(u)s — كلمة المرور الأولى: %(p)s "
+"(اكتبها الآن؛ لن تظهر مرة أخرى)."
+
 msgid "Patients"
 msgstr "المرضى"
 
@@ -1073,11 +1877,8 @@ msgstr "صورة سكانر أو صورة كاميرا (JPG أو PNG أو PDF)."
 msgid "ID scan - back"
 msgstr "صورة البطاقة - الظهر"
 
-msgid "responsible intern"
-msgstr "طبيب الامتياز المسؤول"
-
-msgid "Contact"
-msgstr "التواصل"
+msgid "responsible dentist"
+msgstr "الطبيب المسؤول"
 
 msgid "Teeth and medical history (as told by the patient)"
 msgstr "الأسنان والتاريخ المرضي (كما قال المريض)"
@@ -1145,6 +1946,18 @@ msgstr "ذكر"
 
 msgid "Female"
 msgstr "أنثى"
+
+msgid "Single"
+msgstr "أعزب"
+
+msgid "Married"
+msgstr "متزوج"
+
+msgid "Divorced"
+msgstr "مطلق"
+
+msgid "Widowed"
+msgstr "أرمل"
 
 msgid "First mobile"
 msgstr "الموبايل الأول"
@@ -1220,9 +2033,6 @@ msgstr "التاريخ المرضي (كما قال المتصل)"
 msgid "other medical notes"
 msgstr "ملاحظات صحية أخرى"
 
-msgid "how did they hear about us"
-msgstr "عرف عنا منين"
-
 msgid "referral details"
 msgstr "تفاصيل الترشيح"
 
@@ -1292,11 +2102,14 @@ msgstr "نوع الهوية"
 msgid "A patient with this ID number is already registered."
 msgstr "يوجد مريض مسجل بنفس رقم الهوية."
 
-msgid "date of birth"
-msgstr "تاريخ الميلاد"
+msgid "marital status"
+msgstr "الحالة الاجتماعية"
 
 msgid "This mobile number is already registered for another patient."
 msgstr "رقم الموبايل هذا مسجل لمريض آخر."
+
+msgid "governorate"
+msgstr "المحافظة"
 
 msgid "occupation"
 msgstr "الوظيفة"
@@ -1502,16 +2315,10 @@ msgstr "التقارير"
 msgid "Scheduling"
 msgstr "المواعيد"
 
-msgid "intern doctor"
-msgstr "طبيب الامتياز"
+msgid "Leave empty to use the patient's responsible dentist."
+msgstr "اتركه فارغًا لاستخدام الطبيب المسؤول عن المريض."
 
-msgid "supervisor"
-msgstr "المشرف"
-
-msgid "Leave empty to use the patient's responsible intern."
-msgstr "اتركه فارغًا لاستخدام طبيب الامتياز المسؤول عن المريض."
-
-msgid "Leave empty to use the room of the intern's shift."
+msgid "Leave empty to use the room of the dentist's shift."
 msgstr "اتركه فارغًا لاستخدام غرفة نوبة الطبيب."
 
 #, python-format
@@ -1530,8 +2337,14 @@ msgstr "الغرفة"
 msgid "rooms"
 msgstr "الغرف"
 
-msgid "date"
-msgstr "التاريخ"
+msgid "Regular day"
+msgstr "يوم عادي"
+
+msgid "Surgery day"
+msgstr "يوم عمليات"
+
+msgid "day type"
+msgstr "نوع اليوم"
 
 msgid "from"
 msgstr "من"
@@ -1549,11 +2362,11 @@ msgid "The end time must be after the start time."
 msgstr "وقت النهاية يجب أن يكون بعد وقت البداية."
 
 #, python-format
-msgid "%(room)s is already booked for %(intern)s from %(start)s to %(end)s."
-msgstr "%(room)s محجوزة بالفعل لـ %(intern)s من %(start)s إلى %(end)s."
+msgid "%(room)s is already booked for %(dentist)s from %(start)s to %(end)s."
+msgstr "%(room)s محجوزة بالفعل لـ %(dentist)s من %(start)s إلى %(end)s."
 
 #, python-format
-msgid "This intern already works in %(room)s at that time."
+msgid "This dentist already works in %(room)s at that time."
 msgstr "هذا الطبيب يعمل بالفعل في %(room)s في نفس الوقت."
 
 msgid "Booked"
@@ -1567,9 +2380,6 @@ msgstr "وصل - في الانتظار"
 
 msgid "In the room"
 msgstr "داخل الغرفة"
-
-msgid "Left"
-msgstr "انصرف"
 
 msgid "Did not come"
 msgstr "لم يحضر"
@@ -1659,11 +2469,637 @@ msgstr ""
 "تم نسخ %(copied)s نوبة من الأسبوع الماضي (وتم تخطي %(skipped)s بسبب "
 "التعارض)."
 
-msgid "Arabic"
-msgstr "العربية"
+msgid "Implant surgery"
+msgstr "عمليات الزرع"
 
-msgid "English"
-msgstr "الإنجليزية"
+msgid "Any"
+msgstr "الكل"
+
+msgid "No grouping"
+msgstr "بدون تجميع"
+
+msgid "Implant company"
+msgstr "شركة الزرعة"
+
+msgid "Implant type / line"
+msgstr "نوع / خط الزرعة"
+
+msgid "Implant diameter"
+msgstr "قطر الزرعة"
+
+msgid "Implant length"
+msgstr "طول الزرعة"
+
+msgid "Jaw"
+msgstr "الفك"
+
+msgid "Anterior / posterior"
+msgstr "أمامي / خلفي"
+
+msgid "Tooth type"
+msgstr "نوع السن"
+
+msgid "Tooth"
+msgstr "السن"
+
+msgid "Procedure"
+msgstr "الإجراء"
+
+msgid "Case difficulty"
+msgstr "صعوبة الحالة"
+
+msgid "Implant status"
+msgstr "حالة الزرعة"
+
+msgid "Gender"
+msgstr "النوع"
+
+msgid "Age group"
+msgstr "الفئة العمرية"
+
+msgid "Diabetic"
+msgstr "مريض سكر"
+
+msgid "Operator 1"
+msgstr "الطبيب الأول"
+
+msgid "Batch / course"
+msgstr "الدفعة / الكورس"
+
+msgid "Instructor"
+msgstr "المشرف المدرب"
+
+msgid "Bone particle"
+msgstr "نوع العظم المستخدم"
+
+msgid "Temporary"
+msgstr "المؤقت"
+
+msgid "Year"
+msgstr "السنة"
+
+msgid "Month"
+msgstr "الشهر"
+
+msgid "look at"
+msgstr "البحث في"
+
+msgid "Implants only"
+msgstr "الزرعات فقط"
+
+msgid "All surgical sites"
+msgstr "كل المواضع الجراحية"
+
+msgid "surgery from"
+msgstr "العملية من"
+
+msgid "surgery to"
+msgstr "العملية إلى"
+
+msgid "age from"
+msgstr "السن من"
+
+msgid "age to"
+msgstr "السن إلى"
+
+msgid "smoker"
+msgstr "مدخن"
+
+msgid "diabetic"
+msgstr "مريض سكر"
+
+msgid "medical condition (any of)"
+msgstr "حالة مرضية (أي منها)"
+
+msgid "dentist (any role)"
+msgstr "الطبيب (بأي دور)"
+
+msgid "operator type"
+msgstr "نوع الطبيب"
+
+msgid "case difficulty"
+msgstr "صعوبة الحالة"
+
+msgid "bone particle"
+msgstr "نوع العظم المستخدم"
+
+msgid "block graft"
+msgstr "ترقيع بلوك"
+
+msgid "block donor site"
+msgstr "مكان أخذ البلوك"
+
+msgid "membrane"
+msgstr "الغشاء"
+
+msgid "soft tissue graft"
+msgstr "ترقيع أنسجة رخوة"
+
+msgid "temporary"
+msgstr "المؤقت"
+
+msgid "suture material"
+msgstr "خامة الغرز"
+
+msgid "e.g. 36, 46 or 34-37"
+msgstr "مثال: 36، 46 أو 34-37"
+
+msgid "jaw"
+msgstr "الفك"
+
+msgid "Upper"
+msgstr "علوي"
+
+msgid "Lower"
+msgstr "سفلي"
+
+msgid "region"
+msgstr "المنطقة"
+
+msgid "Anterior"
+msgstr "أمامي"
+
+msgid "Posterior"
+msgstr "خلفي"
+
+msgid "tooth type"
+msgstr "نوع السن"
+
+msgid "Incisor"
+msgstr "قاطع"
+
+msgid "Canine"
+msgstr "ناب"
+
+msgid "Premolar"
+msgstr "ضاحك"
+
+msgid "Molar"
+msgstr "ضرس"
+
+msgid "procedure (any of)"
+msgstr "الإجراء (أي منها)"
+
+msgid "procedure (all of)"
+msgstr "الإجراء (كلها معًا)"
+
+msgid "implant company"
+msgstr "شركة الزرعة"
+
+msgid "implant type / line"
+msgstr "نوع / خط الزرعة"
+
+msgid "diameter from"
+msgstr "القطر من"
+
+msgid "diameter to"
+msgstr "القطر إلى"
+
+msgid "length from"
+msgstr "الطول من"
+
+msgid "length to"
+msgstr "الطول إلى"
+
+msgid "torque from (Ncm)"
+msgstr "عزم الربط من (Ncm)"
+
+msgid "torque to (Ncm)"
+msgstr "عزم الربط إلى (Ncm)"
+
+msgid "subcrestal"
+msgstr "تحت قمة العظم"
+
+msgid "implant status"
+msgstr "حالة الزرعة"
+
+msgid "statistics by"
+msgstr "إحصائيات حسب"
+
+msgid "then by"
+msgstr "ثم حسب"
+
+msgid "What and when"
+msgstr "ماذا ومتى"
+
+msgid "Patient"
+msgstr "المريض"
+
+msgid "Team"
+msgstr "الفريق"
+
+msgid "Site and procedure"
+msgstr "الموضع والإجراء"
+
+msgid "Surgery details"
+msgstr "تفاصيل العملية"
+
+msgid "Non-smoker"
+msgstr "غير مدخن"
+
+msgid "Not diabetic"
+msgstr "غير مريض سكر"
+
+msgid "augmentation site"
+msgstr "موضع الترقيع"
+
+msgid "exposure"
+msgstr "انكشاف"
+
+msgid "Update the dental chart (extractions → missing, implants → implant)"
+msgstr "تحديث شارت الأسنان (الخلع ← مفقود، الزرع ← زرعة)"
+
+msgid "Surgery team"
+msgstr "فريق العملية"
+
+msgid "Guided bone regeneration"
+msgstr "ترقيع العظم الموجه (GBR)"
+
+msgid "Open sinus lift"
+msgstr "رفع الجيب الأنفي المفتوح"
+
+msgid "Membrane and tacks"
+msgstr "الغشاء والمسامير"
+
+msgid "Soft tissue"
+msgstr "الأنسجة الرخوة"
+
+msgid "Suture, temporization and X-ray"
+msgstr "الغرز والمؤقت والأشعة"
+
+msgid "Notes"
+msgstr "ملاحظات"
+
+msgid "The same dentist is chosen twice in the surgery team."
+msgstr "نفس الطبيب مختار مرتين في فريق العملية."
+
+msgid "Write the autogenous percentage of the mix."
+msgstr "اكتب نسبة العظم الذاتي في الخليط."
+
+msgid "Choose the donor site of the block."
+msgstr "اختر مكان أخذ البلوك."
+
+msgid "Tick how the implant was placed (simple, immediate or guided)."
+msgstr "حدد طريقة تركيب الزرعة (عادية، فورية أو بدليل جراحي)."
+
+msgid "Required when an implant is placed."
+msgstr "مطلوب عند تركيب زرعة."
+
+msgid "Tick at least one procedure for this tooth."
+msgstr "حدد إجراءً واحدًا على الأقل لهذا السن."
+
+#, python-format
+msgid "Tooth %(tooth)s is written twice."
+msgstr "السن %(tooth)s مكتوب مرتين."
+
+msgid "Add at least one tooth to the surgery chart."
+msgstr "أضف سنًا واحدًا على الأقل لشارت العملية."
+
+msgid "Write the date of failure."
+msgstr "اكتب تاريخ الفشل."
+
+msgid "company"
+msgstr "الشركة"
+
+msgid "implant system"
+msgstr "نظام الزرعة"
+
+msgid "implant systems"
+msgstr "أنظمة الزرعات"
+
+msgid "Simple"
+msgstr "بسيطة"
+
+msgid "Moderate"
+msgstr "متوسطة"
+
+msgid "Advanced (sinus / GBR / block)"
+msgstr "متقدمة (جيب أنفي / GBR / بلوك)"
+
+msgid "Chin"
+msgstr "الذقن"
+
+msgid "Ramus"
+msgstr "الراموس"
+
+msgid "Tuberosity"
+msgstr "الحدبة الفكية"
+
+msgid "Disc"
+msgstr "ديسك"
+
+msgid "Piezo"
+msgstr "بيزو"
+
+msgid "Autogenous only (100%)"
+msgstr "عظم ذاتي فقط (100%)"
+
+msgid "Xenograft only (100%)"
+msgstr "عظم حيواني فقط (100%)"
+
+msgid "Mix autogenous : xenograft"
+msgstr "خليط ذاتي : حيواني"
+
+msgid "Free gingival graft"
+msgstr "ترقيع لثة حر (FGG)"
+
+msgid "Connective tissue graft"
+msgstr "ترقيع نسيج ضام (CTG)"
+
+msgid "Other soft tissue graft"
+msgstr "ترقيع أنسجة رخوة آخر"
+
+msgid "Vicryl"
+msgstr "فيكريل"
+
+msgid "Prolene"
+msgstr "برولين"
+
+msgid "Silk"
+msgstr "حرير"
+
+msgid "None"
+msgstr "لا يوجد"
+
+msgid "Healing collar"
+msgstr "Healing collar"
+
+msgid "Customized healing collar"
+msgstr "Healing collar مُعدّل"
+
+msgid "Crown"
+msgstr "طربوش"
+
+msgid "Maryland bridge"
+msgstr "كوبري ماريلاند"
+
+msgid "Bridge on teeth"
+msgstr "كوبري على الأسنان"
+
+msgid "Denture with glass fiber"
+msgstr "طقم بألياف زجاجية"
+
+msgid "surgery number"
+msgstr "رقم العملية"
+
+msgid "other donor site"
+msgstr "مكان أخذ آخر"
+
+msgid "cut by"
+msgstr "القطع بواسطة"
+
+msgid "number of screws"
+msgstr "عدد المسامير"
+
+msgid "autogenous %"
+msgstr "نسبة العظم الذاتي %"
+
+msgid "For a mix: the rest is xenograft."
+msgstr "في الخليط: الباقي عظم حيواني."
+
+msgid "bone graft material / brand"
+msgstr "خامة / ماركة العظم"
+
+msgid "ACM bur - area"
+msgstr "ACM bur - المنطقة"
+
+msgid "GBR notes"
+msgstr "ملاحظات GBR"
+
+msgid "sinus approach"
+msgstr "طريقة الدخول للجيب"
+
+msgid "sinus fill material"
+msgstr "خامة ملء الجيب"
+
+msgid "sinus notes"
+msgstr "ملاحظات الجيب الأنفي"
+
+msgid "membrane used"
+msgstr "تم استخدام غشاء"
+
+msgid "membrane size (mm x mm)"
+msgstr "مقاس الغشاء (مم × مم)"
+
+msgid "membrane material"
+msgstr "خامة الغشاء"
+
+msgid "membrane company"
+msgstr "شركة الغشاء"
+
+msgid "number of tacks"
+msgstr "عدد المسامير (tacks)"
+
+msgid "tacks company"
+msgstr "شركة المسامير (tacks)"
+
+msgid "surgery technique"
+msgstr "طريقة العملية"
+
+msgid "customized healing collar - teeth"
+msgstr "Healing collar مُعدّل - الأسنان"
+
+msgid "donor site"
+msgstr "مكان الأخذ"
+
+msgid "soft tissue suture material"
+msgstr "خامة غرز الأنسجة الرخوة"
+
+msgid "soft tissue suture technique"
+msgstr "طريقة غرز الأنسجة الرخوة"
+
+msgid "pack type"
+msgstr "نوع الباك"
+
+msgid "recipient site - area"
+msgstr "المكان المستقبل - المنطقة"
+
+msgid "Buccal, crestal, lingual, mesial, distal."
+msgstr "شدقي، قمي، لساني، أمامي، خلفي."
+
+msgid "frenectomy"
+msgstr "قطع اللجام"
+
+msgid "bone graft with soft tissue surgery (type & site)"
+msgstr "ترقيع عظم مع جراحة الأنسجة الرخوة (النوع والمكان)"
+
+msgid "soft tissue notes"
+msgstr "ملاحظات الأنسجة الرخوة"
+
+msgid "suture size"
+msgstr "مقاس الغرز"
+
+msgid "suture technique"
+msgstr "طريقة الغرز"
+
+msgid "X-ray taken"
+msgstr "تم عمل أشعة"
+
+msgid "X-ray notes"
+msgstr "ملاحظات الأشعة"
+
+msgid "complications / post-operative notes"
+msgstr "المضاعفات / ملاحظات بعد العملية"
+
+msgid "Buccal"
+msgstr "شدقي"
+
+msgid "Crestal"
+msgstr "قمي"
+
+msgid "Lingual"
+msgstr "لساني"
+
+msgid "Mesial"
+msgstr "أمامي (ميزيال)"
+
+msgid "Distal"
+msgstr "خلفي (ديستال)"
+
+msgid "surgeries"
+msgstr "العمليات"
+
+msgid "Placed - healing"
+msgstr "مزروعة - في فترة الالتئام"
+
+msgid "Uncovered (2nd stage)"
+msgstr "تم الكشف (المرحلة الثانية)"
+
+msgid "Impression / scan taken"
+msgstr "تم أخذ الطبعة / المسح"
+
+msgid "Loaded (final prosthesis)"
+msgstr "تم التحميل (التركيبة النهائية)"
+
+msgid "Failed / removed"
+msgstr "فشلت / أُزيلت"
+
+msgid "extraction"
+msgstr "خلع"
+
+msgid "flap"
+msgstr "فلاب"
+
+msgid "simple implant"
+msgstr "زرعة عادية"
+
+msgid "immediate implant"
+msgstr "زرعة فورية"
+
+msgid "expansion"
+msgstr "توسيع العظم"
+
+msgid "splitting"
+msgstr "شق العظم"
+
+msgid "closed sinus"
+msgstr "رفع جيب مغلق"
+
+msgid "open sinus"
+msgstr "رفع جيب مفتوح"
+
+msgid "guided implant"
+msgstr "زرعة بدليل جراحي"
+
+msgid "implant type"
+msgstr "نوع الزرعة"
+
+msgid "implant diameter (mm)"
+msgstr "قطر الزرعة (مم)"
+
+msgid "implant length (mm)"
+msgstr "طول الزرعة (مم)"
+
+msgid "lot / ref number"
+msgstr "رقم التشغيلة / المرجع"
+
+msgid "implant sticker (photo)"
+msgstr "ستيكر الزرعة (صورة)"
+
+msgid "insertion torque (Ncm)"
+msgstr "عزم الربط (Ncm)"
+
+msgid "ISQ"
+msgstr "ISQ"
+
+msgid "implant subcrestal"
+msgstr "الزرعة تحت قمة العظم"
+
+msgid "uncovered on"
+msgstr "تاريخ الكشف"
+
+msgid "impression / scan on"
+msgstr "تاريخ الطبعة / المسح"
+
+msgid "loaded on"
+msgstr "تاريخ التحميل"
+
+msgid "failed on"
+msgstr "تاريخ الفشل"
+
+msgid "failure reason"
+msgstr "سبب الفشل"
+
+msgid "surgical site / implant"
+msgstr "موضع جراحي / زرعة"
+
+msgid "surgical sites / implants"
+msgstr "مواضع جراحية / زرعات"
+
+msgid "filters"
+msgstr "الفلاتر"
+
+msgid "visible to all managers"
+msgstr "ظاهر لكل المديرين"
+
+msgid "saved search"
+msgstr "بحث محفوظ"
+
+msgid "saved searches"
+msgstr "عمليات بحث محفوظة"
+
+#, python-format
+msgid "Surgery %(number)s saved."
+msgstr "تم حفظ العملية %(number)s."
+
+msgid "Edit surgery chart"
+msgstr "تعديل شارت العملية"
+
+msgid "New surgery chart"
+msgstr "شارت عملية جديدة"
+
+msgid "Implant updated."
+msgstr "تم تحديث الزرعة."
+
+msgid "Healing - waiting 2nd stage"
+msgstr "في الالتئام - تنتظر المرحلة الثانية"
+
+msgid "Uncovered - waiting impression / scan"
+msgstr "تم الكشف - تنتظر الطبعة / المسح"
+
+msgid "Impression taken - waiting delivery"
+msgstr "تم أخذ الطبعة - تنتظر التركيب"
+
+msgid "Loaded implants"
+msgstr "زرعات تم تحميلها"
+
+msgid "Failed implants"
+msgstr "زرعات فاشلة"
+
+msgid "Sinus lift cases"
+msgstr "حالات رفع الجيب الأنفي"
+
+msgid "GBR / block graft cases"
+msgstr "حالات GBR / ترقيع بلوك"
+
+msgid "Immediate implants"
+msgstr "زرعات فورية"
+
+msgid "Search saved."
+msgstr "تم حفظ البحث."
+
+msgid "Saved search deleted."
+msgstr "تم حذف البحث المحفوظ."
 
 msgid "Dental group - system settings"
 msgstr "مجموعة الأسنان - إعدادات النظام"
@@ -1692,8 +3128,17 @@ msgstr "تعديل"
 msgid "Enroll in a course"
 msgstr "تسجيل في كورس"
 
+msgid "Cases and implants"
+msgstr "الحالات والزرعات"
+
+msgid "Name on certificate"
+msgstr "الاسم في الشهادة"
+
 msgid "Mobile 1"
 msgstr "موبايل 1"
+
+msgid "WhatsApp"
+msgstr "واتساب"
 
 msgid "Mobile 2"
 msgstr "موبايل 2"
@@ -1704,14 +3149,23 @@ msgstr "البريد الإلكتروني"
 msgid "National ID"
 msgstr "الرقم القومي"
 
+msgid "Date of birth"
+msgstr "تاريخ الميلاد"
+
+msgid "Nationality"
+msgstr "الجنسية"
+
 msgid "University"
 msgstr "الجامعة"
 
 msgid "Syndicate no."
 msgstr "رقم النقابة"
 
-msgid "Notes"
-msgstr "ملاحظات"
+msgid "Social media"
+msgstr "وسائل التواصل"
+
+msgid "How did they hear about us"
+msgstr "عرف عنا منين"
 
 msgid "Courses and balances"
 msgstr "الكورسات والأرصدة"
@@ -1725,11 +3179,20 @@ msgstr "الرسوم بعد الخصم"
 msgid "Remaining"
 msgstr "المتبقي"
 
+msgid "Implants required"
+msgstr "الزرعات المطلوبة"
+
 msgid "Status"
 msgstr "الحالة"
 
 msgid "Not enrolled in any course yet."
 msgstr "غير مسجل في أي كورس بعد."
+
+msgid "Implants placed as operator 1"
+msgstr "الزرعات التي زرعها كطبيب أول"
+
+msgid "Open all cases, surgeries and treatments"
+msgstr "فتح كل الحالات والعمليات والعلاجات"
 
 msgid "Candidates"
 msgstr "الدارسون"
@@ -1737,8 +3200,11 @@ msgstr "الدارسون"
 msgid "Course candidates"
 msgstr "دارسو الكورسات"
 
-msgid "Name, mobile, ID or university"
-msgstr "الاسم أو الموبايل أو الرقم القومي أو الجامعة"
+msgid "Name, code, mobile, ID or university"
+msgstr "الاسم أو الكود أو الموبايل أو الرقم القومي أو الجامعة"
+
+msgid "Code"
+msgstr "الكود"
 
 msgid "Name"
 msgstr "الاسم"
@@ -1751,6 +3217,12 @@ msgstr "التخرج"
 
 msgid "Courses"
 msgstr "الكورسات"
+
+msgid "Dentist file"
+msgstr "ملف الطبيب"
+
+msgid "cases & implants"
+msgstr "الحالات والزرعات"
 
 msgid "No candidates."
 msgstr "لا يوجد دارسون."
@@ -1830,6 +3302,9 @@ msgstr "الطريقة"
 msgid "Reference"
 msgstr "رقم العملية"
 
+msgid "Proof"
+msgstr "الإثبات"
+
 msgid "Received by"
 msgstr "استلمها"
 
@@ -1865,6 +3340,10 @@ msgid "%(counter)s payment"
 msgid_plural "%(counter)s payments"
 msgstr[0] "%(counter)s دفعة"
 msgstr[1] "%(counter)s دفعة"
+msgstr[2] "%(counter)s دفعة"
+msgstr[3] "%(counter)s دفعة"
+msgstr[4] "%(counter)s دفعة"
+msgstr[5] "%(counter)s دفعة"
 
 msgid "No payments in this period."
 msgstr "لا توجد مدفوعات في هذه الفترة."
@@ -1936,11 +3415,20 @@ msgstr "الجدول"
 msgid "Room schedule"
 msgstr "جدول الغرف"
 
-msgid "Treatment steps"
-msgstr "خطوات العلاج"
+msgid "Treatment log"
+msgstr "سجل العلاج"
+
+msgid "Implant surgeries"
+msgstr "عمليات الزرع"
 
 msgid "Lab requests"
 msgstr "طلبات المعمل"
+
+msgid "Case finder & statistics"
+msgstr "البحث في الحالات والإحصائيات"
+
+msgid "My cases and implants"
+msgstr "حالاتي وزرعاتي"
 
 msgid "Purchases"
 msgstr "المشتريات"
@@ -1963,14 +3451,390 @@ msgstr "الإعدادات والمستخدمون والقوائم"
 msgid "Log out"
 msgstr "تسجيل الخروج"
 
+msgid "Caries"
+msgstr "تسوس"
+
+msgid "Filling"
+msgstr "حشو"
+
+msgid "Root canal"
+msgstr "علاج عصب"
+
+msgid "Implant (healing)"
+msgstr "زرعة (التئام)"
+
+msgid "Implant loaded"
+msgstr "زرعة محمّلة"
+
+msgid "Hopeless"
+msgstr "ميؤوس منه"
+
+msgid "Mobility"
+msgstr "حركة"
+
+msgid "Planned treatment"
+msgstr "علاج مخطط"
+
+msgid "Surfaces"
+msgstr "الأسطح"
+
+msgid "Case report"
+msgstr "تقرير الحالة"
+
+msgid "Back to chart"
+msgstr "العودة للشارت"
+
+msgid "Show patient identity"
+msgstr "إظهار بيانات المريض"
+
+msgid "Hide patient identity (for teaching / publication)"
+msgstr "إخفاء بيانات المريض (للتدريس / النشر)"
+
+msgid "Print / save as PDF"
+msgstr "طباعة / حفظ PDF"
+
+msgid "Generated"
+msgstr "تاريخ الإنشاء"
+
+msgid "Age"
+msgstr "السن"
+
+msgid "Chief complaint"
+msgstr "الشكوى الرئيسية"
+
+msgid "Medical alerts"
+msgstr "تنبيهات طبية"
+
+msgid "none"
+msgstr "لا يوجد"
+
+msgid "Current dental chart"
+msgstr "شارت الأسنان الحالي"
+
+msgid "Treatment plans"
+msgstr "خطط العلاج"
+
+msgid "Operator 2"
+msgstr "الطبيب الثاني"
+
+msgid "Assistant"
+msgstr "المساعد"
+
+msgid "Procedures"
+msgstr "الإجراءات"
+
+msgid "Torque / ISQ"
+msgstr "عزم الربط / ISQ"
+
+msgid "block"
+msgstr "بلوك"
+
+msgid "screws"
+msgstr "مسامير"
+
+msgid "Membrane"
+msgstr "الغشاء"
+
+msgid "tacks"
+msgstr "مسامير tacks"
+
+msgid "donor"
+msgstr "مكان الأخذ"
+
+msgid "Suture"
+msgstr "الغرز"
+
+msgid "Complications"
+msgstr "المضاعفات"
+
+msgid "Operator"
+msgstr "الطبيب المنفذ"
+
+msgid "Next visit"
+msgstr "الزيارة القادمة"
+
+msgid "Photos"
+msgstr "الصور"
+
+msgid "click a tooth to edit it"
+msgstr "اضغط على السن لتعديله"
+
+msgid "Surgery chart"
+msgstr "شارت العملية"
+
+msgid "Examination & history"
+msgstr "الكشف والتاريخ المرضي"
+
+msgid "Lab request"
+msgstr "طلب معمل"
+
+msgid "Patient's right"
+msgstr "يمين المريض"
+
+msgid "Patient's left"
+msgstr "يسار المريض"
+
+msgid "Teeth that are not sound"
+msgstr "الأسنان غير السليمة"
+
+msgid "All teeth are recorded as sound."
+msgstr "كل الأسنان مسجلة سليمة."
+
+msgid "Open treatment plans"
+msgstr "خطط العلاج المفتوحة"
+
+msgid "New plan"
+msgstr "خطة جديدة"
+
+msgid "done"
+msgstr "تم"
+
+msgid "No open treatment plan."
+msgstr "لا توجد خطة علاج مفتوحة."
+
+msgid "No treatments recorded."
+msgstr "لا يوجد علاج مسجل."
+
+msgid "Chart history"
+msgstr "سجل الشارت"
+
+msgid "No changes yet."
+msgstr "لا توجد تغييرات بعد."
+
+msgid "New examination"
+msgstr "كشف جديد"
+
+msgid "Code no."
+msgstr "رقم الكود"
+
+msgid "Date of examination"
+msgstr "تاريخ الكشف"
+
+msgid "Occupation"
+msgstr "الوظيفة"
+
+msgid "Marital status"
+msgstr "الحالة الاجتماعية"
+
+msgid "Governorate"
+msgstr "المحافظة"
+
+msgid "Referral"
+msgstr "التحويل"
+
+msgid "Carious"
+msgstr "مسوّسة"
+
+msgid "Filled"
+msgstr "محشوّة"
+
+msgid "Missed"
+msgstr "مفقودة"
+
+msgid "Hopeless teeth"
+msgstr "أسنان ميؤوس منها"
+
+msgid "Inter arch space"
+msgstr "المسافة بين الفكين"
+
+msgid "Implant placed (before)"
+msgstr "زرعات موجودة (من قبل)"
+
+msgid "Implant failed (before)"
+msgstr "زرعات فاشلة (من قبل)"
+
+msgid "Operator important notices"
+msgstr "ملاحظات مهمة من الطبيب"
+
+msgid "Examined by"
+msgstr "الكشف بواسطة"
+
+msgid "Requested"
+msgstr "مطلوبة"
+
+msgid "New requested"
+msgstr "مطلوبة جديدة"
+
+msgid "General health"
+msgstr "الصحة العامة"
+
+msgid "Lactating"
+msgstr "مرضع"
+
+msgid "Being treated for"
+msgstr "يعالج من"
+
+msgid "Recent surgery"
+msgstr "عملية حديثة"
+
+msgid "Did you ever have"
+msgstr "هل أصبت من قبل بـ"
+
+msgid "Comments"
+msgstr "تعليقات"
+
+msgid "Blood pressure"
+msgstr "الضغط"
+
+msgid "last"
+msgstr "آخر قراءة"
+
+msgid "drug"
+msgstr "الدواء"
+
+msgid "in clinic"
+msgstr "في العيادة"
+
+msgid "Glucose"
+msgstr "السكر"
+
+msgid "random in clinic"
+msgstr "عشوائي في العيادة"
+
+msgid "Allergic to"
+msgstr "حساسية من"
+
+msgid "Prolonged bleeding / aspirin"
+msgstr "نزيف طويل / أسبرين"
+
+msgid "Digestion problem"
+msgstr "مشكلة في الهضم"
+
+msgid "Illegal drugs"
+msgstr "مخدرات"
+
+msgid "Drugs taken by patient"
+msgstr "الأدوية التي يأخذها المريض"
+
+msgid "Operator comments"
+msgstr "تعليقات الطبيب"
+
+msgid "Teeth sensitive to"
+msgstr "الأسنان حساسة لـ"
+
+msgid "hot or cold"
+msgstr "الساخن أو البارد"
+
+msgid "sweets"
+msgstr "الحلويات"
+
+msgid "biting or chewing"
+msgstr "العض أو المضغ"
+
+msgid "Clench / grind"
+msgstr "ضغط / طحن الأسنان"
+
+msgid "Smokes tobacco"
+msgstr "يدخن"
+
+msgid "day"
+msgstr "يوميًا"
+
+msgid "Serious injury to the mouth"
+msgstr "إصابة شديدة في الفم"
+
+msgid "Satisfied with appearance"
+msgstr "راضٍ عن الشكل"
+
+msgid "Cooperative"
+msgstr "متعاون"
+
+msgid "Willing for implant"
+msgstr "راغب في الزرع"
+
+msgid ""
+"The medical history is copied from the last examination (or from what the "
+"patient told the secretary) so you only change what is new."
+msgstr ""
+"التاريخ المرضي منقول من آخر كشف (أو مما قاله المريض للسكرتارية) فتغيّر "
+"الجديد فقط."
+
+msgid ""
+"Extra oral: shutter 1/180, F 11, ISO 100, 1.5 m distance, Frankfort plane "
+"parallel to the floor. Intra oral: shutter 1/180, F 22, ISO 100, clean dry "
+"mirror."
+msgstr ""
+"خارج الفم: shutter 1/180، F 11، ISO 100، مسافة 1.5 متر، مستوى فرانكفورت "
+"موازٍ للأرض. داخل الفم: shutter 1/180، F 22، ISO 100، مرآة نظيفة وجافة."
+
+msgid "Delete this file?"
+msgstr "حذف هذا الملف؟"
+
+msgid "Other photos / videos"
+msgstr "صور / فيديوهات أخرى"
+
+msgid "Upload"
+msgstr "رفع"
+
+msgid "Approve plan"
+msgstr "اعتماد الخطة"
+
+msgid "Reopen"
+msgstr "إعادة فتح"
+
+msgid "Mark completed"
+msgstr "تعليم كمكتملة"
+
+msgid "Cancel this plan?"
+msgstr "إلغاء هذه الخطة؟"
+
+msgid "Cancel plan"
+msgstr "إلغاء الخطة"
+
+msgid "Planned by"
+msgstr "خطة بواسطة"
+
+msgid "Approved by"
+msgstr "اعتمدها"
+
+msgid "Phase"
+msgstr "المرحلة"
+
+msgid "Teeth"
+msgstr "الأسنان"
+
+msgid "Details"
+msgstr "التفاصيل"
+
+msgid "Mark done"
+msgstr "تعليم كمنفذ"
+
+msgid "Cancel item"
+msgstr "إلغاء البند"
+
+msgid "No items."
+msgstr "لا توجد بنود."
+
+msgid ""
+"Items are ticked automatically when the same procedure is recorded on the "
+"same teeth in the treatment log or the surgery chart."
+msgstr ""
+"البنود تُعلَّم تلقائيًا عند تسجيل نفس الإجراء على نفس الأسنان في سجل العلاج "
+"أو شارت العملية."
+
+msgid "Planned treatment (in order)"
+msgstr "العلاج المخطط (بالترتيب)"
+
+msgid "delete"
+msgstr "حذف"
+
+msgid "Add item"
+msgstr "إضافة صنف"
+
+msgid "History of this tooth"
+msgstr "سجل هذا السن"
+
+msgid "Treatments on this tooth"
+msgstr "العلاجات على هذا السن"
+
+msgid "Surgeries on this tooth"
+msgstr "العمليات على هذا السن"
+
 msgid "Late at the lab"
 msgstr "متأخر في المعمل"
 
 msgid "Print lab form"
 msgstr "طباعة طلب المعمل"
-
-msgid "Patient"
-msgstr "المريض"
 
 msgid "Doctor"
 msgstr "الطبيب"
@@ -1984,9 +3848,6 @@ msgstr "الشغل"
 #, python-format
 msgid "%(n)s unit(s)"
 msgstr "%(n)s وحدة"
-
-msgid "Teeth"
-msgstr "الأسنان"
 
 msgid "Shade"
 msgstr "اللون"
@@ -2060,26 +3921,14 @@ msgstr "توقيع الطبيب"
 msgid "Received by (lab)"
 msgstr "استلمه (المعمل)"
 
-msgid "Done at"
-msgstr "وقت التنفيذ"
-
-msgid "Done by"
-msgstr "قام بها"
-
-msgid "Supervisor present"
-msgstr "المشرف الحاضر"
-
-msgid "Implant"
-msgstr "الزرعة"
-
-msgid "Details"
-msgstr "التفاصيل"
-
 msgid "Visit"
 msgstr "الزيارة"
 
 msgid "Recorded by"
 msgstr "سجّلها"
+
+msgid "Dental chart changes"
+msgstr "تغييرات شارت الأسنان"
 
 msgid "Supervisor check"
 msgstr "مراجعة المشرف"
@@ -2100,14 +3949,26 @@ msgstr "تحديث المراجعة"
 msgid "Mark as checked"
 msgstr "تمت المراجعة"
 
-msgid "Step"
-msgstr "الخطوة"
+msgid "The dental chart will change like this:"
+msgstr "شارت الأسنان سيتغير كالتالي:"
+
+msgid "Save and add another"
+msgstr "حفظ وإضافة آخر"
+
+msgid "No medical alerts."
+msgstr "لا توجد تنبيهات طبية."
+
+msgid "No examination & history yet — fill it first."
+msgstr "لا يوجد كشف وتاريخ مرضي بعد — املأه أولًا."
+
+msgid "Check"
+msgstr "مراجعة"
+
+msgid "Dental chart updated"
+msgstr "تم تحديث شارت الأسنان"
 
 msgid "Not checked"
 msgstr "لم تُراجَع"
-
-msgid "No treatment steps."
-msgstr "لا توجد خطوات علاج."
 
 msgid "Complaint"
 msgstr "الشكوى"
@@ -2117,6 +3978,9 @@ msgstr "المتابعة متأخرة"
 
 msgid "Category"
 msgstr "النوع"
+
+msgid "Concerned dentist"
+msgstr "الطبيب المعني"
 
 msgid "Concerned staff"
 msgstr "الموظف المعني"
@@ -2212,6 +4076,116 @@ msgstr "تعليم الكل كمقروء"
 msgid "No notifications."
 msgstr "لا توجد إشعارات."
 
+msgid "Academy file"
+msgstr "ملف الأكاديمية"
+
+msgid "Create a system login for this dentist?"
+msgstr "إنشاء حساب دخول على النظام لهذا الطبيب؟"
+
+msgid "Create login"
+msgstr "إنشاء حساب دخول"
+
+msgid "Batch"
+msgstr "الدفعة"
+
+msgid "Candidate code"
+msgstr "كود الدارس"
+
+msgid "Installments and receipts"
+msgstr "الأقساط والإيصالات"
+
+#, python-format
+msgid "%(n)s implants remaining"
+msgstr "متبقي %(n)s زرعة"
+
+msgid "Implant requirement completed"
+msgstr "أكمل العدد المطلوب من الزرعات"
+
+msgid "No implant requirement set for the course."
+msgstr "لم يُحدد عدد زرعات مطلوب للكورس."
+
+#, python-format
+msgid "Also %(n)s implants as operator 2."
+msgstr "وأيضًا %(n)s زرعة كطبيب ثانٍ."
+
+msgid "Work summary"
+msgstr "ملخص العمل"
+
+msgid "Surgeries"
+msgstr "العمليات"
+
+#, python-format
+msgid "%(a)s as operator 1 · %(b)s as operator 2 · %(c)s as assistant"
+msgstr "%(a)s كطبيب أول · %(b)s كطبيب ثانٍ · %(c)s كمساعد"
+
+#, python-format
+msgid "%(d)s as instructor"
+msgstr "%(d)s كمشرف مدرب"
+
+msgid "Implants"
+msgstr "الزرعات"
+
+msgid "survival"
+msgstr "نسبة النجاح"
+
+msgid "failed"
+msgstr "فشلت"
+
+msgid "Treatments"
+msgstr "العلاجات"
+
+#, python-format
+msgid "%(a)s as operator · %(b)s as assistant"
+msgstr "%(a)s كطبيب منفذ · %(b)s كمساعد"
+
+#, python-format
+msgid "%(c)s supervised"
+msgstr "%(c)s بإشرافه"
+
+msgid "Average grade"
+msgstr "متوسط التقييم"
+
+msgid "Login"
+msgstr "حساب الدخول"
+
+msgid "Cases"
+msgstr "الحالات"
+
+msgid "Role in surgery"
+msgstr "الدور في العملية"
+
+msgid "No cases yet."
+msgstr "لا توجد حالات بعد."
+
+msgid "Treatments by type"
+msgstr "العلاجات حسب النوع"
+
+msgid "Implants (operator 1)"
+msgstr "الزرعات (كطبيب أول)"
+
+msgid "Recent surgeries"
+msgstr "آخر العمليات"
+
+msgid ""
+"Course candidates are added from Academy → Candidates and appear here "
+"automatically. Add training dentists, full-time dentists and supervisors "
+"here."
+msgstr ""
+"دارسو الكورسات يُضافون من الأكاديمية ← الدارسون ويظهرون هنا تلقائيًا. أضف "
+"هنا الأطباء المتدربين والمتفرغين والمشرفين."
+
+msgid "Type"
+msgstr "النوع"
+
+msgid "Surgeries (operator 1)"
+msgstr "العمليات (كطبيب أول)"
+
+msgid "Implants placed"
+msgstr "الزرعات المزروعة"
+
+msgid "No dentists."
+msgstr "لا يوجد أطباء."
+
 msgid "Previous"
 msgstr "السابق"
 
@@ -2222,6 +4196,16 @@ msgstr "صفحة %(n)s من %(total)s"
 msgid "Next"
 msgstr "التالي"
 
+#, python-format
+msgid "%(age)s years"
+msgstr "%(age)s سنة"
+
+msgid "Responsible dentist"
+msgstr "الطبيب المسؤول"
+
+msgid "File"
+msgstr "الملف"
+
 msgid "Open patient file"
 msgstr "فتح ملف المريض"
 
@@ -2230,12 +4214,6 @@ msgstr "المريض حضر: تسجيل الملف كامل"
 
 msgid "preferred"
 msgstr "المفضل"
-
-msgid "Age"
-msgstr "السن"
-
-msgid "Gender"
-msgstr "النوع"
 
 msgid "City / area"
 msgstr "المدينة / المنطقة"
@@ -2294,11 +4272,17 @@ msgstr "شكوى مفتوحة"
 msgid "Record complaint"
 msgstr "تسجيل شكوى"
 
+msgid "Record treatment step"
+msgstr "تسجيل خطوة علاج"
+
 msgid "Data"
 msgstr "البيانات"
 
 msgid "Visits"
 msgstr "الزيارات"
+
+msgid "Treatment steps"
+msgstr "خطوات العلاج"
 
 msgid "ID & documents"
 msgstr "البطاقة والمستندات"
@@ -2309,21 +4293,8 @@ msgstr "الترشيح والأقارب"
 msgid "File number"
 msgstr "رقم الملف"
 
-msgid "Date of birth"
-msgstr "تاريخ الميلاد"
-
-#, python-format
-msgid "%(age)s years"
-msgstr "%(age)s سنة"
-
-msgid "Occupation"
-msgstr "الوظيفة"
-
 msgid "Address"
 msgstr "العنوان"
-
-msgid "Responsible intern"
-msgstr "الطبيب المسؤول"
 
 msgid "Registered"
 msgstr "تاريخ التسجيل"
@@ -2333,9 +4304,6 @@ msgstr "الموعد"
 
 msgid "Room"
 msgstr "الغرفة"
-
-msgid "Intern"
-msgstr "الطبيب"
 
 msgid "Arrived"
 msgstr "وصل"
@@ -2355,6 +4323,12 @@ msgstr "بدون حجز"
 msgid "No visits yet."
 msgstr "لا توجد زيارات بعد."
 
+msgid "Step"
+msgstr "الخطوة"
+
+msgid "Done by"
+msgstr "قام بها"
+
 msgid "No treatment steps yet."
 msgstr "لا توجد خطوات علاج بعد."
 
@@ -2369,9 +4343,6 @@ msgstr "لم يتم رفع صورة البطاقة بعد."
 
 msgid "Upload a document / ID scan"
 msgstr "رفع مستند / صورة بطاقة"
-
-msgid "Upload"
-msgstr "رفع"
 
 msgid "Who referred this patient"
 msgstr "مين رشّح هذا المريض"
@@ -2401,9 +4372,6 @@ msgid ""
 msgstr ""
 "تم نقل البيانات من قائمة المكالمات (%(name)s). أكملي بيانات البطاقة وارفعي "
 "صورتها."
-
-msgid "File"
-msgstr "الملف"
 
 msgid "Has lab work"
 msgstr "عنده شغل معمل"
@@ -2449,12 +4417,6 @@ msgstr "الأصناف (كل صنف تحت تصنيفه)"
 
 msgid "Unit"
 msgstr "الوحدة"
-
-msgid "delete"
-msgstr "حذف"
-
-msgid "Add item"
-msgstr "إضافة صنف"
 
 msgid "Total spent"
 msgstr "إجمالي المصروف"
@@ -2513,6 +4475,33 @@ msgstr "تم تغيير كلمة المرور."
 msgid "Show"
 msgstr "عرض"
 
+msgid "Dentist follow-up"
+msgstr "متابعة الأطباء"
+
+msgid "Remaining (course)"
+msgstr "المتبقي (الكورس)"
+
+msgid "Failed"
+msgstr "فشلت"
+
+msgid "Checked"
+msgstr "تمت مراجعتها"
+
+msgid "Active patients"
+msgstr "المرضى الحاليون"
+
+msgid "Scheduled hours"
+msgstr "ساعات الجدول"
+
+msgid "Chair hours"
+msgstr "ساعات الكرسي"
+
+msgid "Patient no-shows"
+msgstr "مرضى لم يحضروا"
+
+msgid "No dentists found."
+msgstr "لا يوجد أطباء."
+
 msgid "Reports and statistics"
 msgstr "التقارير والإحصائيات"
 
@@ -2521,20 +4510,17 @@ msgstr "زيارات المرضى والتوقيتات"
 
 msgid ""
 "Late arrivals, waiting time, time in the chair, total stay, no-shows — per "
-"intern and per room."
+"dentist and per room."
 msgstr ""
 "التأخير عن المواعيد، وقت الانتظار، الوقت على الكرسي، مدة البقاء، عدم الحضور "
 "— لكل طبيب ولكل غرفة."
 
-msgid "Intern follow-up"
-msgstr "متابعة أطباء الامتياز"
-
 msgid ""
-"Steps done by each intern, supervisor checks and grades, lab requests, "
-"patients, complaints and hours."
+"Treatments, surgeries and implants of each dentist (implants remaining for "
+"candidates), supervisor checks and grades, lab work, complaints and hours."
 msgstr ""
-"الخطوات التي قام بها كل طبيب، مراجعات وتقييمات المشرف، طلبات المعمل، المرضى،"
-" الشكاوى وساعات العمل."
+"العلاجات والعمليات والزرعات لكل طبيب (والزرعات المتبقية للدارسين)، مراجعات "
+"وتقييمات المشرف، شغل المعمل، الشكاوى وساعات العمل."
 
 msgid "Requests by status, turnaround days, remakes and late work per lab."
 msgstr ""
@@ -2556,33 +4542,6 @@ msgstr "الماليات"
 msgid ""
 "Installments collected and outstanding; purchases by category and supplier."
 msgstr "الأقساط المحصلة والمتبقية؛ المشتريات حسب التصنيف والمورد."
-
-msgid "Steps done"
-msgstr "الخطوات المنفذة"
-
-msgid "Checked by supervisor"
-msgstr "راجعها المشرف"
-
-msgid "Average grade"
-msgstr "متوسط التقييم"
-
-msgid "Active patients"
-msgstr "المرضى الحاليون"
-
-msgid "Scheduled hours"
-msgstr "ساعات الجدول"
-
-msgid "Chair hours"
-msgstr "ساعات الكرسي"
-
-msgid "Patient no-shows"
-msgstr "مرضى لم يحضروا"
-
-msgid "No interns registered. Add users with the intern role."
-msgstr "لا يوجد أطباء امتياز مسجلون. أضف مستخدمين بدور intern."
-
-msgid "Steps by type"
-msgstr "الخطوات حسب النوع"
 
 #, python-format
 msgid "Requests (%(total)s)"
@@ -2686,7 +4645,7 @@ msgstr "متوسط الوقت داخل الغرفة"
 msgid "Average total stay in clinic"
 msgstr "متوسط مدة البقاء في العيادة"
 
-msgid "Per intern"
+msgid "Per dentist"
 msgstr "لكل طبيب"
 
 msgid "Late patients"
@@ -2724,9 +4683,6 @@ msgstr "وقت الموعد"
 
 msgid "Expected duration"
 msgstr "المدة المتوقعة"
-
-msgid "Procedure"
-msgstr "الإجراء"
 
 msgid "Reason"
 msgstr "السبب"
@@ -2856,3 +4812,195 @@ msgstr "فاضية"
 
 msgid "min"
 msgstr "دقيقة"
+
+msgid "remove"
+msgstr "حذف"
+
+msgid "Case finder"
+msgstr "البحث في الحالات"
+
+msgid "Export to Excel (CSV)"
+msgstr "تصدير إلى Excel ‏(CSV)"
+
+msgid "Quick:"
+msgstr "سريع:"
+
+msgid "Saved searches:"
+msgstr "عمليات البحث المحفوظة:"
+
+msgid "Delete this saved search?"
+msgstr "حذف هذا البحث المحفوظ؟"
+
+msgid "Please correct the filters."
+msgstr "من فضلك صحح الفلاتر."
+
+msgid "Find"
+msgstr "بحث"
+
+msgid "Clear"
+msgstr "مسح"
+
+msgid "Hold Ctrl to choose several values in a list."
+msgstr "اضغط Ctrl لاختيار أكثر من قيمة في القائمة."
+
+msgid "Save this search as"
+msgstr "حفظ هذا البحث باسم"
+
+#, python-format
+msgid "%(s)s sites · %(p)s patients"
+msgstr "%(s)s موضع · %(p)s مريض"
+
+msgid "Survival"
+msgstr "نسبة النجاح"
+
+#, python-format
+msgid "%(f)s failed"
+msgstr "%(f)s فشلت"
+
+msgid "Loaded"
+msgstr "تم التحميل"
+
+#, python-format
+msgid "%(w)s waiting"
+msgstr "%(w)s في الانتظار"
+
+msgid "Mean days to loading"
+msgstr "متوسط الأيام حتى التحميل"
+
+msgid "Mean torque (Ncm)"
+msgstr "متوسط عزم الربط (Ncm)"
+
+msgid "Statistics by"
+msgstr "إحصائيات حسب"
+
+msgid "Sites"
+msgstr "المواضع"
+
+msgid "Days to loading"
+msgstr "الأيام حتى التحميل"
+
+msgid "Torque"
+msgstr "عزم الربط"
+
+#, python-format
+msgid "%(n)s results"
+msgstr "%(n)s نتيجة"
+
+msgid "No cases match these filters."
+msgstr "لا توجد حالات تطابق هذه الفلاتر."
+
+msgid "Lot"
+msgstr "التشغيلة"
+
+msgid "sticker"
+msgstr "الستيكر"
+
+msgid "Subcrestal"
+msgstr "تحت قمة العظم"
+
+msgid "Uncovered on"
+msgstr "تاريخ الكشف"
+
+msgid "Impression / scan on"
+msgstr "تاريخ الطبعة / المسح"
+
+msgid "Loaded on"
+msgstr "تاريخ التحميل"
+
+msgid "days after surgery"
+msgstr "يوم بعد العملية"
+
+msgid "Failed on"
+msgstr "تاريخ الفشل"
+
+msgid "Update implant stage"
+msgstr "تحديث مرحلة الزرعة"
+
+msgid ""
+"Stages move automatically when you record 2nd stage, impression / scan, "
+"delivery or implant failure in the treatment log. Use this form only to "
+"correct them."
+msgstr ""
+"المراحل تتحرك تلقائيًا عند تسجيل المرحلة الثانية أو الطبعة / المسح أو "
+"التركيب أو فشل الزرعة في سجل العلاج. استخدم هذا النموذج للتصحيح فقط."
+
+msgid "Surgery photos"
+msgstr "صور العملية"
+
+msgid "Print surgery chart"
+msgstr "طباعة شارت العملية"
+
+msgid "Name & code"
+msgstr "الاسم والكود"
+
+msgid "Implant type"
+msgstr "نوع الزرعة"
+
+msgid "Lot / sticker"
+msgstr "التشغيلة / الستيكر"
+
+msgid "Implant subcrestal"
+msgstr "الزرعة تحت قمة العظم"
+
+msgid "Block graft"
+msgstr "ترقيع بلوك"
+
+msgid "Cut by"
+msgstr "القطع بواسطة"
+
+msgid "Screws"
+msgstr "المسامير"
+
+msgid "Approach"
+msgstr "طريقة الدخول"
+
+msgid "Fill material"
+msgstr "خامة الملء"
+
+msgid "Tacks"
+msgstr "مسامير tacks"
+
+msgid "Graft"
+msgstr "الترقيع"
+
+msgid "Exposure"
+msgstr "انكشاف"
+
+msgid "customized healing collar"
+msgstr "Healing collar مُعدّل"
+
+msgid "Donor site"
+msgstr "مكان الأخذ"
+
+msgid "Recipient"
+msgstr "المكان المستقبل"
+
+msgid "Augmentation site"
+msgstr "موضع الترقيع"
+
+msgid "Pack"
+msgstr "الباك"
+
+msgid "Frenectomy"
+msgstr "قطع اللجام"
+
+msgid "Bone graft"
+msgstr "ترقيع العظم"
+
+msgid "Teeth: procedures and implants"
+msgstr "الأسنان: الإجراءات والزرعات"
+
+msgid "Add tooth"
+msgstr "إضافة سن"
+
+msgid "Save surgery chart"
+msgstr "حفظ شارت العملية"
+
+msgid "Surgery number, patient name or file number"
+msgstr "رقم العملية أو اسم المريض أو رقم الملف"
+
+msgid "Difficulty"
+msgstr "الصعوبة"
+
+msgid "No surgeries recorded."
+msgstr "لا توجد عمليات مسجلة."

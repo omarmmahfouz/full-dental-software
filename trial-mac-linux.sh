@@ -11,10 +11,11 @@ if [ ! -f .env ]; then
   printf '# Trial settings created by trial-mac-linux.sh - NOT for the real clinic server\nDJANGO_DEBUG=1\nDB_ENGINE=sqlite\nDJANGO_ALLOWED_HOSTS=*\n' > .env
 fi
 python manage.py migrate --verbosity 0
+python manage.py setup_clinic >/dev/null
 python manage.py load_demo_data --password demo12345 >/dev/null 2>&1 || true
 echo
 echo "  The system is running:  http://localhost:8000"
-echo "  Users (password demo12345): secretary  intern1  supervisor  owner"
+echo "  Users (password demo12345): secretary  dentist1..dentist6  supervisor  owner"
 echo "  Press Ctrl+C to stop."
 echo
 python manage.py runserver 0.0.0.0:8000

@@ -11,6 +11,11 @@
     </div>
   </div>
   <div class="d-flex gap-2 flex-wrap no-print">
+    <a class="btn btn-success" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a>
+    {% if is_clinical %}
+    <a class="btn btn-outline-success" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-nut"></i> {% trans "New surgery chart" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'charting:case_report' patient.pk %}"><i class="bi bi-journal-medical"></i> {% trans "Case report" %}</a>
+    {% endif %}
     {% if can_edit %}
     <a class="btn btn-outline-secondary" href="{% url 'patients:update' patient.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
     <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>
@@ -46,14 +51,15 @@
           <dt>{{ patient.get_id_type_display }}</dt><dd><span class="ltr">{{ patient.national_id }}</span></dd>
           <dt>{% trans "Date of birth" %}</dt><dd>{{ patient.birth_date|date:"d/m/Y"|default:"—" }} {% if patient.age is not None %}({% blocktrans with age=patient.age %}{{ age }} years{% endblocktrans %}){% endif %}</dd>
           <dt>{% trans "Gender" %}</dt><dd>{{ patient.get_gender_display|default:"—" }}</dd>
+          <dt>{% trans "Marital status" %}</dt><dd>{{ patient.get_marital_status_display|default:"—" }}</dd>
           <dt>{% trans "Occupation" %}</dt><dd>{{ patient.occupation|default:"—" }}</dd>
           <dt>{% trans "Missing teeth" %}</dt><dd>{{ patient.get_missing_teeth_display }} {{ patient.missing_teeth_notes }}</dd>
         </dl></div>
         <div class="col-md-6"><dl class="dl-grid">
           <dt>{% trans "Mobile 1" %}</dt><dd><span class="ltr">{{ patient.phone_primary }}</span>{% if patient.preferred_phone == "primary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
           <dt>{% trans "Mobile 2" %}</dt><dd><span class="ltr">{{ patient.phone_secondary|default:"—" }}</span>{% if patient.preferred_phone == "secondary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
-          <dt>{% trans "Address" %}</dt><dd>{{ patient.city }} {{ patient.address }}</dd>
-          <dt>{% trans "Responsible intern" %}</dt><dd class="fw-bold">{{ patient.assigned_intern|default:"—" }}</dd>
+          <dt>{% trans "Address" %}</dt><dd>{{ patient.governorate }}{% if patient.governorate and patient.city %} — {% endif %}{{ patient.city }} {{ patient.address }}</dd>
+          <dt>{% trans "Responsible dentist" %}</dt><dd class="fw-bold">{{ patient.assigned_dentist|default:"—" }}</dd>
           <dt>{% trans "Registered" %}</dt><dd class="small text-muted">{{ patient.created_at|date:"d/m/Y" }} — {{ patient.created_by|default:"" }}</dd>
           <dt>{% trans "Notes" %}</dt><dd>{{ patient.notes|linebreaksbr|default:"—" }}</dd>
         </dl></div>
@@ -63,12 +69,12 @@
 
   <div class="tab-pane fade" id="visits">
     <div class="card"><div class="table-responsive"><table class="table table-sm mb-0">
-      <thead><tr><th>{% trans "Appointment" %}</th><th>{% trans "Room" %}</th><th>{% trans "Intern" %}</th><th>{% trans "Arrived" %}</th><th>{% trans "Late by" %}</th><th>{% trans "Entered room" %}</th><th>{% trans "Left" %}</th><th>{% trans "In chair" %}</th><th>{% trans "Status" %}</th></tr></thead>
+      <thead><tr><th>{% trans "Appointment" %}</th><th>{% trans "Room" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Arrived" %}</th><th>{% trans "Late by" %}</th><th>{% trans "Entered room" %}</th><th>{% trans "Left" %}</th><th>{% trans "In chair" %}</th><th>{% trans "Status" %}</th></tr></thead>
       <tbody>
       {% for a in appointments %}
       <tr>
         <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|date:"d/m/Y g:i A" }}</a>{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}</td>
-        <td>{{ a.room|default:"—" }}</td><td>{{ a.intern|default:"—" }}</td>
+        <td>{{ a.room|default:"—" }}</td><td>{{ a.dentist|default:"—" }}</td>
         <td>{{ a.arrived_at|time:"g:i A"|default:"—" }}</td>
         <td>{% if a.is_late %}<span class="text-danger fw-bold">{{ a.late_minutes|minutes }}</span>{% elif a.late_minutes is not None %}{{ a.late_minutes|minutes }}{% else %}—{% endif %}</td>
         <td>{{ a.entered_room_at|time:"g:i A"|default:"—" }}</td>
@@ -90,8 +96,8 @@
         <td class="nowrap">{{ s.performed_at|date:"d/m/Y" }}</td>
         <td><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a></td>
         <td>{{ s.teeth|default:"—" }}</td>
-        <td>{{ s.performed_by }}</td>
-        <td class="small">{% if s.implant_system %}{{ s.implant_system }} {{ s.implant_size }} — {% endif %}{{ s.notes|truncatechars:80 }}</td>
+        <td>{{ s.operator|default:"—" }}{% if s.supervisor %}<div class="small text-muted">{{ s.supervisor }}</div>{% endif %}</td>
+        <td class="small">{% if s.surfaces %}{{ s.surfaces }} {% endif %}{% if s.material %}{{ s.material }} — {% endif %}{{ s.notes|truncatechars:80 }}{% if s.next_visit %}<div class="text-muted">{% trans "Next" %}: {{ s.next_visit }}</div>{% endif %}</td>
         <td>{% if s.is_verified %}<span class="badge text-bg-success"><i class="bi bi-check2"></i> {{ s.verified_by }}{% if s.grade %} · {{ s.grade }}/5{% endif %}</span>{% else %}<span class="badge text-bg-warning">{% trans "Not checked" %}</span>{% endif %}</td>
       </tr>
       {% empty %}<tr><td colspan="6" class="text-muted text-center py-3">{% trans "No treatment steps yet." %}</td></tr>{% endfor %}
@@ -105,7 +111,7 @@
       <tbody>
       {% for lr in lab_requests %}
       <tr>
-        <td><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a></td><td>{{ lr.work_type }}</td><td>{{ lr.teeth }}</td><td>{{ lr.lab }}</td><td>{{ lr.requested_by }}</td>
+        <td><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a></td><td>{{ lr.work_type }}</td><td>{{ lr.teeth }}</td><td>{{ lr.lab }}</td><td>{{ lr.dentist|default:"—" }}</td>
         <td>{{ lr.due_date|date:"d/m/Y"|default:"—" }}{% if lr.is_overdue %} <span class="badge text-bg-danger">{% trans "Late" %}</span>{% endif %}</td>
         <td>{% status_badge lr %}</td>
       </tr>

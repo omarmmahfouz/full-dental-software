@@ -19,7 +19,7 @@
     <td><a href="{{ lr.get_absolute_url }}" class="fw-semibold">{{ lr.number }}</a></td>
     <td><a href="{{ lr.patient.get_absolute_url }}">{{ lr.patient.full_name }}</a></td>
     <td>{{ lr.work_type }}{% if lr.remake_count %} <span class="badge text-bg-danger">{% trans "remake" %} ×{{ lr.remake_count }}</span>{% endif %}</td>
-    <td>{{ lr.teeth }}</td><td>{{ lr.lab }}</td><td>{{ lr.requested_by }}</td>
+    <td>{{ lr.teeth }}</td><td>{{ lr.lab }}</td><td>{{ lr.dentist|default:"—" }}</td>
     <td class="nowrap">{{ lr.sent_at|date:"d/m"|default:"—" }}</td>
     <td class="nowrap">{{ lr.due_date|date:"d/m/Y"|default:"—" }}{% if lr.is_overdue %} <span class="badge text-bg-danger">{% trans "Late" %}</span>{% endif %}</td>
     <td>{% status_badge lr %}</td>

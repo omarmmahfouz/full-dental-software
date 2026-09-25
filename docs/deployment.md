@@ -46,6 +46,7 @@ The database migrations run automatically.
 4. Run `deploy\windows\install.bat`.
    - The first run opens `.env` for you to fill in. Set `DB_HOST=localhost`.
    - Run it again after saving `.env`.
+   - To update to a new version later, copy the new files over the folder and run `install.bat` again. It applies the database changes and adds any new list items. Your data is kept.
 5. Run `deploy\windows\start_server.bat`. Make it start automatically in **Task Scheduler** with these settings:
    - Trigger: "At startup"
    - "Run whether user is logged on or not"
@@ -60,7 +61,7 @@ The database migrations run automatically.
 1. Log in with the owner account. Open **Settings, users and lists**, which is Django admin at `/admin/`.
 2. **Users**:
    - Create one account per person, with their first and last name.
-   - Tick the right **group**: `secretary`, `intern`, `supervisor` or `owner`.
+   - Tick the right **group**: `secretary`, `dentist`, `supervisor` or `owner`.
    - Set the **branch** in the staff profile to *Cairo Implant Academy*.
    - Tick "Staff status" only for people who may edit the settings lists, usually just the owner.
 3. **Rooms**: 5 rooms are created for you (`غرفة 1` … `غرفة 5`). You can rename them or add more.

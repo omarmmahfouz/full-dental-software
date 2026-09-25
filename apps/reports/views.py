@@ -6,20 +6,24 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from statistics import mean
 
+from django import forms
 from django.conf import settings
 from django.db.models import Avg, Count, DecimalField, ExpressionWrapper, F, Q, Sum
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
-from apps.academy.models import Enrollment, Payment, PaymentMethod
+from apps.academy.models import Course, Enrollment, Payment, PaymentMethod
 from apps.clinical.models import LabRequest, TreatmentStep
 from apps.complaints.models import Complaint
 from apps.core.forms import DateRangeForm
 from apps.core.mixins import role_required
-from apps.core.roles import INTERN, MANAGEMENT, OWNER, users_with_role
+from apps.dentists.models import Dentist
+from apps.core.roles import MANAGEMENT, OWNER
 from apps.patients.models import Lead, Patient
 from apps.purchasing.models import PurchaseCategory, PurchaseItem
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
+from apps.surgery.models import Surgery, SurgerySite
 
 
 def _period(request, default_days=30):
@@ -56,7 +60,7 @@ def visits_report(request):
     form, date_from, date_to, start, end = _period(request)
     threshold = settings.CLINIC["LATE_THRESHOLD_MINUTES"]
     appointments = list(
-        Appointment.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end).select_related("patient", "intern", "room")
+        Appointment.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end).select_related("patient", "dentist", "room")
     )
     booked = [a for a in appointments if not a.is_walk_in]
     arrived = [a for a in appointments if a.arrived_at]
@@ -103,7 +107,7 @@ def visits_report(request):
         {
             "form": form, "date_from": date_from, "date_to": date_to, "threshold": threshold,
             "summary": summary,
-            "by_intern": group(lambda a: str(a.intern) if a.intern else None),
+            "by_dentist": group(lambda a: str(a.dentist) if a.dentist else None),
             "by_room": group(lambda a: str(a.room) if a.room else None),
             "late_list": sorted(late, key=lambda a: -a.late_minutes)[:50],
             "long_waits": sorted([a for a in arrived if (a.waiting_minutes or 0) > 30], key=lambda a: -a.waiting_minutes)[:30],
@@ -111,74 +115,109 @@ def visits_report(request):
     )
 
 
+class DentistReportForm(DateRangeForm):
+    kind = forms.ChoiceField(label=_("type"), required=False, choices=[("", _("All"))] + list(Dentist.Kind.choices))
+    course = forms.ModelChoiceField(label=_("batch / course"), queryset=Course.objects.all(), required=False,
+                                    empty_label=_("All"))
+
+
 @role_required(*MANAGEMENT)
-def interns_report(request):
-    """What each intern did: steps, checks, grades, lab work, patients, complaints, hours."""
+def dentists_report(request):
+    """What each dentist did: treatments, checks, grades, surgeries, implants, lab work, patients, hours."""
     form, date_from, date_to, start, end = _period(request)
-    interns = list(users_with_role(INTERN))
+    extra = DentistReportForm(request.GET or None)
+    dentists = Dentist.objects.active().select_related("candidate")
+    if extra.is_valid():
+        if extra.cleaned_data.get("kind"):
+            dentists = dentists.filter(kind=extra.cleaned_data["kind"])
+        if extra.cleaned_data.get("course"):
+            dentists = dentists.filter(candidate__enrollments__course=extra.cleaned_data["course"])
+    dentists = list(dentists)
     steps = TreatmentStep.objects.filter(performed_at__gte=start, performed_at__lt=end)
     step_stats = {
-        row["performed_by"]: row
-        for row in steps.values("performed_by").annotate(
+        row["operator"]: row
+        for row in steps.values("operator").annotate(
             n=Count("id"), checked=Count("id", filter=Q(verified_at__isnull=False)), grade=Avg("grade")
         )
     }
     matrix = defaultdict(lambda: defaultdict(int))
     step_names = {}
-    for row in steps.values("performed_by", "step_type", "step_type__name_ar", "step_type__name_en").annotate(n=Count("id")):
-        matrix[row["performed_by"]][row["step_type"]] = row["n"]
+    lang_en = (request.LANGUAGE_CODE or "").startswith("en")
+    for row in steps.values("operator", "step_type", "step_type__name_ar", "step_type__name_en").annotate(n=Count("id")):
+        matrix[row["operator"]][row["step_type"]] = row["n"]
         step_names[row["step_type"]] = (
-            row["step_type__name_en"] if row["step_type__name_en"] and (request.LANGUAGE_CODE or "").startswith("en")
-            else row["step_type__name_ar"]
+            row["step_type__name_en"] if row["step_type__name_en"] and lang_en else row["step_type__name_ar"]
         )
+    surgeries = Surgery.objects.filter(date__range=(date_from, date_to))
+    surgeries_op1 = dict(surgeries.values_list("operator_1").annotate(n=Count("id")))
+    surgeries_op2 = dict(surgeries.exclude(operator_2=None).values_list("operator_2").annotate(n=Count("id")))
+    sites = SurgerySite.objects.filter(surgery__date__range=(date_from, date_to)).exclude(implant_status="")
+    implants = dict(sites.values_list("surgery__operator_1").annotate(n=Count("id")))
+    failed = dict(sites.filter(implant_status=SurgerySite.ImplantStatus.FAILED)
+                  .values_list("surgery__operator_1").annotate(n=Count("id")))
+    all_time_implants = dict(
+        SurgerySite.objects.exclude(implant_status="").values_list("surgery__operator_1").annotate(n=Count("id"))
+    )
     labs = dict(
-        LabRequest.objects.filter(created_at__gte=start, created_at__lt=end)
-        .values_list("requested_by").annotate(n=Count("id"))
+        LabRequest.objects.filter(created_at__gte=start, created_at__lt=end).values_list("dentist").annotate(n=Count("id"))
     )
     remakes = dict(
         LabRequest.objects.filter(created_at__gte=start, created_at__lt=end, remake_count__gt=0)
-        .values_list("requested_by").annotate(n=Count("id"))
+        .values_list("dentist").annotate(n=Count("id"))
     )
     patients = dict(
-        Patient.objects.filter(status=Patient.Status.ACTIVE).values_list("assigned_intern").annotate(n=Count("id"))
+        Patient.objects.filter(status=Patient.Status.ACTIVE).values_list("assigned_dentist").annotate(n=Count("id"))
     )
     complaints = dict(
         Complaint.objects.filter(created_at__gte=start, created_at__lt=end)
-        .values_list("concerned_staff").annotate(n=Count("id"))
+        .values_list("concerned_dentist").annotate(n=Count("id"))
     )
     shift_minutes = defaultdict(int)
     for shift in RoomShift.objects.filter(date__range=(date_from, date_to)):
         minutes = (datetime.combine(shift.date, shift.end_time) - datetime.combine(shift.date, shift.start_time)).seconds // 60
-        shift_minutes[shift.intern_id] += minutes
+        shift_minutes[shift.dentist_id] += minutes
     chair = defaultdict(int)
     no_shows = defaultdict(int)
-    for appointment in Appointment.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end, intern__isnull=False):
-        chair[appointment.intern_id] += appointment.chair_minutes or 0
-        no_shows[appointment.intern_id] += appointment.status == Appointment.Status.NO_SHOW
+    for appointment in Appointment.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end, dentist__isnull=False):
+        chair[appointment.dentist_id] += appointment.chair_minutes or 0
+        no_shows[appointment.dentist_id] += appointment.status == Appointment.Status.NO_SHOW
 
     step_types = sorted(step_names.items(), key=lambda item: item[1])
     rows = []
-    for intern in interns:
-        stats = step_stats.get(intern.pk, {})
+    for dentist in dentists:
+        stats = step_stats.get(dentist.pk, {})
+        required = remaining = None
+        if dentist.candidate_id:
+            enrollment = dentist.candidate.current_enrollment
+            if enrollment is not None and enrollment.implants_required:
+                required = enrollment.implants_required
+                remaining = max(required - all_time_implants.get(dentist.pk, 0), 0)
         rows.append({
-            "intern": intern,
+            "dentist": dentist,
             "steps": stats.get("n", 0),
             "checked": stats.get("checked", 0),
             "grade": round(stats["grade"], 1) if stats.get("grade") else None,
-            "labs": labs.get(intern.pk, 0),
-            "remakes": remakes.get(intern.pk, 0),
-            "patients": patients.get(intern.pk, 0),
-            "complaints": complaints.get(intern.pk, 0),
-            "shift_hours": round(shift_minutes[intern.pk] / 60, 1),
-            "chair_hours": round(chair[intern.pk] / 60, 1),
-            "no_shows": no_shows[intern.pk],
-            "by_type": [matrix[intern.pk].get(type_id, 0) for type_id, _name in step_types],
+            "surgeries": surgeries_op1.get(dentist.pk, 0),
+            "surgeries_op2": surgeries_op2.get(dentist.pk, 0),
+            "implants": implants.get(dentist.pk, 0),
+            "failed": failed.get(dentist.pk, 0),
+            "required": required,
+            "remaining": remaining,
+            "labs": labs.get(dentist.pk, 0),
+            "remakes": remakes.get(dentist.pk, 0),
+            "patients": patients.get(dentist.pk, 0),
+            "complaints": complaints.get(dentist.pk, 0),
+            "shift_hours": round(shift_minutes[dentist.pk] / 60, 1),
+            "chair_hours": round(chair[dentist.pk] / 60, 1),
+            "no_shows": no_shows[dentist.pk],
+            "by_type": [matrix[dentist.pk].get(type_id, 0) for type_id, _name in step_types],
         })
-    rows.sort(key=lambda r: -r["steps"])
+    rows.sort(key=lambda r: (-r["implants"], -r["steps"]))
     return render(
         request,
-        "reports/interns.html",
-        {"form": form, "date_from": date_from, "date_to": date_to, "rows": rows, "step_types": step_types},
+        "reports/dentists.html",
+        {"form": form, "extra": extra, "date_from": date_from, "date_to": date_to, "rows": rows,
+         "step_types": step_types},
     )
 
 
@@ -204,7 +243,7 @@ def lab_report(request):
         for name, s in sorted(by_lab.items())
     ]
     overdue = LabRequest.objects.filter(status=LabRequest.Status.SENT, due_date__lt=timezone.localdate()).select_related(
-        "patient", "lab", "work_type", "requested_by"
+        "patient", "lab", "work_type", "dentist"
     )
     return render(
         request,

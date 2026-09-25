@@ -15,6 +15,6 @@
 </div>
 <div class="card"><div class="card-header text-danger">{% trans "Late at the lab now" %}</div><div class="table-responsive"><table class="table mb-0">
   <thead><tr><th>{% trans "No." %}</th><th>{% trans "Patient" %}</th><th>{% trans "Work" %}</th><th>{% trans "Lab" %}</th><th>{% trans "Sent" %}</th><th>{% trans "Needed by" %}</th><th>{% trans "Doctor" %}</th></tr></thead>
-  <tbody>{% for lr in overdue %}<tr><td><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a></td><td>{{ lr.patient.full_name }}</td><td>{{ lr.work_type }}</td><td>{{ lr.lab }}</td><td>{{ lr.sent_at|date:"d/m/Y" }}</td><td class="text-danger">{{ lr.due_date|date:"d/m/Y" }}</td><td>{{ lr.requested_by }}</td></tr>{% empty %}<tr><td colspan="7" class="text-muted">{% trans "Nothing is late." %}</td></tr>{% endfor %}</tbody>
+  <tbody>{% for lr in overdue %}<tr><td><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a></td><td>{{ lr.patient.full_name }}</td><td>{{ lr.work_type }}</td><td>{{ lr.lab }}</td><td>{{ lr.sent_at|date:"d/m/Y" }}</td><td class="text-danger">{{ lr.due_date|date:"d/m/Y" }}</td><td>{{ lr.dentist|default:"—" }}</td></tr>{% empty %}<tr><td colspan="7" class="text-muted">{% trans "Nothing is late." %}</td></tr>{% endfor %}</tbody>
 </table></div></div>
 {% endblock %}

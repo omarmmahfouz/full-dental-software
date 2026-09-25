@@ -38,26 +38,29 @@ def split_amount(total, parts):
 class CourseForm(StyledModelForm):
     class Meta:
         model = Course
-        fields = ["name", "code", "start_date", "end_date", "fee", "capacity", "is_active", "description"]
+        fields = ["name", "code", "start_date", "end_date", "fee", "capacity", "implants_required", "is_active",
+                  "description"]
 
 
 class CandidateForm(StyledModelForm):
     fieldsets = [
-        (_("Personal data"), ["full_name", "national_id", "phone_primary", "phone_secondary", "email"]),
+        (_("Personal data"), ["code", "full_name", "certificate_name", "national_id", "birth_date", "nationality"]),
+        (_("Contact"), ["phone_primary", "whatsapp", "phone_secondary", "email", "facebook", "instagram", "linkedin"]),
         (_("Professional data"), ["university", "graduation_year", "syndicate_number"]),
-        ("", ["id_scan", "notes"]),
+        ("", ["referral_source", "id_scan", "notes"]),
     ]
 
     class Meta:
         model = Candidate
         fields = [
-            "full_name", "national_id", "phone_primary", "phone_secondary", "email",
-            "university", "graduation_year", "syndicate_number", "id_scan", "notes",
+            "code", "full_name", "certificate_name", "national_id", "birth_date", "nationality",
+            "phone_primary", "whatsapp", "phone_secondary", "email", "facebook", "instagram", "linkedin",
+            "university", "graduation_year", "syndicate_number", "referral_source", "id_scan", "notes",
         ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for name in ("phone_primary", "phone_secondary"):
+        for name in ("phone_primary", "phone_secondary", "whatsapp"):
             self.fields[name].widget.input_type = "tel"
         self.fields["id_scan"].validators.append(validate_upload)
         self.fields["id_scan"].widget.attrs["accept"] = "image/*,application/pdf"
@@ -71,6 +74,12 @@ class CandidateForm(StyledModelForm):
 
     def clean_phone_secondary(self):
         return clean_phone_value(self.cleaned_data.get("phone_secondary"), mobile_only=False)
+
+    def clean_whatsapp(self):
+        return clean_phone_value(self.cleaned_data.get("whatsapp"), mobile_only=False)
+
+    def clean_code(self):
+        return (self.cleaned_data.get("code") or "").strip().upper() or None
 
 
 class EnrollmentForm(StyledModelForm):
@@ -86,14 +95,14 @@ class EnrollmentForm(StyledModelForm):
     first_due_date = forms.DateField(label=_("first installment date"), required=False)
 
     fieldsets = [
-        ("", ["course", "enrolled_on", "agreed_fee", "discount"]),
+        ("", ["course", "enrolled_on", "agreed_fee", "discount", "implants_required_override"]),
         (_("Installment plan"), ["down_payment", "down_payment_method", "installments_count", "first_due_date"]),
         ("", ["notes"]),
     ]
 
     class Meta:
         model = Enrollment
-        fields = ["course", "enrolled_on", "agreed_fee", "discount", "notes"]
+        fields = ["course", "enrolled_on", "agreed_fee", "discount", "implants_required_override", "notes"]
 
     def __init__(self, *args, candidate=None, **kwargs):
         self.candidate = candidate
@@ -158,11 +167,13 @@ InstallmentFormSet = inlineformset_factory(
 class PaymentForm(StyledModelForm):
     class Meta:
         model = Payment
-        fields = ["amount", "paid_on", "method", "reference", "notes"]
+        fields = ["amount", "paid_on", "method", "reference", "proof", "notes"]
 
     def __init__(self, *args, enrollment=None, **kwargs):
         self.enrollment = enrollment
         super().__init__(*args, **kwargs)
+        self.fields["proof"].validators.append(validate_upload)
+        self.fields["proof"].widget.attrs["accept"] = "image/*,application/pdf"
         for name in self.fields:
             self.fields[name].col = "col-md-4"
 
@@ -176,7 +187,8 @@ class PaymentForm(StyledModelForm):
 
     def clean(self):
         data = super().clean()
-        needs_reference = (PaymentMethod.INSTAPAY, PaymentMethod.WALLET, PaymentMethod.BANK, PaymentMethod.CHEQUE)
+        needs_reference = (PaymentMethod.INSTAPAY, PaymentMethod.WALLET, PaymentMethod.BANK,
+                           PaymentMethod.BANK_DEPOSIT, PaymentMethod.CHEQUE)
         if data.get("method") in needs_reference and not data.get("reference"):
             self.add_error("reference", _("Write the transaction / transfer reference number."))
         return data
@@ -187,3 +199,8 @@ class PaymentFilterForm(StyledForm):
     date_to = forms.DateField(label=_("To"), required=False)
     method = forms.ChoiceField(label=_("payment method"), required=False, choices=[("", _("All"))] + list(PaymentMethod.choices))
     course = forms.ModelChoiceField(label=_("course"), queryset=Course.objects.all(), required=False, empty_label=_("All"))
+
+
+class CandidateFilterForm(StyledForm):
+    q = forms.CharField(label=_("Search"), required=False)
+    course = forms.ModelChoiceField(label=_("batch / course"), queryset=Course.objects.all(), required=False, empty_label=_("All"))
