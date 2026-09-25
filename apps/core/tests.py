@@ -2,6 +2,7 @@ from datetime import date
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import translation
 
 from apps.core.models import Notification
 from apps.core.notify import notify_roles
@@ -121,3 +122,87 @@ class LanguageTests(TestCase):
         page = self.client.get("/schedule/rooms/")
         self.assertIn("Room 1", [str(room) for room, _cells in page.context["rows"]])
         self.assertTrue(Room.objects.filter(name="غرفة 1", name_en="Room 1").exists())
+
+
+class AccessAndSettingsTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.owner = make_user("owner", "owner")
+        self.secretary = make_user("sec", "secretary")
+
+    def test_read_only_person(self):
+        from apps.core.models import UserProfile
+
+        UserProfile.objects.update_or_create(user=self.secretary, defaults={"read_only": True})
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/patients/")
+        self.assertEqual(page.status_code, 200)
+        self.assertTrue(page.context["read_only_here"])
+        self.assertEqual(self.client.post("/patients/calls/new/", {"full_name": "x"}).status_code, 403)
+        # Changing the language is always allowed.
+        self.assertEqual(self.client.post("/i18n/setlang/", {"language": "en"}).status_code, 302)
+
+    def test_role_access_matrix(self):
+        from apps.core.models import AreaAccess
+
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post("/settings/access/", {"secretary__purchases": "hidden", "secretary__complaints": "read"})
+        self.assertEqual(AreaAccess.objects.get(role="secretary", area="purchases").level, "hidden")
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/purchases/").status_code, 403)
+        self.assertIn("purchases", self.client.get("/").context["hidden_areas"])
+        self.assertEqual(self.client.get("/complaints/").status_code, 200)
+        self.assertEqual(self.client.post("/complaints/new/", {}).status_code, 403)
+        self.client.login(username="owner", password=PASSWORD)  # the owner is never limited
+        self.assertEqual(self.client.get("/purchases/").status_code, 200)
+
+    def test_time_limits(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.core.models import UserProfile
+
+        profile, _created = UserProfile.objects.get_or_create(user=self.secretary)
+        self.client.login(username="sec", password=PASSWORD)
+        profile.access_until = timezone.localdate() - timedelta(days=1)
+        profile.save()
+        response = self.client.get("/patients/")
+        self.assertRedirects(response, "/login/", fetch_redirect_response=False)
+        response = self.client.post("/login/", {"username": "sec", "password": PASSWORD})
+        self.assertEqual(response.context["form"].non_field_errors().as_data()[0].code, "time")
+        today = timezone.localdate().weekday()
+        profile.access_until, profile.access_days = None, str((today + 1) % 7)
+        profile.save()
+        with translation.override("en"):
+            self.assertIn("day", profile.access_problem())
+        profile.access_days = ""
+        profile.save()
+        self.assertEqual(profile.access_problem(), "")
+
+    def test_owner_manages_people_and_lists(self):
+        from apps.core.models import ClinicSettings, UserProfile
+        from apps.surgery.models import ImplantSystem
+
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post("/settings/users/new/", {
+            "username": "newsec", "first_name": "Sara", "roles": ["secretary"], "is_active": "on",
+            "new_password": "pass-12345", "read_only": "on", "access_days": ["5", "6"],
+            "access_start": "09:00", "access_end": "17:00",
+        })
+        profile = UserProfile.objects.get(user__username="newsec")
+        self.assertEqual((profile.read_only, profile.access_days), (True, "5,6"))
+        self.assertTrue(profile.user.groups.filter(name="secretary").exists())
+        self.client.post("/settings/lists/implant_systems/new/", {"company": "Zimmer", "line": "TSV", "is_active": "on"})
+        self.assertTrue(ImplantSystem.objects.filter(company="Zimmer").exists())
+        self.client.post("/settings/options/", {
+            "o-late_threshold_minutes": 15, "o-default_appointment_minutes": 45, "o-complaint_follow_up_days": 3,
+            "o-stock_expiry_days": 30, "o-reminder_days_before": 2, "o-whatsapp_country_code": "20",
+            "b-name_ar": "أكاديمية القاهرة لزراعة الأسنان", "b-name_en": "Cairo Implant Academy", "b-phone": "0223456789",
+            "b-address": "Cairo",
+        })
+        self.assertEqual(ClinicSettings.get().late_threshold_minutes, 15)
+        make_user("head", "head_cia")
+        self.client.login(username="head", password=PASSWORD)
+        self.assertEqual(self.client.get("/settings/users/").status_code, 403)
+        self.assertEqual(self.client.get("/settings/lists/implant_systems/").status_code, 200)

@@ -37,6 +37,13 @@ def app_context(request):
                 "only_dentist": is_only_dentist(user),
             }
         )
+        from .access import area_levels, area_of
+
+        levels = area_levels(user)
+        context["hidden_areas"] = {area for area, level in levels.items() if level == "hidden"}
+        context["read_only_here"] = (levels.get(area_of(request.path)) or levels.get("*")) == "read"
+        context["can_stock"] = context["can_stock"] and "stock" not in context["hidden_areas"]
+        context["can_purchase"] = context["can_purchase"] and "purchases" not in context["hidden_areas"]
         if roles & set(DENTISTS + (SUPERVISOR,)):
             from apps.dentists.models import Dentist
 

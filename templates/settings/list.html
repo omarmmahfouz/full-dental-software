@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><a class="text-decoration-none" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i></a> {{ title }}</h1>
+  <a class="btn btn-primary" href="{% url 'settings:list_create' key %}"><i class="bi bi-plus-lg"></i> {% trans "Add" %}</a>
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
+  <thead><tr>{% for h in headers %}<th>{{ h|capfirst }}</th>{% endfor %}<th></th></tr></thead>
+  <tbody>{% for obj, values, active in rows %}<tr class="{% if not active %}text-muted{% endif %}">
+    {% for v in values %}<td>{% if forloop.first %}<a class="fw-semibold" href="{% url 'settings:list_update' key obj.pk %}">{{ v|default:"—" }}</a>{% else %}{{ v|default:"—"|truncatechars:80 }}{% endif %}</td>{% endfor %}
+    <td class="text-end">{% if not active %}<span class="badge text-bg-secondary">{% trans "not used" %}</span>{% endif %} <a class="btn btn-sm btn-outline-secondary" href="{% url 'settings:list_update' key obj.pk %}"><i class="bi bi-pencil"></i></a></td>
+  </tr>{% empty %}<tr><td class="text-muted text-center py-4" colspan="{{ headers|length|add:1 }}">{% trans "Nothing yet." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<p class="small text-muted mt-2">{% trans "Items are never deleted, because old records use them: untick “active” to stop using one." %}</p>
+{% endblock %}

@@ -7,7 +7,6 @@ from decimal import Decimal
 from statistics import mean
 
 from django import forms
-from django.conf import settings
 from django.db.models import Avg, Count, DecimalField, ExpressionWrapper, F, Q, Sum
 from django.shortcuts import render
 from django.utils import timezone
@@ -18,6 +17,7 @@ from apps.clinical.models import LabRequest, TreatmentStep
 from apps.complaints.models import Complaint
 from apps.core.forms import DateRangeForm
 from apps.core.mixins import role_required
+from apps.core.models import ClinicSettings
 from apps.dentists.models import Dentist
 from apps.core.roles import MANAGEMENT, OWNER, TEAM_HEAD, has_role
 from apps.patients.models import Lead, Patient
@@ -58,7 +58,7 @@ def index(request):
 def visits_report(request):
     """Punctuality, waiting, chair time and total stay."""
     form, date_from, date_to, start, end = _period(request)
-    threshold = settings.CLINIC["LATE_THRESHOLD_MINUTES"]
+    threshold = ClinicSettings.get().late_threshold_minutes
     appointments = list(
         Appointment.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end).select_related("patient", "dentist", "room")
     )

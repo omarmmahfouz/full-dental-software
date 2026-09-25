@@ -17,4 +17,6 @@ urlpatterns = [
     path("rooms/shift/<int:pk>/", views.shift_edit, name="shift_update"),
     path("rooms/shift/<int:pk>/delete/", views.shift_delete, name="shift_delete"),
     path("rooms/copy-week/", views.copy_previous_week, name="copy_week"),
+    path("whatsapp/", views.whatsapp_list, name="whatsapp"),
+    path("whatsapp/<int:pk>/<slug:kind>/", views.whatsapp_send, name="whatsapp_send"),
 ]

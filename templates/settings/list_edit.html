@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><a class="text-decoration-none" href="{% url 'settings:list' key %}"><i class="bi bi-arrow-left"></i></a> {{ title }}{% if object %} — {{ object }}{% endif %}</h1></div>
+<form method="post" novalidate class="card"><div class="card-body">{% csrf_token %}
+  {% include "includes/form_fields.html" %}
+  {% if formset %}
+  <h2 class="h6 mt-4">{% trans "Lines" %}</h2>
+  {{ formset.management_form }}
+  {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors }}</div>{% endif %}
+  <div class="table-responsive"><table class="table table-sm align-middle">
+    <thead><tr>{% for field in formset.empty_form.visible_fields %}{% if field.name != "DELETE" %}<th>{{ field.label }}</th>{% endif %}{% endfor %}<th>{% trans "delete" %}</th></tr></thead>
+    <tbody>{% for row in formset %}<tr>
+      {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+      {% for field in row.visible_fields %}{% if field.name != "DELETE" %}<td>{{ field }}{% for e in field.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</td>{% endif %}{% endfor %}
+      <td>{% if row.instance.pk %}{{ row.DELETE }}{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+  <div class="mt-3 d-flex gap-2">
+    <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+    <a class="btn btn-outline-secondary" href="{% url 'settings:list' key %}">{% trans "Cancel" %}</a>
+  </div>
+</div></form>
+{% endblock %}

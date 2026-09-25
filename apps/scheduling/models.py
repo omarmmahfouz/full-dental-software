@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import Branch, TimeStampedModel
+from apps.core.models import Branch, ClinicSettings, TimeStampedModel
 from apps.core.utils import minutes_between
 
 
@@ -152,7 +152,7 @@ class Appointment(TimeStampedModel):
     @property
     def is_late(self):
         late = self.late_minutes
-        return late is not None and late > settings.CLINIC["LATE_THRESHOLD_MINUTES"]
+        return late is not None and late > ClinicSettings.get().late_threshold_minutes
 
     @property
     def waiting_minutes(self):
@@ -220,3 +220,47 @@ def day_bounds(day):
     """Aware datetimes for the start of ``day`` and of the next day (local time)."""
     start = timezone.make_aware(datetime.combine(day, datetime.min.time()))
     return start, start + timedelta(days=1)
+
+
+class MessageTemplate(models.Model):
+    """The WhatsApp texts the reception sends. Words in {braces} are filled in:
+    {patient} {day} {date} {time} {dentist} {clinic} {phone} {address}."""
+
+    class Kind(models.TextChoices):
+        CONFIRMATION = "confirmation", _("Booking confirmation")
+        REMINDER = "reminder", _("Appointment reminder")
+        NO_SHOW = "no_show", _("Missed appointment")
+
+    kind = models.CharField(_("message"), max_length=20, choices=Kind.choices, unique=True)
+    text = models.TextField(
+        _("text"),
+        help_text=_("Words in braces are filled in: {patient} {day} {date} {time} {dentist} {clinic} {phone} {address}"),
+    )
+    is_active = models.BooleanField(_("active"), default=True)
+
+    class Meta:
+        ordering = ["kind"]
+        verbose_name = _("WhatsApp message")
+        verbose_name_plural = _("WhatsApp messages")
+
+    def __str__(self):
+        return self.get_kind_display()
+
+
+class SentMessage(models.Model):
+    """A WhatsApp message the reception opened to send (who, to whom, when, what)."""
+
+    appointment = models.ForeignKey(Appointment, null=True, blank=True, on_delete=models.CASCADE,
+                                    related_name="messages")
+    patient = models.ForeignKey("patients.Patient", on_delete=models.CASCADE, related_name="messages")
+    kind = models.CharField(_("message"), max_length=20, choices=MessageTemplate.Kind.choices)
+    phone = models.CharField(_("mobile"), max_length=20)
+    text = models.TextField(_("text"))
+    sent_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                                related_name="+")
+    sent_at = models.DateTimeField(_("sent at"), auto_now_add=True)
+
+    class Meta:
+        ordering = ["-sent_at"]
+        verbose_name = _("WhatsApp message sent")
+        verbose_name_plural = _("WhatsApp messages sent")

@@ -32,7 +32,8 @@ from apps.patients.models import CallListEntry, Lead, MedicalCondition, MissingT
 from apps.prescriptions.models import Prescription, PrescriptionLine
 from apps.prescriptions.services import best_template, surgery_procedures
 from apps.purchasing.models import Purchase, PurchaseCategory, PurchaseItem, Supplier
-from apps.scheduling.models import Appointment, Room, RoomShift
+from apps.scheduling.models import Appointment, MessageTemplate, Room, RoomShift
+from apps.scheduling.whatsapp import record
 from apps.stock.importer import import_items, parse
 from apps.stock.models import StockCategory, StockItem, StockMovement
 from apps.stock.services import record_movement, sync_purchase
@@ -246,6 +247,21 @@ class Command(BaseCommand):
                         step.verified_by, step.verified_at, step.grade = head, left, rng.randint(3, 5)
                         step.save()
 
+        # ---------------------------------------------------------- upcoming appointments (WhatsApp reminders)
+        upcoming, pick = [], random.Random(11)  # own generator: the data below stays the same
+        for offset in range(1, 8):
+            day = today + timedelta(days=offset)
+            if day.weekday() == 4:
+                continue
+            for slot, patient in enumerate(pick.sample(patients, 3)):
+                upcoming.append(Appointment.objects.create(
+                    branch=branch, patient=patient, scheduled_at=at(day, 11 + slot), dentist=patient.assigned_dentist,
+                    room=rooms[treating.index(patient.assigned_dentist) % len(rooms)],
+                    purpose=pick.choice(visit_types).name_en, created_by=secretary,
+                ))
+        # Booked last week, except the last three: new bookings still to confirm on WhatsApp.
+        Appointment.objects.filter(pk__in=[a.pk for a in upcoming[:-3]]).update(created_at=now - timedelta(days=8))
+
         # ---------------------------------------------------------- charts, plans and implant surgeries
         systems = list(ImplantSystem.objects.all()[:5])
         for index, (sites, extras) in enumerate(CASES):
@@ -443,6 +459,9 @@ class Command(BaseCommand):
         first.outcome, first.response = CallListEntry.Outcome.BOOKED, "Booked next Tuesday 11 am"
         first.attempts, first.called_at, first.called_by = 1, now, secretary
         first.save()
+
+        # ---------------------------------------------------------- WhatsApp: one confirmation already sent
+        record(MessageTemplate.Kind.CONFIRMATION, upcoming[-3], secretary)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "

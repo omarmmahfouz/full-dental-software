@@ -85,6 +85,21 @@ class UserProfile(models.Model):
         choices=[("", _("Automatic (Arabic for secretaries, English for dentists)")), ("ar", _("Arabic")), ("en", _("English"))],
     )
     notes = models.TextField(_("notes"), blank=True)
+    read_only = models.BooleanField(
+        _("read only"), default=False, help_text=_("Can open the pages of their role but cannot save or change anything.")
+    )
+    access_from = models.DateField(_("access starts on"), null=True, blank=True)
+    access_until = models.DateField(_("access ends on"), null=True, blank=True,
+                                    help_text=_("After this day the login stops working (e.g. end of a course or contract)."))
+    access_days = models.CharField(_("days allowed"), max_length=20, blank=True,
+                                   help_text=_("Empty = every day."))
+    access_start = models.TimeField(_("from hour"), null=True, blank=True)
+    access_end = models.TimeField(_("to hour"), null=True, blank=True)
+
+    WEEKDAYS = [
+        ("5", _("Saturday")), ("6", _("Sunday")), ("0", _("Monday")), ("1", _("Tuesday")),
+        ("2", _("Wednesday")), ("3", _("Thursday")), ("4", _("Friday")),
+    ]
 
     class Meta:
         verbose_name = _("staff profile")
@@ -92,6 +107,81 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return str(self.user)
+
+    @property
+    def has_time_limits(self):
+        return bool(self.access_from or self.access_until or self.access_days or self.access_start or self.access_end)
+
+    def access_problem(self, moment=None):
+        """Why this person may not use the system right now ("" when they may)."""
+        moment = timezone.localtime(moment)
+        today, now = moment.date(), moment.time()
+        if self.access_from and today < self.access_from:
+            return _("Your access starts on %(day)s.") % {"day": self.access_from.strftime("%d/%m/%Y")}
+        if self.access_until and today > self.access_until:
+            return _("Your access ended on %(day)s.") % {"day": self.access_until.strftime("%d/%m/%Y")}
+        if self.access_days and str(today.weekday()) not in self.access_days.split(","):
+            return _("You cannot use the system on this day.")
+        if self.access_start and self.access_end:
+            inside = (self.access_start <= now <= self.access_end if self.access_start <= self.access_end
+                      else now >= self.access_start or now <= self.access_end)
+            if not inside:
+                return _("You can use the system from %(start)s to %(end)s.") % {
+                    "start": self.access_start.strftime("%H:%M"), "end": self.access_end.strftime("%H:%M")}
+        return ""
+
+
+class ClinicSettings(models.Model):
+    """Options the owner changes from Settings, without touching the code. One row."""
+
+    late_threshold_minutes = models.PositiveSmallIntegerField(
+        _("a patient is late after (minutes)"), default=10)
+    default_appointment_minutes = models.PositiveSmallIntegerField(_("usual appointment length (minutes)"), default=60)
+    complaint_follow_up_days = models.PositiveSmallIntegerField(_("follow up a complaint within (days)"), default=2)
+    stock_expiry_days = models.PositiveSmallIntegerField(_("warn about stock expiring within (days)"), default=60)
+    reminder_days_before = models.PositiveSmallIntegerField(
+        _("send appointment reminders (days before)"), default=1)
+    whatsapp_country_code = models.CharField(
+        _("country code for WhatsApp"), max_length=4, default="20",
+        help_text=_("20 for Egypt. Mobiles written as 010... are sent as 2010..."))
+
+    class Meta:
+        verbose_name = _("clinic options")
+        verbose_name_plural = _("clinic options")
+
+    def __str__(self):
+        return str(_("Clinic options"))
+
+    @classmethod
+    def get(cls):
+        defaults = {
+            "late_threshold_minutes": settings.CLINIC.get("LATE_THRESHOLD_MINUTES", 10),
+            "default_appointment_minutes": settings.CLINIC.get("DEFAULT_APPOINTMENT_MINUTES", 60),
+            "complaint_follow_up_days": settings.CLINIC.get("COMPLAINT_FOLLOW_UP_DAYS", 2),
+        }
+        return cls.objects.get_or_create(pk=1, defaults=defaults)[0]
+
+
+class AreaAccess(models.Model):
+    """Limit a role in one part of the system: read only, or hidden.
+    Without a row the role keeps the access it normally has."""
+
+    class Level(models.TextChoices):
+        FULL = "full", _("Normal access")
+        READ = "read", _("Read only")
+        HIDDEN = "hidden", _("No access")
+
+    role = models.CharField(_("role"), max_length=20)
+    area = models.CharField(_("part of the system"), max_length=30)
+    level = models.CharField(_("access"), max_length=10, choices=Level.choices, default=Level.FULL)
+
+    class Meta:
+        verbose_name = _("access of a role")
+        verbose_name_plural = _("access of the roles")
+        constraints = [models.UniqueConstraint(fields=["role", "area"], name="unique_area_access")]
+
+    def __str__(self):
+        return f"{self.role} / {self.area}: {self.level}"
 
 
 class Notification(models.Model):

@@ -13,7 +13,7 @@
 </div>
 <div class="row g-2 mb-3 no-print">
   <div class="col-6 col-md-3"><a class="card stat-card text-decoration-none h-100" href="?low=on"><div class="card-body p-2"><div class="stat-value {% if low_count %}text-danger{% endif %}">{{ low_count }}</div><div class="stat-label">{% trans "Low stock" %}</div></div></a></div>
-  <div class="col-6 col-md-3"><a class="card stat-card text-decoration-none h-100" href="?expiring=on"><div class="card-body p-2"><div class="stat-value {% if expiring_count %}text-warning{% endif %}">{{ expiring_count }}</div><div class="stat-label">{% trans "Expiring within 60 days" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><a class="card stat-card text-decoration-none h-100" href="?expiring=on"><div class="card-body p-2"><div class="stat-value {% if expiring_count %}text-warning{% endif %}">{{ expiring_count }}</div><div class="stat-label">{% blocktrans with n=expiry_days %}Expiring within {{ n }} days{% endblocktrans %}</div></div></a></div>
 </div>
 <form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
   <div class="col-md-3"><label class="form-label">{{ filter_form.q.label }}</label>{{ filter_form.q }}</div>

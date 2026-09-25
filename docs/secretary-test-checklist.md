@@ -70,7 +70,7 @@ A screenshot helps a lot.
 34. "السجل" on the request should show who created, reviewed, sent and received it, and when.
 
 ## F. Complaints
-35. From a patient file, click "تسجيل شكوى". Write the complaint and set "الأهمية" to "عالية - عاجلة". Save. Then log in as **supervisor** or **owner**: the bell 🔔 should show the new complaint straight away.
+35. From a patient file, click "تسجيل شكوى". Write the complaint and set "الأهمية" to "عالية - عاجلة". Save. Then log in as **headcia** or **owner**: the bell 🔔 should show the new complaint straight away.
 36. Add a follow-up ("إضافة متابعة") with a next date. It should appear in "سجل المتابعة". Set the status to "تم الحل" and the solution is saved.
 
 ## G. Course candidates and installments
@@ -103,7 +103,21 @@ A screenshot helps a lot.
     - The green calendar button opens "حجز موعد" with the patient filled in.
 45. From a patient's dental chart, click "تعليمات بعد العملية". The instructions print in Arabic with the patient's name and the surgery.
 
-## J. General
-46. Every screen should be in Arabic, right to left, with the CIA logo and colours.
-47. Log out, then try to open a page. You should be sent to the login page.
-48. Log in as **dentist1**. The screens should be in **English**. They should **not** see the call list, patient registration, the academy or purchases. They see every patient and can read the complaints, but cannot record or edit them.
+## J. WhatsApp messages to patients
+For WhatsApp to open on the reception PC, install **WhatsApp Desktop** or open **WhatsApp Web** once with the clinic's WhatsApp number. On a phone or tablet, the WhatsApp app opens.
+
+46. Book an appointment ("حجز موعد"). After saving, the message says "تم حجز الموعد. أرسل التأكيد على واتساب."
+47. On the appointment page, the "واتساب" card has the buttons "تأكيد الحجز" and "تذكير بالموعد". For a missed appointment it also has "موعد لم يحضره". Click "تأكيد الحجز":
+    - WhatsApp opens with the patient's mobile and the message ready: the name, day, date, time, dentist, and the clinic's address and phone. Press send in WhatsApp.
+    - Back in the system, refresh the page. The message is listed on the appointment with the time and your name.
+48. Open "الجدول" → "رسائل واتساب". You can also get there from the button on "الاستقبال اليوم" or the green card on the home page. There are three lists:
+    - "تأكيد الحجوزات الجديدة": appointments booked in the last 3 days
+    - "تذكير لمواعيد": tomorrow's appointments (use the arrows for another day)
+    - "مواعيد لم يحضرها المريض (آخر 7 أيام)"
+49. Click "إرسال" on a line and send it in WhatsApp. The line then shows ✓ with the time, and the button becomes "إرسال مرة أخرى".
+50. Mark an appointment "لم يحضر" on the reception board. It appears in the missed list. Send the message that asks the patient to call and book again.
+
+## K. General
+51. Every screen should be in Arabic, right to left, with the CIA logo and colours.
+52. Log out, then try to open a page. You should be sent to the login page.
+53. Log in as **dentist1**. The screens should be in **English**. They should **not** see the call list, patient registration, the academy or purchases. They see every patient and can read the complaints, but cannot record or edit them.

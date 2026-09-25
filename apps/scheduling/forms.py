@@ -1,11 +1,11 @@
 from datetime import timedelta
 
 from django import forms
-from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.forms import StyledForm, StyledModelForm
+from apps.core.models import ClinicSettings
 from apps.dentists.forms import DentistChoiceField
 from apps.dentists.models import Dentist
 from apps.patients.forms import PatientLookupField
@@ -54,7 +54,7 @@ class AppointmentForm(StyledModelForm):
             rooms = rooms.filter(branch=branch)
         self.fields["room"].queryset = rooms
         self.fields["room"].help_text = _("Leave empty to use the room of the dentist's shift.")
-        self.fields["duration_minutes"].initial = settings.CLINIC["DEFAULT_APPOINTMENT_MINUTES"]
+        self.fields["duration_minutes"].initial = ClinicSettings.get().default_appointment_minutes
         self.fields["notes"].widget.attrs["rows"] = 2
         patient = patient or (self.instance.patient if self.instance.pk else None)
         if patient is not None:

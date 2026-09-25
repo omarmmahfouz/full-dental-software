@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import Branch, TimeStampedModel
+from apps.core.models import Branch, ClinicSettings, TimeStampedModel
 
 
 class Complaint(TimeStampedModel):
@@ -77,7 +77,7 @@ class Complaint(TimeStampedModel):
 
     def save(self, *args, **kwargs):
         if not self.pk and not self.follow_up_due:
-            self.follow_up_due = timezone.localdate() + timedelta(days=settings.CLINIC["COMPLAINT_FOLLOW_UP_DAYS"])
+            self.follow_up_due = timezone.localdate() + timedelta(days=ClinicSettings.get().complaint_follow_up_days)
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.number:

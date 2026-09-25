@@ -1,10 +1,10 @@
 from datetime import timedelta
 
-from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -17,14 +17,15 @@ from django.views.generic import ListView
 
 from apps.clinical.models import LabRequest
 from apps.core.mixins import SearchMixin, role_required
-from apps.core.models import branch_for_user
+from apps.core.models import ClinicSettings, branch_for_user
 from apps.core.roles import FRONT_DESK, PATIENT_VIEWERS, has_role, is_only_dentist
 from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403
 from apps.patients.models import Patient
 
 from .forms import AppointmentFilterForm, AppointmentForm, CancelForm, RoomShiftForm, WalkInForm
-from .models import Appointment, Room, RoomShift, day_bounds
+from .models import Appointment, MessageTemplate, Room, RoomShift, day_bounds
+from .whatsapp import record, whatsapp_number
 
 
 def _parse_day(value, default=None):
@@ -78,7 +79,7 @@ def today_board(request):
             "appointments": appointments,
             "rooms": rooms,
             "walk_in_form": WalkInForm(),
-            "late_threshold": settings.CLINIC["LATE_THRESHOLD_MINUTES"],
+            "late_threshold": ClinicSettings.get().late_threshold_minutes,
         },
     )
 
@@ -98,7 +99,7 @@ def walk_in(request):
         branch=branch_for_user(request.user),
         patient=patient,
         scheduled_at=now,
-        duration_minutes=settings.CLINIC["DEFAULT_APPOINTMENT_MINUTES"],
+        duration_minutes=ClinicSettings.get().default_appointment_minutes,
         dentist=form.cleaned_data.get("dentist") or patient.assigned_dentist,
         purpose=form.cleaned_data.get("purpose", ""),
         is_walk_in=True,
@@ -208,7 +209,7 @@ def appointment_create(request):
         appointment.branch = branch
         appointment.created_by = request.user
         appointment.save()
-        messages.success(request, _("Appointment booked."))
+        messages.success(request, _("Appointment booked. Send the confirmation on WhatsApp."))
         return redirect(appointment)
     return render(
         request, "includes/form_page.html",
@@ -241,6 +242,7 @@ def appointment_detail(request, pk):
             "steps": appointment.treatment_steps.select_related("step_type", "operator"),
             "lab_requests": appointment.lab_requests.select_related("work_type"),
             "rooms": Room.objects.filter(branch=appointment.branch, is_active=True),
+            "sent_messages": appointment.messages.select_related("sent_by"),
         },
     )
 
@@ -344,3 +346,45 @@ def copy_previous_week(request):
     )
     return redirect(f"{reverse('scheduling:room_schedule')}?week={target.isoformat()}")
 
+
+# ------------------------------------------------------------ WhatsApp
+@role_required(*FRONT_DESK)
+@require_POST
+def whatsapp_send(request, pk, kind):
+    """Keep the message on the appointment, then open WhatsApp with it ready to send."""
+    appointment = get_object_or_404(Appointment.objects.select_related("patient", "dentist", "branch"), pk=pk)
+    if kind not in MessageTemplate.Kind.values:
+        raise Http404
+    if not whatsapp_number(appointment.patient.preferred_number):
+        messages.error(request, _("This patient has no mobile number for WhatsApp."))
+        return redirect(appointment)
+    return redirect(record(kind, appointment, request.user))
+
+
+@role_required(*FRONT_DESK)
+def whatsapp_list(request):
+    """What the reception should send: confirmations of new bookings, reminders, missed appointments."""
+    options = ClinicSettings.get()
+    today = timezone.localdate()
+    day = _parse_day(request.GET.get("day"), today + timedelta(days=options.reminder_days_before))
+    start, end = day_bounds(day)
+
+    def with_sent(qs, kind):
+        rows = []
+        for appointment in qs.select_related("patient", "dentist", "room").prefetch_related("messages"):
+            sent = [m for m in appointment.messages.all() if m.kind == kind]
+            rows.append((appointment, sent[0] if sent else None))
+        return rows
+
+    waiting = Appointment.objects.filter(status__in=Appointment.WAITING_STATUSES)
+    new_bookings = waiting.filter(created_at__gte=timezone.now() - timedelta(days=3),
+                                  scheduled_at__gte=timezone.now()).order_by("scheduled_at")
+    reminders = waiting.filter(scheduled_at__gte=start, scheduled_at__lt=end).order_by("scheduled_at")
+    missed = Appointment.objects.filter(status=Appointment.Status.NO_SHOW,
+                                        scheduled_at__gte=day_bounds(today - timedelta(days=7))[0]).order_by("-scheduled_at")
+    return render(request, "scheduling/whatsapp.html", {
+        "day": day, "prev_day": day - timedelta(days=1), "next_day": day + timedelta(days=1),
+        "new_bookings": with_sent(new_bookings, MessageTemplate.Kind.CONFIRMATION),
+        "reminders": with_sent(reminders, MessageTemplate.Kind.REMINDER),
+        "missed": with_sent(missed, MessageTemplate.Kind.NO_SHOW),
+    })

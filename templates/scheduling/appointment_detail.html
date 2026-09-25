@@ -54,6 +54,17 @@
   <div class="col-lg-6"><div class="card"><div class="card-header">{% trans "Lab requests from this visit" %}</div><ul class="list-group list-group-flush">
     {% for lr in lab_requests %}<li class="list-group-item"><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a> {{ lr.work_type }} {% status_badge lr %}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}
   </ul></div></div>
+  {% if is_front_desk %}
+  <div class="col-12"><div class="card border-success"><div class="card-header"><i class="bi bi-whatsapp text-success"></i> {% trans "WhatsApp" %}</div><div class="card-body">
+    <form class="d-flex flex-wrap gap-2 mb-2" method="post" target="_blank" onsubmit="setTimeout(function(){location.reload()}, 1500)">{% csrf_token %}
+      <button class="btn btn-success" formaction="{% url 'scheduling:whatsapp_send' a.pk 'confirmation' %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-whatsapp"></i> {% trans "Booking confirmation" %}</button>
+      <button class="btn btn-outline-success" formaction="{% url 'scheduling:whatsapp_send' a.pk 'reminder' %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-alarm"></i> {% trans "Appointment reminder" %}</button>
+      {% if a.status == "no_show" %}<button class="btn btn-outline-danger" formaction="{% url 'scheduling:whatsapp_send' a.pk 'no_show' %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-whatsapp"></i> {% trans "Missed appointment" %}</button>{% endif %}
+    </form>
+    <div class="small text-muted mb-2">{% trans "WhatsApp opens with the message ready; press send there." %}</div>
+    {% for m in sent_messages %}<div class="small"><i class="bi bi-check2-all text-success"></i> {{ m.get_kind_display }} — {{ m.sent_at|date:"d/m/Y g:i A" }} — {{ m.sent_by|default:"" }}</div>{% endfor %}
+  </div></div></div>
+  {% endif %}
 </div>
 {% endwith %}
 {% endblock %}

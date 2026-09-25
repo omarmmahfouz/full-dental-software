@@ -3,7 +3,7 @@
 {% block content %}
 <div class="text-center py-5">
   <i class="bi bi-shield-lock display-3 text-danger"></i>
-  <h1 class="h3 mt-3">{% trans "You are not allowed to open this page." %}</h1>
+  <h1 class="h3 mt-3">{% if exception %}{{ exception }}{% else %}{% trans "You are not allowed to open this page." %}{% endif %}</h1>
   <p class="text-muted">{% trans "Ask the manager if you need access." %}</p>
   <a class="btn btn-primary" href="/">{% trans "Home" %}</a>
 </div>

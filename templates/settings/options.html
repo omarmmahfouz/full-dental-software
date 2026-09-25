@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Clinic options" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><a class="text-decoration-none" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i></a> {% trans "Clinic options" %}</h1></div>
+<form method="post" novalidate>{% csrf_token %}
+  <div class="card mb-3"><div class="card-header">{% trans "Printed on prescriptions and instructions" %}</div><div class="card-body">{% with form=branch_form %}{% include "includes/form_fields.html" %}{% endwith %}</div></div>
+  <div class="card mb-3"><div class="card-header">{% trans "Options" %}</div><div class="card-body">{% include "includes/form_fields.html" %}</div></div>
+  <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+</form>
+{% endblock %}

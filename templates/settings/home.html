@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Settings" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-gear"></i> {% trans "Settings" %}</h1></div>
+<p class="text-muted">{% trans "Change the lists and options the system uses, without changing the program." %}</p>
+<div class="row g-3 mb-4">
+  {% if roles.owner %}
+  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'settings:options' %}"><div class="card-body"><i class="bi bi-sliders fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "Clinic options" %}</h2><p class="small text-muted mb-0">{% trans "Name, phone and address on printouts; late minutes, appointment length, reminders, stock warnings." %}</p></div></a></div>
+  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'settings:users' %}"><div class="card-body"><i class="bi bi-people fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "People and logins" %}</h2><p class="small text-muted mb-0">{% trans "Roles, read-only access, and when each person may use the system." %}</p></div></a></div>
+  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'settings:access' %}"><div class="card-body"><i class="bi bi-shield-lock fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "Access by role" %}</h2><p class="small text-muted mb-0">{% trans "Make a part of the system read only or closed for a role." %}</p></div></a></div>
+  {% endif %}
+  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'dentists:list' %}"><div class="card-body"><i class="bi bi-person-badge fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "Dentists" %}</h2><p class="small text-muted mb-0">{% trans "CIA dentists, training dentists and supervisors. Candidates come from the academy." %}</p></div></a></div>
+</div>
+{% for group, items in list_groups %}
+<h2 class="h6 fw-bold mt-3" style="color: var(--brand-green-dark)">{{ group }}</h2>
+<div class="list-group mb-3">
+  {% for key, title, count in items %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="{% url 'settings:list' key %}"><span>{{ title }}</span><span class="badge text-bg-light">{{ count }}</span></a>{% endfor %}
+</div>
+{% endfor %}
+{% if user.is_staff %}<p class="small"><a href="{% url 'admin:index' %}"><i class="bi bi-tools"></i> {% trans "Advanced settings (all tables)" %}</a></p>{% endif %}
+{% endblock %}

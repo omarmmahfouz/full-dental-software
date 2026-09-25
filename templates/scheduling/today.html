@@ -8,6 +8,7 @@
     <a class="btn btn-outline-secondary" href="?day={{ prev_day|date:'Y-m-d' }}"><i class="bi bi-chevron-right"></i></a>
     {% if not is_today %}<a class="btn btn-outline-primary" href="?">{% trans "Today" %}</a>{% endif %}
     <a class="btn btn-outline-secondary" href="?day={{ next_day|date:'Y-m-d' }}"><i class="bi bi-chevron-left"></i></a>
+    <a class="btn btn-outline-success" href="{% url 'scheduling:whatsapp' %}"><i class="bi bi-whatsapp"></i> {% trans "WhatsApp messages" %}</a>
     <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>
   </div>
 </div>

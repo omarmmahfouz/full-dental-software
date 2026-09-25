@@ -7,12 +7,13 @@ from django.db import transaction
 from apps.charting.models import PhotoType
 from apps.clinical.models import Lab, LabWorkType, TreatmentStepType
 from apps.surgery.models import ImplantSystem
-from apps.core.models import Branch
+from apps.core.models import Branch, ClinicSettings
 from apps.core.roles import ALL_ROLES
 from apps.patients.models import MedicalCondition, ReferralSource
 from apps.prescriptions.defaults import load_defaults as load_prescription_defaults
 from apps.purchasing.models import PurchaseCategory
 from apps.scheduling.models import Room
+from apps.scheduling.whatsapp import load_default_templates as load_whatsapp_templates
 from apps.stock.models import StockCategory
 
 BRANCHES = [
@@ -287,6 +288,8 @@ class Command(BaseCommand):
                 added_photos += created
         counts["photo checklist items"] = added_photos
         counts["drugs, ready prescriptions and instruction sheets"] = load_prescription_defaults()
+        counts["WhatsApp messages"] = load_whatsapp_templates()
+        ClinicSettings.get()
 
         for label, count in counts.items():
             self.stdout.write(f"  {label}: {count} added")

@@ -132,3 +132,21 @@ A screenshot helps a lot.
     - The table shows the survival % and the days to loading for each group.
 39. Click **Export to Excel (CSV)** and open the file in Excel. There is one row per implant, with every detail, and the Arabic names are readable.
 40. Open **Reports → Patient visits and timing** in English: the rooms show as *Room 1*, *Room 2*… and the lab as *Our dental lab*.
+
+## K. Owner: settings, access and time limits
+41. As **owner**, open the user menu → **Settings**. The page has four cards (**Clinic options**, **People and logins**, **Access by role**, **Dentists**) and every list under its group.
+42. **Clinic options**: change the clinic phone and save. Print a prescription (step 21): it shows the new phone. You can also change *a patient is late after (minutes)*, the usual appointment length and *send appointment reminders (days before)* here.
+43. **Implant companies and types** → **Add**: add *Zimmer — TSV*. It is in the implant list of a new surgery chart straight away. Untick *active* on it: it leaves the list, and old surgeries keep it.
+44. **Treatments** → **Add** a treatment, e.g. *Night guard* with chart change *No change to the dental chart*. It appears in **Treatment done** when you record a treatment.
+45. **Drug groups (interchangeable drugs)**: open *Amoxicillin + clavulanic acid 1 g* and add a brand. It is offered on the prescription. Also open **Ready prescriptions**, **Post-op instruction sheets** and **WhatsApp messages** and change a line.
+46. **People and logins** → open **dentist2**:
+    - Tick **Read only everywhere** and save. Log in as dentist2: a grey banner says *Read only*. Pages open, but saving a treatment is refused with *You have read-only access here*.
+    - Untick it. In **Days allowed**, tick only a day that is not today. Log in as dentist2: the login page says *You cannot use the system on this day*.
+    - Untick the days. Set **Access ends on** to yesterday: the login is refused with the date. Try **From hour / To hour** outside the current time: refused with the hours.
+    - Clear the limits again.
+47. **New login**: make a login for a new secretary with the role *Secretary*, and leave the password empty. A password is made up and shown once. Log in with it: the screens are in Arabic.
+48. **Access by role**:
+    - Set **Purchases** to *Read only* for *Secretary* and save. As **secretary**, purchases open but saving one is refused.
+    - Set **Reports** to *No access* for *Head of CIA*. As **headcia**, the Reports menu is gone.
+    - Set both back to *Normal access*.
+49. As **headcia**, **Settings** shows the lists, but not Clinic options, People and logins or Access by role.

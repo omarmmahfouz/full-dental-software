@@ -1,4 +1,5 @@
 import mimetypes
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_not_required
@@ -22,7 +23,7 @@ from apps.complaints.models import Complaint
 from apps.patients.models import CallList, CallListEntry, Lead, Patient
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
-from .models import Notification, UserProfile, branch_for_user
+from .models import ClinicSettings, Notification, UserProfile, branch_for_user
 from .roles import (
     FRONT_DESK,
     HEAD_CIA,
@@ -69,6 +70,17 @@ def dashboard(request):
         ).count()
         context["lab_received"] = LabRequest.objects.filter(status=LabRequest.Status.RECEIVED).count()
         context["open_complaints"] = Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES).count()
+        options = ClinicSettings.get()
+        remind_day = today + timedelta(days=options.reminder_days_before)
+        remind_start, remind_end = day_bounds(remind_day)
+        context["whatsapp_to_send"] = (
+            Appointment.objects.filter(status__in=Appointment.WAITING_STATUSES, scheduled_at__gte=remind_start,
+                                       scheduled_at__lt=remind_end)
+            .exclude(messages__kind="reminder").count()
+            + Appointment.objects.filter(status__in=Appointment.WAITING_STATUSES, scheduled_at__gte=timezone.now(),
+                                         created_at__gte=timezone.now() - timedelta(days=3))
+            .exclude(messages__kind="confirmation").count()
+        )
         context["call_lists"] = (
             CallList.objects.filter(entries__outcome=CallListEntry.Outcome.PENDING)
             .annotate(pending=Count("entries", filter=Q(entries__outcome=CallListEntry.Outcome.PENDING)))

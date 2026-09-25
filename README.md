@@ -21,11 +21,11 @@ The language follows the person, not the PC:
 
 | Person | Login | What they see |
 |---|---|---|
-| Owner / CEO | `owner` | everything, including the money report and the settings screens |
-| Head of CIA | `head_cia` | everything except the money report and creating logins |
+| Owner / CEO | `owner` | everything, including the money report and **all the settings**: logins, access and time limits |
+| Head of CIA | `head_cia` | everything except the money report; in the settings, the lists (implant companies, treatments, drugs…) but not logins or access |
 | Head of the CIA dentists team | `team_head` | what a CIA dentist sees, plus the follow-up report of the **CIA dentists** (not the candidates) and the treatment plan finder |
 | CIA dentists (full or part time) | `dentist` | every patient, the complaints (read only), **only their own schedule**, and their cases. They record the clinical work: their own, and the course candidates' work, choosing the candidate's and the supervisor's names. In surgery they are usually the **assistant** |
-| Secretary (reception) | `secretary` | reception, patients, schedule, lab send / receive, complaints, academy, purchases, and the **patients to call** lists |
+| Secretary (reception) | `secretary` | reception, patients, schedule, **WhatsApp messages**, lab send / receive, complaints, academy, purchases, and the **patients to call** lists |
 | Stock manager | `stock` | the stock of materials, instruments, food and beverage, and purchases |
 | Supervisors | no login for now | chosen by name: on treatments, surgeries, plans and lab requests |
 | Course candidates | **no login** | followed through their dentist file: batch, payments, implants done and remaining, every case |
@@ -67,6 +67,11 @@ The language follows the person, not the PC:
   - One click each for **arrived → entered the room → left**.
   - Live waiting counters.
   - Walk-ins, no-shows, cancellations, and undo for a mistaken click.
+- **WhatsApp messages to patients**:
+  - **Booking confirmation** after a new appointment, **reminder** the day before, and a message after a **missed appointment** asking the patient to book again.
+  - One click opens WhatsApp (WhatsApp Desktop or WhatsApp Web on the PC, or the app on a phone) with the patient's number and the message ready: name, day, date, time, dentist, and the clinic's address and phone. The secretary presses send.
+  - The page "رسائل واتساب" lists what is still to send (new bookings, tomorrow's reminders, missed appointments), and every message sent is kept on the appointment with the time and who sent it.
+  - No cloud service and no monthly fee: it uses the clinic's own WhatsApp. The owner changes the texts in the settings.
 - **Lab work**:
   - The secretary sends and receives lab work, and must tick **"work checked against the lab request"** each time.
   - A **"lab work" badge** appears next to the patient's name everywhere.
@@ -140,7 +145,7 @@ What dentists do:
 - Every item under a category: dental materials, instruments, implants, anaesthesia and drugs, consumables, equipment, **food & beverage**, cleaning, stationery.
 - Quantity, unit, place, **reorder level**, last price and stock value.
 - Received, taken out (one item, or several at once for a room or the kitchen), damaged / expired, and stock counts. Every movement is kept with who and for whom.
-- **Low stock** and **expiring within 60 days**, on the home page and as notifications.
+- **Low stock** and **expiring soon** (within 60 days, changeable in the settings), on the home page and as notifications.
 - Purchase lines can be added to a stock item, so buying fills the stock.
 - **Import a list** from Excel or CSV, like your *Dental_Material_and_Instrument* list (it is already loaded in the practice copy).
 
@@ -173,6 +178,33 @@ What dentists do:
 - **Money** (owner only): installments collected and outstanding, and purchases by category, supplier, and dental vs non-dental.
 - The head of the CIA dentists team sees only the **dentist follow-up** of the CIA dentists.
 
+### Settings: change the system without changing the program (owner)
+User menu → **Settings**.
+- **Lists** (the owner and the head of CIA):
+  - implant companies and types
+  - treatments (with what each one does to the dental chart)
+  - the photo checklist
+  - drug groups (interchangeable brands), ready prescriptions and post-op instruction sheets
+  - rooms, labs and lab work types
+  - how patients heard about us, and medical conditions
+  - purchase and stock categories
+  - the WhatsApp message texts
+
+  Nothing is deleted, because old records use it: untick *active* to stop using an item.
+- **Dentists**: CIA dentists, training dentists and supervisors are added in *Academy → Dentists*, and candidates in *Academy → Candidates*.
+- **Clinic options**: the name, phone and address printed on prescriptions and post-op instructions, and used in the WhatsApp messages. Also when a patient counts as late, the usual appointment length, complaint follow-up days, stock expiry warning, how many days before to send reminders, and the country code for WhatsApp.
+- **People and logins**: create logins and choose each person's roles. For each person you can also set:
+  - **read only everywhere**: they can open their pages but cannot save anything
+  - **access starts on / ends on**, e.g. the end of a course or a contract
+  - **days allowed**, e.g. Saturday to Thursday
+  - **from hour / to hour**, e.g. 9:00 to 21:00
+
+  Outside these times the login is refused. Anyone already logged in is logged out on their next click.
+- **Access by role**: make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for a role.
+  - It can only take access away, never give more than the role normally has.
+  - When a person has two roles and either is limited in a part, the person is limited there.
+  - The owner is never limited, so the owner cannot be locked out.
+
 Uploaded files (ID scans, invoices) are **never public**. They open only for logged-in staff with the right role.
 Only the roles that see patients can open patient documents and photos.
 
@@ -180,7 +212,7 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data: patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription and a list of patients to call. Nothing you do there touches real data, and nothing goes to the cloud.
+This makes a **practice copy on your PC** with sample data: patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
 
 **Windows**
 1. Install **Python 3.12 or newer** from https://www.python.org/downloads/. On the first installer screen, tick **"Add python.exe to PATH"**.
@@ -205,7 +237,7 @@ This makes a **practice copy on your PC** with sample data: patients, visits, la
 
 5. Follow the checklists step by step:
    - **[docs/secretary-test-checklist.md](docs/secretary-test-checklist.md)** for the secretary
-   - **[docs/dentist-test-checklist.md](docs/dentist-test-checklist.md)** for the CIA dentists, the heads and the owner
+   - **[docs/dentist-test-checklist.md](docs/dentist-test-checklist.md)** for the CIA dentists, the heads and the owner, including the settings
    - **[docs/stock-test-checklist.md](docs/stock-test-checklist.md)** for the stock manager
 
 To stop, close the black window. To start again, double-click `trial-windows.bat`. Your practice data is kept.

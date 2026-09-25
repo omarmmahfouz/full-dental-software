@@ -28,7 +28,7 @@ class StockFilterForm(StyledForm):
     category = forms.ModelChoiceField(label=_("category"), queryset=StockCategory.objects.all(), required=False,
                                       empty_label=_("All"))
     low = forms.BooleanField(label=_("low stock only"), required=False)
-    expiring = forms.BooleanField(label=_("expiring within 60 days"), required=False)
+    expiring = forms.BooleanField(label=_("expiring soon"), required=False)
     inactive = forms.BooleanField(label=_("show items no longer used"), required=False)
 
 

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "WhatsApp messages" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-whatsapp text-success"></i> {% trans "WhatsApp messages to send" %}</h1></div>
+<p class="small text-muted">{% trans "Click a button: WhatsApp opens with the message ready for that patient; press send there. The message is then ticked here." %}</p>
+<div class="card mb-3"><div class="card-header fw-semibold">{% trans "Confirm new bookings" %}</div>
+  {% include "scheduling/_whatsapp_rows.html" with rows=new_bookings kind="confirmation" %}
+</div>
+<div class="card mb-3"><div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <span class="fw-semibold">{% trans "Reminders for" %} {{ day|date:"l d/m/Y" }}</span>
+  <span class="no-print"><a class="btn btn-sm btn-outline-secondary" href="?day={{ prev_day|date:'Y-m-d' }}">‹</a> <a class="btn btn-sm btn-outline-secondary" href="?day={{ next_day|date:'Y-m-d' }}">›</a></span>
+</div>
+  {% include "scheduling/_whatsapp_rows.html" with rows=reminders kind="reminder" %}
+</div>
+<div class="card mb-3"><div class="card-header fw-semibold">{% trans "Missed appointments (last 7 days)" %}</div>
+  {% include "scheduling/_whatsapp_rows.html" with rows=missed kind="no_show" %}
+</div>
+{% endblock %}

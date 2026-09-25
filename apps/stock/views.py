@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.core.mixins import role_required
+from apps.core.models import ClinicSettings
 from apps.core.roles import STOCK_ROLES
 from apps.scheduling.models import day_bounds
 
@@ -17,17 +18,16 @@ from .importer import import_items, parse, read_rows
 from .models import StockCategory, StockItem, StockMovement
 from .services import record_movement
 
-EXPIRY_DAYS = 60
-
-
 def low_stock():
     return StockItem.objects.filter(is_active=True).filter(
         Q(quantity__lte=0) | Q(min_quantity__gt=0, quantity__lte=F("min_quantity"))
     )
 
 
-def expiring_soon(days=EXPIRY_DAYS):
+def expiring_soon(days=None):
     """Received batches whose expiry date is near, for items still in stock."""
+    if days is None:
+        days = ClinicSettings.get().stock_expiry_days
     limit = timezone.localdate() + timedelta(days=days)
     return (
         StockMovement.objects.filter(kind=StockMovement.Kind.IN, expiry_date__isnull=False, expiry_date__lte=limit,
@@ -59,6 +59,7 @@ def item_list(request):
     return render(request, "stock/item_list.html", {
         "filter_form": form, "page_obj": page, "low_count": low_stock().count(),
         "expiring_count": expiring_soon().values("item_id").distinct().count(),
+        "expiry_days": ClinicSettings.get().stock_expiry_days,
         "categories": StockCategory.objects.filter(is_active=True),
     })
 

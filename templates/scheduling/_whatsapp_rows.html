@@ -1,0 +1,13 @@
+{% load i18n %}<div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <tbody>{% for a, sent in rows %}<tr class="{% if sent %}table-light{% endif %}">
+    <td class="nowrap">{{ a.scheduled_at|date:"D d/m g:i A" }}</td>
+    <td><a class="fw-semibold" href="{{ a.get_absolute_url }}">{{ a.patient.full_name }}</a> <span class="small text-muted ltr">{{ a.patient.preferred_number }}</span></td>
+    <td class="small">{{ a.dentist|default:"" }}</td>
+    <td class="text-end nowrap">
+      {% if sent %}<span class="small text-success me-2"><i class="bi bi-check2-all"></i> {{ sent.sent_at|date:"d/m g:i A" }}</span>{% endif %}
+      <form class="d-inline" method="post" action="{% url 'scheduling:whatsapp_send' a.pk kind %}" target="_blank" onsubmit="setTimeout(function(){location.reload()}, 1500)">{% csrf_token %}
+        <button class="btn btn-sm {% if sent %}btn-outline-success{% else %}btn-success{% endif %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-whatsapp"></i> {% if sent %}{% trans "Send again" %}{% else %}{% trans "Send" %}{% endif %}</button>
+      </form>
+    </td>
+  </tr>{% empty %}<tr><td class="text-muted">{% trans "Nothing to send." %}</td></tr>{% endfor %}</tbody>
+</table></div>

@@ -130,3 +130,8 @@ class LoginForm(AuthenticationForm):
         dentist = getattr(user, "dentist", None)
         if dentist is not None and dentist.kind == "candidate" and not user_roles(user) - {DENTIST}:
             raise ValidationError(_("Course candidates do not have access to the system."), code="candidate")
+        from .access import time_problem
+
+        problem = time_problem(user)
+        if problem:
+            raise ValidationError(problem, code="time")

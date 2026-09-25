@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from apps.core.models import Branch, UserProfile
 from apps.core.testing import PASSWORD, make_dentist, make_patient, make_user, setup_clinic
 from apps.scheduling.models import Appointment, Room, RoomShift
 from apps.scheduling.views import week_start
@@ -161,3 +162,71 @@ class DentistScheduleTests(TestCase):
         self.client.login(username="head", password=PASSWORD)
         rows = self.client.get("/schedule/rooms/").context["rows"]
         self.assertEqual(sum(len(day_shifts) for _room, cells in rows for _day, day_shifts in cells), 2)
+
+
+class WhatsAppTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        Branch.objects.filter(pk=self.branch.pk).update(phone="0223456789")
+        self.secretary = make_user("sec", "secretary")
+        self.dentist = make_dentist("dentist", kind="fulltime", name="Dr. Mona")
+        self.patient = make_patient(self.branch, phone="01001234567")
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        self.appointment = Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist,
+                                                      scheduled_at=at(tomorrow, 11, 30))
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_numbers_for_whatsapp(self):
+        from apps.scheduling.whatsapp import whatsapp_number
+
+        self.assertEqual(whatsapp_number("01001234567"), "201001234567")
+        self.assertEqual(whatsapp_number("+20 100 123 4567"), "201001234567")
+        self.assertEqual(whatsapp_number("+966 50 123 4567"), "966501234567")
+        self.assertEqual(whatsapp_number(""), "")
+
+    def test_send_opens_whatsapp_with_the_message_and_keeps_it(self):
+        from urllib.parse import unquote
+
+        from apps.scheduling.models import SentMessage
+
+        self.assertEqual(self.client.get(f"/schedule/whatsapp/{self.appointment.pk}/confirmation/").status_code, 405)
+        response = self.client.post(f"/schedule/whatsapp/{self.appointment.pk}/confirmation/")
+        self.assertTrue(response["Location"].startswith("https://wa.me/201001234567?text="))
+        text = unquote(response["Location"].split("text=", 1)[1])
+        self.assertIn(self.patient.full_name, text)
+        self.assertIn("Dr. Mona", text)
+        self.assertIn("0223456789", text)
+        message = SentMessage.objects.get()
+        self.assertEqual((message.kind, message.sent_by, message.appointment), ("confirmation", self.secretary,
+                                                                                  self.appointment))
+
+    def test_read_only_secretary_cannot_send(self):
+        from apps.scheduling.models import SentMessage
+
+        UserProfile.objects.filter(user=self.secretary).update(read_only=True)
+        self.assertEqual(self.client.get("/schedule/whatsapp/").status_code, 200)
+        self.assertEqual(self.client.post(f"/schedule/whatsapp/{self.appointment.pk}/reminder/").status_code, 403)
+        self.assertFalse(SentMessage.objects.exists())
+
+    def test_messages_to_send(self):
+        page = self.client.get("/schedule/whatsapp/")
+        self.assertEqual([a for a, sent in page.context["reminders"]], [self.appointment])
+        self.assertEqual([a for a, sent in page.context["new_bookings"]], [self.appointment])
+        self.assertEqual(self.client.get("/").context["whatsapp_to_send"], 2)
+        self.client.post(f"/schedule/whatsapp/{self.appointment.pk}/reminder/")
+        page = self.client.get("/schedule/whatsapp/")
+        self.assertIsNotNone(page.context["reminders"][0][1])
+        self.appointment.status = Appointment.Status.NO_SHOW
+        self.appointment.scheduled_at = timezone.now() - timedelta(days=1)
+        self.appointment.save()
+        page = self.client.get("/schedule/whatsapp/")
+        self.assertEqual([a for a, sent in page.context["missed"]], [self.appointment])
+
+    def test_editable_text_and_dentists_cannot_send(self):
+        from apps.scheduling.models import MessageTemplate
+
+        MessageTemplate.objects.filter(kind="reminder").update(text="Hello {patient}, see you {date} {unknown}")
+        response = self.client.post(f"/schedule/whatsapp/{self.appointment.pk}/reminder/")
+        self.assertIn("%7Bunknown%7D", response["Location"])  # unknown words are left as they are
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.client.post(f"/schedule/whatsapp/{self.appointment.pk}/reminder/").status_code, 403)

@@ -25,41 +25,50 @@
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="{% trans 'Menu' %}"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav me-auto mb-2 mb-xl-0">
-        {% if is_front_desk %}
+        {% if is_front_desk and "schedule" not in hidden_areas %}
         <li class="nav-item"><a class="nav-link" href="{% url 'scheduling:today' %}"><i class="bi bi-display"></i> {% trans "Reception today" %}</a></li>
         {% endif %}
         {% if sees_patients %}
+        {% if "patients" not in hidden_areas %}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-people"></i> {% trans "Patients" %}</a>
           <ul class="dropdown-menu">
             {% if is_front_desk %}
+            {% if "calls" not in hidden_areas %}
             <li><a class="dropdown-item" href="{% url 'patients:lead_list' %}"><i class="bi bi-telephone"></i> {% trans "Call list (expected patients)" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'patients:calllist_list' %}"><i class="bi bi-telephone-outbound"></i> {% trans "Patients to call" %}</a></li>
+            {% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i> {% trans "Register new patient" %}</a></li>
             {% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% trans "All patients" %}</a></li>
             {% if my_dentist %}<li><a class="dropdown-item" href="{% url 'patients:list' %}?mine=on"><i class="bi bi-person-check"></i> {% trans "My patients" %}</a></li>{% endif %}
           </ul>
         </li>
+        {% endif %}
+        {% if "schedule" not in hidden_areas %}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-calendar3"></i> {% trans "Schedule" %}</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{% url 'scheduling:room_schedule' %}"><i class="bi bi-grid-3x3"></i> {% if only_dentist %}{% trans "My schedule" %}{% else %}{% trans "Room schedule" %}{% endif %}</a></li>
             <li><a class="dropdown-item" href="{% url 'scheduling:appointment_list' %}"><i class="bi bi-calendar-check"></i> {% if only_dentist %}{% trans "My appointments" %}{% else %}{% trans "Appointments" %}{% endif %}</a></li>
-            {% if is_front_desk %}<li><a class="dropdown-item" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a></li>{% endif %}
+            {% if is_front_desk %}<li><a class="dropdown-item" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'scheduling:whatsapp' %}"><i class="bi bi-whatsapp"></i> {% trans "WhatsApp messages" %}</a></li>{% endif %}
           </ul>
         </li>
+        {% endif %}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-clipboard2-pulse"></i> {% trans "Clinical" %}</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'clinical:step_list' %}"><i class="bi bi-list-check"></i> {% trans "Treatment log" %}</a></li>
+            {% if "treatments" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'clinical:step_list' %}"><i class="bi bi-list-check"></i> {% trans "Treatment log" %}</a></li>{% endif %}
+            {% if "surgery" not in hidden_areas %}
             <li><a class="dropdown-item" href="{% url 'surgery:list' %}"><i class="bi bi-nut"></i> {% trans "Implant surgeries" %}</a></li>
             {% if is_clinical %}<li><a class="dropdown-item" href="{% url 'surgery:create' %}"><i class="bi bi-plus-circle"></i> {% trans "New surgery chart" %}</a></li>{% endif %}
-            <li><a class="dropdown-item" href="{% url 'clinical:lab_list' %}"><i class="bi bi-box-seam"></i> {% trans "Lab requests" %}</a></li>
+            {% endif %}
+            {% if "lab" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'clinical:lab_list' %}"><i class="bi bi-box-seam"></i> {% trans "Lab requests" %}</a></li>{% endif %}
             {% if sees_reports %}
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{% url 'charting:plan_finder' %}"><i class="bi bi-list-ol"></i> {% trans "Treatment plan finder" %}</a></li>
-            {% if is_management %}<li><a class="dropdown-item" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i> {% trans "Case finder & statistics" %}</a></li>{% endif %}
+            {% if "charts" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'charting:plan_finder' %}"><i class="bi bi-list-ol"></i> {% trans "Treatment plan finder" %}</a></li>{% endif %}
+            {% if is_management and "finder" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i> {% trans "Case finder & statistics" %}</a></li>{% endif %}
             {% endif %}
             {% if my_dentist %}
             <li><hr class="dropdown-divider"></li>
@@ -67,9 +76,9 @@
             {% endif %}
           </ul>
         </li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'complaints:list' %}"><i class="bi bi-chat-left-dots"></i> {% trans "Complaints" %}</a></li>
+        {% if "complaints" not in hidden_areas %}<li class="nav-item"><a class="nav-link" href="{% url 'complaints:list' %}"><i class="bi bi-chat-left-dots"></i> {% trans "Complaints" %}</a></li>{% endif %}
         {% endif %}
-        {% if is_front_desk %}
+        {% if is_front_desk and "academy" not in hidden_areas %}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-mortarboard"></i> {% trans "Academy" %}</a>
           <ul class="dropdown-menu">
@@ -80,7 +89,7 @@
             <li><a class="dropdown-item" href="{% url 'academy:overdue' %}"><i class="bi bi-exclamation-triangle"></i> {% trans "Overdue installments" %}</a></li>
           </ul>
         </li>
-        {% elif roles.team_head %}
+        {% elif roles.team_head and "dentists" not in hidden_areas %}
         <li class="nav-item"><a class="nav-link" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i> {% trans "CIA dentists" %}</a></li>
         {% endif %}
         {% if can_stock or can_purchase %}
@@ -103,7 +112,7 @@
           </ul>
         </li>
         {% endif %}
-        {% if sees_reports %}
+        {% if sees_reports and "reports" not in hidden_areas %}
         <li class="nav-item"><a class="nav-link" href="{% url 'reports:index' %}"><i class="bi bi-bar-chart-line"></i> {% trans "Reports" %}</a></li>
         {% endif %}
       </ul>
@@ -127,7 +136,7 @@
               {% else %}<button class="btn btn-link p-0" name="language" value="ar"><i class="bi bi-translate"></i> العربية</button>{% endif %}
             </form></li>
             <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key"></i> {% trans "Change password" %}</a></li>
-            {% if user.is_staff %}<li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-gear"></i> {% trans "Settings, users and lists" %}</a></li>{% endif %}
+            {% if roles.owner or roles.head_cia %}<li><a class="dropdown-item" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i> {% trans "Settings" %}</a></li>{% endif %}
             <li><hr class="dropdown-divider"></li>
             <li><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> {% trans "Log out" %}</button></form></li>
           </ul>
@@ -138,6 +147,7 @@
 </nav>
 {% endif %}
 <main class="container-fluid py-3 px-3 px-lg-4">
+  {% if read_only_here %}<div class="alert alert-secondary py-2 small no-print"><i class="bi bi-eye"></i> {% trans "Read only: you can look here but not save changes." %}</div>{% endif %}
   {% for message in messages %}
   <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show no-print" role="alert">
     {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
