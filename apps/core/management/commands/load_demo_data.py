@@ -41,6 +41,7 @@ from apps.surgery.models import ImplantSystem, Surgery, SurgerySite
 from apps.surgery.views import complete_plan_for_surgery, update_chart_for_surgery
 
 STOCK_LIST = Path(__file__).resolve().parents[3] / "stock" / "data" / "cia_material_instrument_list.csv"
+DEMO_USERS = ["owner", "headcia", "teamhead", "dentist1", "dentist2", "secretary", "stock"]
 
 FIRST = ["محمد", "أحمد", "محمود", "مصطفى", "علي", "حسن", "إبراهيم", "يوسف", "سارة", "منى", "هبة", "فاطمة", "نادية", "سعاد", "أمل"]
 LAST = ["عبد الله", "السيد", "حسين", "عبد الرحمن", "إبراهيم", "مصطفى", "الشريف", "عثمان", "سليمان", "فؤاد"]
@@ -78,11 +79,23 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--password", required=True, help="Password given to every demo user.")
+        parser.add_argument("--if-empty", action="store_true",
+                            help="When the database already has patients, keep it as it is instead of failing.")
 
     @transaction.atomic
-    def handle(self, *args, password, **options):
+    def handle(self, *args, password, if_empty, **options):
         if Patient.objects.exists():
-            raise CommandError("The database already has patients. Demo data is only for an empty trial database.")
+            if not if_empty:
+                raise CommandError("The database already has patients. Demo data is only for an empty trial database.")
+            self.stdout.write("The practice database already has data: kept as it is.")
+            missing = [name for name in DEMO_USERS if not get_user_model().objects.filter(username=name).exists()]
+            if missing:
+                self.stdout.write(self.style.WARNING(
+                    f"These practice logins are missing: {', '.join(missing)}. This practice copy was made by an "
+                    "older version. To get the new sample data and logins, close this window, delete the 'data' "
+                    "folder and start again."
+                ))
+            return
         call_command("setup_clinic", stdout=self.stdout)
         rng = random.Random(7)
         User = get_user_model()

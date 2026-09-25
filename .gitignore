@@ -6,7 +6,7 @@ venv/
 
 # Local data — never commit patient data, uploads, backups or secrets
 .env
-data/
+/data/
 backups/
 staticfiles/
 *.sqlite3

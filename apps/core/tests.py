@@ -206,3 +206,27 @@ class AccessAndSettingsTests(TestCase):
         self.client.login(username="head", password=PASSWORD)
         self.assertEqual(self.client.get("/settings/users/").status_code, 403)
         self.assertEqual(self.client.get("/settings/lists/implant_systems/").status_code, 200)
+
+
+class DemoDataTests(TestCase):
+    def test_files_the_demo_data_needs_are_in_the_project(self):
+        from apps.core.management.commands.load_demo_data import STOCK_LIST
+
+        self.assertTrue(STOCK_LIST.exists(), STOCK_LIST)
+
+    def test_existing_practice_data_is_kept_and_missing_logins_are_named(self):
+        import io
+
+        from django.core.management import CommandError, call_command
+
+        from apps.core.testing import make_patient
+
+        make_patient(setup_clinic())
+        make_user("owner", "owner")
+        with self.assertRaises(CommandError):
+            call_command("load_demo_data", password="x", stdout=io.StringIO())
+        out = io.StringIO()
+        call_command("load_demo_data", password="x", if_empty=True, stdout=out)
+        self.assertIn("kept as it is", out.getvalue())
+        self.assertIn("missing: headcia, teamhead", out.getvalue())
+        self.assertNotIn("owner,", out.getvalue())

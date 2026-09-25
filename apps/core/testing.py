@@ -1,5 +1,7 @@
 """Helpers shared by the test suites."""
 
+import io
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import call_command
@@ -10,7 +12,7 @@ PASSWORD = "test-pass-123"
 
 
 def setup_clinic():
-    call_command("setup_clinic", stdout=open("/dev/null", "w"))
+    call_command("setup_clinic", stdout=io.StringIO())
     return Branch.objects.get(code="CIA")
 
 

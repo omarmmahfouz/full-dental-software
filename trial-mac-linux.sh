@@ -12,10 +12,10 @@ if [ ! -f .env ]; then
 fi
 python manage.py migrate --verbosity 0
 python manage.py setup_clinic >/dev/null
-python manage.py load_demo_data --password demo12345 >/dev/null 2>&1 || true
+python manage.py load_demo_data --password demo12345 --if-empty
 echo
 echo "  The system is running:  http://localhost:8000"
-echo "  Users (password demo12345): secretary  dentist1..dentist6  supervisor  owner"
+echo "  Users (password demo12345): owner  headcia  teamhead  dentist1  dentist2  secretary  stock"
 echo "  Press Ctrl+C to stop."
 echo
 python manage.py runserver 0.0.0.0:8000

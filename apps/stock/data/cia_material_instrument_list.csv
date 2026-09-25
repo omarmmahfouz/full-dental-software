@@ -1,0 +1,60 @@
+quantity,name,category,unit
+5,Syringe,Instruments,piece
+1,Topical anesthesia,Anaesthesia & drugs,bottle
+20,Carpule articaine (Spain),Anaesthesia & drugs,carpule
+20,Carpule red (Egypt),Anaesthesia & drugs,carpule
+10,Q tip,"Consumables (gloves, masks, gauze...)",piece
+20,Long needles,Anaesthesia & drugs,piece
+20,Short needles,Anaesthesia & drugs,piece
+1,Converter / modulator,Equipment,piece
+20,Polishing brushes,"Consumables (gloves, masks, gauze...)",piece
+1,Cavitron + key,Equipment,piece
+6,Cavitron tips,Instruments,piece
+1,Polishing paste,"Consumables (gloves, masks, gauze...)",jar
+5,Diagnostic set,Instruments,set
+1,Contra high speed push button,Equipment,piece
+2,Periodontal probe,Instruments,piece
+2,Probe,Instruments,piece
+1,2L/2R,Instruments,piece
+2,Mirror,Instruments,piece
+1,Scaler,Instruments,piece
+1,Jacket,Instruments,piece
+2,Polishing bowl,Instruments,piece
+2,Tweezer,Instruments,piece
+2,4L/4R,Instruments,piece
+5,Flat instruments,Instruments,piece
+,Composite applicator,Instruments,piece
+,Plastic instrument,Instruments,piece
+3,Anatomical burnisher,Instruments,piece
+3,Ball burnisher,Instruments,piece
+3,Condenser,Instruments,piece
+3,Excavators,Instruments,piece
+1,Ring holder,Instruments,piece
+1,Calcium applicator,Instruments,piece
+1,Universal bond,Dental materials,bottle
+1,Composite A2,Dental materials,syringe
+1,Composite A3,Dental materials,syringe
+1,Meta flowable,Dental materials,syringe
+1,3M flowable,Dental materials,syringe
+1,Etchant,Dental materials,syringe
+10,Etchant tips,"Consumables (gloves, masks, gauze...)",piece
+10,Flowable tips,"Consumables (gloves, masks, gauze...)",piece
+2,Bond carrier,"Consumables (gloves, masks, gauze...)",piece
+1,Teflon,"Consumables (gloves, masks, gauze...)",roll
+3,Fuji IX,Dental materials,pack
+1,Chemical cure Ca(OH)2,Dental materials,pack
+20,Sectional matrix,"Consumables (gloves, masks, gauze...)",piece
+4,Tofflemire matrix holder,Instruments,piece
+4,Rings,Instruments,piece
+25,Celluloid strips,"Consumables (gloves, masks, gauze...)",piece
+30,Finishing strips,"Consumables (gloves, masks, gauze...)",piece
+25,Discs,"Consumables (gloves, masks, gauze...)",piece
+20,Wooden wedges,"Consumables (gloves, masks, gauze...)",piece
+10,Plastic wedges,"Consumables (gloves, masks, gauze...)",piece
+4,Matrix band,"Consumables (gloves, masks, gauze...)",piece
+1,Articulating paper,"Consumables (gloves, masks, gauze...)",pack
+1,Temporary filling,Dental materials,jar
+1,Floss,"Consumables (gloves, masks, gauze...)",roll
+,Burs,Instruments,piece
+,Low speed finishing burs,Instruments,piece
+,Stones,Instruments,piece
