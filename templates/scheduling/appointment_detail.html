@@ -6,7 +6,8 @@
 <div class="page-header">
   <h1>{% trans "Appointment" %}: <a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a> {% status_badge a %}</h1>
   <div class="d-flex gap-2 flex-wrap no-print">
-    {% if is_front_desk %}<a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_update' a.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
+    {% if is_front_desk %}<a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_update' a.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    {% if a.status == "scheduled" or a.status == "confirmed" or a.status == "no_show" or a.status == "cancelled" %}<a class="btn btn-outline-primary" href="{% url 'scheduling:appointment_reschedule' a.pk %}"><i class="bi bi-arrow-left-right"></i> {% trans "Move to another time" %}</a>{% endif %}{% endif %}
     {% if is_clinical %}<a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>{% endif %}
     <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-box-seam"></i> {% trans "New lab request" %}</a>
   </div>
@@ -22,6 +23,7 @@
       <dt>{% trans "Procedure" %}</dt><dd>{{ a.purpose|default:"—" }}</dd>
       <dt>{% trans "Notes" %}</dt><dd>{{ a.notes|linebreaksbr|default:"—" }}</dd>
       {% if a.cancel_reason %}<dt>{% trans "Reason" %}</dt><dd>{{ a.cancel_reason }}</dd>{% endif %}
+      {% if a.rescheduled_from %}<dt>{% trans "Moved from" %}</dt><dd>{{ a.rescheduled_from|date:"l d/m/Y g:i A" }}{% if a.reschedule_reason %} — {{ a.reschedule_reason }}{% endif %} <span class="small text-muted">({{ a.rescheduled_at|date:"d/m g:i A" }})</span></dd>{% endif %}
       <dt>{% trans "Booked by" %}</dt><dd class="small text-muted">{{ a.created_by|default:"—" }} — {{ a.created_at|date:"d/m/Y g:i A" }}</dd>
     </dl>
   </div></div></div>
@@ -69,6 +71,7 @@
     <form class="d-flex flex-wrap gap-2 mb-2" method="post" target="_blank" onsubmit="setTimeout(function(){location.reload()}, 1500)">{% csrf_token %}
       <button class="btn btn-success" formaction="{% url 'scheduling:whatsapp_send' a.pk 'confirmation' %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-whatsapp"></i> {% trans "Booking confirmation" %}</button>
       <button class="btn btn-outline-success" formaction="{% url 'scheduling:whatsapp_send' a.pk 'reminder' %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-alarm"></i> {% trans "Appointment reminder" %}</button>
+      {% if a.rescheduled_from %}<button class="btn btn-outline-primary" formaction="{% url 'scheduling:whatsapp_send' a.pk 'rescheduled' %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-arrow-left-right"></i> {% trans "Appointment moved" %}</button>{% endif %}
       {% if a.status == "no_show" %}<button class="btn btn-outline-danger" formaction="{% url 'scheduling:whatsapp_send' a.pk 'no_show' %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-whatsapp"></i> {% trans "Missed appointment" %}</button>{% endif %}
     </form>
     <div class="small text-muted mb-2">{% trans "WhatsApp opens with the message ready; press send there." %}</div>

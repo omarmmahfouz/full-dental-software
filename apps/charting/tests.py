@@ -1,3 +1,4 @@
+import io
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -212,6 +213,36 @@ class ChartPageTests(TestCase):
         item.refresh_from_db()
         self.assertEqual(item.status, PlanItem.Status.CANCELLED)
 
+    def test_plan_has_implant_and_restorative_parts(self):
+        implant = TreatmentStepType.objects.get(name_en="Implant placement")
+        composite = TreatmentStepType.objects.get(name_en="Composite restoration")
+        self.assertEqual(implant.category, TreatmentStepType.Category.IMPLANT)
+        self.assertEqual(TreatmentStepType.objects.get(name_en="Sinus lift").category, TreatmentStepType.Category.IMPLANT)
+        self.assertEqual(composite.category, TreatmentStepType.Category.RESTORATIVE)
+        self.login("dentist")
+        page = self.client.get(f"{self.url}plan/new/")
+        implant_part, restorative_part = page.context["sections"]
+        self.assertEqual(implant_part["code"], "implant")
+        self.assertEqual(implant_part["forms"][0]["phase"].value(), PlanItem.Phase.SURGICAL)  # new rows start surgical
+        self.assertContains(page, f'value="{implant.pk}" data-category="implant"')
+        self.assertContains(page, 'data-teeth-missing="36"')  # the tooth picker marks the chart's missing teeth
+        self.assertContains(page, 'data-teeth-picker="multi"')
+        self.client.post(f"{self.url}plan/new/", {
+            "title": "Plan B", "dentist": self.dentist.pk,
+            "items-TOTAL_FORMS": 3, "items-INITIAL_FORMS": 0, "items-MIN_NUM_FORMS": 0, "items-MAX_NUM_FORMS": 1000,
+            "items-0-phase": 3, "items-0-step_type": implant.pk, "items-0-teeth": "46 36 16",  # same implant, 3 teeth
+            "items-1-phase": 2, "items-1-step_type": composite.pk, "items-1-teeth": "25",
+            "items-2-phase": 3, "items-2-step_type": "", "items-2-teeth": "",  # empty implant row: not an item
+        })
+        plan = TreatmentPlan.objects.get()
+        self.assertEqual(plan.items.count(), 2)
+        self.assertEqual(plan.items.get(step_type=implant).teeth, "16, 46, 36")
+        sections = plan.sections()
+        self.assertEqual([(s["code"], len(s["items"])) for s in sections], [("implant", 1), ("restorative", 1)])
+        edit = self.client.get(f"/chart/plan/{plan.pk}/edit/")
+        self.assertEqual([len([f for f in s["forms"] if f.instance.pk]) for s in edit.context["sections"]], [1, 1])
+        self.assertContains(self.client.get(f"/chart/plan/{plan.pk}/"), "Restorative and other")
+
     def test_case_report_and_photos_pages(self):
         self.login("dentist")
         self.assertEqual(self.client.get(f"{self.url}case-report/").status_code, 200)
@@ -260,3 +291,107 @@ class ReceptionSyncTests(TestCase):
         self.client.login(username="sec", password=PASSWORD)
         page = self.client.get(f"/patients/{self.patient.pk}/")
         self.assertContains(page, "بنسلين")
+
+
+class ReceptionHistoryTests(TestCase):
+    def test_the_reception_asks_the_chart_questions_and_the_dentist_starts_from_them(self):
+        from apps.patients.models import MedicalCondition
+
+        branch = setup_clinic()
+        patient = make_patient(branch)
+        make_dentist("dentist", kind="fulltime")
+        make_user("sec", "secretary")
+        diabetes = MedicalCondition.objects.get(name_en="Diabetes")
+        self.client.login(username="sec", password=PASSWORD)
+        form = self.client.get(f"/patients/{patient.pk}/history/").context["form"]
+        self.assertIn("bp_last_systolic", form.fields)
+        self.assertNotIn("cooperation_score", form.fields)
+        self.client.post(f"/patients/{patient.pk}/history/", {
+            "conditions": [diabetes.pk], "bp_last_systolic": "150", "bp_last_diastolic": "95", "smoker": "on",
+            "cigarettes_per_day": "20", "allergy_penicillin": "on"})
+        history = Examination.objects.get()
+        self.assertTrue(history.history_only)
+        self.assertEqual(list(patient.medical_conditions.all()), [diabetes])
+        page = self.client.get(f"/patients/{patient.pk}/")
+        self.assertContains(page, "150/95")
+        # Asked again: the same record is updated, not a second one.
+        self.client.post(f"/patients/{patient.pk}/history/", {"conditions": [diabetes.pk], "bp_last_systolic": "140"})
+        self.assertEqual(Examination.objects.count(), 1)
+        self.client.login(username="dentist", password=PASSWORD)
+        initial = self.client.get(f"/chart/patient/{patient.pk}/exam/new/").context["form"].initial
+        self.assertEqual(initial["bp_last_systolic"], 140)
+
+
+class PhotoFolderAndLogBookTests(TestCase):
+    def setUp(self):
+        import shutil
+        import tempfile
+
+        from django.test import override_settings
+
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, ignore_errors=True)
+        settings_override = override_settings(MEDIA_ROOT=self.media)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="candidate")
+        make_user("sec", "secretary")
+        self.patient = make_patient(self.branch, name="Test Patient", assigned_dentist=self.dentist)
+
+    def photo(self, **extra):
+        from django.core.files.base import ContentFile
+
+        from apps.charting.models import ClinicalPhoto, PhotoType
+
+        shot = PhotoType.objects.get(stage="surgery", name_en="Implant placed with cover screw")
+        data = {"stage": "surgery", "photo_type": shot, "teeth": "36, 46", "taken_on": timezone.localdate()}
+        data.update(extra)
+        return ClinicalPhoto.objects.create(patient=self.patient, file=ContentFile(b"jpeg", name="IMG_0001.JPG"), **data)
+
+    def test_photos_are_saved_in_readable_folders_and_zipped(self):
+        import io
+        import zipfile
+
+        photo = self.photo()
+        day = timezone.localdate().strftime("%d-%m-%Y")
+        self.assertEqual(photo.file.name, f"Patient photos/{self.patient.file_number} Test Patient/2 Surgery photos/"
+                                          f"Implant_placed_with_cover_screw_36-46_{day}.jpg")
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.client.get(photo.file.url).status_code, 200)
+        response = self.client.get(f"/chart/patient/{self.patient.pk}/photos/zip/")
+        names = zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))).namelist()
+        self.assertEqual(names, [f"{self.patient.file_number} Test Patient/2 Surgery photos/"
+                                 f"Implant placed with cover screw 36-46 {day}.jpg"])
+        self.client.login(username="sec", password=PASSWORD)  # clinical photos are for the dentists
+        self.assertEqual(self.client.get(photo.file.url).status_code, 403)
+
+    def test_old_photos_are_moved_into_the_folders(self):
+        import os
+
+        from django.core.management import call_command
+
+        photo = self.photo()
+        old = f"patients/{self.patient.pk}/photos/surgery/0a1b2c.jpg"
+        os.makedirs(os.path.join(self.media, os.path.dirname(old)))
+        os.replace(photo.file.path, os.path.join(self.media, old))
+        type(photo).objects.filter(pk=photo.pk).update(file=old)
+        call_command("organize_photos", stdout=io.StringIO())
+        photo.refresh_from_db()
+        self.assertTrue(photo.file.name.startswith("Patient photos/"))
+        self.assertTrue(os.path.exists(photo.file.path))
+        self.assertFalse(os.path.exists(os.path.join(self.media, old)))
+
+    def test_log_book_pages_have_fixed_frames_and_the_procedure(self):
+        surgery = Surgery.objects.create(branch=self.branch, patient=self.patient, operator_1=self.dentist)
+        SurgerySite.objects.create(surgery=surgery, tooth=36, simple_implant=True, gbr=True,
+                                   implant_system=ImplantSystem.objects.first(), implant_diameter=Decimal("4.3"),
+                                   implant_length=Decimal("10"))
+        self.photo(surgery=surgery)
+        self.photo(stage="diagnostic", photo_type=None, notes="Panoramic", teeth="")
+        self.client.login(username="dentist", password=PASSWORD)
+        page = self.client.get(f"/chart/patient/{self.patient.pk}/photos/logbook/?per_row=3&stage=surgery")
+        self.assertEqual([p["code"] for p in page.context["pages"]], ["surgery"])
+        self.assertContains(page, "--frame-w: 56mm")
+        self.assertIn("36: Simple implant, GBR", page.context["pages"][0]["description"])
+        self.assertContains(page, "Implant placed with cover screw")

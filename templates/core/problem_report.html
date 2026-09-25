@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Report a problem" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-bug"></i> {% trans "Report a problem" %}</h1></div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <form method="post" enctype="multipart/form-data" class="card" novalidate>{% csrf_token %}
+      <div class="card-body">
+        <p class="text-muted small">{% trans "Tell the owner of the system what went wrong. The page you came from is sent with your message." %}</p>
+        {% if form.initial.page %}<p class="small"><b>{% trans "Page" %}:</b> <span dir="ltr">{{ form.initial.page }}</span></p>{% endif %}
+        {% include "includes/form_fields.html" %}
+      </div>
+      <div class="card-footer"><button class="btn btn-primary px-4"><i class="bi bi-send"></i> {% trans "Send" %}</button></div>
+    </form>
+  </div>
+  {% if mine %}
+  <div class="col-lg-5">
+    <div class="card"><div class="card-header">{% trans "Your earlier reports" %}</div>
+      <ul class="list-group list-group-flush">{% for r in mine %}
+        <li class="list-group-item small">
+          <div class="d-flex justify-content-between gap-2"><span class="text-muted">{{ r.created_at|date:"d/m/Y g:i A" }}</span>
+            <span class="badge {% if r.status == 'solved' %}text-bg-success{% elif r.status == 'seen' %}text-bg-info{% else %}text-bg-secondary{% endif %}">{{ r.get_status_display }}</span></div>
+          <div>{{ r.description|truncatechars:160 }}</div>
+          {% if r.answer %}<div class="mt-1 text-success"><i class="bi bi-reply"></i> {{ r.answer|linebreaksbr }}</div>{% endif %}
+        </li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -18,6 +18,7 @@ from django.views.generic import ListView
 from apps.clinical.models import LabRequest
 from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import SearchMixin, role_required
+from apps.core.notify import notify_users
 from apps.core.models import ChangeRequest, ClinicSettings, branch_for_user
 from apps.core.access import area_levels
 from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, SECRETARY, has_role, is_only_dentist
@@ -27,8 +28,11 @@ from apps.patients.access import get_visible_patient_or_403
 from apps.patients.models import Patient
 
 from .daygrid import day_grid, week_outline
-from .forms import AppointmentFilterForm, AppointmentForm, CancelForm, RoomShiftForm, VisitTimesForm, WalkInForm
+from .forms import (
+    AppointmentFilterForm, AppointmentForm, CancelForm, RescheduleForm, RoomShiftForm, VisitTimesForm, WalkInForm,
+)
 from .models import Appointment, MessageTemplate, Room, RoomShift, day_bounds
+from .patient_requests import link_booking
 from .whatsapp import record, whatsapp_number
 
 
@@ -48,6 +52,15 @@ def _safe_next(request, fallback):
     if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
         return target
     return fallback
+
+
+def tell_dentists(appointment, title, request, *others):
+    """Tell the dentist of the appointment (and the dentist it was taken from) what changed."""
+    dentists = {d for d in (appointment.dentist, *others) if d is not None and d.user_id}
+    when = timezone.localtime(appointment.scheduled_at).strftime("%d/%m/%Y %I:%M %p")
+    notify_users([d.user for d in dentists], title, gettext_lazy("%(patient)s — %(when)s"),
+                 appointment.get_absolute_url(), exclude=request.user,
+                 params={"patient": appointment.patient.full_name, "when": when})
 
 
 def week_start(day):
@@ -162,6 +175,10 @@ def appointment_action(request, pk):
         messages.error(request, _("Unknown action."))
         return redirect(_safe_next(request, reverse("scheduling:today")))
     appointment.save()
+    if action == "cancel":
+        tell_dentists(appointment, gettext_lazy("Appointment cancelled"), request)
+    elif action == "no_show":
+        tell_dentists(appointment, gettext_lazy("Your patient did not come"), request)
     messages.success(
         request, _("%(name)s: %(action)s.") % {"name": appointment.patient.full_name, "action": APPOINTMENT_ACTIONS[action]}
     )
@@ -217,12 +234,18 @@ def appointment_create(request):
     for name in ("room", "dentist"):
         if request.GET.get(name, "").isdigit():
             initial[name] = int(request.GET[name])
+    if request.GET.get("duration", "").isdigit():  # booking from a dentist's patient list
+        initial["duration_minutes"] = int(request.GET["duration"])
+    if request.GET.get("purpose"):
+        initial["purpose"] = request.GET["purpose"][:200]
     form = AppointmentForm(request.POST or None, branch=branch, patient=patient, initial=initial)
     if request.method == "POST" and form.is_valid():
         appointment = form.save(commit=False)
         appointment.branch = branch
         appointment.created_by = request.user
         appointment.save()
+        link_booking(request, appointment)
+        tell_dentists(appointment, gettext_lazy("New appointment with you"), request)
         messages.success(request, _("Appointment booked. Send the confirmation on WhatsApp."))
         return redirect(appointment)
     return render(
@@ -234,9 +257,12 @@ def appointment_create(request):
 @role_required(*FRONT_DESK)
 def appointment_update(request, pk):
     appointment = get_object_or_404(Appointment, pk=pk)
+    before = Appointment.objects.select_related("dentist").get(pk=pk)
     form = AppointmentForm(request.POST or None, instance=appointment, branch=appointment.branch)
     if request.method == "POST" and form.is_valid():
         form.save()
+        if {"scheduled_at", "dentist", "room", "duration_minutes"} & set(form.changed_data):
+            tell_dentists(appointment, gettext_lazy("Your appointment was changed"), request, before.dentist)
         messages.success(request, _("Appointment updated."))
         return redirect(appointment)
     return render(
@@ -262,6 +288,31 @@ def appointment_detail(request, pk):
             "sent_messages": appointment.messages.select_related("sent_by"),
         },
     )
+
+
+@role_required(*FRONT_DESK)
+def appointment_reschedule(request, pk):
+    """Move an appointment: new day and time (and dentist or room if needed), with the reason.
+    The dentist is told, and the patient gets the new time on WhatsApp."""
+    appointment = get_object_or_404(Appointment.objects.select_related("patient", "dentist"), pk=pk)
+    before = Appointment.objects.select_related("dentist").get(pk=pk)
+    form = RescheduleForm(request.POST or None, instance=appointment, branch=appointment.branch)
+    if request.method == "POST" and form.is_valid():
+        moved = form.save(commit=False)
+        moved.rescheduled_from, moved.rescheduled_at = before.scheduled_at, timezone.now()
+        moved.reschedule_reason = form.cleaned_data["reason"]
+        if moved.status in (Appointment.Status.NO_SHOW, Appointment.Status.CANCELLED):
+            moved.status, moved.cancel_reason = Appointment.Status.SCHEDULED, ""
+        moved.save()
+        tell_dentists(moved, gettext_lazy("Your appointment was moved"), request, before.dentist)
+        messages.success(request, _("Appointment moved. Send the new time on WhatsApp."))
+        return redirect(moved)
+    return render(request, "scheduling/appointment_form.html", {
+        "form": form, "cancel_url": appointment.get_absolute_url(),
+        "title": _("Move the appointment of %(name)s (now %(when)s)") % {
+            "name": appointment.patient.full_name,
+            "when": timezone.localtime(appointment.scheduled_at).strftime("%d/%m/%Y %I:%M %p")},
+    })
 
 
 @role_required(*FRONT_DESK)
@@ -449,6 +500,8 @@ def whatsapp_list(request):
     reminders = waiting.filter(scheduled_at__gte=start, scheduled_at__lt=end).order_by("scheduled_at")
     missed = Appointment.objects.filter(status=Appointment.Status.NO_SHOW,
                                         scheduled_at__gte=day_bounds(today - timedelta(days=7))[0]).order_by("-scheduled_at")
+    moved = waiting.filter(rescheduled_at__gte=timezone.now() - timedelta(days=3),
+                           scheduled_at__gte=timezone.now()).order_by("scheduled_at")
     installments = None
     if has_role(request.user, OWNER, HEAD_CIA, SECRETARY) and area_levels(request.user).get("academy") != "hidden":
         from apps.academy.reminders import reminders_due
@@ -459,5 +512,6 @@ def whatsapp_list(request):
         "new_bookings": with_sent(new_bookings, MessageTemplate.Kind.CONFIRMATION),
         "reminders": with_sent(reminders, MessageTemplate.Kind.REMINDER),
         "missed": with_sent(missed, MessageTemplate.Kind.NO_SHOW),
+        "moved": with_sent(moved, MessageTemplate.Kind.RESCHEDULED),
         "installments": installments,
     })

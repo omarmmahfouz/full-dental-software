@@ -150,3 +150,18 @@ A screenshot helps a lot.
     - Set **Reports** to *No access* for *Head of CIA*. As **headcia**, the Reports menu is gone.
     - Set both back to *Normal access*.
 49. As **headcia**, **Settings** shows the lists, but not Clinic options, People and logins or Access by role.
+
+## L. New in this version (2)
+50. **Home page** (dentist1): *My week* shows your shifts and patients for the next 7 days, and *Latest changes to my appointments* lists new, moved and cancelled ones.
+51. **Real-looking chart**: open a patient's **Dental chart**. The teeth are drawn with their own crowns and roots (molars with 2 or 3 roots); caries and fillings show on the round diagram under each tooth, root canals as red lines, implants as a screw (healing) or with a green crown (loaded), missing teeth crossed.
+52. **Treatment plan in two parts**: **New treatment plan**. The first part is *Implant and surgery* (its procedure list has only implants, grafts, sinus lifts…), the second *Restorative and other*. Click the tooth button next to *Teeth*: pick 36, 46 and 16 → **Done**: "16, 46, 36" is written, the same procedure on the three teeth. *All missing teeth* picks the chart's missing teeth. The plan page shows the two parts.
+53. **Surgery chart, several teeth at once**: **New surgery chart** → *Same procedures on several teeth*: tick *Simple implant* and *GBR*, **Choose the teeth**, pick 36 and 37 → a card is made for each tooth with both ticked. Fill the implant sizes and save.
+54. **My patient list** (Schedule menu, or from *My week*): add a patient with the step, the time you need, the list (main or backup) and the order. As **headcia**, *Schedule → Approve the dentists' patient lists*: change a time and approve. As **secretary** the patient is now in *Patients the dentists asked for* (secretary checklist 66–68).
+55. **Complaints**: open a complaint about your patient: write *your answer and what will be done* and send. If nobody answers in time, the dentist and the head of CIA get an alert.
+56. **Move an appointment**: on an appointment, *Move to another time*, write why: the old time is kept, you are told, and the reception sends the new time on WhatsApp.
+57. **Prescriptions**: *Injections* (IM / IV) are in the drug list. On the post-op instructions page, ticking *Extra instructions after sinus lift* or *bone graft* changes the printout at once.
+58. **Photos → Log book pages (print)** on the patient of the newest surgery (it has sample photos): one page per stage, 6 photos of the same size per page, each named by its shot, and the description of the procedure (click it to change the text). Try 3 photos a row, *Whole photo*, and *Hide patient identity*, then print or save as PDF.
+59. **Download all photos (ZIP)**: the ZIP has one folder per stage, e.g. *1 Preoperative photos (1st visit)*, and each photo is named by its shot and date. On the server PC the same folders are in `data/media/Patient photos/`.
+60. **Word file** on a patient file: the whole file opens in Word.
+61. As **owner**: *Settings → Backup and export* → **Make a full backup now**, then **Download** it and open the ZIP: `excel/all-data.xlsx` has a sheet per table (Patients, Appointments, Surgeries…). **Download the Excel file** gives the same workbook alone.
+62. As **owner**: the user menu → *Problem reports* shows what the staff reported (secretary checklist 71); write an answer, set *Solved*: the person is told.

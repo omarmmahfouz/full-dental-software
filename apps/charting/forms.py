@@ -15,6 +15,30 @@ from .teeth import SURFACES, format_teeth, parse_teeth
 SURFACE_CHOICES = [(s, s) for s in SURFACES]
 
 
+# The medical and dental history of the paper chart, asked by the dentist or at the reception.
+HISTORY_FIELDSETS = [
+    (_("Medical health"), [
+        "general_health", "pregnant", "lactating", "under_treatment", "recent_surgery", "medical_comment",
+        "conditions", "other_condition", "conditions_comment",
+    ]),
+    (_("Blood pressure and glucose"), [
+        "bp_last_systolic", "bp_last_diastolic", "bp_last_when", "bp_drug", "bp_clinic_systolic",
+        "bp_clinic_diastolic", "glucose_level", "glucose_last", "glucose_last_when", "glucose_random_clinic",
+        "hba1c", "hba1c_date",
+    ]),
+    (_("Allergies, bleeding and drugs"), [
+        "allergy_penicillin", "allergy_sulfa", "allergy_other", "bleeding_or_aspirin", "digestion_problem",
+        "illegal_drugs", "illegal_drugs_notes", "drugs_taken", "operator_comments",
+    ]),
+    (_("Dental history"), [
+        "sensitive_hot_cold", "sensitive_sweets", "sensitive_biting", "bruxism", "smoker",
+        "cigarettes_per_day", "mouth_injury", "satisfied_appearance", "cooperation_score",
+        "implant_willingness_score",
+    ]),
+]
+HISTORY_FIELDS = [name for _title, names in HISTORY_FIELDSETS for name in names]
+
+
 class ExaminationForm(StyledModelForm):
     """The diagnostic chart: examination + medical history + dental history."""
 
@@ -32,29 +56,12 @@ class ExaminationForm(StyledModelForm):
             "inter_arch_space_right", "inter_arch_space_left", "operator_notices",
             "cbct_requested", "cbct_done", "new_cbct_requested",
         ]),
-        (_("Medical health"), [
-            "general_health", "pregnant", "lactating", "under_treatment", "recent_surgery", "medical_comment",
-            "conditions", "other_condition", "conditions_comment",
-        ]),
-        (_("Blood pressure and glucose"), [
-            "bp_last_systolic", "bp_last_diastolic", "bp_last_when", "bp_drug", "bp_clinic_systolic",
-            "bp_clinic_diastolic", "glucose_level", "glucose_last", "glucose_last_when", "glucose_random_clinic",
-            "hba1c", "hba1c_date",
-        ]),
-        (_("Allergies, bleeding and drugs"), [
-            "allergy_penicillin", "allergy_sulfa", "allergy_other", "bleeding_or_aspirin", "digestion_problem",
-            "illegal_drugs", "illegal_drugs_notes", "drugs_taken", "operator_comments",
-        ]),
-        (_("Dental history"), [
-            "sensitive_hot_cold", "sensitive_sweets", "sensitive_biting", "bruxism", "smoker",
-            "cigarettes_per_day", "mouth_injury", "satisfied_appearance", "cooperation_score",
-            "implant_willingness_score",
-        ]),
+        *HISTORY_FIELDSETS,
     ]
 
     class Meta:
         model = Examination
-        exclude = ["patient", "created_by"]
+        exclude = ["patient", "created_by", "history_only"]
         widgets = {"conditions": forms.CheckboxSelectMultiple}
 
     def __init__(self, *args, **kwargs):
@@ -148,16 +155,41 @@ class TreatmentPlanForm(StyledModelForm):
         return plan
 
 
+class StepTypeSelect(forms.Select):
+    """Each procedure carries its plan section, so the page can show implant or restorative ones."""
+
+    def create_option(self, name, value, *args, **kwargs):
+        option = super().create_option(name, value, *args, **kwargs)
+        instance = getattr(value, "instance", None)
+        if instance is not None:
+            option["attrs"]["data-category"] = instance.category
+        return option
+
+
 class PlanItemForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = PlanItem
         fields = ["phase", "step_type", "teeth", "details"]
+        widgets = {"step_type": StepTypeSelect}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["step_type"].queryset = TreatmentStepType.objects.filter(is_active=True)
-        self.fields["teeth"].widget.attrs.update({"data-digits": "1", "placeholder": "36, 37"})
+        self.fields["teeth"].widget.attrs.update({"data-digits": "1", "data-teeth-picker": "multi"})
         self.fields["details"].widget.attrs["placeholder"] = _("e.g. implant 4.5 x 10, zirconia crown")
+
+    def has_changed(self):
+        # A new empty row only has its section's phase: it is not an item until something else is filled.
+        return any(name != "phase" for name in self.changed_data)
+
+    @property
+    def category(self):
+        """The plan section of this row, or None for an empty new row."""
+        step_type = self.instance.step_type if self.instance.step_type_id else None
+        if self.is_bound:
+            chosen = self["step_type"].value()
+            step_type = TreatmentStepType.objects.filter(pk=chosen).first() if str(chosen or "").isdigit() else None
+        return step_type.category if step_type else None
 
     def clean_teeth(self):
         return format_teeth(parse_teeth(self.cleaned_data.get("teeth")))
@@ -175,8 +207,28 @@ class PhotoUploadForm(StyledForm):
     def __init__(self, *args, patient=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["surgery"].queryset = patient.surgeries.all() if patient is not None else ClinicalPhoto.objects.none()
+        self.fields["teeth"].widget.attrs["data-teeth-picker"] = "multi"
         for field in self.fields.values():
             field.col = "col-md-3"
 
     def clean_teeth(self):
         return format_teeth(parse_teeth(self.cleaned_data.get("teeth")))
+
+
+class MedicalHistoryForm(StyledModelForm):
+    """The medical and dental history of the paper chart, filled at the reception."""
+
+    fieldsets = HISTORY_FIELDSETS
+
+    class Meta:
+        model = Examination
+        fields = HISTORY_FIELDS
+        widgets = {"conditions": forms.CheckboxSelectMultiple}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["conditions"].queryset = MedicalCondition.objects.filter(is_active=True)
+        for name in ("medical_comment", "conditions_comment", "drugs_taken", "operator_comments"):
+            self.fields[name].widget.attrs["rows"] = 2
+        for name in ("operator_comments", "cooperation_score", "implant_willingness_score"):
+            self.fields.pop(name, None)  # the dentist's own judgement

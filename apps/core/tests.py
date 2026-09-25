@@ -340,7 +340,8 @@ class ApprovalTests(TestCase):
         from apps.core.models import ChangeRequest
         from apps.scheduling.models import Appointment
 
-        start = timezone.now().replace(second=0, microsecond=0) - timedelta(hours=3)
+        # Yesterday at 10:00, so the visit never crosses midnight whatever time the tests run.
+        start = timezone.localtime().replace(hour=10, minute=0, second=0, microsecond=0) - timedelta(days=1)
         appointment = Appointment.objects.create(branch=self.branch, patient=self.patient, scheduled_at=start)
         appointment.mark_arrived(start)
         appointment.save()
@@ -374,3 +375,138 @@ class ApprovalTests(TestCase):
         self.patient.refresh_from_db()
         change.refresh_from_db()
         self.assertEqual((change.status, self.patient.full_name == "اسم آخر"), ("rejected", False))
+
+
+class ProblemReportTests(TestCase):
+    def setUp(self):
+        setup_clinic()
+        self.owner = make_user("owner", "owner")
+        self.secretary = make_user("sec", "secretary")
+
+    def test_staff_report_a_problem_and_the_owner_answers(self):
+        from apps.core.models import ProblemReport
+
+        self.secretary.profile.read_only = True  # even read-only staff can report a problem
+        self.secretary.profile.save()
+        self.client.login(username="sec", password=PASSWORD)
+        response = self.client.post("/problems/report/", {"description": "The print button does nothing",
+                                                          "page": "/patients/1/"},
+                                    headers={"X-Requested-With": "XMLHttpRequest"})
+        self.assertTrue(response.json()["ok"])
+        self.assertFalse(self.client.post("/problems/report/", {"description": ""},
+                                          headers={"X-Requested-With": "XMLHttpRequest"}).json()["ok"])
+        report = ProblemReport.objects.get()
+        self.assertEqual((report.page, report.reported_by, report.kind), ("/patients/1/", self.secretary, "reported"))
+        self.assertTrue(Notification.objects.filter(recipient=self.owner, url="/problems/").exists())
+        self.assertEqual(self.client.get("/problems/").status_code, 403)  # only the owner and head of CIA read them
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertContains(self.client.get("/problems/"), "The print button does nothing")
+        self.client.post(f"/problems/{report.pk}/", {"status": "solved", "answer": "Fixed in the new version"})
+        report.refresh_from_db()
+        self.assertEqual((report.status, report.handled_by), ("solved", self.owner))
+        self.assertTrue(Notification.objects.filter(recipient=self.secretary, message="Fixed in the new version").exists())
+        export = self.client.get("/problems/export/")
+        self.assertIn("The print button does nothing", export.content.decode("utf-8-sig"))
+
+    def test_page_errors_are_recorded_once_and_counted(self):
+        from django.http import Http404
+        from django.test import RequestFactory
+
+        from apps.core.middleware import ErrorRecorderMiddleware
+        from apps.core.models import ProblemReport
+
+        middleware = ErrorRecorderMiddleware(lambda request: None)
+        request = RequestFactory().get("/patients/5/")
+        request.user = self.secretary
+        for _ in range(3):
+            self.assertIsNone(middleware.process_exception(request, ValueError("bad value")))
+        middleware.process_exception(request, Http404())  # a missing page is not a software problem
+        report = ProblemReport.objects.get()
+        self.assertEqual((report.kind, report.times, report.page), ("automatic", 3, "/patients/5/"))
+        self.assertIn("ValueError: bad value", report.error)
+        self.assertEqual(Notification.objects.filter(recipient=self.owner, level="danger").count(), 1)
+
+    def test_pages_have_the_leave_warning_and_report_pop_ups(self):
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/")
+        self.assertContains(page, 'id="leave-warning"')
+        self.assertContains(page, 'id="report-problem"')
+
+
+class BackupAndExportTests(TestCase):
+    def setUp(self):
+        import shutil
+        import tempfile
+
+        from django.test import override_settings
+
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
+        override = override_settings(MEDIA_ROOT=f"{folder}/media", BACKUP_DIR=f"{folder}/backups")
+        override.enable()
+        self.addCleanup(override.disable)
+        from apps.core.testing import make_dentist, make_patient
+
+        self.branch = setup_clinic()
+        self.owner = make_user("owner", "owner")
+        make_user("head", "head_cia")
+        make_user("sec", "secretary")
+        make_dentist("dentist", kind="candidate")
+        self.patient = make_patient(self.branch, name="مريض النسخة")
+
+    def test_full_backup_has_data_excel_csv_and_files(self):
+        import io
+        import zipfile
+
+        from django.core.files.base import ContentFile
+        from openpyxl import load_workbook
+
+        from apps.core.backup import create_backup
+        from apps.patients.models import PatientDocument
+
+        PatientDocument.objects.create(patient=self.patient, kind="other",
+                                       file=ContentFile(b"%PDF-1.4", name="scan.pdf"))
+        with zipfile.ZipFile(create_backup()) as bundle:
+            names = bundle.namelist()
+            self.assertTrue({"database.json", "excel/all-data.xlsx", "README.txt", "csv/patients.patient.csv"} <= set(names))
+            self.assertTrue(any(n.startswith("media/") and n.endswith(".pdf") for n in names))
+            self.assertIn("مريض النسخة", bundle.read("csv/patients.patient.csv").decode("utf-8-sig"))
+            self.assertNotIn("pbkdf2", bundle.read("csv/auth.user.csv").decode("utf-8-sig"))  # no passwords
+            workbook = load_workbook(io.BytesIO(bundle.read("excel/all-data.xlsx")), read_only=True)
+            self.assertIn("Patients", workbook.sheetnames)
+            rows = list(workbook["Patients"].iter_rows(values_only=True))
+            self.assertIn("full name (as on ID)", rows[0])
+            self.assertIn("مريض النسخة", rows[1])
+
+    def test_restore_puts_the_backup_back(self):
+        from apps.core.backup import create_backup, list_backups, restore_backup
+        from apps.core.testing import make_patient
+        from apps.patients.models import Patient
+
+        backup = create_backup()
+        make_patient(self.branch, name="بعد النسخة", nid="29001011234568", phone="01001234568")
+        restore_backup(backup)
+        self.assertEqual(list(Patient.objects.values_list("full_name", flat=True)), ["مريض النسخة"])
+        self.assertTrue(self.client.login(username="owner", password=PASSWORD))  # logins come back too
+        self.assertEqual(len(list_backups()), 2)  # the state before restoring was saved first
+
+    def test_backup_page_is_for_the_owner(self):
+        self.client.login(username="head", password=PASSWORD)
+        self.assertEqual(self.client.get("/settings/backup/").status_code, 403)
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertEqual(self.client.get("/settings/backup/").status_code, 200)
+        self.client.post("/settings/backup/")
+        page = self.client.get("/settings/backup/")
+        name = page.context["backups"][0]["name"]
+        self.assertEqual(self.client.get(f"/settings/backup/{name}/").status_code, 200)
+        self.assertEqual(self.client.get("/settings/backup/../../etc/").status_code, 404)
+        excel = self.client.get("/settings/backup/excel/")
+        self.assertTrue(b"".join(excel.streaming_content).startswith(b"PK"))
+
+    def test_patient_file_as_word(self):
+        self.client.login(username="dentist", password=PASSWORD)
+        response = self.client.get(f"/patients/{self.patient.pk}/word/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(".docx", response["Content-Disposition"])
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/word/").status_code, 403)

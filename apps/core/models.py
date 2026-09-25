@@ -257,6 +257,45 @@ class ChangeRequest(models.Model):
         return self.content_type.get_object_for_this_type(pk=self.object_id)
 
 
+class ProblemReport(models.Model):
+    """Something that went wrong in the software: told by a person ("Report a problem"), or
+    recorded by itself when a page fails. The owner reads them and passes them to whoever
+    maintains the software."""
+
+    class Kind(models.TextChoices):
+        REPORTED = "reported", _("Told by a user")
+        AUTOMATIC = "automatic", _("Page error (recorded automatically)")
+
+    class Status(models.TextChoices):
+        NEW = "new", _("New")
+        SEEN = "seen", _("Being looked at")
+        SOLVED = "solved", _("Solved")
+
+    kind = models.CharField(_("kind"), max_length=10, choices=Kind.choices, default=Kind.REPORTED)
+    status = models.CharField(_("status"), max_length=10, choices=Status.choices, default=Status.NEW, db_index=True)
+    page = models.CharField(_("page"), max_length=500, blank=True)
+    description = models.TextField(_("what happened"), blank=True)
+    screenshot = models.FileField(_("screenshot or photo"), upload_to="problems/%Y/%m/", blank=True)
+    error = models.TextField(_("technical details"), blank=True)
+    signature = models.CharField(max_length=64, blank=True, db_index=True)  # the same page error is counted, not repeated
+    times = models.PositiveIntegerField(_("times"), default=1)
+    reported_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("reported by"), null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(_("date"), default=timezone.now)
+    last_seen_at = models.DateTimeField(_("last time"), default=timezone.now)
+    answer = models.TextField(_("answer / what was done"), blank=True)
+    handled_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("handled by"), null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = ["-last_seen_at"]
+        verbose_name = _("problem report")
+        verbose_name_plural = _("problem reports")
+
+    def __str__(self):
+        return f"{self.get_kind_display()}: {self.page}"
+
+
 class Notification(models.Model):
     class Level(models.TextChoices):
         INFO = "info", _("Info")

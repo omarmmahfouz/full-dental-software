@@ -25,6 +25,15 @@
     {% if c.resolution %}<div class="fw-semibold mt-3 mb-1">{% trans "How it was solved" %}</div><div class="bg-light rounded p-2">{{ c.resolution|linebreaksbr }}</div>{% endif %}
   </div></div></div>
   <div class="col-lg-7">
+    {% if c.waiting_for_dentist %}<div class="alert {% if c.answer_alert_sent_at %}alert-danger{% else %}alert-warning{% endif %} small"><i class="bi bi-hourglass-split"></i> {% blocktrans with dentist=c.concerned_dentist due=c.answer_due|date:"d/m/Y" %}Waiting for the answer of {{ dentist }} (by {{ due }}).{% endblocktrans %}{% if c.answer_alert_sent_at %} {% trans "Late: the dentist and the head of CIA were alerted." %}{% endif %}</div>{% endif %}
+    {% if answer_form %}
+    <div class="card mb-3 border-primary no-print"><div class="card-header"><i class="bi bi-reply"></i> {% trans "Your answer and the steps to solve it" %}</div><div class="card-body">
+      <form method="post" action="{% url 'complaints:answer' c.pk %}">{% csrf_token %}
+        {% with form=answer_form %}{% include "includes/form_fields.html" %}{% endwith %}
+        <button class="btn btn-primary mt-3"><i class="bi bi-send"></i> {% trans "Send the answer" %}</button>
+      </form>
+    </div></div>
+    {% endif %}
     <div class="card mb-3"><div class="card-header">{% trans "Follow-up history" %}</div><div class="card-body">
       <ul class="timeline">
         <li><strong>{% trans "Complaint recorded" %}</strong> — {{ c.created_by|default:"" }} <span class="small text-muted">{{ c.created_at|date:"d/m/Y g:i A" }}</span></li>

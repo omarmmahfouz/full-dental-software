@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Log book" %} — {% if anonymous %}{{ initials }}{% else %}{{ patient.full_name }}{% endif %}{% endblock %}
+{% block content %}
+<form class="card mb-3 no-print" method="get" data-no-leave-warning>
+  <div class="card-body d-flex flex-wrap gap-3 align-items-end">
+    <div>
+      <div class="form-label mb-1">{% trans "Stages to print" %}</div>
+      <div class="d-flex flex-wrap gap-3">{% for code, label in available %}
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="stage" value="{{ code }}" id="st-{{ code }}" {% if code in chosen %}checked{% endif %}><label class="form-check-label" for="st-{{ code }}">{{ label }}</label></div>
+      {% empty %}<span class="text-muted">{% trans "No photos uploaded yet." %}</span>{% endfor %}</div>
+    </div>
+    <div><label class="form-label mb-1" for="per-row">{% trans "Photos in a row" %}</label>
+      <select class="form-select" id="per-row" name="per_row"><option value="2" {% if per_row == "2" %}selected{% endif %}>2 ({% trans "large" %})</option><option value="3" {% if per_row == "3" %}selected{% endif %}>3 ({% trans "small" %})</option></select></div>
+    <div><label class="form-label mb-1" for="fit">{% trans "Photo in the frame" %}</label>
+      <select class="form-select" id="fit" name="fit"><option value="cover">{% trans "Fill the frame (same size, edges cut)" %}</option><option value="contain" {% if fit == "contain" %}selected{% endif %}>{% trans "Whole photo (white margins)" %}</option></select></div>
+    <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="anonymous" value="1" id="anon" {% if anonymous %}checked{% endif %}><label class="form-check-label" for="anon">{% trans "Hide patient identity" %}</label></div>
+    <button class="btn btn-outline-primary">{% trans "Show" %}</button>
+    <button type="button" class="btn btn-primary ms-auto" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print / save as PDF" %}</button>
+  </div>
+  <div class="card-footer small text-muted"><i class="bi bi-pencil"></i> {% trans "The description of each stage is written from the surgery chart and the treatment log. Click on it to change the text before printing." %}</div>
+</form>
+
+<div class="logbook" dir="ltr" style="--frame-w: {{ frame_width }}mm; --frame-h: {{ frame_height }}mm; --fit: {{ fit }}">
+{% for page in pages %}
+<section class="logbook-page">
+  <header class="logbook-header">
+    <img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+    <div class="text-end"><div class="fw-bold">{% trans "Case log book" %}</div><div class="logbook-stage">{{ page.label }}</div></div>
+  </header>
+  <table class="logbook-facts">
+    <tr><th>{% trans "Patient" %}</th><td>{% if anonymous %}{{ initials }} — {{ patient.get_gender_display|default:"" }}{% if patient.age %}, {{ patient.age }} {% trans "years" %}{% endif %}{% else %}{{ patient.full_name }} ({{ patient.file_number }}){% endif %}</td>
+        <th>{% trans "Date" %}</th><td>{% for day in page.dates %}{{ day|date:"d/m/Y" }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
+    <tr><th>{% trans "Operator" %}</th><td>{{ page.operator|default:"" }}</td>
+        <th>{% trans "Supervisor" %}</th><td>{{ page.supervisor|default:"" }}</td></tr>
+    <tr><th>{% trans "Teeth" %}</th><td colspan="3">{{ page.teeth|default:"—" }}</td></tr>
+  </table>
+  <div class="logbook-description-label">{% trans "Description of the procedure" %}</div>
+  <div class="logbook-description" contenteditable="true">{{ page.description|default:""|linebreaksbr }}</div>
+  <div class="logbook-grid per-row-{{ per_row }}">
+    {% for photo in page.photos %}
+    <figure class="logbook-photo">
+      <div class="logbook-frame"><img src="{{ photo.file.url }}" alt="{{ photo.photo_type|default:'' }}"></div>
+      <figcaption><b>{% if photo.photo_type %}{{ photo.photo_type.name_en }}{% else %}{{ photo.notes|default:_("Other photo") }}{% endif %}</b>{% if photo.teeth %} · {{ photo.teeth }}{% endif %} · {{ photo.taken_on|date:"d/m/Y" }}</figcaption>
+    </figure>
+    {% endfor %}
+  </div>
+</section>
+{% empty %}
+<div class="alert alert-info no-print">{% trans "No photos to print. Upload the case photos first." %} <a href="{% url 'charting:photos' patient.pk %}">{% trans "Photos" %}</a></div>
+{% endfor %}
+</div>
+{% endblock %}

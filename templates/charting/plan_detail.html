@@ -26,7 +26,9 @@
     <div class="table-responsive"><table class="table align-middle">
       <thead><tr><th>{% trans "Phase" %}</th><th>{% trans "Procedure" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Details" %}</th><th>{% trans "Status" %}</th><th class="no-print"></th></tr></thead>
       <tbody>
-      {% for item in items %}
+      {% for section in sections %}
+      <tr class="plan-part-row"><th colspan="6">{% if section.code == "implant" %}<i class="bi bi-nut"></i>{% else %}<i class="bi bi-brush"></i>{% endif %} {{ section.label }}</th></tr>
+      {% for item in section.items %}
       <tr class="{% if item.status == 'done' %}table-success{% elif item.status == 'cancelled' %}text-muted{% endif %}">
         <td class="small">{{ item.get_phase_display }}</td>
         <td class="fw-semibold">{{ item.step_type }}</td>
@@ -38,6 +40,7 @@
           {% if item.status == "planned" %}<button name="action" value="item_done" class="btn btn-sm btn-outline-success" title="{% trans 'Mark done' %}"><i class="bi bi-check2"></i></button><button name="action" value="item_cancel" class="btn btn-sm btn-outline-secondary" title="{% trans 'Cancel item' %}"><i class="bi bi-x"></i></button>
           {% else %}<button name="action" value="item_reopen" class="btn btn-sm btn-link">{% trans "Reopen" %}</button>{% endif %}</form>{% endif %}</td>
       </tr>
+      {% endfor %}
       {% empty %}<tr><td colspan="6" class="text-muted">{% trans "No items." %}</td></tr>{% endfor %}
       </tbody>
     </table></div>

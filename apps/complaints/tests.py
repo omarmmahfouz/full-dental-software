@@ -69,3 +69,36 @@ class ComplaintTests(TestCase):
         self.assertEqual(self.client.get(f"/complaints/{complaint.pk}/").status_code, 200)
         self.assertEqual(self.client.get("/complaints/new/").status_code, 403)
         self.assertEqual(self.client.post(f"/complaints/{complaint.pk}/follow-up/", {"action": "note"}).status_code, 403)
+
+
+class DentistAnswerTests(TestCase):
+    def test_the_dentist_answers_and_is_alerted_when_late(self):
+        from apps.complaints.alerts import send_answer_alerts
+        from apps.core.testing import make_dentist
+
+        branch = setup_clinic()
+        secretary = make_user("sec", "secretary")
+        head = make_user("head", "head_cia")
+        dentist = make_dentist("dentist", kind="fulltime")
+        patient = make_patient(branch)
+        self.client.login(username="sec", password=PASSWORD)
+        self.client.post("/complaints/new/", {"patient_lookup": patient.file_number, "category": "pain",
+                                             "severity": "medium", "description": "Pain after the filling",
+                                             "concerned_dentist": dentist.pk})
+        complaint = Complaint.objects.get()
+        self.assertTrue(Notification.objects.filter(recipient=dentist.user, url=complaint.get_absolute_url()).exists())
+        # No answer in time: the dentist and the head of CIA are alerted once.
+        later = timezone.localdate() + timedelta(days=10)
+        self.assertEqual(send_answer_alerts(later), 1)
+        self.assertEqual(send_answer_alerts(later), 0)
+        self.assertTrue(Notification.objects.filter(recipient=head, level="danger").exists())
+        # The dentist writes his answer and the plan; the reception is told.
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertIsNotNone(self.client.get(complaint.get_absolute_url()).context["answer_form"])
+        self.client.post(f"/complaints/{complaint.pk}/answer/", {"note": "Will replace the filling on Monday"})
+        complaint.refresh_from_db()
+        self.assertEqual((complaint.status, complaint.waiting_for_dentist), ("in_progress", False))
+        self.assertTrue(Notification.objects.filter(recipient=secretary, title__contains=complaint.number).exists())
+        make_dentist("other", kind="fulltime")  # not his complaint
+        self.client.login(username="other", password=PASSWORD)
+        self.assertEqual(self.client.post(f"/complaints/{complaint.pk}/answer/", {"note": "x"}).status_code, 403)

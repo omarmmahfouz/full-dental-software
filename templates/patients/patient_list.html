@@ -3,7 +3,7 @@
 {% block title %}{% trans "Patients" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-people"></i> {% if request.GET.mine %}{% trans "My patients" %}{% else %}{% trans "Patients" %}{% endif %}</h1>
+  <h1><i class="bi bi-people"></i> {% if request.GET.mine %}{% trans "My patients" %}{% else %}{% trans "Patients" %}{% endif %} <span class="badge text-bg-light border fs-6 align-middle">{{ page_obj.paginator.count }}</span></h1>
   {% if is_front_desk %}<a class="btn btn-primary" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i> {% trans "Register new patient" %}</a>{% endif %}
 </div>
 <form class="card card-body mb-3 no-print">

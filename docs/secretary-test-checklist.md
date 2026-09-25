@@ -135,3 +135,12 @@ For WhatsApp to open on the reception PC, install **WhatsApp Desktop** or open *
 63. **CBCT / blood tests**: on a patient file, "أشعة مقطعية / تحاليل" → "طلب أشعة مقطعية": choose the area and print. The request asks the centre to send the DICOM files to ciapts@gmail.com. Do the same for a blood test request.
 64. **Academy**: "الأكاديمية" → "أقساط الشهر" shows what each candidate pays this month, with a WhatsApp reminder button. Log in as **secretary2**: the academy is not in her menu (set in Settings → People and logins).
 65. Every page has a "رجوع" (Back) button at the top.
+
+## M. New in this version (2)
+66. **Patients the dentists asked for**: "الجدول" → "مرضى طلبهم الأطباء". Dr. Mona's approved patients are listed in order (1, 2…) with the step explained in Arabic, the time given, and her working days at the top; the backup list is under them.
+67. Click "احجز" on patient 1: the booking form opens with the patient, the dentist, the time and the step already filled. Choose the day and time and save. Back on the list, the patient is gone (booked).
+68. On patient 2 write a reason and press "لا يستطيع الحضور": a yellow line says which backup patient to call. Book that patient the same way.
+69. **Medical history**: on a patient file, "التاريخ الطبي وتاريخ الأسنان" → "ملء التاريخ المرضي". The same questions as the paper chart (blood pressure, sugar, allergies, smoking…). Save: the card shows the answers.
+70. **Save before leaving**: open "تسجيل مريض جديد", type a name, then click "رجوع" or another menu. A box asks "الحفظ قبل الخروج؟": try "البقاء في الصفحة", then "خروج بدون حفظ".
+71. **Report a problem**: the user menu (your name, top) → "الإبلاغ عن مشكلة". Write what happened and send; a green line says it was sent. "بلاغاتك السابقة" shows it with the owner's answer later.
+72. The home page shows the total number of patients, the active ones, finished, out, and the new files this month.

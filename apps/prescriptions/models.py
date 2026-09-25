@@ -18,6 +18,7 @@ class DrugGroup(LookupModel):
         ANTIBIOTIC = "antibiotic", _("Antibiotic")
         PAINKILLER = "painkiller", _("Painkiller / anti-inflammatory")
         MOUTHWASH = "mouthwash", _("Mouthwash / local")
+        INJECTION = "injection", _("Injection (IM / IV)")
         OTHER = "other", _("Other")
 
     kind = models.CharField(_("type"), max_length=20, choices=Kind.choices, default=Kind.OTHER)

@@ -16,6 +16,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt || goto :error
 python manage.py migrate || goto :error
 python manage.py setup_clinic || goto :error
+python manage.py organize_photos || goto :error
 python manage.py collectstatic --noinput || goto :error
 echo.
 echo  ==> Create the owner account (manager login):

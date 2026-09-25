@@ -84,6 +84,15 @@ The database migrations run automatically.
   ```bash
   docker compose exec -T db pg_restore -U dental -d dental --clean < backups/dental-2026-09-25.dump
   ```
+- **Full backup from the system** (any installation): the owner opens *Settings → Backup and export → Make a full backup now*,
+  or the server runs `python manage.py backup` every night (Windows Task Scheduler / cron). Each backup is one ZIP in
+  `data/backups` (change with `BACKUP_DIR` in `.env`; the newest `BACKUP_KEEP`, default 10, are kept) holding:
+  - `database.json`: every record, to put back with `python manage.py restore_backup backup_….zip` (after `migrate` on a new PC).
+    The data there before restoring is saved as a new backup first.
+  - `database.sqlite3`: the database file itself (SQLite installations).
+  - `excel/all-data.xlsx` and `csv/*.csv`: every table with readable column names, to open or move into any other program.
+  - `media/`: all uploaded files, with the clinical photos in readable folders (`media/Patient photos/…`).
+- **Before a big change to the system** (new version, moving to another program): make a full backup and copy it outside the PC.
 - Test a restore on another PC once. A backup that has never been restored is only a hope.
 
 ## Security notes

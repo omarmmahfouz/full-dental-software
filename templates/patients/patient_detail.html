@@ -16,6 +16,7 @@
     <a class="btn btn-success" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a>
     <a class="btn btn-outline-success" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-nut"></i> {% trans "New surgery chart" %}</a>
     <a class="btn btn-outline-secondary" href="{% url 'charting:case_report' patient.pk %}"><i class="bi bi-journal-medical"></i> {% trans "Case report" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'patients:word' patient.pk %}" title="{% trans 'The whole file as a Word document' %}"><i class="bi bi-file-earmark-word"></i> {% trans "Word file" %}</a>
     {% endif %}
     {% if can_edit %}
     <a class="btn btn-outline-secondary" href="{% url 'patients:update' patient.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
@@ -78,19 +79,12 @@
         </dl></div>
       </div>
     </div></div>
-    {% if exam %}
-    <div class="card mt-3"><div class="card-header"><i class="bi bi-heart-pulse text-danger"></i> {% trans "Medical history from the dentist's examination" %}
-      <span class="small text-muted">— {{ exam.exam_date|date:"d/m/Y" }}{% if exam.examined_by %}, {{ exam.examined_by }}{% endif %}</span></div>
-      <div class="card-body small"><dl class="dl-grid mb-0">
-        <dt>{% trans "Diseases" %}</dt><dd>{% for c in exam.conditions.all %}<span class="medical-alert">{{ c }}</span>{% empty %}—{% endfor %}{% if exam.other_condition %} {{ exam.other_condition }}{% endif %}{% if exam.conditions_comment %}<div>{{ exam.conditions_comment }}</div>{% endif %}</dd>
-        <dt>{% trans "Allergies" %}</dt><dd>{% if exam.allergy_penicillin %}<span class="medical-alert">{% trans "allergic to penicillin" %}</span>{% endif %}{% if exam.allergy_sulfa %}<span class="medical-alert">{% trans "allergic to sulfa" %}</span>{% endif %}{{ exam.allergy_other }}{% if not exam.allergy_penicillin and not exam.allergy_sulfa and not exam.allergy_other %}—{% endif %}</dd>
-        {% if exam.pregnant == "yes" or exam.lactating == "yes" %}<dt>{% trans "Pregnant / lactating" %}</dt><dd><span class="medical-alert">{% if exam.pregnant == "yes" %}{% trans "pregnant" %}{% else %}{% trans "lactating" %}{% endif %}</span></dd>{% endif %}
-        {% if exam.under_treatment %}<dt>{% trans "Being treated for" %}</dt><dd>{{ exam.under_treatment }}</dd>{% endif %}
-        {% if exam.drugs_taken %}<dt>{% trans "Drugs taken" %}</dt><dd>{{ exam.drugs_taken|linebreaksbr }}</dd>{% endif %}
-        {% if exam.smoker %}<dt>{% trans "Smoker" %}</dt><dd>{% trans "Yes" %}{% if exam.cigarettes_per_day %} — {{ exam.cigarettes_per_day }} / {% trans "day" %}{% endif %}</dd>{% endif %}
-      </dl></div>
+    <div class="card mt-3"><div class="card-header d-flex flex-wrap justify-content-between gap-2">
+      <span><i class="bi bi-heart-pulse text-danger"></i> {% trans "Medical and dental history" %}
+        {% if exam %}<span class="small text-muted">— {{ exam.exam_date|date:"d/m/Y" }}, {% if exam.history_only %}{% trans "asked at the reception" %}{% else %}{{ exam.examined_by|default:"" }}{% endif %}</span>{% endif %}</span>
+      {% if is_front_desk or is_clinical %}<a class="btn btn-sm btn-outline-danger no-print" href="{% url 'patients:medical_history' patient.pk %}"><i class="bi bi-pencil"></i> {% if exam %}{% trans "Update the history" %}{% else %}{% trans "Fill the medical history" %}{% endif %}</a>{% endif %}</div>
+      <div class="card-body">{% if exam %}{% include "includes/medical_history.html" %}{% else %}<div class="text-muted small">{% trans "Not asked yet: fill the same questions as the paper chart (blood pressure, sugar, allergies, smoking...)." %}</div>{% endif %}</div>
     </div>
-    {% endif %}
   </div>
 
   <div class="tab-pane fade" id="visits">
@@ -122,12 +116,14 @@
     </div>
     <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
       <thead><tr><th>{% trans "Procedure" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Status" %}</th></tr></thead>
-      <tbody>{% for item in plan.items.all %}
+      <tbody>{% for section in plan.sections %}
+      <tr class="plan-part-row"><th colspan="3">{{ section.label }}</th></tr>
+      {% for item in section.items %}
       <tr class="{% if item.status == 'done' %}table-success{% elif item.status == 'cancelled' %}text-muted{% endif %}">
         <td><b>{{ item.step_type }}</b>{% if item.step_type|explain %}<div class="small text-muted">{{ item.step_type|explain }}</div>{% endif %}{% if item.details %}<div class="small">{{ item.details }}</div>{% endif %}</td>
         <td>{{ item.teeth|default:"—" }}{% for tooth, name in item.teeth|teeth_explained %}<div class="small text-muted">{{ tooth }} = {{ name }}</div>{% endfor %}</td>
         <td class="nowrap">{% if item.status == "done" %}<i class="bi bi-check2-circle text-success"></i> {% endif %}{{ item.get_status_display }}{% if item.done_at %}<div class="small text-muted">{{ item.done_at|date:"d/m/Y" }}</div>{% endif %}</td>
-      </tr>{% endfor %}</tbody>
+      </tr>{% endfor %}{% endfor %}</tbody>
     </table></div></div>
     {% empty %}<div class="text-muted">{% trans "No treatment plan yet." %}</div>{% endfor %}
   </div>

@@ -35,3 +35,19 @@ class UserLanguageMiddleware(LocaleMiddleware):
             language = settings.LANGUAGE_CODE
         translation.activate(language)
         request.LANGUAGE_CODE = translation.get_language()
+
+
+class ErrorRecorderMiddleware:
+    """A page that stops with an error is written down for the owner (Problem reports)."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_exception(self, request, exception):
+        from .problems import record_error
+
+        record_error(request, exception)
+        return None  # the normal error page is still shown

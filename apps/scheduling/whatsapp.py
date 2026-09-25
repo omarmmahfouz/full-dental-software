@@ -24,6 +24,10 @@ DEFAULT_TEXTS = {
         "أهلًا {patient}، افتقدناك في موعدك يوم {date} في {clinic}. نتمنى أن تكون بخير.\n"
         "برجاء الاتصال بنا على {phone} أو الرد على هذه الرسالة لتحديد موعد جديد."
     ),
+    MessageTemplate.Kind.RESCHEDULED: (
+        "أهلًا {patient}، تم تغيير موعدك في {clinic} ليصبح يوم {day} {date} الساعة {time} مع {dentist}.\n"
+        "للاستفسار أو التعديل اتصل بنا على {phone}."
+    ),
     MessageTemplate.Kind.INSTALLMENT: (
         "أهلًا {candidate}، نذكّرك بقسط {course} بقيمة {amount} جنيه المستحق يوم {date}.\n"
         "المتبقي من المصروفات: {balance} جنيه. للاستفسار: {phone} — {clinic}."

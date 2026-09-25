@@ -56,6 +56,7 @@
           <button name="action" value="arrive" class="btn btn-sm btn-warning">{% trans "Arrived" %}</button>
           {% if a.status == "scheduled" %}<button name="action" value="confirm" class="btn btn-sm btn-outline-primary" title="{% trans 'Confirmed by phone' %}"><i class="bi bi-telephone-check"></i></button>{% endif %}
           <button name="action" value="no_show" class="btn btn-sm btn-outline-danger" data-confirm="{% trans 'Mark as did not come?' %}">{% trans "No-show" %}</button>
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'scheduling:appointment_reschedule' a.pk %}" title="{% trans 'Move to another time' %}"><i class="bi bi-arrow-left-right"></i></a>
         {% elif a.status == "arrived" %}
           <select name="room" class="form-select form-select-sm w-auto">{% for r in rooms %}<option value="{{ r.pk }}" {% if r.pk == a.room_id %}selected{% endif %}>{{ r }}</option>{% endfor %}</select>
           <button name="action" value="enter" class="btn btn-sm btn-info">{% trans "Entered room" %}</button>

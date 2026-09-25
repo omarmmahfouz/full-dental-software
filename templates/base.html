@@ -55,7 +55,10 @@
             <li><a class="dropdown-item" href="{% url 'scheduling:room_schedule' %}"><i class="bi bi-grid-3x3"></i> {% if only_dentist %}{% trans "My schedule" %}{% else %}{% trans "Room schedule" %}{% endif %}</a></li>
             <li><a class="dropdown-item" href="{% url 'scheduling:appointment_list' %}"><i class="bi bi-calendar-check"></i> {% if only_dentist %}{% trans "My appointments" %}{% else %}{% trans "Appointments" %}{% endif %}</a></li>
             {% if is_front_desk %}<li><a class="dropdown-item" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'scheduling:requests_reception' %}"><i class="bi bi-telephone-forward"></i> {% trans "Patients the dentists asked for" %}{% if requests_to_call %} <span class="badge rounded-pill text-bg-primary">{{ requests_to_call }}</span>{% endif %}</a></li>
             <li><a class="dropdown-item" href="{% url 'scheduling:whatsapp' %}"><i class="bi bi-whatsapp"></i> {% trans "WhatsApp messages" %}</a></li>{% endif %}
+            {% if my_dentist %}<li><hr class="dropdown-divider"></li><li><a class="dropdown-item" href="{% url 'scheduling:requests_mine' %}"><i class="bi bi-person-lines-fill"></i> {% trans "My patient list (for the reception)" %}</a></li>{% endif %}
+            {% if requests_to_approve is not None %}<li><a class="dropdown-item" href="{% url 'scheduling:requests_approve' %}"><i class="bi bi-clipboard-check"></i> {% trans "Approve the dentists' patient lists" %}{% if requests_to_approve %} <span class="badge rounded-pill text-bg-warning">{{ requests_to_approve }}</span>{% endif %}</a></li>{% endif %}
           </ul>
         </li>
         {% endif %}
@@ -149,7 +152,9 @@
               {% else %}<button class="btn btn-link p-0" name="language" value="ar"><i class="bi bi-translate"></i> العربية</button>{% endif %}
             </form></li>
             <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key"></i> {% trans "Change password" %}</a></li>
-            {% if roles.owner or roles.head_cia %}<li><a class="dropdown-item" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i> {% trans "Settings" %}</a></li>{% endif %}
+            {% if roles.owner or roles.head_cia %}<li><a class="dropdown-item" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i> {% trans "Settings" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'core:problems' %}"><i class="bi bi-bug"></i> {% trans "Problem reports" %}{% if new_problems %} <span class="badge rounded-pill text-bg-danger">{{ new_problems }}</span>{% endif %}</a></li>{% endif %}
+            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#report-problem"><i class="bi bi-exclamation-diamond"></i> {% trans "Report a problem" %}</button></li>
             <li><hr class="dropdown-divider"></li>
             <li><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> {% trans "Log out" %}</button></form></li>
           </ul>
@@ -171,6 +176,7 @@
   {% endfor %}
   {% block content %}{% endblock %}
 </main>
+{% if user.is_authenticated %}{% include "includes/app_modals.html" %}{% endif %}
 <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
 <script src="{% static 'vendor/flatpickr/ar.js' %}"></script>

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -16,13 +16,13 @@ from apps.core.roles import CLINICAL, MANAGEMENT, has_role
 from apps.dentists.models import Dentist
 from apps.patients.access import get_clinical_patient_or_403
 
-from . import odontogram
+from . import odontogram, photo_files
 from .forms import ExaminationForm, PhotoUploadForm, PlanItemFormSet, ToothForm, TreatmentPlanForm
 from .models import ClinicalPhoto, Examination, PhotoStage, PhotoType, PlanItem, ToothChange, ToothState, TreatmentPlan
 from .plans import planned_by_tooth
 from .rules import DEFAULT, apply_changes, current_states, exam_changes, plan_changes, state_label
-from .sync import sync_medical_history
-from .teeth import VALID_TEETH, parse_surfaces, parse_teeth
+from .sync import missing_teeth, sync_medical_history
+from .teeth import VALID_TEETH, format_teeth, parse_surfaces, parse_teeth
 
 ALLOWED_MEDIA = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".bmp", ".tif", ".tiff", ".pdf"} | ClinicalPhoto.VIDEO_EXTENSIONS
 MAX_PHOTO_MB = 25
@@ -203,8 +203,28 @@ def plan_edit(request, patient_pk=None, pk=None):
         return redirect(obj)
     return render(request, "charting/plan_form.html", {
         "form": form, "formset": formset, "patient": patient, "plan": plan,
+        "sections": _plan_sections(formset), "missing": format_teeth(missing_teeth(patient)),
         "title": _("Edit treatment plan") if plan else _("New treatment plan"),
     })
+
+
+def _plan_sections(formset):
+    """The plan's rows in its two parts (implant first). Empty new rows are shared between them,
+    and the implant part's new rows start in the surgical phase."""
+    sections = [{"code": code, "label": label, "forms": [],
+                 "phase": PlanItem.Phase.SURGICAL if code == TreatmentStepType.Category.IMPLANT else ""}
+                for code, label in TreatmentStepType.Category.choices]
+    by_code = {section["code"]: section for section in sections}
+    empty = []
+    for item_form in formset:
+        category = item_form.category
+        (by_code[category]["forms"] if category in by_code else empty).append(item_form)
+    for index, item_form in enumerate(empty):
+        section = sections[0] if index < (len(empty) + 1) // 2 else sections[1]
+        if section["phase"] and not item_form.is_bound:
+            item_form.initial["phase"] = section["phase"]
+        section["forms"].append(item_form)
+    return sections
 
 
 def plan_detail(request, pk):
@@ -212,7 +232,7 @@ def plan_detail(request, pk):
     patient = get_clinical_patient_or_403(request.user, plan.patient_id)
     return render(request, "charting/plan_detail.html", {
         "plan": plan, "patient": patient,
-        "items": plan.items.select_related("step_type", "done_treatment__operator", "done_surgery"),
+        "sections": plan.sections(plan.items.select_related("step_type", "done_treatment__operator", "done_surgery")),
         "svg": chart_svg(patient, clickable=False),
         "can_edit": has_role(request.user, *CLINICAL),
         "can_approve": has_role(request.user, *MANAGEMENT) and plan.status == TreatmentPlan.Status.PROPOSED,
@@ -298,6 +318,7 @@ def photos(request, patient_pk):
                        "done": done, "required": len(required)})
     return render(request, "charting/photos.html", {
         "patient": patient, "stages": stages, "stage": stage, "form": form, "can_upload": can_upload,
+        "missing": format_teeth(missing_teeth(patient)), "patient_folder": photo_files.patient_folder(patient),
     })
 
 
@@ -310,6 +331,83 @@ def photo_delete(request, pk):
     photo.delete()
     messages.success(request, _("File deleted."))
     return redirect(f"{reverse('charting:photos', args=[photo.patient_id])}?stage={stage}")
+
+
+# ------------------------------------------------------------ photo log book and photo folders
+SURGICAL_STAGES = (PhotoStage.SURGERY, PhotoStage.SINUS_GBR, PhotoStage.SOFT_TISSUE, PhotoStage.SECOND_STAGE)
+# Photo frame in mm (4:3), fixed so every page looks the same: 6 photos a page, or 12 small ones.
+LOGBOOK_FRAMES = {"2": (78, 58.5), "3": (56, 42)}
+
+
+def _site_text(site):
+    text = f"{site.tooth}: {', '.join(site.procedure_labels())}"
+    return f"{text} — {site.implant_label}" if site.has_implant else text
+
+
+def _stage_description(stage, photos, surgeries, steps, plan_items):
+    """What was done at this stage, written from the surgery chart, the treatment log and the plan.
+    The dentist can still change the text on the page before printing."""
+    dates = {photo.taken_on for photo in photos}
+    lines = []
+    if stage in SURGICAL_STAGES:
+        linked = {photo.surgery_id for photo in photos if photo.surgery_id}
+        for surgery in surgeries:
+            if surgery.pk in linked or (not linked and surgery.date in dates):
+                sites = "; ".join(_site_text(site) for site in surgery.sites.all())
+                lines.append(f"{surgery.date:%d/%m/%Y} — {surgery.number}: {sites}")
+    if stage == PhotoStage.DIAGNOSTIC and plan_items:
+        planned = "; ".join(f"{item.step_type} {item.teeth}".strip() for item in plan_items)
+        lines.append(f"{_('Treatment plan')}: {planned}")
+    for step in steps:
+        if timezone.localtime(step.performed_at).date() in dates:
+            lines.append(f"{timezone.localtime(step.performed_at):%d/%m/%Y} — {step.step_type} {step.teeth}".strip())
+    return "\n".join(dict.fromkeys(lines))
+
+
+def logbook(request, patient_pk):
+    """The case's photos on printable log-book pages: fixed frame size, one stage per page,
+    each photo named, with the description of the procedure."""
+    patient = get_clinical_patient_or_403(request.user, patient_pk)
+    all_photos = [p for p in patient.clinical_photos.select_related("photo_type", "surgery") if not p.is_video
+                  and os.path.splitext(p.file.name)[1].lower() != ".pdf"]
+    available = [(code, label) for code, label in PhotoStage.choices if any(p.stage == code for p in all_photos)]
+    chosen = [code for code in request.GET.getlist("stage") if code in dict(available)] or [c for c, _l in available]
+    per_row = request.GET.get("per_row") if request.GET.get("per_row") in LOGBOOK_FRAMES else "2"
+    surgeries = list(patient.surgeries.select_related("instructor", "operator_1").prefetch_related(
+        "sites__implant_system"))
+    steps = list(TreatmentStep.objects.filter(patient=patient).select_related("step_type", "operator"))
+    plan_items = list(PlanItem.objects.filter(plan__patient=patient, plan__status__in=TreatmentPlan.OPEN_STATUSES)
+                      .exclude(status=PlanItem.Status.CANCELLED).select_related("step_type"))
+    pages = []
+    for code, label in available:
+        if code not in chosen:
+            continue
+        photos = sorted((p for p in all_photos if p.stage == code),
+                        key=lambda p: (p.photo_type.sort_order if p.photo_type_id else 999, p.taken_on))
+        surgery = next((p.surgery for p in photos if p.surgery_id), None)
+        pages.append({
+            "code": code, "label": label, "photos": photos,
+            "dates": sorted({p.taken_on for p in photos}),
+            "teeth": format_teeth({t for p in photos for t in parse_teeth(p.teeth)}),
+            "operator": (surgery.operator_1 if surgery else None) or patient.assigned_dentist,
+            "supervisor": surgery.instructor if surgery else None,
+            "description": _stage_description(code, photos, surgeries, steps, plan_items),
+        })
+    width, height = LOGBOOK_FRAMES[per_row]
+    return render(request, "charting/logbook.html", {
+        "patient": patient, "pages": pages, "available": available, "chosen": chosen, "per_row": per_row,
+        "frame_width": width, "frame_height": height, "fit": "contain" if request.GET.get("fit") == "contain" else "cover",
+        "anonymous": request.GET.get("anonymous") == "1",
+        "initials": "".join(part[0] for part in patient.full_name.split()[:3]),
+    })
+
+
+def photos_zip(request, patient_pk):
+    """All the patient's photos in one ZIP, in the same readable folders as on the server."""
+    patient = get_clinical_patient_or_403(request.user, patient_pk)
+    photos = patient.clinical_photos.select_related("photo_type").order_by("stage", "taken_on")
+    archive = photo_files.photos_zip(patient, photos)
+    return FileResponse(archive, as_attachment=True, filename=f"{photo_files.patient_folder(patient)}.zip")
 
 
 # ------------------------------------------------------------ full case report

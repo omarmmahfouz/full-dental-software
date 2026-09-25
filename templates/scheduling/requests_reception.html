@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Patients the dentists asked for" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-telephone-forward"></i> {% trans "Patients the dentists asked for" %}</h1></div>
+<p class="text-muted small">{% trans "Approved by the supervisor. Call the main list in order (1 first). If a patient cannot come, press “Cannot come” and call the first patient of the backup list." %}</p>
+{% for dentist, g in groups %}
+<div class="card mb-3">
+  <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+    <span class="fw-semibold"><i class="bi bi-person-badge"></i> {{ dentist }}</span>
+    <span class="small">{% trans "Days" %}: {% for s in g.shifts %}<span class="badge text-bg-light">{{ s.date|date:"D d/m" }} {{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</span> {% empty %}<span class="text-muted">{% trans "no shifts on the schedule yet" %}</span>{% endfor %}</span>
+  </div>
+  {% if g.call_backup %}<div class="alert alert-warning rounded-0 mb-0 py-2 small"><i class="bi bi-arrow-repeat"></i> {% blocktrans with name=g.backup.0.patient.full_name %}A patient cannot come: call the backup list, starting with {{ name }}.{% endblocktrans %}</div>{% endif %}
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>{% trans "Order" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Mobile" %}</th><th>{% trans "Step" %}</th><th>{% trans "Time" %}</th><th>{% trans "Days" %}</th><th></th></tr></thead>
+    <tbody>
+    {% for i in g.main %}{% include "scheduling/_request_row.html" %}{% endfor %}
+    {% if g.backup %}<tr class="table-light"><th colspan="7" class="small">{% trans "Backup list" %}</th></tr>{% for i in g.backup %}{% include "scheduling/_request_row.html" %}{% endfor %}{% endif %}
+    {% for i in g.cannot %}<tr class="text-muted small"><td><span class="badge text-bg-warning">{{ i.get_status_display }}</span></td><td>{{ i.patient.full_name }}</td><td colspan="5">{{ i.step_type }} {{ i.teeth }} {% if i.reception_note %}— {{ i.reception_note }}{% endif %}</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% empty %}<div class="alert alert-success"><i class="bi bi-check2-all"></i> {% trans "No patients to call." %}</div>{% endfor %}
+{% endblock %}

@@ -27,6 +27,14 @@ class ChartEffect(models.TextChoices):
 
 
 class TreatmentStepType(LookupModel):
+    class Category(models.TextChoices):
+        IMPLANT = "implant", _("Implant and surgery")
+        RESTORATIVE = "restorative", _("Restorative and other")
+
+    IMPLANT_EFFECTS = ("implant", "uncover", "implant_failed")
+
+    category = models.CharField(_("plan section"), max_length=20, choices=Category.choices,
+                                default=Category.RESTORATIVE)
     description_ar = models.CharField(
         _("simple explanation (Arabic)"), max_length=255, blank=True,
         help_text=_("Plain words for the reception and the patient, e.g. حشو أبيض بلون السن لسد التسوس."),

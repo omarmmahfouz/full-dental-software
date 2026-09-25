@@ -13,6 +13,7 @@ fi
 python manage.py migrate --verbosity 0
 python manage.py setup_clinic >/dev/null
 python manage.py load_demo_data --password demo12345 --if-empty
+python manage.py organize_photos >/dev/null
 echo
 echo "  The system is running:  http://localhost:8000"
 echo "  Users (password demo12345): owner  headcia  teamhead  dentist1  dentist2  secretary  secretary2  stock"

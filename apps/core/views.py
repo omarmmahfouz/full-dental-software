@@ -19,6 +19,7 @@ from django.views.decorators.http import require_POST
 from apps.academy.models import Enrollment
 from apps.clinical.models import LabRequest, TreatmentStep
 from apps.dentists.models import Dentist
+from apps.complaints.alerts import send_answer_alerts, unanswered
 from apps.complaints.models import Complaint
 from apps.patients.models import CallList, CallListEntry, Lead, Patient
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
@@ -26,6 +27,7 @@ from apps.scheduling.models import Appointment, RoomShift, day_bounds
 from .access import area_levels
 from .models import AreaAccess, ClinicSettings, Notification, UserProfile, branch_for_user
 from .roles import (
+    CLINICAL,
     FRONT_DESK,
     HEAD_CIA,
     MANAGEMENT,
@@ -45,6 +47,14 @@ def dashboard(request):
     start, end = day_bounds(today)
     branch = branch_for_user(user)
     context = {"today": today}
+    send_answer_alerts(today)  # complaints a dentist has not answered in time
+    if has_role(user, *PATIENT_VIEWERS):
+        counts = dict(Patient.objects.values_list("status").annotate(n=Count("id")))
+        context["patient_totals"] = {
+            "total": sum(counts.values()), "active": counts.get(Patient.Status.ACTIVE, 0),
+            "finished": counts.get(Patient.Status.FINISHED, 0), "out": counts.get(Patient.Status.OUT, 0),
+            "new_this_month": Patient.objects.filter(registered_on__gte=today.replace(day=1)).count(),
+        }
 
     todays = Appointment.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end)
     if branch:
@@ -108,12 +118,18 @@ def dashboard(request):
     dentist = Dentist.for_user(user)
     if dentist is not None:
         context["dentist"] = dentist
-        context["my_shifts"] = RoomShift.objects.filter(dentist=dentist, date=today).select_related("room", "supervisor")
-        context["my_appointments"] = (
-            Appointment.objects.filter(dentist=dentist, scheduled_at__gte=start, scheduled_at__lt=end)
-            .select_related("patient", "room")
-            .order_by("scheduled_at")
-        )
+        week = [today + timedelta(days=i) for i in range(7)]
+        days = {day: {"day": day, "shifts": [], "appointments": []} for day in week}
+        for shift in RoomShift.objects.filter(dentist=dentist, date__range=(week[0], week[-1])).select_related("room"):
+            days[shift.date]["shifts"].append(shift)
+        for appointment in (Appointment.objects.filter(dentist=dentist, scheduled_at__gte=start,
+                                                       scheduled_at__lt=day_bounds(week[-1])[1])
+                            .exclude(status=Appointment.Status.CANCELLED).select_related("patient", "room")
+                            .order_by("scheduled_at")):
+            days[timezone.localtime(appointment.scheduled_at).date()]["appointments"].append(appointment)
+        context["my_week"] = list(days.values())
+        context["my_complaints"] = unanswered(dentist)
+        context["my_updates"] = user.notifications.filter(url__startswith="/schedule/appointments/")[:6]
         context["my_patient_count"] = Patient.objects.filter(
             assigned_dentist=dentist, status=Patient.Status.ACTIVE
         ).count()
@@ -174,8 +190,10 @@ def notification_mark_all_read(request):
 # Which roles may download files stored under each media folder.
 MEDIA_FOLDER_ROLES = {
     "patients": PATIENT_VIEWERS,
+    "Patient photos": CLINICAL,  # clinical photos, in readable folders (apps.charting.photo_files)
     "candidates": (OWNER, HEAD_CIA, SUPERVISOR, SECRETARY),
     "purchases": PURCHASE_ROLES,
+    "problems": (OWNER, HEAD_CIA),
 }
 
 
@@ -185,12 +203,17 @@ def protected_media(request, path):
     allowed = MEDIA_FOLDER_ROLES.get(folder)
     if allowed is None or not has_role(request.user, *allowed):
         raise PermissionDenied
-    if folder == "patients" and not has_role(request.user, *FRONT_DESK):
-        # Only files of patients this user may see.
-        patient_id = path.split("/")[1] if path.count("/") >= 2 else ""
+    if folder in ("patients", "Patient photos") and not has_role(request.user, *FRONT_DESK):
+        # Only files of patients this user may see ("patients/<id>/…" or "Patient photos/<file number> <name>/…").
+        part = path.split("/")[1] if path.count("/") >= 2 else ""
         from apps.patients.access import visible_patients
 
-        if not visible_patients(request.user).filter(pk=patient_id if patient_id.isdigit() else 0).exists():
+        patients = visible_patients(request.user)
+        if folder == "patients":
+            patients = patients.filter(pk=part if part.isdigit() else 0)
+        else:
+            patients = patients.filter(file_number=part.split(" ", 1)[0])
+        if not patients.exists():
             raise PermissionDenied
     try:
         full_path = default_storage.path(path)

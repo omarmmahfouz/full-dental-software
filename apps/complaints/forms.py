@@ -66,3 +66,8 @@ class ComplaintFilterForm(StyledForm):
     )
     category = forms.ChoiceField(label=_("category"), required=False, choices=[("", _("All"))] + list(Complaint.Category.choices))
     overdue = forms.BooleanField(label=_("follow-up overdue"), required=False)
+
+
+class DentistAnswerForm(StyledForm):
+    note = forms.CharField(label=_("your answer and what will be done to solve it"), widget=forms.Textarea(attrs={"rows": 3}))
+    next_follow_up = forms.DateField(label=_("follow up again on"), required=False)

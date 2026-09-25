@@ -1,5 +1,4 @@
 import os
-import uuid
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator
@@ -35,6 +34,9 @@ class Examination(TimeStampedModel):
     )
     referral = models.CharField(_("referral"), max_length=200, blank=True)
     chief_complaint = models.TextField(_("chief complaint"), blank=True)
+    history_only = models.BooleanField(
+        _("history taken by the reception"), default=False,
+        help_text=_("Only the medical and dental history, asked at the reception; the dentist completes it."))
 
     # Tooth findings at examination (also written onto the dental chart).
     teeth_carious = models.CharField(_("carious"), max_length=120, blank=True)
@@ -286,6 +288,21 @@ class TreatmentPlan(TimeStampedModel):
         done = sum(1 for i in items if i.status == PlanItem.Status.DONE)
         return done, len(items)
 
+    def sections(self, items=None):
+        """The items in the plan's two parts: implant and surgery first, then restorative and other."""
+        from apps.clinical.models import TreatmentStepType
+
+        if items is None:
+            prefetched = getattr(self, "_prefetched_objects_cache", {})
+            items = prefetched["items"] if "items" in prefetched else self.items.select_related("step_type")
+        items = list(items)
+        sections = []
+        for code, label in TreatmentStepType.Category.choices:
+            part = [item for item in items if item.step_type.category == code]
+            if part:
+                sections.append({"code": code, "label": label, "items": part})
+        return sections
+
 
 class PlanItem(models.Model):
     class Phase(models.IntegerChoices):
@@ -347,8 +364,10 @@ class PhotoType(LookupModel):
 
 
 def photo_path(instance, filename):
-    ext = os.path.splitext(filename)[1].lower()[:10]
-    return f"patients/{instance.patient_id}/photos/{instance.stage}/{uuid.uuid4().hex}{ext}"
+    """Readable folders: Patient photos / <file number and name> / <stage> / <shot, teeth, date>."""
+    from .photo_files import readable_path
+
+    return readable_path(instance, filename)
 
 
 class ClinicalPhoto(TimeStampedModel):
@@ -366,7 +385,7 @@ class ClinicalPhoto(TimeStampedModel):
         related_name="photos",
     )
     teeth = models.CharField(_("teeth"), max_length=100, blank=True)
-    file = models.FileField(_("photo / video"), upload_to=photo_path)
+    file = models.FileField(_("photo / video"), upload_to=photo_path, max_length=400)
     taken_on = models.DateField(_("date"), default=timezone.localdate)
     notes = models.CharField(_("notes"), max_length=255, blank=True)
 

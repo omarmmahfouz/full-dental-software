@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Backup and export" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-safe"></i> {% trans "Backup and export" %}</h1></div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h5"><i class="bi bi-archive"></i> {% trans "Full backup" %}</h2>
+      <p class="small text-muted">{% trans "One ZIP file with everything: all records (to put back into this system), the same data as Excel and CSV (to open or move into any other program), and all uploaded files (ID scans, photos, stickers, invoices)." %}</p>
+      <form method="post">{% csrf_token %}<button class="btn btn-primary" data-confirm="{% trans 'Make a full backup now? It can take a few minutes when there are many photos.' %}"><i class="bi bi-archive"></i> {% trans "Make a full backup now" %}</button></form>
+      <p class="small mt-3 mb-0"><i class="bi bi-folder2-open"></i> {% trans "Backups are saved on this PC in" %} <b dir="ltr">{{ folder }}</b>. {% trans "The last 10 are kept. Copy them to an external disk or USB regularly, and always before a big change to the system." %}</p>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h5"><i class="bi bi-file-earmark-excel"></i> {% trans "Excel file of all data" %}</h2>
+      <p class="small text-muted">{% trans "Every table on its own sheet, with readable column names: patients, appointments, treatments, surgeries and implants, plans, payments, academy, stock and more." %}</p>
+      <a class="btn btn-outline-success" href="{% url 'settings:export_excel' %}"><i class="bi bi-download"></i> {% trans "Download the Excel file" %}</a>
+      <p class="small text-muted mt-3 mb-0"><i class="bi bi-file-earmark-word"></i> {% trans "A patient's whole file as a Word document: open the patient and press “Word file”." %}</p>
+    </div></div>
+  </div>
+</div>
+
+<h2 class="h6 fw-bold mt-4">{% trans "Backups on this PC" %}</h2>
+<div class="card"><div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+  <thead><tr><th>{% trans "File" %}</th><th>{% trans "Made at" %}</th><th>{% trans "Size" %}</th><th></th></tr></thead>
+  <tbody>{% for b in backups %}
+    <tr><td dir="ltr">{{ b.name }}</td><td>{{ b.made_at|date:"d/m/Y g:i A" }}</td><td>{{ b.size_mb }} MB</td>
+      <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'settings:backup_download' b.name %}"><i class="bi bi-download"></i> {% trans "Download" %}</a></td></tr>
+  {% empty %}<tr><td colspan="4" class="text-muted">{% trans "No backup yet." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+
+<details class="card mt-3"><summary class="card-header">{% trans "Putting a backup back, and automatic backups (for the person who installs the system)" %}</summary>
+  <div class="card-body small" dir="ltr">
+    <p class="mb-1"><b>Restore</b> (new PC, or after a big change went wrong): install the system, then in its folder run</p>
+    <pre class="bg-body-tertiary p-2">python manage.py migrate
+python manage.py restore_backup "backup_2026-01-31_22-00-00.zip"</pre>
+    <p class="mb-1">The data there before restoring is saved as a new backup first.</p>
+    <p class="mb-1"><b>Every night</b>: in the Windows Task Scheduler add a daily task that runs</p>
+    <pre class="bg-body-tertiary p-2 mb-0">python manage.py backup</pre>
+  </div>
+</details>
+{% endblock %}

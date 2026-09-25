@@ -63,6 +63,7 @@ class Complaint(TimeStampedModel):
         settings.AUTH_USER_MODEL, verbose_name=_("resolved by"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="+",
     )
+    answer_alert_sent_at = models.DateTimeField(_("no-answer alert sent at"), null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -92,6 +93,18 @@ class Complaint(TimeStampedModel):
     def is_overdue(self):
         return self.is_open and self.follow_up_due is not None and self.follow_up_due < timezone.localdate()
 
+    @property
+    def answer_due(self):
+        """The concerned dentist should answer within the complaint follow-up days."""
+        return timezone.localtime(self.created_at).date() + timedelta(days=ClinicSettings.get().complaint_follow_up_days)
+
+    def dentist_answers(self):
+        return self.follow_ups.filter(action=ComplaintFollowUp.Action.DENTIST_ANSWER)
+
+    @property
+    def waiting_for_dentist(self):
+        return self.is_open and self.concerned_dentist_id is not None and not self.dentist_answers().exists()
+
 
 class ComplaintFollowUp(TimeStampedModel):
     class Action(models.TextChoices):
@@ -100,6 +113,7 @@ class ComplaintFollowUp(TimeStampedModel):
         SPOKE_TO_STAFF = "staff", _("Spoke to the doctor / staff")
         RE_TREATMENT = "retreat", _("Booked a correction visit")
         REFUND = "refund", _("Refund / discount")
+        DENTIST_ANSWER = "dentist", _("Dentist's answer and plan to solve it")
         NOTE = "note", _("Note")
 
     complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name="follow_ups")

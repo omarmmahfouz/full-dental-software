@@ -3,13 +3,18 @@
 {% block title %}{% trans "Photos" %} — {{ patient.full_name }}{% endblock %}
 {% block content %}
 {% with active="photos" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+  <a class="btn btn-primary" href="{% url 'charting:logbook' patient.pk %}"><i class="bi bi-journal-richtext"></i> {% trans "Log book pages (print)" %}</a>
+  <a class="btn btn-outline-secondary" href="{% url 'charting:photos_zip' patient.pk %}"><i class="bi bi-file-earmark-zip"></i> {% trans "Download all photos (ZIP)" %}</a>
+  <span class="small text-muted"><i class="bi bi-folder2-open"></i> {% blocktrans with folder=patient_folder %}On the server PC the photos are also in the folder <b dir="ltr">data/media/Patient photos/{{ folder }}</b>, one folder per stage, each photo named by its shot: copy them from there without opening the system.{% endblocktrans %}</span>
+</div>
 <ul class="nav nav-tabs mb-3 flex-wrap">
   {% for s in stages %}
   <li class="nav-item"><a class="nav-link {% if s.code == stage %}active{% endif %}" href="?stage={{ s.code }}">{{ s.label }} <span class="badge {% if s.required and s.done == s.required %}text-bg-success{% else %}text-bg-light{% endif %}">{{ s.done }}/{{ s.required }}</span></a></li>
   {% endfor %}
 </ul>
 {% for s in stages %}{% if s.code == stage %}
-<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<form method="post" enctype="multipart/form-data" data-teeth-missing="{{ missing }}">{% csrf_token %}
   <input type="hidden" name="stage" value="{{ s.code }}">
   {% if can_upload %}
   <div class="card mb-3"><div class="card-body">

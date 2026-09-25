@@ -57,7 +57,8 @@ class TreatmentStepForm(_PatientScopedForm):
         self.fields["step_type"].label = _("Treatment done")
         self.fields["notes"].label = _("Notes")
         self.fields["notes"].widget.attrs.update({"rows": 2, "placeholder": _("anything worth knowing about this visit")})
-        self.fields["teeth"].widget.attrs.update({"data-digits": "1", "autocomplete": "off"})
+        self.fields["teeth"].widget.attrs.update(
+            {"data-digits": "1", "autocomplete": "off", "data-teeth-picker": "multi"})
         for name in ("patient_lookup", "performed_at", "step_type", "teeth", "surfaces", "material",
                      "operator", "assistant", "supervisor"):
             self.fields[name].col = "col-md-4"
@@ -117,6 +118,7 @@ class LabRequestForm(_PatientScopedForm):
         super().__init__(*args, **kwargs)
         self.fields["lab"].queryset = Lab.objects.filter(is_active=True)
         self.fields["work_type"].queryset = LabWorkType.objects.filter(is_active=True)
+        self.fields["teeth"].widget.attrs["data-teeth-picker"] = "multi"
         if not has_role(self.user, *FRONT_DESK):
             del self.fields["lab_cost"]
         self.fields["supervisor"].help_text = LabRequest._meta.get_field("supervisor").help_text
@@ -180,6 +182,8 @@ class OutsideRequestForm(StyledModelForm):
         for name in ("requested_on", "dentist", "region", "teeth", "field_of_view", "other_tests"):
             if name in self.fields:
                 self.fields[name].col = "col-md-6"
+        if "teeth" in self.fields:
+            self.fields["teeth"].widget.attrs["data-teeth-picker"] = "multi"
         if "notes" in self.fields:
             self.fields["notes"].widget.attrs["rows"] = 2
 

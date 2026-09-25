@@ -6,6 +6,7 @@ Never run this on the real clinic database.
 """
 
 import csv
+import io
 import random
 from datetime import datetime, time, timedelta
 from decimal import Decimal
@@ -14,12 +15,13 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.management import call_command
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
 from apps.academy.models import Candidate, Course, Enrollment, Installment, Payment, PaymentMethod
-from apps.charting.models import Examination, PlanItem, ToothChange, TreatmentPlan
+from apps.charting.models import ClinicalPhoto, Examination, PhotoType, PlanItem, ToothChange, TreatmentPlan
 from apps.charting.rules import apply_changes, exam_changes
 from apps.clinical.models import ChartEffect, Lab, LabRequest, LabRequestEvent, LabWorkType, TreatmentStep, TreatmentStepType
 from apps.clinical.services import perform_lab_action
@@ -38,7 +40,7 @@ from apps.patients.models import (
 from apps.prescriptions.models import Prescription, PrescriptionLine
 from apps.prescriptions.services import best_template, surgery_procedures
 from apps.purchasing.models import Purchase, PurchaseCategory, PurchaseItem, Supplier
-from apps.scheduling.models import Appointment, MessageTemplate, Room, RoomShift
+from apps.scheduling.models import Appointment, MessageTemplate, PatientRequest, Room, RoomShift
 from apps.scheduling.whatsapp import record, record_installment
 from apps.stock.importer import import_items, parse
 from apps.stock.models import StockCategory, StockItem, StockMovement
@@ -78,6 +80,24 @@ CASES = [
      {"difficulty": Surgery.Difficulty.ADVANCED, "block_graft": True, "block_donor": Surgery.BlockDonor.RAMUS,
       "cut_by": Surgery.CutBy.PIEZO, "screws_count": 2}),
 ]
+
+
+def demo_photo(label, seed):
+    """A made-up clinical photo (gum and teeth shapes with the shot's name) for the photo pages."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    rng = random.Random(seed)
+    image = Image.new("RGB", (960, 720), (rng.randint(170, 205), rng.randint(95, 120), rng.randint(100, 125)))
+    draw = ImageDraw.Draw(image)
+    for number in range(7):
+        left = 70 + number * 120 + rng.randint(-8, 8)
+        draw.rounded_rectangle([left, 230, left + 100, 420 + rng.randint(-20, 20)], radius=34,
+                               fill=(243, 238, 222), outline=(205, 195, 172), width=4)
+    draw.rectangle([0, 630, 960, 720], fill=(255, 255, 255))
+    draw.text((28, 652), label, fill=(55, 55, 55), font=ImageFont.load_default(size=34))
+    output = io.BytesIO()
+    image.save(output, "JPEG", quality=70)
+    return ContentFile(output.getvalue(), name="photo.jpg")
 
 
 class Command(BaseCommand):
@@ -511,6 +531,20 @@ class Command(BaseCommand):
         for line in template.lines.all():
             PrescriptionLine.objects.create(prescription=prescription, drug=line.group.drugs.first(),
                                             dose=line.dose or line.group.dose)
+
+        # Photos of the last surgery's case, for the photo checklist and the log book pages.
+        photo_teeth = ", ".join(str(site.tooth) for site in last_surgery.sites.all())
+        shots = [(PhotoType.objects.filter(stage="diagnostic").order_by("sort_order")[:6], last_surgery.date - timedelta(days=21), None),
+                 (PhotoType.objects.filter(stage="surgery", name_en__in=[
+                     "Flap", "Paralleling pin occlusal", "Implant placed with cover screw", "Suture"]), last_surgery.date,
+                  last_surgery)]
+        for types_of_stage, taken_on, photo_surgery in shots:
+            for photo_type in types_of_stage:
+                ClinicalPhoto.objects.create(
+                    patient=last_surgery.patient, stage=photo_type.stage, photo_type=photo_type, surgery=photo_surgery,
+                    teeth=photo_teeth if photo_surgery else "", taken_on=taken_on, created_by=recorder(last_surgery.operator_1),
+                    file=demo_photo(photo_type.name_en, photo_type.pk),
+                )
         guided = [p for number, p in enumerate(waiting) if number % 2 == 0]
         call_list = create_call_list("خطط العلاج: زرع بدليل جراحي",
                                      "برجاء الاتصال لحجز يوم العمليات (الخميس).",
@@ -578,6 +612,23 @@ class Command(BaseCommand):
         late = next((row, enrollment) for enrollment in Enrollment.objects.all()
                     for row in enrollment.installment_schedule(today) if row["state"] == "overdue")
         record_installment(*late, secretary)
+        # Dr. Mona's patient list for next week: some approved for the reception, some waiting for the head.
+        mona = cia_dentists[0]
+        wanted = today + timedelta(days=1)
+        demo_requests = [
+            (waiting[1], "Implant placement", "36", 90, "main", 1, "approved"),
+            (waiting[3], "Implant placement", "46", 60, "main", 2, "approved"),
+            (waiting[5], "Digital scan", "", 30, "backup", 1, "approved"),
+            (waiting[2], "Guided implant surgery", "36, 46", 120, "main", 3, "proposed"),
+            (waiting[4], "Bone graft", "14", 60, "backup", 2, "proposed"),
+        ]
+        for patient, step_name, teeth, minutes, kind, priority, status in demo_requests:
+            PatientRequest.objects.create(
+                dentist=mona, patient=patient, step_type=types[step_name], teeth=teeth, minutes=minutes, kind=kind,
+                priority=priority, wanted_from=wanted, wanted_to=wanted + timedelta(days=6), status=status,
+                approved_minutes=minutes if status == "approved" else None, created_by=mona.user,
+                decided_by=head if status == "approved" else None, decided_at=now if status == "approved" else None,
+            )
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "

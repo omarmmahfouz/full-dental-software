@@ -1,0 +1,28 @@
+{% load i18n %}{# The tooth-number pop-up used by every "teeth" box (static/js/app.js, "Tooth picker"). #}
+<div class="modal fade" id="teeth-picker" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-grid-3x3-gap"></i>
+      <span data-title-multi>{% trans "Choose the teeth" %}</span><span data-title-single hidden>{% trans "Choose the tooth" %}</span></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p class="small text-muted mb-2" data-hint-multi>{% trans "Click every tooth that gets the same procedure, then press Done." %}</p>
+      <div class="teeth-picker" dir="ltr">
+        <div class="teeth-picker-side"><span>{% trans "Patient's right" %}</span><span>{% trans "Patient's left" %}</span></div>
+        <div class="teeth-picker-row" data-jaw="upper">
+          <span class="teeth-picker-jaw">{% trans "Upper" %}</span>
+        </div>
+        <div class="teeth-picker-row" data-jaw="lower"><span class="teeth-picker-jaw">{% trans "Lower" %}</span></div>
+      </div>
+      <div class="d-flex flex-wrap gap-3 align-items-center mt-3 small">
+        <span><span class="teeth-picker-key missing"></span> {% trans "Missing on the chart" %}</span>
+        <span><span class="teeth-picker-key active"></span> {% trans "Chosen" %}</span>
+        <span class="ms-auto fw-semibold" data-hint-multi>{% trans "Chosen" %}: <span data-chosen>—</span></span>
+      </div>
+    </div>
+    <div class="modal-footer" data-hint-multi>
+      <button type="button" class="btn btn-outline-secondary me-auto" data-pick="missing">{% trans "All missing teeth" %}</button>
+      <button type="button" class="btn btn-outline-danger" data-pick="clear">{% trans "Clear" %}</button>
+      <button type="button" class="btn btn-primary px-4" data-pick="done">{% trans "Done" %}</button>
+    </div>
+  </div></div>
+</div>

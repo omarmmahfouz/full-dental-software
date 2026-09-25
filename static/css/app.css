@@ -97,15 +97,15 @@ body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Sego
 .print-logo { height: 70px; width: auto; }
 @media print {
   .no-print, .app-navbar, .alert { display: none !important; }
-  body { background: #fff !important; }
+  body, body.bg-body-tertiary { background: #fff !important; }
   .card { box-shadow: none; border: 1px solid #ccc; }
   main { padding: 0 !important; }
 }
 /* Dental chart */
 .odontogram-wrap { direction: ltr; overflow-x: auto; }
 .odontogram { width: 100%; min-width: 640px; height: auto; display: block; }
-.odontogram a .tooth:hover rect:first-child { fill: rgba(158, 198, 79, .18); }
-.odontogram a { cursor: pointer; }
+.odontogram a .tooth:hover > rect:first-of-type { fill: rgba(158, 198, 79, .18); }
+.odontogram a { cursor: pointer; text-decoration: none; }
 .chart-legend { display: flex; flex-wrap: wrap; gap: .35rem 1rem; color: #495057; direction: ltr; }
 .chart-legend .lg { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; border: 1px solid #6c757d; font-style: normal; font-size: 11px; line-height: 12px; text-align: center; }
 .lg-caries { background: #E35D6A; } .lg-filling { background: #3D7FE0; }
@@ -179,4 +179,53 @@ body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Sego
   .app-navbar form[role=search] input { width: 8.5rem; }
   .app-navbar .user-name { max-width: 8.5rem; overflow: hidden; text-overflow: ellipsis; }
   .app-navbar .me-auto > .nav-item > .nav-link > .bi { display: none; }
+}
+
+/* The dentist's week on the home page */
+.my-week { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: .6rem; }
+.my-week-day { border: 1px solid #dee2e6; border-radius: .5rem; padding: .5rem .6rem; background: #fff; }
+.my-week-day.is-today { border: 2px solid var(--brand-green-dark); background: var(--brand-green-soft); }
+.my-week-day ul { max-height: 16rem; overflow-y: auto; }
+
+/* Tooth picker pop-up (templates/includes/teeth_picker.html) */
+.teeth-picker { overflow-x: auto; padding-bottom: .25rem; }
+.teeth-picker-side { display: flex; justify-content: space-between; font-size: .8rem; color: var(--bs-secondary-color); padding: 0 .25rem .25rem 3.5rem; min-width: 640px; }
+.teeth-picker-row { display: flex; align-items: center; gap: .25rem; min-width: 640px; }
+.teeth-picker-row[data-jaw="upper"] { border-bottom: 2px solid var(--bs-border-color); padding-bottom: .5rem; margin-bottom: .5rem; }
+.teeth-picker-jaw { width: 3.25rem; flex: none; font-size: .8rem; color: var(--bs-secondary-color); }
+.teeth-picker-midline { width: 2px; align-self: stretch; background: var(--bs-border-color); margin: 0 .25rem; }
+.teeth-picker-tooth { flex: 1 1 0; min-width: 2.2rem; height: 2.75rem; border: 1px solid var(--bs-border-color); border-radius: .5rem; background: var(--bs-body-bg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.teeth-picker-tooth:hover { border-color: var(--bs-primary); }
+.teeth-picker-tooth.missing, .teeth-picker-key.missing { border-style: dashed; border-color: var(--bs-warning); background: var(--bs-warning-bg-subtle); }
+.teeth-picker-tooth.active, .teeth-picker-key.active { background: var(--bs-primary); border-color: var(--bs-primary); color: #fff; }
+.teeth-picker-key { display: inline-block; width: 1rem; height: 1rem; border: 1px solid var(--bs-border-color); border-radius: .25rem; vertical-align: -.15rem; }
+.teeth-picker-open { padding-left: .5rem; padding-right: .5rem; }
+.same-procedures { border: 1px dashed var(--bs-primary-border-subtle); background: var(--bs-primary-bg-subtle); border-radius: .5rem; padding: .75rem; }
+.plan-section-implant > .card-header { background: var(--bs-primary-bg-subtle); }
+.plan-section-restorative > .card-header { background: var(--bs-success-bg-subtle); }
+.plan-part-row th { background: var(--bs-tertiary-bg); }
+
+/* Photo log book: fixed-size frames in mm so every printed page looks the same */
+.logbook-page { background: #fff; color: #212529; width: 210mm; max-width: 100%; margin: 0 auto 1.5rem; padding: 12mm; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.logbook-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--brand-green, #9EC64F); padding-bottom: 3mm; margin-bottom: 3mm; }
+.logbook-header .print-logo { height: 12mm; }
+.logbook-stage { font-size: 1.1rem; color: var(--brand-green-darker, #3F5A12); }
+.logbook-facts { width: 100%; font-size: .85rem; margin-bottom: 3mm; border-collapse: collapse; }
+.logbook-facts th { width: 18%; color: #6c757d; font-weight: 600; padding: 1mm 2mm 1mm 0; vertical-align: top; }
+.logbook-facts td { padding: 1mm 2mm 1mm 0; border-bottom: 1px dotted #ced4da; }
+.logbook-description-label { font-size: .8rem; color: #6c757d; font-weight: 600; }
+.logbook-description { min-height: 12mm; font-size: .9rem; border: 1px dashed #ced4da; border-radius: 1mm; padding: 2mm; margin-bottom: 4mm; white-space: normal; }
+.logbook-description:focus { outline: 2px solid var(--bs-primary); }
+.logbook-grid { display: grid; grid-template-columns: repeat(2, var(--frame-w)); gap: 3mm 8mm; justify-content: center; }
+.logbook-grid.per-row-3 { grid-template-columns: repeat(3, var(--frame-w)); gap: 3mm 5mm; }
+.logbook-photo { margin: 0; break-inside: avoid; page-break-inside: avoid; }
+.logbook-frame { width: var(--frame-w); height: var(--frame-h); border: 1px solid #adb5bd; background: #fff; overflow: hidden; }
+.logbook-frame img { width: 100%; height: 100%; object-fit: var(--fit); display: block; }
+.logbook-photo figcaption { font-size: .72rem; line-height: 1.25; margin-top: 1mm; width: var(--frame-w); }
+@media print {
+  @page logbook { size: A4; margin: 10mm 12mm; }
+  .logbook-page { page: logbook; box-shadow: none; margin: 0; padding: 0; width: auto; break-after: page; page-break-after: always; }
+  .logbook-page:last-child { break-after: auto; page-break-after: auto; }
+  .logbook-description { border-color: transparent; padding: 0 0 2mm; min-height: 0; }
+  .back-link { display: none !important; }
 }

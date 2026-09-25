@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import Branch, Notification, UserProfile
+from .models import Branch, Notification, ProblemReport, UserProfile
 
 User = get_user_model()
 
@@ -63,3 +63,10 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ("title", "recipient", "level", "created_at", "read_at")
     list_filter = ("level", "read_at")
     search_fields = ("title", "message", "recipient__username")
+
+
+@admin.register(ProblemReport)
+class ProblemReportAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "kind", "status", "page", "times", "reported_by")
+    list_filter = ("kind", "status")
+    search_fields = ("page", "description", "error")

@@ -288,3 +288,129 @@ class DayPlannerTests(TestCase):
         thursday = self.day + timedelta(days=(3 - self.day.weekday()) % 7)
         form = self.client.get("/schedule/rooms/shift/new/", {"date": thursday.isoformat()}).context["form"]
         self.assertEqual(form.initial["day_type"], RoomShift.DayType.SURGERY)
+
+
+class RescheduleTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.dentist = make_dentist("dentist", kind="fulltime", name="Dr. Mona")
+        self.patient = make_patient(self.branch)
+        self.day = timezone.localdate() + timedelta(days=1)
+        self.appointment = Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist,
+                                                      scheduled_at=at(self.day, 10), duration_minutes=30)
+
+    def test_move_tells_the_dentist_and_offers_whatsapp(self):
+        from apps.core.models import Notification
+
+        self.client.login(username="sec", password=PASSWORD)
+        later = self.day + timedelta(days=2)
+        response = self.client.post(f"/schedule/appointments/{self.appointment.pk}/move/", {
+            "scheduled_at_0": later.strftime("%d/%m/%Y"), "scheduled_at_1": "12:30", "duration_minutes": "30",
+            "dentist": self.dentist.pk, "reason": "the patient asked"})
+        self.assertRedirects(response, self.appointment.get_absolute_url(), fetch_redirect_response=False)
+        self.appointment.refresh_from_db()
+        self.assertEqual(timezone.localtime(self.appointment.scheduled_at).date(), later)
+        self.assertEqual(timezone.localtime(self.appointment.rescheduled_from).hour, 10)
+        self.assertTrue(Notification.objects.filter(recipient=self.dentist.user).exists())
+        self.assertEqual([a for a, _sent in self.client.get("/schedule/whatsapp/").context["moved"]], [self.appointment])
+        response = self.client.post(f"/schedule/whatsapp/{self.appointment.pk}/rescheduled/")
+        self.assertIn("wa.me", response["Location"])
+        # The dentist sees his week and the change on his home page.
+        self.client.login(username="dentist", password=PASSWORD)
+        home = self.client.get("/")
+        self.assertEqual(sum(len(d["appointments"]) for d in home.context["my_week"]), 1)
+        self.assertEqual(len(home.context["my_updates"]), 1)
+
+    def test_a_reason_is_needed_and_cancellations_are_told(self):
+        from apps.core.models import Notification
+
+        self.client.login(username="sec", password=PASSWORD)
+        response = self.client.post(f"/schedule/appointments/{self.appointment.pk}/move/", {
+            "scheduled_at_0": self.day.strftime("%d/%m/%Y"), "scheduled_at_1": "11:00", "duration_minutes": "30"})
+        self.assertIn("reason", response.context["form"].errors)
+        self.client.post(f"/schedule/appointments/{self.appointment.pk}/action/", {"action": "cancel"})
+        self.assertEqual(Notification.objects.filter(recipient=self.dentist.user).count(), 1)
+
+
+class DentistPatientListTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.head = make_user("head", "head_cia")
+        self.secretary = make_user("sec", "secretary")
+        self.main = make_patient(self.branch, name="Main Patient")
+        self.backup = make_patient(self.branch, name="Backup Patient", nid="29001011234568", phone="01001234568")
+        self.room = Room.objects.filter(branch=self.branch).first()
+
+    def add(self, patient, kind, priority, minutes=60):
+        from apps.clinical.models import TreatmentStepType
+
+        step = TreatmentStepType.objects.get(name_en="Implant placement")
+        return self.client.post("/schedule/my-patient-list/", {
+            "patient_lookup": patient.file_number, "step_type": step.pk, "teeth": "46 36", "minutes": minutes,
+            "kind": kind, "priority": priority, "wanted_from": timezone.localdate().strftime("%d/%m/%Y"),
+        })
+
+    def test_dentist_list_is_approved_then_booked_by_the_reception(self):
+        from apps.core.models import Notification
+        from apps.scheduling.models import PatientRequest
+
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.add(self.main, "main", 1).status_code, 302)
+        self.add(self.backup, "backup", 1, minutes=45)
+        first, second = PatientRequest.objects.order_by("pk")
+        self.assertEqual((first.teeth, first.status), ("46, 36", "proposed"))
+        self.assertTrue(Notification.objects.filter(recipient=self.head, url="/schedule/patient-lists/approve/").exists())
+        self.client.login(username="sec", password=PASSWORD)  # the reception sees nothing before approval
+        self.assertEqual(len(list(self.client.get("/schedule/patient-lists/").context["groups"])), 0)
+        self.assertEqual(self.client.get("/schedule/patient-lists/approve/").status_code, 403)
+
+        self.client.login(username="head", password=PASSWORD)
+        self.client.post("/schedule/patient-lists/approve/", {
+            "action": "approve", "item": [first.pk, second.pk], f"minutes_{first.pk}": 90, f"note_{first.pk}": "OK",
+        })
+        first.refresh_from_db()
+        self.assertEqual((first.status, first.approved_minutes, first.decided_by), ("approved", 90, self.head))
+        self.assertTrue(Notification.objects.filter(recipient=self.secretary, url="/schedule/patient-lists/").exists())
+
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/schedule/patient-lists/")
+        dentist, group = list(page.context["groups"])[0]
+        self.assertEqual(([i.pk for i in group["main"]], [i.pk for i in group["backup"]]), ([first.pk], [second.pk]))
+        self.assertIn("duration=90", group["main"][0].book_url)
+        # the main patient cannot come: the reception is told to call the backup list
+        self.client.post(f"/schedule/patient-lists/{first.pk}/cannot-come/", {"note": "travelling"})
+        dentist, group = list(self.client.get("/schedule/patient-lists/").context["groups"])[0]
+        self.assertTrue(group["call_backup"])
+        self.assertTrue(Notification.objects.filter(recipient=self.dentist.user, level="warning").exists())
+        # booking the backup patient from the list links the appointment
+        start = timezone.localtime().replace(hour=11, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        RoomShift.objects.create(room=self.room, date=start.date(), start_time=time(9), end_time=time(17),
+                                 dentist=self.dentist)
+        response = self.client.post(
+            f"/schedule/appointments/new/?patient={self.backup.pk}&dentist={self.dentist.pk}&duration=45&request={second.pk}",
+            {"patient_lookup": self.backup.file_number, "scheduled_at_0": start.strftime("%d/%m/%Y"),
+             "scheduled_at_1": "11:00", "duration_minutes": 45, "dentist": self.dentist.pk, "room": self.room.pk,
+             "purpose": "Implant placement 46, 36"})
+        self.assertEqual(response.status_code, 302, response.context and response.context["form"].errors)
+        second.refresh_from_db()
+        self.assertEqual(second.status, "booked")
+        self.assertEqual(second.appointment.patient, self.backup)
+
+    def test_only_dentists_have_a_list_and_can_remove_their_own(self):
+        from apps.scheduling.models import PatientRequest
+
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/schedule/my-patient-list/").status_code, 403)
+        self.client.login(username="dentist", password=PASSWORD)
+        self.add(self.main, "main", 2)
+        item = PatientRequest.objects.get()
+        other = make_dentist("dentist2", kind="fulltime")
+        self.client.login(username="dentist2", password=PASSWORD)
+        self.assertEqual(self.client.post(f"/schedule/my-patient-list/{item.pk}/remove/").status_code, 404)
+        self.client.login(username="dentist", password=PASSWORD)
+        self.client.post(f"/schedule/my-patient-list/{item.pk}/remove/")
+        item.refresh_from_db()
+        self.assertEqual(item.status, "cancelled")
+        self.assertIsNotNone(other)

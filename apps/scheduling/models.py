@@ -126,6 +126,9 @@ class Appointment(TimeStampedModel):
     entered_room_at = models.DateTimeField(_("entered the room"), null=True, blank=True)
     left_at = models.DateTimeField(_("left"), null=True, blank=True)
     cancel_reason = models.CharField(_("cancellation reason"), max_length=255, blank=True)
+    rescheduled_from = models.DateTimeField(_("moved from"), null=True, blank=True)
+    rescheduled_at = models.DateTimeField(_("moved on"), null=True, blank=True)
+    reschedule_reason = models.CharField(_("why it was moved"), max_length=255, blank=True)
     notes = models.TextField(_("notes"), blank=True)
 
     class Meta:
@@ -245,6 +248,7 @@ class MessageTemplate(models.Model):
         CONFIRMATION = "confirmation", _("Booking confirmation")
         REMINDER = "reminder", _("Appointment reminder")
         NO_SHOW = "no_show", _("Missed appointment")
+        RESCHEDULED = "rescheduled", _("Appointment moved")
         INSTALLMENT = "installment", _("Installment reminder")
 
     kind = models.CharField(_("message"), max_length=20, choices=Kind.choices, unique=True)
@@ -284,3 +288,65 @@ class SentMessage(models.Model):
         ordering = ["-sent_at"]
         verbose_name = _("WhatsApp message sent")
         verbose_name_plural = _("WhatsApp messages sent")
+
+
+class PatientRequest(TimeStampedModel):
+    """A CIA dentist's list of the patients he wants on his days: which step, how long, in which
+    order. The supervisor approves it (and may change the time given); the reception then calls
+    and books them. Patients on the backup list are called when a main one cannot come."""
+
+    class Kind(models.TextChoices):
+        MAIN = "main", _("Main list")
+        BACKUP = "backup", _("Backup list (call if a main patient cannot come)")
+
+    class Priority(models.IntegerChoices):
+        FIRST = 1, _("1 - First (most important)")
+        SECOND = 2, _("2 - Second")
+        THIRD = 3, _("3 - Third")
+        FOURTH = 4, _("4 - Fourth")
+        FIFTH = 5, _("5 - Fifth")
+
+    class Status(models.TextChoices):
+        PROPOSED = "proposed", _("Waiting for the supervisor")
+        APPROVED = "approved", _("Approved: reception to call")
+        BOOKED = "booked", _("Booked")
+        CANNOT_COME = "cannot_come", _("Patient cannot come")
+        REJECTED = "rejected", _("Not approved")
+        CANCELLED = "cancelled", _("Cancelled by the dentist")
+
+    OPEN = (Status.PROPOSED, Status.APPROVED)
+
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist"), on_delete=models.CASCADE,
+                                related_name="patient_requests")
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="dentist_requests")
+    step_type = models.ForeignKey("clinical.TreatmentStepType", verbose_name=_("step to do"), on_delete=models.PROTECT)
+    teeth = models.CharField(_("teeth"), max_length=100, blank=True)
+    minutes = models.PositiveSmallIntegerField(_("time needed (minutes)"), default=60)
+    kind = models.CharField(_("list"), max_length=10, choices=Kind.choices, default=Kind.MAIN)
+    priority = models.PositiveSmallIntegerField(_("priority"), choices=Priority.choices, default=Priority.SECOND)
+    wanted_from = models.DateField(_("from"), default=timezone.localdate)
+    wanted_to = models.DateField(_("to"), null=True, blank=True)
+    notes = models.CharField(_("notes for the supervisor and the reception"), max_length=255, blank=True)
+    status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.PROPOSED,
+                              db_index=True)
+    approved_minutes = models.PositiveSmallIntegerField(_("time given (minutes)"), null=True, blank=True)
+    decided_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("decided by"), null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="+")
+    decided_at = models.DateTimeField(_("decided at"), null=True, blank=True)
+    decision_note = models.CharField(_("supervisor's note"), max_length=255, blank=True)
+    reception_note = models.CharField(_("reception's note"), max_length=255, blank=True)
+    appointment = models.ForeignKey(Appointment, verbose_name=_("appointment"), null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="patient_requests")
+
+    class Meta:
+        ordering = ["dentist", "-kind", "priority", "created_at"]  # main list ("main" > "backup") first
+        verbose_name = _("patient asked by a dentist")
+        verbose_name_plural = _("patients asked by dentists")
+
+    def __str__(self):
+        return f"{self.patient} — {self.step_type} ({self.dentist})"
+
+    @property
+    def time_given(self):
+        return self.approved_minutes or self.minutes

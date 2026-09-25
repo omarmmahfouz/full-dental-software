@@ -10,4 +10,5 @@ urlpatterns = [
     path("<int:pk>/", views.complaint_detail, name="detail"),
     path("<int:pk>/edit/", views.complaint_update, name="update"),
     path("<int:pk>/follow-up/", views.complaint_follow_up, name="follow_up"),
+    path("<int:pk>/answer/", views.complaint_answer, name="answer"),
 ]

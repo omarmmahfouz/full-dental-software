@@ -15,6 +15,8 @@ from django.views.decorators.http import require_POST
 from apps.charting.models import ToothChange
 from apps.charting.plans import complete_plan_items
 from apps.charting.rules import apply_changes, plan_changes
+from apps.charting.sync import missing_teeth
+from apps.charting.teeth import format_teeth
 from apps.clinical.models import ChartEffect, TreatmentStepType
 from apps.core.mixins import role_required
 from apps.core.models import branch_for_user
@@ -132,10 +134,12 @@ def surgery_edit(request, pk=None):
             message += " " + _("%(n)s treatment plan items marked as done.") % {"n": len(done)}
         messages.success(request, message)
         return redirect(obj)
+    chart_patient = surgery.patient if surgery else patient
     return render(request, "surgery/surgery_form.html", {
         "form": form, "formset": formset, "surgery": surgery,
         "title": _("Edit surgery chart") if surgery else _("New surgery chart"),
         "procedures": SurgerySite.PROCEDURES,
+        "missing": format_teeth(missing_teeth(chart_patient)) if chart_patient else "",
     })
 
 

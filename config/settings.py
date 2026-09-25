@@ -96,6 +96,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "apps.core.access.AccessControlMiddleware",
+    "apps.core.middleware.ErrorRecorderMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -188,6 +189,9 @@ if DEBUG or "test" in sys.argv[1:2]:
 # every download goes through a login-protected view (apps.core.views.protected_media).
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(env("MEDIA_ROOT", str(BASE_DIR / "data" / "media")))
+# Full backups (Settings → Backup and export, or "python manage.py backup"): the newest BACKUP_KEEP are kept.
+BACKUP_DIR = Path(env("BACKUP_DIR", str(BASE_DIR / "data" / "backups")))
+BACKUP_KEEP = int(env("BACKUP_KEEP", "10"))
 FILE_UPLOAD_PERMISSIONS = 0o640
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 MAX_UPLOAD_SIZE_MB = int(env("MAX_UPLOAD_SIZE_MB", "15"))

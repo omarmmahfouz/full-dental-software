@@ -39,7 +39,8 @@
     <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Treatment plans" %}</h2>
     {% for plan in plans %}
       <div class="small fw-semibold">{{ plan.title }} — {{ plan.get_status_display }}{% if plan.approved_by %} ({% trans "approved by" %} {{ plan.approved_by }}){% endif %}</div>
-      <ul class="small">{% for item in plan.items.all %}<li>{{ item.step_type }} {{ item.teeth }} {{ item.details }} — <b>{{ item.get_status_display }}</b></li>{% endfor %}</ul>
+      {% for section in plan.sections %}<div class="small fw-semibold">{{ section.label }}</div>
+      <ul class="small">{% for item in section.items %}<li>{{ item.step_type }} {{ item.teeth }} {{ item.details }} — <b>{{ item.get_status_display }}</b></li>{% endfor %}</ul>{% endfor %}
     {% endfor %}
   </section>
   {% endif %}

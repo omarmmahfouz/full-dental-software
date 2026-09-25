@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import patient_requests, views
 
 app_name = "scheduling"
 
@@ -14,11 +14,17 @@ urlpatterns = [
     path("appointments/<int:pk>/edit/", views.appointment_update, name="appointment_update"),
     path("appointments/<int:pk>/action/", views.appointment_action, name="appointment_action"),
     path("appointments/<int:pk>/times/", views.appointment_times, name="appointment_times"),
+    path("appointments/<int:pk>/move/", views.appointment_reschedule, name="appointment_reschedule"),
     path("rooms/", views.room_schedule, name="room_schedule"),
     path("rooms/shift/new/", views.shift_edit, name="shift_create"),
     path("rooms/shift/<int:pk>/", views.shift_edit, name="shift_update"),
     path("rooms/shift/<int:pk>/delete/", views.shift_delete, name="shift_delete"),
     path("rooms/copy-week/", views.copy_previous_week, name="copy_week"),
+    path("my-patient-list/", patient_requests.my_requests, name="requests_mine"),
+    path("my-patient-list/<int:pk>/remove/", patient_requests.request_cancel, name="request_cancel"),
+    path("patient-lists/approve/", patient_requests.approve_requests, name="requests_approve"),
+    path("patient-lists/", patient_requests.reception_requests, name="requests_reception"),
+    path("patient-lists/<int:pk>/cannot-come/", patient_requests.request_cannot_come, name="request_cannot_come"),
     path("whatsapp/", views.whatsapp_list, name="whatsapp"),
     path("whatsapp/<int:pk>/<slug:kind>/", views.whatsapp_send, name="whatsapp_send"),
 ]

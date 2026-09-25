@@ -9,8 +9,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.forms import inlineformset_factory, modelform_factory
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
@@ -45,8 +46,9 @@ LISTS = {
     "implant_systems": (gettext_lazy("Implant companies and types"), ImplantSystem, ["company", "line", "is_active"],
                         ["company", "line"], None, gettext_lazy("Clinical")),
     "treatment_types": (gettext_lazy("Treatments"), TreatmentStepType,
-                        ["name_ar", "name_en", "description_ar", "chart_effect", "surgery_procedure", "default_material",
-                         "sort_order", "is_active"], ["name_en", "name_ar", "description_ar"], None,
+                        ["name_ar", "name_en", "category", "description_ar", "chart_effect", "surgery_procedure",
+                         "default_material", "sort_order", "is_active"], ["name_en", "name_ar", "category",
+                                                                          "description_ar"], None,
                         gettext_lazy("Clinical")),
     "photo_types": (gettext_lazy("Photo checklist"), PhotoType, ["stage", "name_ar", "name_en", "optional", "sort_order",
                                                                  "is_active"], ["stage", "name_en"], None,
@@ -328,3 +330,44 @@ def role_access(request):
     return render(request, "settings/access.html", {
         "roles": roles, "rows": rows, "levels": AreaAccess.Level.choices,
     })
+
+
+# ------------------------------------------------------------ backup and export
+@role_required(OWNER)
+def backup_home(request):
+    from .backup import backup_dir, create_backup, list_backups
+
+    if request.method == "POST":
+        try:
+            path = create_backup()
+        except Exception as error:  # disk full, folder not writable…: say it, the data is untouched
+            messages.error(request, _("The backup could not be made: %(error)s") % {"error": error})
+        else:
+            messages.success(request, _("Backup made: %(name)s. Download it and keep a copy outside this PC.")
+                             % {"name": path.name})
+        return redirect("settings:backup")
+    return render(request, "settings/backup.html", {"backups": list_backups(), "folder": backup_dir()})
+
+
+@role_required(OWNER)
+def backup_download(request, name):
+    from .backup import list_backups
+
+    backup = next((b for b in list_backups() if b["name"] == name), None)
+    if backup is None:
+        raise Http404
+    return FileResponse(open(backup["path"], "rb"), as_attachment=True, filename=backup["name"])
+
+
+@role_required(OWNER)
+def export_excel(request):
+    """All the data as one Excel workbook (a sheet per table)."""
+    import tempfile
+
+    from .backup import excel_workbook
+
+    workbook = tempfile.TemporaryFile()
+    excel_workbook(workbook)
+    workbook.seek(0)
+    return FileResponse(workbook, as_attachment=True,
+                        filename=f"cia-all-data-{timezone.localtime():%Y-%m-%d}.xlsx")

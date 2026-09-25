@@ -84,21 +84,25 @@ The language follows the person, not the PC:
   - **Installments of the month**: what each candidate pays this month, what is collected and what is left, with a **WhatsApp reminder** button (also on the overdue list and the WhatsApp page).
   - Each payment records the **payment method**: cash, card, InstaPay, mobile wallet, bank transfer or cheque, with the transaction reference.
   - Printable receipts, and an overdue installments list.
-- **Easier booking** (new):
+- **Easier booking**:
   - Type part of the patient's **name** (any spelling of أ/ا, ة/ه, ى/ي), mobile or file number, and choose from the list.
   - Every date is **dd/mm/yyyy**, from a calendar or typed. Times are chosen in **15-minute steps** (9:00, 9:15, 9:30…).
   - Under the form, the **day's appointments** room by room: click a free (green) place and its time, room and dentist are filled in.
   - **Schedule → Day planner**: one column per room with the dentist working there, 15-minute steps, every booked patient, and the week at the top (booked and free places per day).
-- **Room schedule** (new): CIA dentists in one list, and supervisors, candidates and training dentists in a second list. Thursday and Friday are surgery days by default (changeable in Settings). A surgery day is set per room, so one room can have a candidate's surgery while the others work as usual. **Extra rooms** appear only on the days they are opened. "Same as last week" fills the week with last week's timetable.
-- **Patient file** (new):
+- **Room schedule**: CIA dentists in one list, and supervisors, candidates and training dentists in a second list. Thursday and Friday are surgery days by default (changeable in Settings). A surgery day is set per room, so one room can have a candidate's surgery while the others work as usual. **Extra rooms** appear only on the days they are opened. "Same as last week" fills the week with last week's timetable.
+- **Patient file**:
   - The **ID scan** is cut out of the background, turned upright and shown as a card; the original photo is kept, and it can be turned by hand.
   - **File opened on** for old paper files, a list of all **governorates**, patients labelled **out** with a reason, and the call list sorted by the **first-call date**.
   - Mobiles with the wrong number of digits are refused, and duplicates name the other patient, in a **pop-up**.
   - **Treatment plan** and **treatment steps** tabs in plain Arabic, with a simple explanation of each treatment and each tooth number (36 = الضرس الأول السفلي الأيسر). The **missing teeth** and the **medical history** follow the dentist's chart and examination.
   - Editing the data, or correcting forgotten arrival / room / leaving times, is sent to the **head of CIA for approval**.
-- **Patient payments** (new): services from a price list (CBCT, consultation, implant…), discounts up to 100% with the reason, payment in parts, receipts, and the day's collections by payment method.
-- **CBCT and blood test requests** (new), printed for the patient to take. The CBCT request asks the centre to send the DICOM files to **ciapts@gmail.com** (changeable in Settings).
+- **Patient payments**: services from a price list (CBCT, consultation, implant…), discounts up to 100% with the reason, payment in parts, receipts, and the day's collections by payment method.
+- **CBCT and blood test requests**, printed for the patient to take. The CBCT request asks the centre to send the DICOM files to **ciapts@gmail.com** (changeable in Settings).
 - **Back** button on every page.
+- **Patients the dentists asked for** (new): each CIA dentist sends the list of patients he wants on his days (step, time needed, order, and a backup list). After the head of CIA approves it, the reception calls them in order and books them with one click (patient, dentist, time and step filled in). When a patient cannot come, the page says which backup patient to call next.
+- **Medical and dental history at the reception** (new): the same questions as the paper chart (blood pressure, sugar, allergies, smoking…), from the patient file. The dentist sees them at the next examination.
+- **Save before leaving?** (new): leaving a page with data not saved yet asks *Save*, *Leave without saving* or *Stay*.
+- **Report a problem** (new): user menu → *Report a problem*, with a screenshot if wanted. The owner reads them, answers, and the person is told.
 - **Purchases**:
   - Dental and non-dental purchases from different suppliers.
   - Each item goes under a category (tea/coffee, stationery, food/candies, cleaning, implants, consumables…).
@@ -116,8 +120,9 @@ The people who treat patients are all **dentists**, of these types:
 | Specialist / freelance dentist | for the private clinic later |
 
 What dentists do:
+- **Home page** (new): **my week** (my shifts and patients for the next 7 days), the **latest changes** to my appointments (new, moved, cancelled, did not come), and complaints waiting for my answer.
 - **Dental chart (digital version of the CIA paper chart)**:
-  - A professional odontogram with 5 surfaces per tooth: caries, fillings, root canals, crowns, implants (healing or loaded), missing teeth, root remnants, mobility and hopeless teeth.
+  - Drawn like **real teeth** (new): each tooth has its own crown and roots (incisors, canines, premolars, molars with 2 or 3 roots), and a round 5-surface diagram under it for caries and fillings. It shows root canals, crowns, implants (healing or loaded), bridge pontics, missing teeth, root remnants, impacted, mobility and hopeless teeth.
   - **Examination & history**: every field of the paper chart. This covers the chief complaint, the teeth lists, CBCT, blood pressure, glucose, HbA1c, allergies, drugs, the dental history and the scores.
   - A new examination starts from the last one, so only what changed needs typing.
 - **Treatment log, with the chart following the treatment**:
@@ -127,22 +132,31 @@ What dentists do:
   - Every change is kept in the tooth's history.
 - **Treatment log form**: the treatment is chosen from a list, with a **notes** box right under it.
 - **Treatment plans**: phases (urgent, preparation, surgical, prosthetic, maintenance), and the **case difficulty** (simple, moderate, advanced). The dentist picks the name of the supervisor who approved it.
+  - Two parts (new): **Implant and surgery** and **Restorative and other**; each treatment's part is set in Settings → Treatments.
+  - **Tooth picker** (new): a button next to every teeth box opens the tooth chart; click all the teeth that get the same procedure (e.g. simple implant on 36, 46 and 16). "All missing teeth" picks the teeth missing on the chart.
   - Planned teeth show in blue on the chart.
   - Items are ticked **automatically** when the same treatment is recorded on the same teeth.
 - **Implant surgery chart**: the CIA surgery chart, field by field:
   - The team: instructor, operator 1, operator 2 and assistant.
   - The case difficulty.
   - Per tooth: extraction, flap, simple / immediate / guided implant, expansion, splitting, closed / open sinus and GBR.
+  - **Same procedures on several teeth** (new): tick the procedures, choose the teeth, and a card is made for each tooth.
   - Per implant: company and line, diameter × length, lot, sticker photo, torque, ISQ and subcrestal.
   - GBR (block graft, donor site, particles, % autogenous), membrane and tacks, soft tissue, suture, temporary and X-ray.
 - **Implant life**: placed → uncovered → impression / scan → loaded, or failed, with the dates.
   - It moves by itself from the treatment log.
   - So you always know who is **waiting for 2nd stage, scan / impression or delivery**.
 - **Photo checklist**: the 8 stages of the CIA photo protocol, with photo or video upload.
+  - **Log book pages** (new): the case photos printed in frames of a fixed size (6 or 12 on an A4 page), each named by its shot, one stage per page, with the description of the procedure written from the surgery chart and treatment log (editable before printing), and the patient's identity hidden if wanted.
+  - **Readable photo folders** (new): on the server PC the photos are saved in `data/media/Patient photos/<file number and name>/1 Preoperative photos (1st visit)/…`, one folder per stage, each file named by its shot, teeth and date (e.g. `Implant_placed_with_cover_screw_36_29-08-2026.jpg`). Copy them from there without opening the system, or press *Download all photos (ZIP)*.
+- **My patient list** (new): instead of filling the calendar, add the patients you want on your days with the step, the time needed, the order, and a backup list. The head of CIA approves it (and can change the time), then the reception calls and books them.
+- **Complaints** (new): the dentist of the patient writes the answer and what will be done. If there is no answer in time, the dentist and the head of CIA are alerted.
+- **Moving an appointment** (new): *Move to another time* keeps the old time and the reason, tells the dentist, and the reception sends the new time on WhatsApp.
 - **Post-op instructions, printed with the patient's name and surgery**: the sheets that fit the surgery are chosen by themselves (general, sinus lift, bone graft, soft tissue graft), in Arabic or English.
-- **Prescriptions with interchangeable drugs**: ready prescriptions (after implant, after sinus lift, after extraction, and versions for penicillin allergy) are chosen from the surgery. Each drug can be swapped for any brand of the same group, e.g. Augmentin ↔ Megamox ↔ Hibiotic. The patient's penicillin allergy is flagged. It prints with the patient's name, age and date.
+- **Prescriptions with interchangeable drugs** (new: **injections IM / IV** — ceftriaxone, clindamycin, dexamethasone, diclofenac, ketorolac; the doctor reviews the doses in Settings): ready prescriptions (after implant, after sinus lift, after extraction, and versions for penicillin allergy) are chosen from the surgery. Each drug can be swapped for any brand of the same group, e.g. Augmentin ↔ Megamox ↔ Hibiotic. The patient's penicillin allergy is flagged. It prints with the patient's name, age and date.
 - **Lab requests**: the dentist chooses the name of the supervisor who checked the request, and it goes straight to the secretary to send.
 - **Case report**: the whole case on one printable page (chart, plan, surgeries, treatments), with a switch to **hide the patient's identity** for teaching or publication.
+- **Word file** (new): the patient's whole file (data, history, chart, plans, treatments, surgeries, appointments, payments) as a Word document.
 - **Dentist file**: every surgery and treatment they did, and for candidates **implants placed / required / remaining** for their course.
   - Also their batch, their payments, and all their cases, even ones they were not present for.
 
@@ -196,7 +210,7 @@ What dentists do:
 
 ### Settings: change the system without changing the program (owner)
 User menu → **Settings**.
-- **Lists** (the owner and the head of CIA) — new: paid services and prices, reasons for a patient being out, and a simple Arabic explanation for each treatment:
+- **Lists** (the owner and the head of CIA) including paid services and prices, reasons for a patient being out, and a simple Arabic explanation for each treatment:
   - implant companies and types
   - treatments (with what each one does to the dental chart)
   - the photo checklist
@@ -216,8 +230,10 @@ User menu → **Settings**.
   - **from hour / to hour**, e.g. 9:00 to 21:00
 
   Outside these times the login is refused. Anyone already logged in is logged out on their next click.
-- **Parts of the system for one person** (new): on a person's page, choose for each part "as the role", normal, read only or no access, e.g. only some secretaries work with the academy.
-- **Clinic options** (new): appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, and the e-mail for CBCT files.
+- **Parts of the system for one person**: on a person's page, choose for each part "as the role", normal, read only or no access, e.g. only some secretaries work with the academy.
+- **Clinic options**: appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, and the e-mail for CBCT files.
+- **Backup and export** (new, owner): one button makes a **full backup** (a ZIP with all records to put back into the system, the same data as **Excel** and **CSV** to open in any other program, and all uploaded files). *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
+- **Problem reports** (new, owner and head of CIA): what the staff reported, and pages that stopped with an error (recorded automatically), with a download to send to whoever maintains the system.
 - **Access by role**: make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for a role.
   - It can only take access away, never give more than the role normally has.
   - When a person has two roles and either is limited in a part, the person is limited there.
@@ -295,6 +311,8 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   - `stock`: stock items, movements, low stock, import
   - `complaints`, `academy`, `purchasing`, `reports`
 - Run the tests: `DJANGO_DEBUG=1 python manage.py test apps`
+- Backups: `python manage.py backup` (full ZIP into `BACKUP_DIR`, default `data/backups`), `python manage.py restore_backup <zip>`,
+  and `python manage.py organize_photos` (moves photos saved by older versions into the readable folders).
 - Translations: write English in the code and templates, then run:
   ```bash
   python manage.py makemessages -l ar --ignore=.venv --no-location

@@ -1,0 +1,37 @@
+{% load i18n %}{# Pop-ups used on every page (static/js/app.js). #}
+{% include "includes/teeth_picker.html" %}
+
+<div class="modal fade" id="leave-warning" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-warning">
+    <div class="modal-header bg-warning-subtle"><h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> {% trans "Save before leaving?" %}</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">{% trans "You wrote or changed data on this page that is not saved yet." %}</div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary me-auto" data-bs-dismiss="modal">{% trans "Stay on this page" %}</button>
+      <button type="button" class="btn btn-outline-danger" data-leave="discard">{% trans "Leave without saving" %}</button>
+      <button type="button" class="btn btn-primary" data-leave="save"><i class="bi bi-check2"></i> {% trans "Save" %}</button>
+    </div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="report-problem" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="post" action="{% url 'core:problem_report' %}" enctype="multipart/form-data" data-no-leave-warning>{% csrf_token %}
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-bug"></i> {% trans "Report a problem" %}</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p class="small text-muted">{% trans "Tell the owner of the system what went wrong. The page you are on is sent with your message." %}</p>
+      <input type="hidden" name="page" value="{{ request.get_full_path }}">
+      <label class="form-label" for="problem-description">{% trans "What happened?" %}</label>
+      <textarea class="form-control mb-2" id="problem-description" name="description" rows="4" maxlength="4000" required placeholder="{% trans 'What you were doing, what you expected and what you saw instead.' %}"></textarea>
+      <label class="form-label" for="problem-screenshot">{% trans "Screenshot or photo (optional)" %}</label>
+      <input class="form-control" type="file" id="problem-screenshot" name="screenshot" accept="image/*">
+      <div class="alert alert-success mt-3 mb-0" data-problem-done hidden></div>
+      <div class="alert alert-danger mt-3 mb-0" data-problem-error hidden></div>
+    </div>
+    <div class="modal-footer">
+      <a class="small me-auto" href="{% url 'core:problem_report' %}">{% trans "Your earlier reports" %}</a>
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+      <button class="btn btn-primary" data-problem-send><i class="bi bi-send"></i> {% trans "Send" %}</button>
+    </div>
+  </form></div>
+</div>

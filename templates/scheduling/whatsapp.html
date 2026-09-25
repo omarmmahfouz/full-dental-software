@@ -13,6 +13,9 @@
 </div>
   {% include "scheduling/_whatsapp_rows.html" with rows=reminders kind="reminder" %}
 </div>
+{% if moved %}<div class="card mb-3"><div class="card-header fw-semibold">{% trans "Moved appointments: send the new time" %}</div>
+  {% include "scheduling/_whatsapp_rows.html" with rows=moved kind="rescheduled" %}
+</div>{% endif %}
 <div class="card mb-3"><div class="card-header fw-semibold">{% trans "Missed appointments (last 7 days)" %}</div>
   {% include "scheduling/_whatsapp_rows.html" with rows=missed kind="no_show" %}
 </div>

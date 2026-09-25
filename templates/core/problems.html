@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Problem reports" %}{% endblock %}
+{% block content %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <h1><i class="bi bi-bug"></i> {% trans "Problem reports" %}</h1>
+  <a class="btn btn-outline-secondary" href="{% url 'core:problem_export' %}"><i class="bi bi-download"></i> {% trans "Download all (Excel)" %}</a>
+</div>
+<p class="text-muted small">{% trans "Problems told by the staff, and pages that stopped with an error (recorded automatically). Download them to send to whoever maintains the software." %}</p>
+<ul class="nav nav-pills mb-3">
+  <li class="nav-item"><a class="nav-link {% if status == 'open' %}active{% endif %}" href="?status=open">{% trans "Not solved" %}</a></li>
+  {% for code, label in statuses %}<li class="nav-item"><a class="nav-link {% if status == code %}active{% endif %}" href="?status={{ code }}">{{ label }}</a></li>{% endfor %}
+  <li class="nav-item"><a class="nav-link {% if status == 'all' %}active{% endif %}" href="?status=all">{% trans "All" %}</a></li>
+</ul>
+{% for r in reports %}
+<div class="card mb-3 {% if r.kind == 'automatic' %}border-danger{% endif %}">
+  <div class="card-header d-flex flex-wrap justify-content-between gap-2 small">
+    <span><span class="badge {% if r.kind == 'automatic' %}text-bg-danger{% else %}text-bg-primary{% endif %}">{{ r.get_kind_display }}</span>
+      <span class="badge {% if r.status == 'solved' %}text-bg-success{% elif r.status == 'seen' %}text-bg-info{% else %}text-bg-secondary{% endif %}">{{ r.get_status_display }}</span>
+      {% if r.times > 1 %}<span class="badge text-bg-warning">{% blocktrans with n=r.times %}{{ n }} times{% endblocktrans %}</span>{% endif %}</span>
+    <span class="text-muted">{{ r.reported_by|default:"" }} — {{ r.created_at|date:"d/m/Y g:i A" }}{% if r.times > 1 %} → {{ r.last_seen_at|date:"d/m/Y g:i A" }}{% endif %}</span>
+  </div>
+  <div class="card-body">
+    {% if r.page %}<div class="small mb-1"><b>{% trans "Page" %}:</b> <a href="{{ r.page }}" dir="ltr">{{ r.page }}</a></div>{% endif %}
+    <div>{{ r.description|linebreaksbr }}</div>
+    {% if r.screenshot %}<a href="{{ r.screenshot.url }}" target="_blank"><img src="{{ r.screenshot.url }}" alt="" class="img-thumbnail mt-2" style="max-height: 180px"></a>{% endif %}
+    {% if r.error %}<details class="mt-2"><summary class="small text-muted">{% trans "Technical details" %}</summary><pre class="small bg-body-tertiary p-2 mb-0" dir="ltr" style="white-space: pre-wrap">{{ r.error }}</pre></details>{% endif %}
+    <form method="post" action="{% url 'core:problem_update' r.pk %}" class="d-flex flex-wrap gap-2 align-items-start mt-3">{% csrf_token %}
+      <input type="hidden" name="back" value="{{ status }}">
+      <textarea class="form-control form-control-sm" style="max-width: 32rem" rows="1" name="answer" placeholder="{% trans 'Answer / what was done' %}">{{ r.answer }}</textarea>
+      <select class="form-select form-select-sm w-auto" name="status">{% for code, label in statuses %}<option value="{{ code }}" {% if r.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <button class="btn btn-sm btn-primary">{% trans "Save" %}</button>
+    </form>
+  </div>
+</div>
+{% empty %}<div class="alert alert-success"><i class="bi bi-check2-all"></i> {% trans "No problems here." %}</div>{% endfor %}
+{% endblock %}

@@ -121,6 +121,14 @@ TREATMENT_STEPS = [
     ("أخرى", "Other", "none", "", ""),
 ]
 
+
+
+def _step_category(effect, procedure):
+    """Implants, surgeries and their stages go to the implant section of the plans."""
+    implant = procedure or effect in TreatmentStepType.IMPLANT_EFFECTS
+    return TreatmentStepType.Category.IMPLANT if implant else TreatmentStepType.Category.RESTORATIVE
+
+
 # Plain Arabic explanations of the treatments, for the reception (by English name).
 TREATMENT_EXPLANATIONS = {
     "Treatment plan": "الطبيب كشف على المريض وكتب خطة العلاج المطلوبة.",
@@ -323,7 +331,8 @@ class Command(BaseCommand):
             "paid services": _lookup(Service, SERVICES, extra_fields=lambda r: {}),
             "treatment steps": _lookup(
                 TreatmentStepType, TREATMENT_STEPS,
-                extra_fields=lambda r: {"chart_effect": r[2], "surgery_procedure": r[3], "default_material": r[4]},
+                extra_fields=lambda r: {"chart_effect": r[2], "surgery_procedure": r[3], "default_material": r[4],
+                                        "category": _step_category(r[2], r[3])},
             ),
             "lab work types": _lookup(LabWorkType, LAB_WORK_TYPES, extra_fields=lambda r: {}),
             "purchase categories": _lookup(PurchaseCategory, PURCHASE_CATEGORIES, extra_fields=lambda r: {"kind": r[2]}),

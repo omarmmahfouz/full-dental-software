@@ -6,26 +6,29 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 from PIL import Image
 
-from apps.charting.models import PlanItem
+from apps.charting.forms import HISTORY_FIELDS, MedicalHistoryForm
+from apps.charting.models import Examination, PlanItem
+from apps.charting.sync import sync_medical_history
 from apps.clinical.models import LabRequest
 from apps.complaints.models import Complaint
 from apps.core.forms import clean_digits_value
 from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_required
 from apps.core.models import ChangeRequest, branch_for_user
-from apps.core.roles import FRONT_DESK, PATIENT_VIEWERS, has_role
+from apps.core.roles import CLINICAL, FRONT_DESK, PATIENT_VIEWERS, has_role
 from apps.core.utils import name_patterns, normalize_phone, validate_phone
 
-from .access import get_visible_patient_or_403, my_patients, visible_patients
+from .access import get_clinical_patient_or_403, get_visible_patient_or_403, my_patients, visible_patients
 from .forms import (
     LeadCallForm, LeadForm, PatientDocumentForm, PatientFilterForm, PatientForm, PatientRelationForm,
     duplicate_phone_error,
@@ -348,6 +351,40 @@ def patient_detail(request, pk):
     return render(request, "patients/patient_detail.html", context)
 
 
+def medical_history(request, pk):
+    """The medical and dental history of the paper chart, asked at the reception (or by a dentist).
+    It is kept like an examination, so the dentist's next examination starts from it."""
+    patient = get_visible_patient_or_403(request.user, pk)
+    if not has_role(request.user, *FRONT_DESK, *CLINICAL):
+        raise PermissionDenied
+    latest = patient.examinations.prefetch_related("conditions").first()
+    draft = latest if latest is not None and latest.history_only else None
+    initial = {}
+    if draft is None and latest is not None:
+        initial = {name: getattr(latest, Examination._meta.get_field(name).attname) for name in HISTORY_FIELDS
+                   if not Examination._meta.get_field(name).many_to_many}
+        initial["conditions"] = list(latest.conditions.all())
+    elif latest is None:
+        initial["conditions"] = list(patient.medical_conditions.all())
+    form = MedicalHistoryForm(request.POST or None, instance=draft or Examination(patient=patient), initial=initial)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            history = form.save(commit=False)
+            if history.pk is None:
+                history.history_only, history.created_by = True, request.user
+            history.exam_date = timezone.localdate()
+            history.save()
+            form.save_m2m()
+            sync_medical_history(history)
+        messages.success(request, _("Medical and dental history saved. The dentist sees it at the next examination."))
+        return redirect(reverse("patients:detail", args=[pk]))
+    return render(request, "includes/form_page.html", {
+        "form": form, "title": _("Medical and dental history — %(name)s") % {"name": patient.full_name},
+        "intro": _("The same questions as the paper chart. Ask the patient and tick or write the answers."),
+        "cancel_url": patient.get_absolute_url(),
+    })
+
+
 @role_required(*FRONT_DESK)
 @require_POST
 def document_rotate(request, pk, doc_pk):
@@ -422,3 +459,12 @@ def relation_delete(request, pk, rel_pk):
     relation.delete()
     messages.success(request, _("Relation removed."))
     return redirect(reverse("patients:detail", args=[pk]) + "#relations")
+
+
+def patient_word(request, pk):
+    """The whole patient file as a Word document (.docx)."""
+    from .word import patient_docx
+
+    patient = get_clinical_patient_or_403(request.user, pk)
+    return FileResponse(patient_docx(patient), as_attachment=True,
+                        filename=f"{patient.file_number} {patient.full_name}.docx")

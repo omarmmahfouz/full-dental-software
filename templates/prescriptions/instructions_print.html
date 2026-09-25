@@ -2,7 +2,7 @@
 {% load i18n static %}
 {% block title %}{% trans "Post-op instructions" %} — {{ patient.full_name }}{% endblock %}
 {% block content %}
-<form class="card card-body mb-3 no-print" method="get">
+<form class="card card-body mb-3 no-print" method="get" onchange="this.submit()">
   <div class="row g-2 align-items-end">
     <div class="col-md-3"><label class="form-label">{% trans "Surgery" %}</label>
       <select name="surgery" class="form-select"><option value="">—</option>{% for s in surgeries %}<option value="{{ s.pk }}" {% if surgery and s.pk == surgery.pk %}selected{% endif %}>{{ s.number }} {{ s.date|date:"d/m/Y" }}</option>{% endfor %}</select></div>

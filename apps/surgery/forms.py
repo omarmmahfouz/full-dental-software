@@ -90,7 +90,8 @@ class SurgeryForm(StyledModelForm):
 
 
 class SurgerySiteForm(BootstrapFormMixin, forms.ModelForm):
-    tooth = forms.TypedChoiceField(label=_("tooth"), choices=[("", "—")] + TOOTH_CHOICES, coerce=int)
+    tooth = forms.TypedChoiceField(label=_("tooth"), choices=[("", "—")] + TOOTH_CHOICES, coerce=int,
+                                   widget=forms.Select(attrs={"data-teeth-picker": "single"}))
 
     class Meta:
         model = SurgerySite

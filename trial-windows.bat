@@ -36,6 +36,7 @@ if not exist .env (
 python manage.py migrate --verbosity 0 || goto :error
 python manage.py setup_clinic >nul || goto :error
 python manage.py load_demo_data --password demo12345 --if-empty || goto :error
+python manage.py organize_photos >nul || goto :error
 
 set "LANIP=this-PC-IP"
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4"') do set "LANIP=%%a"

@@ -7,6 +7,16 @@
   <span class="text-muted">{{ today|date:"l d/m/Y" }}</span>
 </div>
 
+{% if patient_totals %}
+<div class="row g-3 mb-3">
+  {% url 'patients:list' as patients_url %}
+  <div class="col-6 col-md-3"><a href="{{ patients_url }}" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value">{{ patient_totals.total }}</div><div class="stat-label">{% trans "Patients (total)" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><a href="{{ patients_url }}?status=active" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-success">{{ patient_totals.active }}</div><div class="stat-label">{% trans "Under treatment" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><a href="{{ patients_url }}?status=finished" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-secondary">{{ patient_totals.finished }}</div><div class="stat-label">{% trans "Treatment finished" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value text-primary">{{ patient_totals.new_this_month }}</div><div class="stat-label">{% trans "New files this month" %}{% if patient_totals.out %} · <a href="{{ patients_url }}?status=out" class="text-danger">{% blocktrans with n=patient_totals.out %}{{ n }} out{% endblocktrans %}</a>{% endif %}</div></div></div></div>
+</div>
+{% endif %}
+
 {% if appointment_counts %}
 <div class="row g-3 mb-3">
   {% url 'scheduling:today' as today_url %}
@@ -20,22 +30,32 @@
 {% endif %}
 
 <div class="row g-3">
-  {% if my_shifts is not None %}
-  <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header"><i class="bi bi-person-workspace"></i> {% trans "My day" %}</div>
+  {% if my_week is not None %}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-person-workspace"></i> {% trans "My week" %}</span>
+        <span class="small d-flex gap-3"><a href="{% url 'scheduling:requests_mine' %}"><i class="bi bi-person-lines-fill"></i> {% trans "My patient list (for the reception)" %}</a>
+        <a href="{% url 'scheduling:room_schedule' %}">{% trans "My schedule" %}</a></span></div>
       <div class="card-body">
-        {% for shift in my_shifts %}<div class="shift-chip">{{ shift.room }} — <span class="ltr">{{ shift.start_time|time:"H:i" }} - {{ shift.end_time|time:"H:i" }}</span></div>
-        {% empty %}<p class="text-muted">{% trans "You have no room shift today." %}</p>{% endfor %}
-        <table class="table table-sm mt-2">
-          <tbody>
-          {% for appt in my_appointments %}
-          <tr><td class="nowrap">{{ appt.scheduled_at|time:"g:i A" }}</td><td><a href="{{ appt.patient.get_absolute_url }}">{{ appt.patient.full_name }}</a></td><td>{{ appt.room|default:"" }}</td><td>{% status_badge appt %}</td></tr>
-          {% empty %}<tr><td class="text-muted">{% trans "No appointments for you today." %}</td></tr>
+        {% if my_complaints %}<div class="alert alert-danger py-2 small"><b><i class="bi bi-chat-left-dots"></i> {% trans "Complaints waiting for your answer" %}:</b>
+          {% for c in my_complaints %}<div><a href="{{ c.get_absolute_url }}">{{ c.number }} — {{ c.patient.full_name }}</a> <span class="text-muted">({% trans "answer by" %} {{ c.answer_due|date:"d/m/Y" }})</span></div>{% endfor %}
+        </div>{% endif %}
+        {% if my_updates %}<div class="alert alert-info py-2 small"><b><i class="bi bi-bell"></i> {% trans "Latest changes to my appointments" %}:</b>
+          {% for n in my_updates %}<div>{% if not n.read_at %}<span class="badge text-bg-primary">{% trans "new" %}</span> {% endif %}<a href="{% url 'core:notification_open' n.pk %}">{{ n.title }}</a> — {{ n.message }} <span class="text-muted">({{ n.created_at|date:"d/m g:i A" }})</span></div>{% endfor %}
+        </div>{% endif %}
+        <div class="my-week">
+          {% for d in my_week %}
+          <div class="my-week-day{% if forloop.first %} is-today{% endif %}">
+            <div class="fw-bold">{{ d.day|date:"l" }} <span class="fw-normal text-muted small">{{ d.day|date:"d/m" }}</span></div>
+            {% for s in d.shifts %}<div class="small">{% if s.day_type == "surgery" %}<i class="bi bi-scissors text-danger"></i> {% endif %}{{ s.room }} · {{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</div>{% empty %}<div class="small text-muted">{% trans "no shift" %}</div>{% endfor %}
+            <ul class="list-unstyled small mb-0 mt-1">
+              {% for a in d.appointments %}<li><a href="{{ a.get_absolute_url }}"><b>{{ a.scheduled_at|time:"g:i" }}</b> {{ a.patient.full_name }}</a>{% if a.status == "no_show" %} <span class="badge text-bg-danger">{% trans "did not come" %}</span>{% elif a.rescheduled_from %} <span class="badge text-bg-warning" title="{% trans 'Moved' %}"><i class="bi bi-arrow-left-right"></i></span>{% endif %}</li>
+              {% empty %}<li class="text-muted">{% trans "No appointments." %}</li>{% endfor %}
+            </ul>
+          </div>
           {% endfor %}
-          </tbody>
-        </table>
-        <div class="d-flex flex-wrap gap-2">
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-2">
           <a class="btn btn-sm btn-outline-primary" href="{% url 'patients:list' %}">{% trans "My patients" %} <span class="badge text-bg-primary">{{ my_patient_count }}</span></a>
           <a class="btn btn-sm btn-outline-primary" href="{% url 'clinical:lab_list' %}?mine=1">{% trans "My open lab requests" %} <span class="badge text-bg-primary">{{ my_open_labs }}</span></a>
         </div>

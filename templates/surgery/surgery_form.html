@@ -3,7 +3,7 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-scissors"></i> {{ title }}</h1></div>
-<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+<form method="post" enctype="multipart/form-data" novalidate data-teeth-missing="{{ missing }}">{% csrf_token %}
   {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
   {% for title, fields in form.bound_fieldsets %}
     {% if forloop.first %}
@@ -15,6 +15,14 @@
           <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add tooth" %}</button>
         </div>
         <div class="card-body">
+          <div class="same-procedures mb-3" data-same-procedures="sites">
+            <div class="fw-semibold mb-1"><i class="bi bi-copy"></i> {% trans "Same procedures on several teeth" %}</div>
+            <div class="small text-muted mb-2">{% trans "Tick the procedures, then choose the teeth: a card is made for every tooth with these procedures ticked. Then fill each implant's size." %}</div>
+            <div class="d-flex flex-wrap gap-3 mb-2">
+              {% for name, label in procedures %}<div class="form-check"><input class="form-check-input" type="checkbox" value="{{ name }}" id="same-{{ name }}"><label class="form-check-label" for="same-{{ name }}">{{ label }}</label></div>{% endfor %}
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" data-same-procedures-pick><i class="bi bi-grid-3x3-gap"></i> {% trans "Choose the teeth" %}</button>
+          </div>
           {{ formset.management_form }}
           {% if formset.non_form_errors %}<div class="alert alert-danger">{% for e in formset.non_form_errors %}{{ e }} {% endfor %}</div>{% endif %}
           <div class="row g-3" data-formset-rows>
@@ -37,8 +45,41 @@
 </form>
 {% endblock %}
 {% block extra_js %}
+{% trans "Tick at least one procedure first." as tick_first %}
 <script>
   // Open any collapsed section that contains an error so it is not missed.
   document.querySelectorAll("details").forEach(function (d) { if (d.querySelector(".errorlist")) d.open = true; });
+
+  // Same procedures on several teeth: one card per chosen tooth (an existing card of that tooth,
+  // an empty card, or a new one), with the ticked procedures ticked on it.
+  (function () {
+    var panel = document.querySelector("[data-same-procedures]");
+    if (!panel || !window.teethPicker) return;
+    var rows = document.querySelector('[data-formset="sites"] [data-formset-rows]');
+    function cards() { return Array.prototype.slice.call(rows.children); }
+    function toothOf(card) { return card.querySelector("select[name$='-tooth']"); }
+    function isEmpty(card) {
+      return !toothOf(card).value && !card.querySelector("input[type=checkbox]:checked");
+    }
+    panel.querySelector("[data-same-procedures-pick]").addEventListener("click", function () {
+      var procedures = Array.prototype.map.call(panel.querySelectorAll("input:checked"), function (box) { return box.value; });
+      if (!procedures.length) { window.appPopup(panel.querySelector(".fw-semibold").textContent, ["{{ tick_first|escapejs }}"]); return; }
+      window.teethPicker.open({
+        value: [], missing: window.teethPicker.missingFor(panel),
+        done: function (teeth) {
+          teeth.forEach(function (tooth) {
+            var card = cards().filter(function (c) { return toothOf(c).value === String(tooth); })[0] ||
+                       cards().filter(isEmpty)[0] || window.addFormsetRow("sites");
+            if (!card) return;
+            toothOf(card).value = String(tooth);
+            procedures.forEach(function (name) {
+              var box = card.querySelector("input[type=checkbox][name$='-" + name + "']");
+              if (box) box.checked = true;
+            });
+          });
+        }
+      });
+    });
+  })();
 </script>
 {% endblock %}

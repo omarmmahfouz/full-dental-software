@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from .models import ChangeRequest, branch_for_user
+from .models import ChangeRequest, ProblemReport, branch_for_user
 from .roles import (
     ALL_ROLES,
     CLINICAL,
@@ -48,6 +48,13 @@ def app_context(request):
         context["can_purchase"] = context["can_purchase"] and "purchases" not in context["hidden_areas"]
         if roles & {OWNER, HEAD_CIA}:
             context["pending_approvals"] = ChangeRequest.objects.filter(status=ChangeRequest.Status.PENDING).count()
+            context["new_problems"] = ProblemReport.objects.filter(status=ProblemReport.Status.NEW).count()
+        from apps.scheduling.models import PatientRequest
+
+        if roles & {OWNER, HEAD_CIA, TEAM_HEAD, SUPERVISOR}:
+            context["requests_to_approve"] = PatientRequest.objects.filter(status=PatientRequest.Status.PROPOSED).count()
+        if context["is_front_desk"]:
+            context["requests_to_call"] = PatientRequest.objects.filter(status=PatientRequest.Status.APPROVED).count()
         if roles & set(DENTISTS + (SUPERVISOR,)):
             from apps.dentists.models import Dentist
 

@@ -27,6 +27,18 @@ DRUG_GROUPS = [
      ["Hexitol mouthwash", "Chlorhexidine 0.12% mouthwash"]),
     ("نقط أنف زيلوميتازولين ٠٫١٪", "Xylometazoline 0.1% nasal drops", "other",
      "نقطتين في كل فتحة أنف ٣ مرات يوميًا لمدة ٥ أيام", ["Otrivin 0.1%"]),
+    # Injections: the route (IM = عضل, IV = وريد) is written in the dose; the doctor reviews them in Settings.
+    ("سيفترياكسون ١ جم حقن (عضل / وريد)", "Ceftriaxone 1 g injection (IM / IV)", "injection",
+     "حقنة عضل أو وريد مرة واحدة يوميًا لمدة ٣ أيام، بعد اختبار الحساسية", ["Ceftriaxone 1 g vial", "Cefaxone 1 g vial"]),
+    ("كليندامايسين ٦٠٠ مجم حقن (عضل / وريد) — حساسية البنسلين",
+     "Clindamycin 600 mg injection (IM / IV) — penicillin allergy", "injection",
+     "حقنة عضل أو وريد كل ١٢ ساعة حسب تعليمات الطبيب", ["Dalacin C 600 mg ampoule"]),
+    ("ديكساميثازون ٨ مجم حقن (عضل / وريد)", "Dexamethasone 8 mg injection (IM / IV)", "injection",
+     "حقنة واحدة عضل أو وريد يوم العملية حسب تعليمات الطبيب", ["Dexamethasone 8 mg ampoule", "Epidron 8 mg ampoule"]),
+    ("ديكلوفيناك صوديوم ٧٥ مجم حقن عضل", "Diclofenac sodium 75 mg injection (IM)", "injection",
+     "حقنة عضل عميق عند اللزوم، بحد أقصى حقنتين في اليوم", ["Voltaren 75 mg ampoule", "Declophen 75 mg ampoule"]),
+    ("كيتورولاك ٣٠ مجم حقن (عضل / وريد)", "Ketorolac 30 mg injection (IM / IV)", "injection",
+     "حقنة عضل أو وريد عند اللزوم كل ٨ ساعات، لمدة لا تزيد عن يومين", ["Ketolac 30 mg ampoule"]),
 ]
 
 # (Arabic name, English name, procedures it fits, for penicillin allergy, [English names of drug groups])

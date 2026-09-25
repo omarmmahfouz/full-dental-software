@@ -45,5 +45,6 @@ def sync_medical_history(exam):
 
 @receiver(post_save, sender=ToothState)
 @receiver(post_delete, sender=ToothState)
-def _tooth_changed(sender, instance, **kwargs):
-    sync_missing_teeth(instance.patient)
+def _tooth_changed(sender, instance, raw=False, **kwargs):
+    if not raw:  # a backup being restored already holds the patient's missing teeth
+        sync_missing_teeth(instance.patient)

@@ -62,3 +62,19 @@ class PrescriptionTests(TestCase):
         self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.get(f"/prescriptions/patient/{self.patient.pk}/instructions/").status_code, 200)
         self.assertEqual(self.client.get(f"/prescriptions/patient/{self.patient.pk}/new/").status_code, 403)
+
+
+class InjectionAndSheetTests(TestCase):
+    def test_injections_are_offered_and_ticked_sheets_are_printed(self):
+        from apps.core.testing import make_patient
+        from apps.prescriptions.models import DrugGroup, InstructionSheet
+
+        branch = setup_clinic()
+        self.assertTrue(DrugGroup.objects.filter(kind=DrugGroup.Kind.INJECTION, name_en__contains="(IM").exists())
+        patient = make_patient(branch)
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        sinus = InstructionSheet.objects.exclude(procedures="").first()
+        page = self.client.get(f"/prescriptions/patient/{patient.pk}/instructions/", {"sheet": [sinus.pk]})
+        self.assertEqual([sheet for sheet, _lines in page.context["blocks"]], [sinus])
+        self.assertContains(page, 'onchange="this.submit()"')
