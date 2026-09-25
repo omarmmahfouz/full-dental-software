@@ -9,7 +9,7 @@ from apps.core.testing import PASSWORD, make_dentist, make_patient, make_user, s
 class LabWorkflowTests(TestCase):
     def setUp(self):
         self.branch = setup_clinic()
-        self.dentist = make_dentist("dentist", kind="candidate")
+        self.dentist = make_dentist("dentist", kind="fulltime")
         self.supervisor = make_user("sup", "supervisor")
         self.secretary = make_user("sec", "secretary")
         self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
@@ -76,15 +76,22 @@ class LabWorkflowTests(TestCase):
         self.assertEqual(actions, ["created", "submitted", "approved", "sent", "received", "remake", "received", "delivered"])
         self.assertTrue(LabRequestEvent.objects.get(request=lab_request, action="sent").checked_against_request)
 
-    def test_dentist_can_only_request_under_own_name(self):
-        other = make_dentist("dentist2")
+    def test_cia_dentist_records_for_a_candidate_with_the_supervisor_name(self):
+        candidate = make_dentist("candidate", kind="candidate", login=False)
+        supervisor = make_dentist("sup-name", kind="supervisor", login=False)
         self.login("dentist")
-        response = self.client.post("/clinical/lab/new/", {
-            "patient_lookup": self.patient.file_number, "dentist": other.pk, "lab": self.lab.pk,
-            "work_type": self.work.pk, "teeth": "36", "units": 1, "submit_for_review": "1",
+        self.client.post("/clinical/lab/new/", {
+            "patient_lookup": self.patient.file_number, "dentist": candidate.pk, "supervisor": supervisor.pk,
+            "lab": self.lab.pk, "work_type": self.work.pk, "teeth": "36", "units": 1, "submit_for_review": "1",
         })
-        self.assertIn("dentist", response.context["form"].errors)
-        self.assertFalse(LabRequest.objects.exists())
+        lab_request = LabRequest.objects.get()
+        # Supervisors do not log in: naming the supervisor counts as the review.
+        self.assertEqual((lab_request.dentist, lab_request.supervisor, lab_request.status),
+                         (candidate, supervisor, LabRequest.Status.APPROVED))
+        self.assertEqual(lab_request.created_by, self.dentist.user)
+        self.assertTrue(Notification.objects.filter(recipient=self.secretary, title__contains=lab_request.number).exists())
+        events = list(LabRequestEvent.objects.filter(request=lab_request).values_list("action", flat=True))
+        self.assertEqual(events, ["created", "submitted", "approved"])
 
     def test_supervisor_can_return_with_reason(self):
         lab_request = LabRequest.objects.create(branch=self.branch, patient=self.patient, lab=self.lab, work_type=self.work,
@@ -101,8 +108,8 @@ class LabWorkflowTests(TestCase):
 class TreatmentStepTests(TestCase):
     def setUp(self):
         self.branch = setup_clinic()
-        self.dentist = make_dentist("dentist", kind="candidate")
-        self.other = make_dentist("dentist2", kind="candidate")
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.other = make_dentist("dentist2", kind="fulltime")
         self.supervisor = make_user("sup", "supervisor")
         self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
         self.composite = TreatmentStepType.objects.get(name_en="Composite restoration")
@@ -127,19 +134,22 @@ class TreatmentStepTests(TestCase):
         step.refresh_from_db()
         self.assertEqual((step.verified_by, step.grade), (self.supervisor, 4))
 
-    def test_dentist_cannot_record_work_of_someone_else(self):
+    def test_cia_dentist_records_the_candidates_work(self):
+        candidate = make_dentist("candidate", kind="candidate", login=False)
+        patient = make_patient(self.branch, nid="28501010101235", phone="01112223334", assigned_dentist=candidate)
         self.client.login(username="dentist", password=PASSWORD)
-        response = self.post_step(step_type=self.scaling.pk, operator=self.other.pk)
-        self.assertIn("operator", response.context["form"].errors)
-        self.post_step(step_type=self.scaling.pk, operator=self.other.pk, assistant=self.dentist.pk)
-        self.assertEqual(TreatmentStep.objects.get().operator, self.other)  # as assistant it is allowed
-
-    def test_dentist_cannot_record_for_other_dentists_patient(self):
-        other_patient = make_patient(self.branch, nid="28501010101235", phone="01112223334", assigned_dentist=self.other)
-        self.client.login(username="dentist", password=PASSWORD)
-        response = self.post_step(patient_lookup=other_patient.file_number, step_type=self.scaling.pk)
-        self.assertIn("patient_lookup", response.context["form"].errors)
-        self.assertFalse(TreatmentStep.objects.exists())
+        page = self.client.get(f"/clinical/steps/new/?patient={patient.pk}")
+        # The candidate is the operator, the CIA dentist writing it down assists.
+        self.assertEqual((page.context["form"].initial["operator"], page.context["form"].initial["assistant"]),
+                         (candidate, self.dentist))
+        self.post_step(patient_lookup=patient.file_number, step_type=self.scaling.pk, operator=candidate.pk,
+                       notes="Heavy calculus")
+        step = TreatmentStep.objects.get()
+        self.assertEqual((step.operator, step.created_by, step.notes), (candidate, self.dentist.user, "Heavy calculus"))
+        # It shows in the CIA dentist's own treatment log, and in the candidate's file.
+        self.assertEqual(list(self.client.get("/clinical/steps/").context["page_obj"]), [step])
+        self.client.login(username="dentist2", password=PASSWORD)
+        self.assertEqual(list(self.client.get("/clinical/steps/").context["page_obj"]), [])
 
     def test_restoration_updates_chart_and_ticks_plan(self):
         ToothState.objects.create(patient=self.patient, tooth=12, caries=True, caries_surfaces="MO")

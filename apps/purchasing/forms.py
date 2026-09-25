@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.forms import BootstrapFormMixin, StyledForm, StyledModelForm, validate_upload
+from apps.stock.models import StockItem
 
 from .models import Purchase, PurchaseCategory, PurchaseItem, Supplier
 
@@ -42,11 +43,13 @@ class PurchaseForm(StyledModelForm):
 class PurchaseItemForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = PurchaseItem
-        fields = ["category", "description", "quantity", "unit", "unit_price"]
+        fields = ["category", "description", "quantity", "unit", "unit_price", "stock_item"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = PurchaseCategory.objects.filter(is_active=True)
+        self.fields["stock_item"].queryset = StockItem.objects.filter(is_active=True)
+        self.fields["stock_item"].empty_label = _("not a stock item")
         for field in self.fields.values():
             field.widget.attrs["class"] += " form-control-sm" if "form-control" in field.widget.attrs["class"] else " form-select-sm"
 

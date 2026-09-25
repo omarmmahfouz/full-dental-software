@@ -105,3 +105,19 @@ class LanguageTests(TestCase):
         self.client.post("/i18n/setlang/", {"language": "en", "next": "https://evil.example/"})
         self.assertEqual(self.language_of_page("sec"), "en")
         self.assertEqual(self.language_of_page("dentist"), "ar")  # one user's choice does not change another's
+
+    def test_notifications_and_names_in_each_users_language(self):
+        from django.utils.translation import gettext_lazy
+
+        from apps.core.notify import notify_users
+        from apps.scheduling.models import Room
+
+        secretary = make_user("sec", "secretary")
+        dentist = make_user("dentist", "dentist")
+        notify_users([secretary, dentist], gettext_lazy("Lab request %(number)s needs your review"), params={"number": "L-1"})
+        self.assertEqual(Notification.objects.get(recipient=dentist).title, "Lab request L-1 needs your review")
+        self.assertNotIn("Lab request", Notification.objects.get(recipient=secretary).title)
+        self.client.login(username="dentist", password=PASSWORD)
+        page = self.client.get("/schedule/rooms/")
+        self.assertIn("Room 1", [str(room) for room, _cells in page.context["rows"]])
+        self.assertTrue(Room.objects.filter(name="غرفة 1", name_en="Room 1").exists())

@@ -61,7 +61,8 @@ The database migrations run automatically.
 1. Log in with the owner account. Open **Settings, users and lists**, which is Django admin at `/admin/`.
 2. **Users**:
    - Create one account per person, with their first and last name.
-   - Tick the right **group**: `secretary`, `dentist`, `supervisor` or `owner`.
+   - Tick the right **group**: `owner`, `head_cia` (head of CIA), `team_head` (head of the CIA dentists team, together with `dentist`), `dentist` (CIA dentist), `secretary` or `stock` (stock manager).
+   - Supervisors, course candidates and training dentists get **no login**: add them under **Academy → Dentists** (candidates come from **Academy → Candidates**) and they are chosen by name on the forms.
    - Set the **branch** in the staff profile to *Cairo Implant Academy*.
    - Tick "Staff status" only for people who may edit the settings lists, usually just the owner.
 3. **Rooms**: 5 rooms are created for you (`غرفة 1` … `غرفة 5`). You can rename them or add more.

@@ -105,7 +105,7 @@ class SurgeryTests(TestCase):
         self.client.login(username="sup", password=PASSWORD)
         self.assertEqual(self.client.get(f"/surgery/{surgery.pk}/edit/").status_code, 200)
         self.client.login(username="dentist3", password=PASSWORD)
-        self.assertEqual(self.client.get(f"/surgery/{surgery.pk}/").status_code, 403)
+        self.assertEqual(self.client.get(f"/surgery/{surgery.pk}/").status_code, 200)  # every CIA dentist can read it
 
     def test_marking_an_implant_failed_updates_the_chart(self):
         self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, [self.implant(36)]))

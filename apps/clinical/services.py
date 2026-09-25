@@ -8,7 +8,17 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Notification
 from apps.core.notify import notify_roles, notify_users
-from apps.core.roles import DENTIST, FRONT_DESK, MANAGEMENT, OWNER, SECRETARY, SUPERVISOR, has_role
+from apps.core.roles import (
+    DENTISTS,
+    FRONT_DESK,
+    HEAD_CIA,
+    MANAGEMENT,
+    OWNER,
+    SECRETARY,
+    SUPERVISOR,
+    has_role,
+    is_only_dentist,
+)
 
 from .models import LabRequest, LabRequestEvent
 
@@ -17,14 +27,14 @@ A = LabRequestEvent.Action
 
 # action -> (allowed "from" statuses, "to" status, roles allowed, needs work check, needs notes)
 TRANSITIONS = {
-    "submit": ((S.DRAFT,), S.PENDING_REVIEW, FRONT_DESK + (DENTIST,), False, False),
+    "submit": ((S.DRAFT,), S.PENDING_REVIEW, FRONT_DESK + DENTISTS, False, False),
     "approve": ((S.PENDING_REVIEW,), S.APPROVED, MANAGEMENT, False, False),
     "return": ((S.PENDING_REVIEW, S.APPROVED), S.DRAFT, MANAGEMENT, False, True),
     "send": ((S.APPROVED,), S.SENT, FRONT_DESK, True, False),
     "receive": ((S.SENT,), S.RECEIVED, FRONT_DESK, True, False),
-    "remake": ((S.RECEIVED,), S.SENT, FRONT_DESK + (DENTIST,), False, True),
-    "deliver": ((S.RECEIVED,), S.DELIVERED, FRONT_DESK + (DENTIST,), False, False),
-    "cancel": ((S.DRAFT, S.PENDING_REVIEW, S.APPROVED), S.CANCELLED, MANAGEMENT + (DENTIST,), False, True),
+    "remake": ((S.RECEIVED,), S.SENT, FRONT_DESK + DENTISTS, False, True),
+    "deliver": ((S.RECEIVED,), S.DELIVERED, FRONT_DESK + DENTISTS, False, False),
+    "cancel": ((S.DRAFT, S.PENDING_REVIEW, S.APPROVED), S.CANCELLED, MANAGEMENT + DENTISTS, False, True),
 }
 
 EVENT_FOR_ACTION = {
@@ -33,7 +43,7 @@ EVENT_FOR_ACTION = {
 }
 
 ACTION_LABELS = {
-    "submit": _("Send for supervisor review"),
+    "submit": _("Send for review"),
     "approve": _("Approve (reviewed)"),
     "return": _("Return to doctor for changes"),
     "send": _("Mark as sent to lab"),
@@ -56,13 +66,8 @@ def available_actions(lab_request, user):
 def _may(user, lab_request, action, roles):
     if not has_role(user, *roles):
         return False
-    only_dentist = has_role(user, DENTIST) and not has_role(user, *FRONT_DESK)
-    if only_dentist:
-        # Dentists act only on their own requests; they may cancel only drafts.
-        if lab_request.dentist_id is None or lab_request.dentist.user_id != user.pk:
-            return False
-        if action == "cancel" and lab_request.status != S.DRAFT:
-            return False
+    if is_only_dentist(user) and action == "cancel" and lab_request.status != S.DRAFT:
+        return False  # CIA dentists may cancel only drafts
     return True
 
 
@@ -81,6 +86,10 @@ def perform_lab_action(lab_request, action, user, notes="", checked=False):
         raise ValidationError(_("Please write the reason."))
 
     now = timezone.now()
+    if action == "submit" and lab_request.supervisor_id:
+        # The supervisor's name was chosen: it counts as reviewed, ready for the secretary.
+        target = S.APPROVED
+        lab_request.reviewed_by, lab_request.reviewed_at = user, now
     lab_request.status = target
     if action == "approve":
         lab_request.reviewed_by, lab_request.reviewed_at = user, now
@@ -101,12 +110,17 @@ def perform_lab_action(lab_request, action, user, notes="", checked=False):
         request=lab_request, action=EVENT_FOR_ACTION[action], by=user, at=now,
         checked_against_request=bool(checked and needs_check), notes=notes,
     )
+    if action == "submit" and target == S.APPROVED:
+        LabRequestEvent.objects.create(request=lab_request, action=A.APPROVED, by=user, at=now,
+                                       notes=str(lab_request.supervisor))
+        action = "approve"
     _notify(lab_request, action, user, notes)
     return lab_request
 
 
-def _requester(lab_request):
-    return lab_request.dentist.user if lab_request.dentist_id else None
+def _requesters(lab_request):
+    """The dentist of the request (when they log in) and whoever wrote it."""
+    return [lab_request.dentist.user if lab_request.dentist_id else None, lab_request.created_by]
 
 
 def _notify(lab_request, action, user, notes):
@@ -114,7 +128,7 @@ def _notify(lab_request, action, user, notes):
     params = {"number": lab_request.number, "patient": lab_request.patient.full_name, "notes": notes}
     if action == "submit":
         notify_roles(
-            (SUPERVISOR,), _("Lab request %(number)s needs your review"),
+            (HEAD_CIA, SUPERVISOR), _("Lab request %(number)s needs your review"),
             _("Patient: %(patient)s"), url, Notification.Level.WARNING, exclude=user, params=params,
         )
     elif action == "approve":
@@ -122,14 +136,14 @@ def _notify(lab_request, action, user, notes):
             (SECRETARY,), _("Lab request %(number)s is reviewed - send it to the lab"),
             _("Patient: %(patient)s"), url, exclude=user, params=params,
         )
-        notify_users([_requester(lab_request)], _("Your lab request %(number)s was approved"), "", url,
+        notify_users(_requesters(lab_request), _("Your lab request %(number)s was approved"), "", url,
                      Notification.Level.SUCCESS, exclude=user, params=params)
     elif action == "return":
-        notify_users([_requester(lab_request)], _("Lab request %(number)s was returned for changes"),
+        notify_users(_requesters(lab_request), _("Lab request %(number)s was returned for changes"),
                      "%(notes)s", url, Notification.Level.WARNING, exclude=user, params=params)
     elif action == "receive":
-        notify_users([_requester(lab_request)], _("Lab work %(number)s arrived from the lab"),
+        notify_users(_requesters(lab_request), _("Lab work %(number)s arrived from the lab"),
                      _("Patient: %(patient)s"), url, Notification.Level.SUCCESS, exclude=user, params=params)
     elif action == "remake":
-        notify_roles((SUPERVISOR, OWNER), _("Lab work %(number)s returned to the lab for remake"),
+        notify_roles((HEAD_CIA, SUPERVISOR, OWNER), _("Lab work %(number)s returned to the lab for remake"),
                      "%(notes)s", url, Notification.Level.WARNING, exclude=user, params=params)

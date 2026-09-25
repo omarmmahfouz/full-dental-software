@@ -333,3 +333,56 @@ class PatientRelation(TimeStampedModel):
                 condition=~models.Q(patient=models.F("related_patient")), name="relation_not_self"
             ),
         ]
+
+
+class CallList(TimeStampedModel):
+    """Patients the reception must call, sent by the head of CIA or a supervisor from a
+    search (e.g. every plan waiting for guided surgery). The secretaries write each answer."""
+
+    branch = models.ForeignKey(Branch, verbose_name=_("branch"), null=True, blank=True, on_delete=models.SET_NULL,
+                               related_name="call_lists")
+    title = models.CharField(_("title"), max_length=150)
+    message = models.TextField(_("what to tell the patients"), blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("list of patients to call")
+        verbose_name_plural = _("lists of patients to call")
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse("patients:calllist_detail", args=[self.pk])
+
+    @property
+    def progress(self):
+        entries = list(self.entries.all())
+        return sum(1 for e in entries if e.outcome != CallListEntry.Outcome.PENDING), len(entries)
+
+
+class CallListEntry(models.Model):
+    class Outcome(models.TextChoices):
+        PENDING = "pending", _("Not called yet")
+        BOOKED = "booked", _("Booked an appointment")
+        CALL_BACK = "call_back", _("Call again later")
+        NOT_INTERESTED = "not_interested", _("Not interested now")
+        NO_ANSWER = "no_answer", _("No answer")
+        WRONG_NUMBER = "wrong_number", _("Wrong / closed number")
+
+    call_list = models.ForeignKey(CallList, on_delete=models.CASCADE, related_name="entries")
+    patient = models.ForeignKey(Patient, verbose_name=_("patient"), on_delete=models.CASCADE, related_name="call_entries")
+    reason = models.CharField(_("why"), max_length=255, blank=True)
+    outcome = models.CharField(_("result"), max_length=20, choices=Outcome.choices, default=Outcome.PENDING)
+    response = models.TextField(_("patient's answer"), blank=True)
+    attempts = models.PositiveSmallIntegerField(_("calls made"), default=0)
+    called_at = models.DateTimeField(_("last call"), null=True, blank=True)
+    called_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name=_("called by"), null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["pk"]
+        verbose_name = _("patient to call")
+        verbose_name_plural = _("patients to call")
+        constraints = [models.UniqueConstraint(fields=["call_list", "patient"], name="unique_patient_per_call_list")]

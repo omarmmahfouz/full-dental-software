@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 from apps.clinical.models import TreatmentStep
 from apps.core.mixins import role_required
 from apps.core.models import UserProfile, branch_for_user
-from apps.core.roles import DENTIST, FRONT_DESK, OWNER, SUPERVISOR, has_role
+from apps.core.roles import DENTIST, FRONT_DESK, OWNER, TEAM_HEAD, has_role
 from apps.core.utils import normalize_phone
 from apps.patients.models import Patient
 from apps.surgery.models import Surgery, SurgerySite
@@ -24,10 +24,17 @@ from .forms import DentistFilterForm, DentistForm
 from .models import Dentist
 
 
-@role_required(*FRONT_DESK)
+def _dentists_for(user):
+    """The head of the CIA dentists team follows the CIA dentists, not the course candidates."""
+    if has_role(user, *FRONT_DESK):
+        return Dentist.objects.all()
+    return Dentist.objects.exclude(kind=Dentist.Kind.CANDIDATE)
+
+
+@role_required(*FRONT_DESK, TEAM_HEAD)
 def dentist_list(request):
     form = DentistFilterForm(request.GET or None)
-    qs = Dentist.objects.select_related("candidate", "user").annotate(
+    qs = _dentists_for(request.user).select_related("candidate", "user").annotate(
         implants=Count("surgeries_as_op1__sites", filter=~Q(surgeries_as_op1__sites__implant_status=""), distinct=True),
         surgeries=Count("surgeries_as_op1", distinct=True),
         treatments=Count("treatments_operated", distinct=True),
@@ -49,7 +56,8 @@ def dentist_list(request):
 def dentist_detail(request, pk):
     dentist = get_object_or_404(Dentist.objects.select_related("candidate", "user"), pk=pk)
     own = dentist.user_id == request.user.pk
-    if not (own or has_role(request.user, *FRONT_DESK)):
+    if not (own or _dentists_for(request.user).filter(pk=dentist.pk).exists()
+            and has_role(request.user, *FRONT_DESK, TEAM_HEAD)):
         raise PermissionDenied
     implants_op1 = SurgerySite.objects.filter(surgery__operator_1=dentist).exclude(implant_status="")
     implants_op2 = SurgerySite.objects.filter(surgery__operator_2=dentist).exclude(implant_status="")
@@ -137,16 +145,18 @@ def create_login(request, pk):
     if dentist.user_id:
         messages.info(request, _("This dentist already has a login: %(u)s") % {"u": dentist.user.username})
         return redirect(dentist)
+    if not dentist.can_have_login:
+        messages.error(request, _("Only CIA dentists get a login. Candidates, training dentists and supervisors "
+                                  "are chosen by name on the forms."))
+        return redirect(dentist)
     User = get_user_model()
-    base = normalize_phone(dentist.phone) or (dentist.candidate.code if dentist.candidate_id and dentist.candidate.code else "")
-    username = base or f"dentist{dentist.pk}"
+    username = normalize_phone(dentist.phone) or f"dentist{dentist.pk}"
     while User.objects.filter(username=username).exists():
         username = f"{username}-{secrets.randbelow(90) + 10}"
     password = secrets.token_urlsafe(6)
     with transaction.atomic():
         user = User.objects.create_user(username=username, password=password, first_name=dentist.full_name[:150])
-        role = SUPERVISOR if dentist.kind == Dentist.Kind.SUPERVISOR else DENTIST
-        user.groups.add(Group.objects.get_or_create(name=role)[0])
+        user.groups.add(Group.objects.get_or_create(name=DENTIST)[0])
         profile, _created = UserProfile.objects.get_or_create(user=user)
         profile.branch = dentist.branch or branch_for_user(request.user)
         profile.phone = dentist.phone

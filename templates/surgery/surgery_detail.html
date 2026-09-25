@@ -7,6 +7,8 @@
   {% if can_edit %}<a class="btn btn-outline-secondary" href="{% url 'surgery:update' surgery.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
   <a class="btn btn-outline-primary" href="{% url 'charting:photos' surgery.patient_id %}?stage=surgery"><i class="bi bi-camera"></i> {% trans "Surgery photos" %}</a>
   <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print surgery chart" %}</button>
+  <a class="btn btn-success" href="{% url 'prescriptions:instructions' surgery.patient_id %}?surgery={{ surgery.pk }}"><i class="bi bi-card-checklist"></i> {% trans "Post-op instructions" %}</a>
+  {% if can_edit %}<a class="btn btn-success" href="{% url 'prescriptions:create' surgery.patient_id %}?surgery={{ surgery.pk }}"><i class="bi bi-capsule"></i> {% trans "Prescription" %}</a>{% endif %}
 </div>
 <div class="card"><div class="card-body" dir="ltr">
   <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-3">

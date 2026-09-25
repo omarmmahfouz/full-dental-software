@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 13:55+0300\n"
+"POT-Creation-Date: 2026-09-25 15:22+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -375,6 +375,12 @@ msgstr ""
 msgid "planned by"
 msgstr "خطة بواسطة"
 
+msgid "approved by supervisor"
+msgstr "اعتمدها المشرف"
+
+msgid "Supervisors do not log in: choose who approved the plan."
+msgstr "المشرفون لا يدخلون النظام: اختر من اعتمد الخطة."
+
 msgid "e.g. implant 4.5 x 10, zirconia crown"
 msgstr "مثال: زرعة 4.5 × 10، طربوش زيركون"
 
@@ -692,11 +698,23 @@ msgstr "اعتمدها المشرف"
 msgid "Cancelled"
 msgstr "ملغي"
 
+msgid "Simple"
+msgstr "بسيطة"
+
+msgid "Moderate"
+msgstr "متوسطة"
+
+msgid "Advanced (sinus / GBR / block)"
+msgstr "متقدمة (جيب أنفي / GBR / بلوك)"
+
 msgid "plan title"
 msgstr "عنوان الخطة"
 
 msgid "Treatment plan"
 msgstr "خطة العلاج"
+
+msgid "case difficulty"
+msgstr "صعوبة الحالة"
 
 msgid "approved by"
 msgstr "اعتمدها"
@@ -796,6 +814,43 @@ msgstr "صورة إكلينيكية"
 
 msgid "clinical photos"
 msgstr "صور إكلينيكية"
+
+msgid "plan status"
+msgstr "حالة الخطة"
+
+msgid "planned procedure (any of)"
+msgstr "الإجراء المخطط (أي منها)"
+
+msgid "only procedures not done yet"
+msgstr "الإجراءات التي لم تُنفذ بعد فقط"
+
+msgid "Any"
+msgstr "الكل"
+
+msgid "gender"
+msgstr "النوع"
+
+msgid "age from"
+msgstr "السن من"
+
+msgid "age to"
+msgstr "السن إلى"
+
+msgid "planned from"
+msgstr "الخطة من"
+
+msgid "planned to"
+msgstr "الخطة إلى"
+
+msgid "no upcoming appointment"
+msgstr "بدون موعد قادم"
+
+#, python-format
+msgid "Treatment plans: %(what)s"
+msgstr "خطط العلاج: %(what)s"
+
+msgid "Treatment plans"
+msgstr "خطط العلاج"
 
 msgid "missing"
 msgstr "مفقود"
@@ -902,14 +957,17 @@ msgstr "تحديث شارت الأسنان لهذه الأسنان"
 msgid "The changes are listed below before you save."
 msgstr "التغييرات معروضة بالأسفل قبل الحفظ."
 
-msgid "treatment"
-msgstr "العلاج"
+msgid "Treatment done"
+msgstr "العلاج الذي تم"
+
+msgid "Notes"
+msgstr "ملاحظات"
+
+msgid "anything worth knowing about this visit"
+msgstr "أي شيء مهم عن هذه الزيارة"
 
 msgid "Choose who did the treatment (operator) or the supervisor."
 msgstr "اختر من قام بالعلاج (الطبيب المنفذ) أو المشرف."
-
-msgid "You can only record treatments you did, assisted or supervised."
-msgstr "يمكنك تسجيل العلاج الذي قمت به أو ساعدت فيه أو أشرفت عليه فقط."
 
 msgid "Write the tooth numbers for this treatment."
 msgstr "اكتب أرقام الأسنان لهذا العلاج."
@@ -917,8 +975,14 @@ msgstr "اكتب أرقام الأسنان لهذا العلاج."
 msgid "dentist"
 msgstr "الطبيب"
 
+msgid "reviewed by supervisor"
+msgstr "راجعه المشرف"
+
 msgid "I checked the work against the lab request"
 msgstr "راجعت الشغل على طلب المعمل"
+
+msgid "treatment"
+msgstr "العلاج"
 
 msgid "not checked yet"
 msgstr "لم تتم مراجعتها"
@@ -1089,6 +1153,9 @@ msgstr "خطوات العلاج"
 msgid "name"
 msgstr "الاسم"
 
+msgid "name (English)"
+msgstr "الاسم (إنجليزي)"
+
 msgid "our branch"
 msgstr "فرعنا"
 
@@ -1145,6 +1212,12 @@ msgstr "اللون"
 
 msgid "instructions to the lab"
 msgstr "تعليمات للمعمل"
+
+msgid ""
+"Supervisors do not log in: choose who checked the request and it goes "
+"straight to the secretary."
+msgstr ""
+"المشرفون لا يدخلون النظام: اختر من راجع الطلب وسيذهب مباشرة للسكرتارية."
 
 msgid "needed back by"
 msgstr "مطلوب استلامه يوم"
@@ -1209,8 +1282,8 @@ msgstr "تمت مراجعة الشغل على الطلب"
 msgid "lab request history"
 msgstr "سجل طلب المعمل"
 
-msgid "Send for supervisor review"
-msgstr "إرسال لمراجعة المشرف"
+msgid "Send for review"
+msgstr "إرسال للمراجعة"
 
 msgid "Approve (reviewed)"
 msgstr "موافقة (تمت المراجعة)"
@@ -1286,8 +1359,16 @@ msgstr "تسجيل علاج"
 msgid "Treatment checked."
 msgstr "تمت مراجعة العلاج."
 
-msgid "Lab request saved and sent to the supervisor for review."
-msgstr "تم حفظ طلب المعمل وإرساله للمشرف للمراجعة."
+#, python-format
+msgid ""
+"Lab request saved as reviewed by %(supervisor)s. The secretary will send it "
+"to the lab."
+msgstr ""
+"تم حفظ طلب المعمل كمراجَع من %(supervisor)s. ستقوم السكرتارية بإرساله "
+"للمعمل."
+
+msgid "Lab request saved and sent for review."
+msgstr "تم حفظ طلب المعمل وإرساله للمراجعة."
 
 msgid "Lab request saved as draft."
 msgstr "تم حفظ طلب المعمل كمسودة."
@@ -1499,6 +1580,9 @@ msgstr "الملف كبير جدًا (الحد الأقصى %(size)s ميجا)."
 msgid "Only images or PDF files can be uploaded."
 msgstr "يمكن رفع الصور أو ملفات PDF فقط."
 
+msgid "Course candidates do not have access to the system."
+msgstr "دارسو الكورسات ليس لهم دخول على النظام."
+
 #, python-format
 msgid "Complaint %(number)s needs follow-up (overdue)"
 msgstr "الشكوى %(number)s تحتاج متابعة (متأخرة)"
@@ -1518,9 +1602,6 @@ msgstr "أنشأه"
 
 msgid "name (Arabic)"
 msgstr "الاسم (عربي)"
-
-msgid "name (English)"
-msgstr "الاسم (إنجليزي)"
 
 msgid "sort order"
 msgstr "الترتيب"
@@ -1606,8 +1687,14 @@ msgstr "إشعار"
 msgid "notifications"
 msgstr "الإشعارات"
 
-msgid "Owner / Manager"
-msgstr "المالك / المدير"
+msgid "Owner / CEO"
+msgstr "المالك / المدير التنفيذي"
+
+msgid "Head of CIA"
+msgstr "رئيس الأكاديمية"
+
+msgid "Head of CIA dentists team"
+msgstr "رئيس فريق أطباء الأكاديمية"
 
 msgid "Supervisor"
 msgstr "مشرف"
@@ -1615,8 +1702,11 @@ msgstr "مشرف"
 msgid "Secretary"
 msgstr "سكرتارية"
 
-msgid "Dentist"
-msgstr "الطبيب"
+msgid "CIA dentist"
+msgstr "طبيب الأكاديمية"
+
+msgid "Stock manager"
+msgstr "مسؤول المخازن"
 
 #, python-format
 msgid "%(m)s min"
@@ -1737,6 +1827,13 @@ msgstr "الأطباء"
 msgid "The login this dentist uses, so the system knows which work is theirs."
 msgstr "حساب الدخول الذي يستخدمه هذا الطبيب، ليعرف النظام أي شغل يخصه."
 
+msgid ""
+"Only CIA dentists log in. Candidates, training dentists and supervisors are "
+"chosen by name on the forms."
+msgstr ""
+"أطباء الأكاديمية فقط يدخلون النظام. الدارسون والأطباء المتدربون والمشرفون "
+"يُختارون بالاسم في النماذج."
+
 msgid "Working now"
 msgstr "يعمل حاليًا"
 
@@ -1749,8 +1846,8 @@ msgstr "دارس بالكورس"
 msgid "Training dentist"
 msgstr "طبيب متدرب"
 
-msgid "Full-time dentist"
-msgstr "طبيب متفرغ"
+msgid "CIA dentist (full / part time)"
+msgstr "طبيب الأكاديمية (دوام كامل / جزئي)"
 
 msgid "Specialist"
 msgstr "أخصائي"
@@ -1807,6 +1904,13 @@ msgstr ""
 msgid "This dentist already has a login: %(u)s"
 msgstr "هذا الطبيب لديه حساب دخول بالفعل: %(u)s"
 
+msgid ""
+"Only CIA dentists get a login. Candidates, training dentists and supervisors"
+" are chosen by name on the forms."
+msgstr ""
+"أطباء الأكاديمية فقط لهم حساب دخول. الدارسون والأطباء المتدربون والمشرفون "
+"يُختارون بالاسم في النماذج."
+
 #, python-format
 msgid ""
 "Login created. Username: %(u)s — first password: %(p)s (write it down now; "
@@ -1817,6 +1921,35 @@ msgstr ""
 
 msgid "Patients"
 msgstr "المرضى"
+
+msgid "result"
+msgstr "النتيجة"
+
+msgid "patient's answer"
+msgstr "رد المريض"
+
+#, python-format
+msgid "Patients to call: %(title)s"
+msgstr "مرضى للاتصال بهم: %(title)s"
+
+#, python-format
+msgid "%(n)s patients. %(message)s"
+msgstr "%(n)s مريض. %(message)s"
+
+msgid "Write a title and choose at least one patient."
+msgstr "اكتب عنوانًا واختر مريضًا واحدًا على الأقل."
+
+#, python-format
+msgid "%(n)s patients sent to the reception to call."
+msgstr "تم إرسال %(n)s مريض للاستقبال للاتصال بهم."
+
+#, python-format
+msgid "The reception called every patient of %(title)s"
+msgstr "اتصل الاستقبال بكل مرضى %(title)s"
+
+#, python-format
+msgid "Answer saved for %(name)s."
+msgstr "تم حفظ الرد لـ %(name)s."
 
 msgid "Type the patient's file number, mobile or national ID."
 msgstr "اكتب رقم ملف المريض أو الموبايل أو الرقم القومي."
@@ -1926,6 +2059,9 @@ msgstr "هذه الصلة مسجلة بالفعل."
 msgid "has open lab work"
 msgstr "عنده شغل معمل مفتوح"
 
+msgid "only my patients"
+msgstr "مرضاي فقط"
+
 msgid "Single tooth"
 msgstr "سنة واحدة"
 
@@ -2015,9 +2151,6 @@ msgstr "الموبايل المفضل"
 msgid "age"
 msgstr "السن"
 
-msgid "gender"
-msgstr "النوع"
-
 msgid "city / area"
 msgstr "المدينة / المنطقة"
 
@@ -2065,9 +2198,6 @@ msgstr "حجز موعد"
 
 msgid "call time"
 msgstr "وقت المكالمة"
-
-msgid "result"
-msgstr "النتيجة"
 
 msgid "call"
 msgstr "مكالمة"
@@ -2177,6 +2307,45 @@ msgstr "صلة بين مرضى"
 msgid "patient relations"
 msgstr "الصلات بين المرضى"
 
+msgid "what to tell the patients"
+msgstr "ماذا نقول للمرضى"
+
+msgid "list of patients to call"
+msgstr "قائمة مرضى للاتصال بهم"
+
+msgid "lists of patients to call"
+msgstr "قوائم مرضى للاتصال بهم"
+
+msgid "Not called yet"
+msgstr "لم يتم الاتصال بعد"
+
+msgid "Call again later"
+msgstr "يُعاد الاتصال لاحقًا"
+
+msgid "Not interested now"
+msgstr "غير مهتم حاليًا"
+
+msgid "Wrong / closed number"
+msgstr "رقم خطأ / مغلق"
+
+msgid "why"
+msgstr "السبب"
+
+msgid "calls made"
+msgstr "عدد المكالمات"
+
+msgid "last call"
+msgstr "آخر مكالمة"
+
+msgid "called by"
+msgstr "اتصل به"
+
+msgid "patient to call"
+msgstr "مريض للاتصال به"
+
+msgid "patients to call"
+msgstr "مرضى للاتصال بهم"
+
 msgid "New expected patient (incoming call)"
 msgstr "مريض متوقع جديد (مكالمة واردة)"
 
@@ -2208,6 +2377,120 @@ msgstr "تم حفظ الصلة."
 msgid "Relation removed."
 msgstr "تم حذف الصلة."
 
+msgid "Prescriptions and instructions"
+msgstr "الروشتات والتعليمات"
+
+msgid "notes for the patient"
+msgstr "ملاحظات للمريض"
+
+msgid "drug"
+msgstr "الدواء"
+
+msgid "how to take it"
+msgstr "طريقة الاستخدام"
+
+msgid "Choose the drug."
+msgstr "اختر الدواء."
+
+msgid "language"
+msgstr "اللغة"
+
+msgid ""
+"Surgery procedures this fits, comma separated: extraction, flap, "
+"simple_implant, immediate_implant, guided, expansion, splitting, "
+"closed_sinus, open_sinus, gbr, soft_tissue. Empty = every surgery."
+msgstr ""
+"إجراءات العملية المناسبة، مفصولة بفواصل: extraction, flap, simple_implant, "
+"immediate_implant, guided, expansion, splitting, closed_sinus, open_sinus, "
+"gbr, soft_tissue. فارغ = كل العمليات."
+
+msgid "Antibiotic"
+msgstr "مضاد حيوي"
+
+msgid "Painkiller / anti-inflammatory"
+msgstr "مسكن / مضاد للالتهاب"
+
+msgid "Mouthwash / local"
+msgstr "غسول / موضعي"
+
+msgid "how to take it (for the patient)"
+msgstr "طريقة الاستخدام (للمريض)"
+
+msgid "Printed on the prescription, usually in Arabic."
+msgstr "تُطبع في الروشتة، غالبًا بالعربي."
+
+msgid "drug group (interchangeable drugs)"
+msgstr "مجموعة دواء (أدوية بديلة لبعضها)"
+
+msgid "drug groups (interchangeable drugs)"
+msgstr "مجموعات الأدوية (أدوية بديلة لبعضها)"
+
+msgid "group"
+msgstr "المجموعة"
+
+msgid "brand name and strength"
+msgstr "الاسم التجاري والتركيز"
+
+msgid "chosen first"
+msgstr "يُختار أولًا"
+
+msgid "drugs"
+msgstr "الأدوية"
+
+msgid "fits these procedures"
+msgstr "مناسبة لهذه الإجراءات"
+
+msgid "for patients allergic to penicillin"
+msgstr "لمرضى حساسية البنسلين"
+
+msgid "prescription template"
+msgstr "روشتة جاهزة"
+
+msgid "prescription templates"
+msgstr "روشتات جاهزة"
+
+msgid "drug group"
+msgstr "مجموعة الدواء"
+
+msgid "Leave empty to use the group's usual dose."
+msgstr "اتركه فارغًا لاستخدام الجرعة المعتادة للمجموعة."
+
+msgid "template line"
+msgstr "سطر في الروشتة الجاهزة"
+
+msgid "template lines"
+msgstr "سطور الروشتة الجاهزة"
+
+msgid "prescription"
+msgstr "روشتة"
+
+msgid "prescriptions"
+msgstr "روشتات"
+
+msgid "prescription line"
+msgstr "سطر روشتة"
+
+msgid "prescription lines"
+msgstr "سطور الروشتة"
+
+msgid "instructions (Arabic)"
+msgstr "التعليمات (عربي)"
+
+msgid "One instruction per line."
+msgstr "تعليمة في كل سطر."
+
+msgid "instructions (English)"
+msgstr "التعليمات (إنجليزي)"
+
+msgid "post-operative instruction sheet"
+msgstr "ورقة تعليمات بعد العملية"
+
+msgid "post-operative instruction sheets"
+msgstr "أوراق تعليمات بعد العملية"
+
+msgid "Add at least one drug."
+msgstr "أضف دواءً واحدًا على الأقل."
+
 msgid "Purchasing"
 msgstr "المشتريات"
 
@@ -2217,6 +2500,9 @@ msgstr "غير موجود في القائمة؟ <a href=\"%(url)s\" target=\"_bl
 
 msgid "Enter how much was paid."
 msgstr "أدخل المبلغ المدفوع."
+
+msgid "not a stock item"
+msgstr "ليس صنف مخزن"
 
 msgid "Add at least one item."
 msgstr "أضف صنفًا واحدًا على الأقل."
@@ -2287,6 +2573,9 @@ msgstr "قطعة، علبة، كيلو..."
 msgid "unit price"
 msgstr "سعر الوحدة"
 
+msgid "add to stock item"
+msgstr "إضافة لصنف المخزن"
+
 msgid "purchase item"
 msgstr "صنف مشتريات"
 
@@ -2302,6 +2591,10 @@ msgstr "تعديل المورد"
 #, python-format
 msgid "Purchase saved. Total: %(total)s"
 msgstr "تم حفظ المشتريات. الإجمالي: %(total)s"
+
+#, python-format
+msgid "%(n)s items added to stock."
+msgstr "تمت إضافة %(n)s صنف للمخزن."
 
 msgid "Edit purchase"
 msgstr "تعديل المشتريات"
@@ -2469,11 +2762,185 @@ msgstr ""
 "تم نسخ %(copied)s نوبة من الأسبوع الماضي (وتم تخطي %(skipped)s بسبب "
 "التعارض)."
 
+msgid "Stock"
+msgstr "المخزن"
+
+msgid "quantity in stock now"
+msgstr "الكمية الموجودة الآن"
+
+msgid "low stock only"
+msgstr "الأصناف الناقصة فقط"
+
+msgid "expiring within 60 days"
+msgstr "تنتهي صلاحيتها خلال ٦٠ يومًا"
+
+msgid "show items no longer used"
+msgstr "إظهار الأصناف غير المستخدمة"
+
+msgid "Write a quantity above zero."
+msgstr "اكتب كمية أكبر من صفر."
+
+#, python-format
+msgid "Only %(qty)s in stock."
+msgstr "الموجود %(qty)s فقط."
+
+msgid "Write the quantity."
+msgstr "اكتب الكمية."
+
+msgid "Choose the item."
+msgstr "اختر الصنف."
+
+msgid "for / taken by"
+msgstr "لـ / استلمه"
+
+msgid "e.g. room 3, Dr. Mona, sterilisation, kitchen"
+msgstr "مثال: غرفة ٣، د. منى، التعقيم، المطبخ"
+
+msgid "movement"
+msgstr "الحركة"
+
+msgid "item or destination"
+msgstr "الصنف أو الجهة"
+
+msgid "Excel or CSV file"
+msgstr "ملف Excel أو CSV"
+
+msgid ""
+"One item per row: the quantity and the item name. Extra columns 'category', "
+"'unit' and 'min' are read when the first row has these titles."
+msgstr ""
+"صنف في كل صف: الكمية واسم الصنف. تُقرأ أعمدة 'category' و'unit' و'min' إذا "
+"كانت هذه العناوين في الصف الأول."
+
+msgid "category for items without one"
+msgstr "الفئة للأصناف التي بدون فئة"
+
+msgid "The quantities are a stock count"
+msgstr "الكميات هي جرد للمخزن"
+
+msgid ""
+"Ticked: items already in stock are set to the quantity in the file. "
+"Unticked: the quantities are added (a delivery)."
+msgstr ""
+"مُعلَّم: الأصناف الموجودة تُضبط على الكمية في الملف. غير مُعلَّم: تُضاف "
+"الكميات (توريد)."
+
+msgid "Upload an .xlsx or .csv file."
+msgstr "ارفع ملف ‎.xlsx أو ‎.csv."
+
+msgid "stock category"
+msgstr "فئة مخزن"
+
+msgid "stock categories"
+msgstr "فئات المخزن"
+
+msgid "piece, box, carpule, pack..."
+msgstr "قطعة، علبة، كاربول، باكو..."
+
+msgid "in stock"
+msgstr "في المخزن"
+
+msgid "reorder level"
+msgstr "حد الطلب"
+
+msgid ""
+"The stock manager is warned when the quantity falls to this number or below."
+msgstr "يتم تنبيه مسؤول المخازن عندما تنزل الكمية لهذا الرقم أو أقل."
+
+msgid "place"
+msgstr "المكان"
+
+msgid "e.g. store, room 2, sterilisation"
+msgstr "مثال: المخزن، غرفة ٢، التعقيم"
+
+msgid "code / barcode"
+msgstr "الكود / الباركود"
+
+msgid "last unit price"
+msgstr "آخر سعر للوحدة"
+
+msgid "in use"
+msgstr "مستخدم"
+
+msgid "stock item"
+msgstr "صنف مخزن"
+
+msgid "stock items"
+msgstr "أصناف المخزن"
+
+msgid "Received into stock"
+msgstr "وارد للمخزن"
+
+msgid "Taken out / used"
+msgstr "منصرف / مستخدم"
+
+msgid "Damaged / expired"
+msgstr "تالف / منتهي الصلاحية"
+
+msgid "Stock count (correct the quantity)"
+msgstr "جرد (تصحيح الكمية)"
+
+msgid "For a stock count, write the quantity you counted."
+msgstr "في الجرد اكتب الكمية التي عددتها."
+
+msgid "lot"
+msgstr "التشغيلة"
+
+msgid "expiry date"
+msgstr "تاريخ الانتهاء"
+
+msgid "recorded by"
+msgstr "سجّله"
+
+msgid "stock movement"
+msgstr "حركة مخزن"
+
+msgid "stock movements"
+msgstr "حركات المخزن"
+
+#, python-format
+msgid "Low stock: %(item)s"
+msgstr "نقص في المخزن: %(item)s"
+
+#, python-format
+msgid "%(qty)s left (reorder level %(min)s)."
+msgstr "المتبقي %(qty)s (حد الطلب %(min)s)."
+
+msgid "Opening stock"
+msgstr "رصيد أول المدة"
+
+msgid "Stock item saved."
+msgstr "تم حفظ صنف المخزن."
+
+msgid "Edit stock item"
+msgstr "تعديل صنف المخزن"
+
+msgid "New stock item"
+msgstr "صنف مخزن جديد"
+
+msgid "Stock updated."
+msgstr "تم تحديث المخزن."
+
+msgid "Choose at least one item."
+msgstr "اختر صنفًا واحدًا على الأقل."
+
+#, python-format
+msgid "%(n)s items taken out of stock."
+msgstr "تم صرف %(n)s صنف من المخزن."
+
+msgid "No items could be read from this file."
+msgstr "لم يمكن قراءة أي أصناف من هذا الملف."
+
+#, python-format
+msgid "Imported from %(file)s"
+msgstr "مستورد من %(file)s"
+
+#, python-format
+msgid "%(n)s rows read: %(c)s new items, %(u)s existing items updated."
+msgstr "تمت قراءة %(n)s صف: %(c)s صنف جديد، و%(u)s صنف موجود تم تحديثه."
+
 msgid "Implant surgery"
 msgstr "عمليات الزرع"
-
-msgid "Any"
-msgstr "الكل"
 
 msgid "No grouping"
 msgstr "بدون تجميع"
@@ -2556,12 +3023,6 @@ msgstr "العملية من"
 msgid "surgery to"
 msgstr "العملية إلى"
 
-msgid "age from"
-msgstr "السن من"
-
-msgid "age to"
-msgstr "السن إلى"
-
 msgid "smoker"
 msgstr "مدخن"
 
@@ -2576,9 +3037,6 @@ msgstr "الطبيب (بأي دور)"
 
 msgid "operator type"
 msgstr "نوع الطبيب"
-
-msgid "case difficulty"
-msgstr "صعوبة الحالة"
 
 msgid "bone particle"
 msgstr "نوع العظم المستخدم"
@@ -2727,9 +3185,6 @@ msgstr "الأنسجة الرخوة"
 msgid "Suture, temporization and X-ray"
 msgstr "الغرز والمؤقت والأشعة"
 
-msgid "Notes"
-msgstr "ملاحظات"
-
 msgid "The same dentist is chosen twice in the surgery team."
 msgstr "نفس الطبيب مختار مرتين في فريق العملية."
 
@@ -2766,15 +3221,6 @@ msgstr "نظام الزرعة"
 
 msgid "implant systems"
 msgstr "أنظمة الزرعات"
-
-msgid "Simple"
-msgstr "بسيطة"
-
-msgid "Moderate"
-msgstr "متوسطة"
-
-msgid "Advanced (sinus / GBR / block)"
-msgstr "متقدمة (جيب أنفي / GBR / بلوك)"
 
 msgid "Chin"
 msgstr "الذقن"
@@ -3095,6 +3541,13 @@ msgstr "حالات GBR / ترقيع بلوك"
 msgid "Immediate implants"
 msgstr "زرعات فورية"
 
+#, python-format
+msgid "Implant cases: %(what)s"
+msgstr "حالات الزرع: %(what)s"
+
+msgid "Implant cases"
+msgstr "حالات الزرع"
+
 msgid "Search saved."
 msgstr "تم حفظ البحث."
 
@@ -3403,6 +3856,9 @@ msgstr "الاستقبال اليوم"
 msgid "Call list (expected patients)"
 msgstr "قائمة المكالمات (المرضى المتوقعون)"
 
+msgid "Patients to call"
+msgstr "مرضى للاتصال بهم"
+
 msgid "All patients"
 msgstr "كل المرضى"
 
@@ -3412,8 +3868,14 @@ msgstr "مرضاي"
 msgid "Schedule"
 msgstr "الجدول"
 
+msgid "My schedule"
+msgstr "جدولي"
+
 msgid "Room schedule"
 msgstr "جدول الغرف"
+
+msgid "My appointments"
+msgstr "مواعيدي"
 
 msgid "Treatment log"
 msgstr "سجل العلاج"
@@ -3424,14 +3886,38 @@ msgstr "عمليات الزرع"
 msgid "Lab requests"
 msgstr "طلبات المعمل"
 
+msgid "Treatment plan finder"
+msgstr "البحث في خطط العلاج"
+
 msgid "Case finder & statistics"
 msgstr "البحث في الحالات والإحصائيات"
 
 msgid "My cases and implants"
 msgstr "حالاتي وزرعاتي"
 
+msgid "CIA dentists"
+msgstr "أطباء الأكاديمية"
+
+msgid "Stock & purchases"
+msgstr "المخزن والمشتريات"
+
 msgid "Purchases"
 msgstr "المشتريات"
+
+msgid "Stock items"
+msgstr "أصناف المخزن"
+
+msgid "Low stock"
+msgstr "نواقص المخزن"
+
+msgid "Take out of stock"
+msgstr "صرف من المخزن"
+
+msgid "Stock movements"
+msgstr "حركات المخزن"
+
+msgid "Import a list"
+msgstr "استيراد قائمة"
 
 msgid "Suppliers"
 msgstr "الموردون"
@@ -3511,9 +3997,6 @@ msgstr "لا يوجد"
 msgid "Current dental chart"
 msgstr "شارت الأسنان الحالي"
 
-msgid "Treatment plans"
-msgstr "خطط العلاج"
-
 msgid "Operator 2"
 msgstr "الطبيب الثاني"
 
@@ -3568,6 +4051,12 @@ msgstr "الكشف والتاريخ المرضي"
 msgid "Lab request"
 msgstr "طلب معمل"
 
+msgid "Prescription"
+msgstr "روشتة"
+
+msgid "Post-op instructions"
+msgstr "تعليمات بعد العملية"
+
 msgid "Patient's right"
 msgstr "يمين المريض"
 
@@ -3591,6 +4080,9 @@ msgstr "تم"
 
 msgid "No open treatment plan."
 msgstr "لا توجد خطة علاج مفتوحة."
+
+msgid "Prescriptions"
+msgstr "الروشتات"
 
 msgid "No treatments recorded."
 msgstr "لا يوجد علاج مسجل."
@@ -3678,9 +4170,6 @@ msgstr "الضغط"
 
 msgid "last"
 msgstr "آخر قراءة"
-
-msgid "drug"
-msgstr "الدواء"
 
 msgid "in clinic"
 msgstr "في العيادة"
@@ -3812,6 +4301,40 @@ msgstr ""
 "البنود تُعلَّم تلقائيًا عند تسجيل نفس الإجراء على نفس الأسنان في سجل العلاج "
 "أو شارت العملية."
 
+msgid "Export to Excel (CSV)"
+msgstr "تصدير إلى Excel ‏(CSV)"
+
+msgid "Please correct the filters."
+msgstr "من فضلك صحح الفلاتر."
+
+msgid "Find"
+msgstr "بحث"
+
+msgid "Clear"
+msgstr "مسح"
+
+msgid "Hold Ctrl to choose several values in a list."
+msgstr "اضغط Ctrl لاختيار أكثر من قيمة في القائمة."
+
+#, python-format
+msgid "%(n)s results"
+msgstr "%(n)s نتيجة"
+
+msgid "Plan"
+msgstr "الخطة"
+
+msgid "Difficulty"
+msgstr "الصعوبة"
+
+msgid "Planned procedures"
+msgstr "الإجراءات المخططة"
+
+msgid "Next appointment"
+msgstr "الموعد القادم"
+
+msgid "No treatment plans match these filters."
+msgstr "لا توجد خطط علاج تطابق هذه الفلاتر."
+
 msgid "Planned treatment (in order)"
 msgstr "العلاج المخطط (بالترتيب)"
 
@@ -3891,8 +4414,8 @@ msgstr "السجل"
 msgid "checked against request"
 msgstr "تمت المراجعة على الطلب"
 
-msgid "Save and send for supervisor review"
-msgstr "حفظ وإرسال لمراجعة المشرف"
+msgid "Save and send"
+msgstr "حفظ وإرسال"
 
 msgid "Save as draft"
 msgstr "حفظ كمسودة"
@@ -4070,6 +4593,12 @@ msgstr "لا توجد شكاوى متأخرة."
 msgid "Treatment steps waiting for your check"
 msgstr "خطوات علاج في انتظار مراجعتك"
 
+msgid "Nothing is running low."
+msgstr "لا توجد نواقص."
+
+msgid "expires"
+msgstr "تنتهي"
+
 msgid "Mark all as read"
 msgstr "تعليم الكل كمقروء"
 
@@ -4206,6 +4735,73 @@ msgstr "الطبيب المسؤول"
 msgid "File"
 msgstr "الملف"
 
+msgid "Send these patients to the reception to call"
+msgstr "إرسال هؤلاء المرضى للاستقبال للاتصال بهم"
+
+msgid "Title"
+msgstr "العنوان"
+
+msgid "What to tell the patients"
+msgstr "ماذا نقول للمرضى"
+
+msgid "e.g. please come to book your surgery day"
+msgstr "مثال: برجاء الحضور لحجز يوم العملية"
+
+#, python-format
+msgid "%(n)s patient chosen"
+msgid_plural "%(n)s patients chosen"
+msgstr[0] "تم اختيار %(n)s مريض"
+msgstr[1] "تم اختيار %(n)s مريض"
+msgstr[2] "تم اختيار %(n)s مريض"
+msgstr[3] "تم اختيار %(n)s مريض"
+msgstr[4] "تم اختيار %(n)s مريض"
+msgstr[5] "تم اختيار %(n)s مريض"
+
+msgid "untick anyone who should not be called"
+msgstr "أزل العلامة عمن لا يجب الاتصال به"
+
+msgid "Send to reception"
+msgstr "إرسال للاستقبال"
+
+#, python-format
+msgid "%(d)s of %(t)s called"
+msgstr "تم الاتصال بـ %(d)s من %(t)s"
+
+msgid "Show all"
+msgstr "عرض الكل"
+
+msgid "Only not called yet"
+msgstr "من لم يتم الاتصال بهم فقط"
+
+msgid "Why"
+msgstr "السبب"
+
+msgid "Answer"
+msgstr "الرد"
+
+#, python-format
+msgid "%(n)s calls"
+msgstr "%(n)s مكالمات"
+
+msgid "No patients."
+msgstr "لا يوجد مرضى."
+
+msgid ""
+"Lists sent by the head of CIA or the supervisors from the treatment plan "
+"finder or the case finder. Call each patient and write the answer."
+msgstr ""
+"قوائم أرسلها رئيس الأكاديمية أو المشرفون من البحث في خطط العلاج أو البحث في "
+"الحالات. اتصل بكل مريض واكتب الرد."
+
+msgid "To call"
+msgstr "للاتصال"
+
+msgid "Nothing to call now."
+msgstr "لا يوجد اتصالات مطلوبة الآن."
+
+msgid "Finished lists"
+msgstr "قوائم منتهية"
+
 msgid "Open patient file"
 msgstr "فتح ملف المريض"
 
@@ -4305,6 +4901,9 @@ msgstr "الموعد"
 msgid "Room"
 msgstr "الغرفة"
 
+msgid "Dentist"
+msgstr "الطبيب"
+
 msgid "Arrived"
 msgstr "وصل"
 
@@ -4379,6 +4978,48 @@ msgstr "عنده شغل معمل"
 msgid "No patients found."
 msgstr "لا يوجد مرضى."
 
+msgid "Language"
+msgstr "اللغة"
+
+msgid "Sheets"
+msgstr "الأوراق"
+
+msgid "The sheets that fit the surgery are chosen automatically."
+msgstr "الأوراق المناسبة للعملية تُختار تلقائيًا."
+
+msgid "Choose at least one sheet."
+msgstr "اختر ورقة واحدة على الأقل."
+
+msgid "New prescription"
+msgstr "روشتة جديدة"
+
+msgid "This patient is allergic to penicillin."
+msgstr "هذا المريض لديه حساسية من البنسلين."
+
+msgid "Start from a ready prescription"
+msgstr "ابدأ من روشتة جاهزة"
+
+msgid "penicillin allergy"
+msgstr "حساسية البنسلين"
+
+msgid "Drugs"
+msgstr "الأدوية"
+
+msgid "any brand of the same group can replace another"
+msgstr "أي اسم تجاري من نفس المجموعة يمكن أن يحل محل الآخر"
+
+msgid "Drug"
+msgstr "الدواء"
+
+msgid "How to take it"
+msgstr "طريقة الاستخدام"
+
+msgid "Add drug"
+msgstr "إضافة دواء"
+
+msgid "Save and print"
+msgstr "حفظ وطباعة"
+
 msgid "Purchase"
 msgstr "مشتريات"
 
@@ -4417,6 +5058,9 @@ msgstr "الأصناف (كل صنف تحت تصنيفه)"
 
 msgid "Unit"
 msgstr "الوحدة"
+
+msgid "Add to stock item"
+msgstr "إضافة لصنف المخزن"
 
 msgid "Total spent"
 msgstr "إجمالي المصروف"
@@ -4759,9 +5403,6 @@ msgstr "هذا الأسبوع"
 msgid "Next week"
 msgstr "الأسبوع القادم"
 
-msgid "Show all"
-msgstr "عرض الكل"
-
 msgid "Only my shifts"
 msgstr "نوباتي فقط"
 
@@ -4813,14 +5454,76 @@ msgstr "فاضية"
 msgid "min"
 msgstr "دقيقة"
 
+msgid "Import a stock list"
+msgstr "استيراد قائمة مخزن"
+
+msgid ""
+"Use the lists you already keep in Excel, for example the materials and "
+"instruments list: one row per item with the quantity and the name. New items"
+" are created; items already in stock are updated."
+msgstr ""
+"استخدم القوائم الموجودة عندك في Excel، مثل قائمة الخامات والأدوات: صف لكل "
+"صنف بالكمية والاسم. الأصناف الجديدة تُضاف، والموجودة يتم تحديثها."
+
+msgid "Import"
+msgstr "استيراد"
+
+msgid "In stock"
+msgstr "في المخزن"
+
+msgid "Reorder level"
+msgstr "حد الطلب"
+
+msgid "Place"
+msgstr "المكان"
+
+msgid "Code / barcode"
+msgstr "الكود / الباركود"
+
+msgid "Last unit price"
+msgstr "آخر سعر للوحدة"
+
+msgid "Stock value"
+msgstr "قيمة المخزون"
+
+msgid "Record a stock movement"
+msgstr "تسجيل حركة مخزن"
+
+msgid "Movements"
+msgstr "الحركات"
+
+msgid "Movement"
+msgstr "الحركة"
+
+msgid "Change"
+msgstr "التغيير"
+
+msgid "For / taken by"
+msgstr "لـ / استلمه"
+
+msgid "Lot / expiry"
+msgstr "التشغيلة / الانتهاء"
+
+msgid "No movements yet."
+msgstr "لا توجد حركات بعد."
+
+msgid "Expiring within 60 days"
+msgstr "تنتهي خلال ٦٠ يومًا"
+
+msgid "not used"
+msgstr "غير مستخدم"
+
+msgid "No stock items."
+msgstr "لا توجد أصناف."
+
+msgid "No movements in this period."
+msgstr "لا توجد حركات في هذه الفترة."
+
 msgid "remove"
 msgstr "حذف"
 
 msgid "Case finder"
 msgstr "البحث في الحالات"
-
-msgid "Export to Excel (CSV)"
-msgstr "تصدير إلى Excel ‏(CSV)"
 
 msgid "Quick:"
 msgstr "سريع:"
@@ -4830,18 +5533,6 @@ msgstr "عمليات البحث المحفوظة:"
 
 msgid "Delete this saved search?"
 msgstr "حذف هذا البحث المحفوظ؟"
-
-msgid "Please correct the filters."
-msgstr "من فضلك صحح الفلاتر."
-
-msgid "Find"
-msgstr "بحث"
-
-msgid "Clear"
-msgstr "مسح"
-
-msgid "Hold Ctrl to choose several values in a list."
-msgstr "اضغط Ctrl لاختيار أكثر من قيمة في القائمة."
 
 msgid "Save this search as"
 msgstr "حفظ هذا البحث باسم"
@@ -4881,10 +5572,6 @@ msgstr "الأيام حتى التحميل"
 
 msgid "Torque"
 msgstr "عزم الربط"
-
-#, python-format
-msgid "%(n)s results"
-msgstr "%(n)s نتيجة"
 
 msgid "No cases match these filters."
 msgstr "لا توجد حالات تطابق هذه الفلاتر."
@@ -4998,9 +5685,6 @@ msgstr "حفظ شارت العملية"
 
 msgid "Surgery number, patient name or file number"
 msgstr "رقم العملية أو اسم المريض أو رقم الملف"
-
-msgid "Difficulty"
-msgstr "الصعوبة"
 
 msgid "No surgeries recorded."
 msgstr "لا توجد عمليات مسجلة."

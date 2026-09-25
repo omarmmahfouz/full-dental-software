@@ -3,7 +3,6 @@ surgery and implant details, then group the results for statistics and export.""
 
 import csv
 from collections import defaultdict
-from datetime import date
 from statistics import mean
 
 from django import forms

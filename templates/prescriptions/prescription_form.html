@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "New prescription" %}{% endblock %}
+{% block content %}
+{% with active="chart" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="card"><div class="card-header fs-5"><i class="bi bi-capsule"></i> {% trans "New prescription" %}{% if surgery %} <span class="small text-muted">— {{ surgery.number }} {{ surgery.date|date:"d/m/Y" }}</span>{% endif %}</div><div class="card-body">
+  {% if allergic %}<div class="alert alert-danger"><i class="bi bi-exclamation-octagon"></i> {% trans "This patient is allergic to penicillin." %}</div>{% endif %}
+  <form method="get" class="row g-2 align-items-end mb-3 no-print">
+    {% if surgery %}<input type="hidden" name="surgery" value="{{ surgery.pk }}">{% endif %}
+    <div class="col-md-6"><label class="form-label">{% trans "Start from a ready prescription" %}</label>
+      <select name="template" class="form-select" onchange="this.form.submit()">
+        <option value="">—</option>
+        {% for t in templates %}<option value="{{ t.pk }}" {% if template and t.pk == template.pk %}selected{% endif %}>{{ t }}{% if t.for_penicillin_allergy %} ({% trans "penicillin allergy" %}){% endif %}</option>{% endfor %}
+      </select>
+    </div>
+  </form>
+  <form method="post" novalidate>{% csrf_token %}
+    {% if surgery %}<input type="hidden" name="surgery" value="{{ surgery.pk }}">{% endif %}
+    {% include "includes/form_fields.html" %}
+    <h2 class="h6 mt-4">{% trans "Drugs" %} <span class="small text-muted fw-normal">— {% trans "any brand of the same group can replace another" %}</span></h2>
+    {{ formset.management_form }}
+    <div data-formset="lines">
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th style="min-width:240px">{% trans "Drug" %}</th><th>{% trans "How to take it" %}</th></tr></thead>
+      <tbody data-formset-rows>{% for line in formset %}<tr>
+        <td>{{ line.drug }}{% for e in line.drug.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</td>
+        <td>{{ line.dose }}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+    <template><tr><td>{{ formset.empty_form.drug }}</td><td>{{ formset.empty_form.dose }}</td></tr></template>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add drug" %}</button>
+    </div>
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-printer"></i> {% trans "Save and print" %}</button>
+      <a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  // Changing the drug fills in its usual dose (unless the dose was typed by hand).
+  document.addEventListener("change", function (event) {
+    var select = event.target.closest(".drug-select");
+    if (!select) return;
+    var option = select.options[select.selectedIndex];
+    var dose = select.closest("tr").querySelector("input[name$='-dose']");
+    if (dose && option && option.dataset.dose && (!dose.value || dose.dataset.auto === "1")) {
+      dose.value = option.dataset.dose;
+      dose.dataset.auto = "1";
+    }
+  });
+  document.addEventListener("input", function (event) {
+    if (event.target.matches("input[name$='-dose']")) event.target.dataset.auto = "0";
+  });
+</script>
+{% endblock %}

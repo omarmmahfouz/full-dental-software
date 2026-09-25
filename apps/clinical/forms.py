@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.charting.teeth import format_teeth, parse_surfaces, parse_teeth
 from apps.core.forms import StyledForm, StyledModelForm
-from apps.core.roles import FRONT_DESK, has_role, is_only_dentist
+from apps.core.roles import FRONT_DESK, has_role
 from apps.dentists.forms import DentistChoiceField
 from apps.dentists.models import Dentist
 from apps.patients.access import visible_patients
@@ -42,8 +42,8 @@ class TreatmentStepForm(_PatientScopedForm):
     )
 
     fieldsets = [
-        ("", ["patient_lookup", "performed_at", "step_type", "teeth", "surfaces", "material"]),
-        ("", ["operator", "assistant", "supervisor", "notes", "next_visit", "update_chart"]),
+        ("", ["patient_lookup", "performed_at", "step_type", "notes", "teeth", "surfaces", "material"]),
+        ("", ["operator", "assistant", "supervisor", "next_visit", "update_chart"]),
     ]
 
     class Meta:
@@ -54,16 +54,15 @@ class TreatmentStepForm(_PatientScopedForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["step_type"].queryset = TreatmentStepType.objects.filter(is_active=True)
-        self.fields["step_type"].label = _("treatment")
+        self.fields["step_type"].label = _("Treatment done")
+        self.fields["notes"].label = _("Notes")
+        self.fields["notes"].widget.attrs.update({"rows": 2, "placeholder": _("anything worth knowing about this visit")})
         self.fields["teeth"].widget.attrs.update({"data-digits": "1", "autocomplete": "off"})
-        self.fields["notes"].widget.attrs["rows"] = 2
-        for name in ("teeth", "surfaces", "material"):
+        for name in ("patient_lookup", "performed_at", "step_type", "teeth", "surfaces", "material",
+                     "operator", "assistant", "supervisor"):
             self.fields[name].col = "col-md-4"
-        self.fields["step_type"].col = "col-md-8"
-        self.fields["performed_at"].col = "col-md-4"
-        self.fields["patient_lookup"].col = "col-md-4"
-        self.fields["notes"].col = "col-md-8"
-        self.fields["next_visit"].col = "col-md-4"
+        self.fields["notes"].col = "col-12"
+        self.fields["next_visit"].col = "col-md-8"
         self.fields["update_chart"].col = "col-12"
 
     def clean_teeth(self):
@@ -76,10 +75,6 @@ class TreatmentStepForm(_PatientScopedForm):
         data = super().clean()
         if not data.get("operator") and not data.get("supervisor"):
             self.add_error("operator", _("Choose who did the treatment (operator) or the supervisor."))
-        elif self.user is not None and is_only_dentist(self.user):
-            me = Dentist.for_user(self.user)
-            if me not in (data.get("operator"), data.get("assistant"), data.get("supervisor")):
-                self.add_error("operator", _("You can only record treatments you did, assisted or supervised."))
         step_type = data.get("step_type")
         if step_type and step_type.chart_effect != ChartEffect.NONE and not data.get("teeth"):
             self.add_error("teeth", _("Write the tooth numbers for this treatment."))
@@ -103,16 +98,18 @@ class StepReviewForm(StyledModelForm):
 class LabRequestForm(_PatientScopedForm):
     patient_lookup = PatientLookupField(label=_("patient"))
     dentist = DentistChoiceField(label=_("dentist"))
+    supervisor = DentistChoiceField(kinds=(Dentist.Kind.SUPERVISOR,), label=_("reviewed by supervisor"), required=False)
 
     fieldsets = [
-        ("", ["patient_lookup", "dentist", "lab", "work_type", "teeth", "units", "shade", "material", "due_date"]),
+        ("", ["patient_lookup", "dentist", "supervisor", "lab", "work_type", "teeth", "units", "shade", "material",
+              "due_date"]),
         ("", ["instructions", "lab_cost"]),
     ]
 
     class Meta:
         model = LabRequest
         fields = [
-            "dentist", "lab", "work_type", "teeth", "units", "shade", "material",
+            "dentist", "supervisor", "lab", "work_type", "teeth", "units", "shade", "material",
             "due_date", "instructions", "lab_cost",
         ]
 
@@ -122,9 +119,7 @@ class LabRequestForm(_PatientScopedForm):
         self.fields["work_type"].queryset = LabWorkType.objects.filter(is_active=True)
         if not has_role(self.user, *FRONT_DESK):
             del self.fields["lab_cost"]
-        if is_only_dentist(self.user):
-            me = Dentist.for_user(self.user)
-            self.fields["dentist"].queryset = Dentist.objects.filter(pk=me.pk if me else None)
+        self.fields["supervisor"].help_text = LabRequest._meta.get_field("supervisor").help_text
 
     def clean_teeth(self):
         return format_teeth(parse_teeth(self.cleaned_data.get("teeth")))

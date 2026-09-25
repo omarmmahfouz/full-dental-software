@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Treatment plan finder" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-list-ol"></i> {% trans "Treatment plan finder" %}</h1>
+  <div class="d-flex gap-2 no-print">
+    <a class="btn btn-outline-success" href="?{{ query }}{% if query %}&{% endif %}export=csv"><i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Export to Excel (CSV)" %}</a>
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-xl-3 no-print">
+    <form method="get" class="card"><div class="card-body p-2">
+      {% if form.errors %}<div class="alert alert-danger small">{% trans "Please correct the filters." %}</div>{% endif %}
+      {% for field in form %}
+      <div class="mb-2">
+        {% if field|is_checkbox %}<div class="form-check">{{ field }} <label class="form-check-label small" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+        {% else %}<label class="form-label small mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>{% if field|is_multi_checkbox %}<div class="small">{{ field }}</div>{% else %}{{ field }}{% endif %}{% endif %}
+        {% if field.help_text %}<div class="form-text small mt-0">{{ field.help_text }}</div>{% endif %}
+        {% for e in field.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+      <div class="d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="bi bi-search"></i> {% trans "Find" %}</button><a class="btn btn-outline-secondary" href="?">{% trans "Clear" %}</a></div>
+      <div class="small text-muted mt-2">{% trans "Hold Ctrl to choose several values in a list." %}</div>
+    </div></form>
+  </div>
+  <div class="col-xl-9">
+    {% include "includes/send_to_reception.html" %}
+    <div class="card"><div class="card-header">{% blocktrans with n=count %}{{ n }} results{% endblocktrans %}</div>
+      <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+        <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Plan" %}</th><th>{% trans "Difficulty" %}</th><th>{% trans "Planned procedures" %}</th><th>{% trans "Planned by" %}</th><th>{% trans "Next appointment" %}</th></tr></thead>
+        <tbody>{% for plan, items, summary, next in page_obj %}<tr>
+          <td><a class="fw-semibold" href="{% url 'charting:chart' plan.patient_id %}">{{ plan.patient.full_name }}</a><div class="small text-muted">{{ plan.patient.file_number }} · <span class="ltr">{{ plan.patient.preferred_number }}</span></div></td>
+          <td class="small"><a href="{{ plan.get_absolute_url }}">{{ plan.title }}</a><div>{% status_badge plan %}</div></td>
+          <td class="small">{{ plan.get_difficulty_display|default:"—" }}</td>
+          <td class="small">{% for item in items %}<div>{{ item.step_type }} <b>{{ item.teeth }}</b>{% if item.status == "done" %} <span class="badge text-bg-success">{% trans "done" %}</span>{% endif %}</div>{% empty %}—{% endfor %}</td>
+          <td class="small">{{ plan.dentist|default:"—" }}</td>
+          <td class="small nowrap">{% if next %}{{ next|date:"d/m/Y g:i A" }}{% else %}<span class="text-danger">{% trans "none" %}</span>{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">{% trans "No treatment plans match these filters." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% include "includes/pagination.html" %}
+  </div>
+</div>
+{% endblock %}

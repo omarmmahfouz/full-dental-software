@@ -12,7 +12,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 from apps.core.forms import clean_digits_value
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import OWNER, SECRETARY, SUPERVISOR
+from apps.core.roles import HEAD_CIA, OWNER, SECRETARY, SUPERVISOR
 from apps.core.utils import normalize_phone
 
 from .forms import (
@@ -26,7 +26,8 @@ from .forms import (
 )
 from .models import Candidate, Course, Enrollment, Installment, Payment, PaymentMethod
 
-ACADEMY_ROLES = (OWNER, SUPERVISOR, SECRETARY)
+ACADEMY_ROLES = (OWNER, HEAD_CIA, SUPERVISOR, SECRETARY)
+MONEY_DESK = (OWNER, HEAD_CIA, SECRETARY)
 
 
 # ------------------------------------------------------------ courses
@@ -41,7 +42,7 @@ class CourseListView(RoleRequiredMixin, ListView):
 
 
 class CourseCreateView(RoleRequiredMixin, AuditMixin, CreateView):
-    allowed_roles = (OWNER, SECRETARY)
+    allowed_roles = MONEY_DESK
     model = Course
     form_class = CourseForm
     template_name = "includes/form_page.html"
@@ -53,7 +54,7 @@ class CourseCreateView(RoleRequiredMixin, AuditMixin, CreateView):
 
 
 class CourseUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
-    allowed_roles = (OWNER, SECRETARY)
+    allowed_roles = MONEY_DESK
     model = Course
     form_class = CourseForm
     template_name = "includes/form_page.html"
@@ -190,7 +191,7 @@ def enrollment_detail(request, pk):
     )
 
 
-@role_required(OWNER, SECRETARY)
+@role_required(*MONEY_DESK)
 def enrollment_plan_edit(request, pk):
     enrollment = get_object_or_404(Enrollment.objects.select_related("candidate", "course"), pk=pk)
     formset = InstallmentFormSet(request.POST or None, instance=enrollment)

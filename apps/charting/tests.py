@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import translation
 
 from apps.charting.models import Examination, PlanItem, ToothChange, ToothState, TreatmentPlan
 from apps.charting.rules import apply_changes, exam_changes, plan_changes
@@ -29,6 +30,8 @@ class TeethParsingTests(TestCase):
 
 class ChartRulesTests(TestCase):
     def setUp(self):
+        translation.activate("en")  # change summaries are written in the language of whoever records them
+        self.addCleanup(translation.deactivate)
         self.branch = setup_clinic()
         self.user = make_user("sup", "supervisor")
         self.dentist = make_dentist("dentist", kind="candidate")
@@ -148,7 +151,10 @@ class ChartPageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["can_edit"])
         self.assertEqual(self.client.get(f"{self.url}tooth/36/").status_code, 403)
-        self.login("dentist2")
+        self.login("dentist2")  # CIA dentists see every patient
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+        make_user("stock", "stock")
+        self.login("stock")
         self.assertEqual(self.client.get(self.url).status_code, 403)
 
     def test_manual_tooth_edit_is_logged(self):

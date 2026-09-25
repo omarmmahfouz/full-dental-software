@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from apps.clinical.models import TreatmentStep, TreatmentStepType
-from apps.core.roles import CLINICAL, DENTIST, FRONT_DESK, MANAGEMENT, has_role
+from apps.core.roles import CLINICAL, MANAGEMENT, PATIENT_VIEWERS, has_role
 from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403
 
@@ -55,6 +55,7 @@ def chart(request, patient_pk):
         "plans": patient.treatment_plans.filter(status__in=TreatmentPlan.OPEN_STATUSES).prefetch_related("items__step_type"),
         "changes": patient.tooth_changes.select_related("changed_by")[:25],
         "steps": patient.treatment_steps.select_related("step_type", "operator", "supervisor")[:30],
+        "prescriptions": patient.prescriptions.prefetch_related("lines__drug")[:5],
         "can_edit": has_role(request.user, *CLINICAL),
     })
 
@@ -243,7 +244,7 @@ def plan_action(request, pk):
 # ------------------------------------------------------------ photo checklist
 def photos(request, patient_pk):
     patient = get_visible_patient_or_403(request.user, patient_pk)
-    can_upload = has_role(request.user, *FRONT_DESK, DENTIST)
+    can_upload = has_role(request.user, *PATIENT_VIEWERS)
     stage = request.POST.get("stage") or request.GET.get("stage") or PhotoStage.DIAGNOSTIC
     if stage not in PhotoStage.values:
         stage = PhotoStage.DIAGNOSTIC
@@ -300,7 +301,7 @@ def photos(request, patient_pk):
 def photo_delete(request, pk):
     photo = get_object_or_404(ClinicalPhoto, pk=pk)
     get_visible_patient_or_403(request.user, photo.patient_id)
-    if not has_role(request.user, *FRONT_DESK, DENTIST):
+    if not has_role(request.user, *PATIENT_VIEWERS):
         raise PermissionDenied
     stage = photo.stage
     photo.file.delete(save=False)

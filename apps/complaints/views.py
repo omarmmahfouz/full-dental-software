@@ -10,7 +10,7 @@ from django.views.generic import ListView
 from apps.core.mixins import RoleRequiredMixin, role_required
 from apps.core.models import Notification, branch_for_user
 from apps.core.notify import notify_roles, notify_users
-from apps.core.roles import FRONT_DESK, OWNER, SUPERVISOR
+from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, SUPERVISOR
 from apps.patients.models import Patient
 
 from .forms import ComplaintFilterForm, ComplaintForm, FollowUpForm
@@ -18,7 +18,7 @@ from .models import Complaint
 
 
 class ComplaintListView(RoleRequiredMixin, ListView):
-    allowed_roles = FRONT_DESK
+    allowed_roles = PATIENT_VIEWERS  # CIA dentists may read the complaints
     template_name = "complaints/complaint_list.html"
     paginate_by = 40
 
@@ -64,7 +64,7 @@ def complaint_create(request):
             "text": complaint.description[:300],
         }
         notify_roles(
-            (SUPERVISOR, OWNER), gettext_lazy("New patient complaint %(number)s: %(patient)s"),
+            (HEAD_CIA, SUPERVISOR, OWNER), gettext_lazy("New patient complaint %(number)s: %(patient)s"),
             "%(category)s — %(text)s", complaint.get_absolute_url(), level, exclude=request.user, params=params,
         )
         messages.success(request, _("Complaint %(number)s recorded and the supervisors were notified.") % {"number": complaint.number})
@@ -88,7 +88,7 @@ def complaint_update(request, pk):
     )
 
 
-@role_required(*FRONT_DESK)
+@role_required(*PATIENT_VIEWERS)
 def complaint_detail(request, pk):
     complaint = get_object_or_404(
         Complaint.objects.select_related("patient", "assigned_to", "concerned_staff", "concerned_dentist", "resolved_by"), pk=pk

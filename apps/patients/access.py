@@ -4,8 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404
 
-from apps.core.roles import DENTIST, FRONT_DESK, has_role
-from apps.dentists.models import Dentist
+from apps.core.roles import PATIENT_VIEWERS, has_role
 
 from .models import Patient
 
@@ -26,17 +25,21 @@ def dentist_patients_q(dentist):
 
 
 def visible_patients(user):
-    """Front desk and management see everyone; a dentist sees only their own patients."""
-    qs = Patient.objects.all()
-    if has_role(user, *FRONT_DESK):
-        return qs
-    if has_role(user, DENTIST):
-        dentist = Dentist.for_user(user)
-        if dentist is None:
-            return qs.none()
-        ids = Patient.objects.filter(dentist_patients_q(dentist)).values("pk")
-        return qs.filter(pk__in=ids)
-    return qs.none()
+    """The front desk, management and the CIA dentists see every patient: the dentists
+    record the work of the course candidates, who do not log in. Others see none."""
+    if has_role(user, *PATIENT_VIEWERS):
+        return Patient.objects.all()
+    return Patient.objects.none()
+
+
+def my_patients(user):
+    """Patients the logged-in dentist is responsible for, booked with, or has worked on."""
+    from apps.dentists.models import Dentist
+
+    dentist = Dentist.for_user(user)
+    if dentist is None:
+        return Patient.objects.none()
+    return Patient.objects.filter(pk__in=Patient.objects.filter(dentist_patients_q(dentist)).values("pk"))
 
 
 def get_visible_patient_or_403(user, pk):

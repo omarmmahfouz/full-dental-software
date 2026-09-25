@@ -14,7 +14,7 @@
       {{ formset.management_form }}
       {% if formset.non_form_errors %}<div class="alert alert-danger">{% for e in formset.non_form_errors %}{{ e }} {% endfor %}</div>{% endif %}
       <div class="table-responsive"><table class="table table-sm align-middle">
-        <thead><tr><th style="min-width:180px">{% trans "Category" %}</th><th style="min-width:200px">{% trans "Item" %}</th><th style="width:100px">{% trans "Quantity" %}</th><th style="width:110px">{% trans "Unit" %}</th><th style="width:130px">{% trans "Unit price" %}</th><th style="width:110px">{% trans "Total" %}</th><th></th></tr></thead>
+        <thead><tr><th style="min-width:180px">{% trans "Category" %}</th><th style="min-width:200px">{% trans "Item" %}</th><th style="width:100px">{% trans "Quantity" %}</th><th style="width:110px">{% trans "Unit" %}</th><th style="width:130px">{% trans "Unit price" %}</th><th style="width:110px">{% trans "Total" %}</th><th style="min-width:170px">{% trans "Add to stock item" %}</th><th></th></tr></thead>
         <tbody data-formset-rows>
         {% for item in formset %}
           <tr class="item-row">
@@ -24,6 +24,7 @@
             <td>{{ item.unit }}</td>
             <td>{{ item.unit_price }}{{ item.unit_price.errors }}</td>
             <td class="line-total fw-semibold">0</td>
+            <td>{{ item.stock_item }}</td>
             <td>{% if item.instance.pk %}<label class="small text-danger">{{ item.DELETE }} {% trans "delete" %}</label>{% endif %}</td>
           </tr>
         {% endfor %}
@@ -36,7 +37,8 @@
           <td>{{ formset.empty_form.quantity }}</td>
           <td>{{ formset.empty_form.unit }}</td>
           <td>{{ formset.empty_form.unit_price }}</td>
-          <td class="line-total fw-semibold">0</td><td></td>
+          <td class="line-total fw-semibold">0</td>
+          <td>{{ formset.empty_form.stock_item }}</td><td></td>
         </tr>
       </template>
       <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add item" %}</button>

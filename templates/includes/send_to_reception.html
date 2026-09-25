@@ -1,0 +1,24 @@
+{% load i18n %}{% comment %}Send the patients of a search to the reception to call.
+Context: call_rows = [(patient, reason)], call_title.{% endcomment %}
+{% if call_rows %}
+<form method="post" action="{% url 'patients:calllist_create' %}" class="card mb-3 no-print">{% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <div class="card-header"><i class="bi bi-telephone-outbound"></i> {% trans "Send these patients to the reception to call" %}</div>
+  <div class="card-body">
+    <div class="row g-2">
+      <div class="col-md-4"><label class="form-label small">{% trans "Title" %}</label><input class="form-control form-control-sm" name="title" value="{{ call_title }}" required maxlength="150"></div>
+      <div class="col-md-8"><label class="form-label small">{% trans "What to tell the patients" %}</label><input class="form-control form-control-sm" name="message" maxlength="500" placeholder="{% trans 'e.g. please come to book your surgery day' %}"></div>
+    </div>
+    <details class="mt-2"><summary class="small">{% blocktrans count n=call_rows|length %}{{ n }} patient chosen{% plural %}{{ n }} patients chosen{% endblocktrans %} — {% trans "untick anyone who should not be called" %}</summary>
+      <div class="row row-cols-1 row-cols-md-2 g-1 mt-1 small" style="max-height:260px;overflow:auto">
+        {% for patient, reason in call_rows %}{% ifchanged patient.pk %}
+        <div class="col"><div class="form-check"><input class="form-check-input" type="checkbox" name="patient" value="{{ patient.pk }}" id="call{{ patient.pk }}" checked>
+          <label class="form-check-label" for="call{{ patient.pk }}">{{ patient.full_name }} <span class="text-muted">{{ patient.file_number }}</span></label></div>
+          <input type="hidden" name="reason_{{ patient.pk }}" value="{{ reason }}"></div>
+        {% endifchanged %}{% endfor %}
+      </div>
+    </details>
+    <button class="btn btn-warning mt-2"><i class="bi bi-send"></i> {% trans "Send to reception" %}</button>
+  </div>
+</form>
+{% endif %}

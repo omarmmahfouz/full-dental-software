@@ -15,7 +15,7 @@ class TreatmentStepTypeAdmin(LookupAdmin):
 
 @admin.register(Lab)
 class LabAdmin(admin.ModelAdmin):
-    list_display = ("name", "branch", "phone", "contact_person", "is_active")
+    list_display = ("name", "name_en", "branch", "phone", "contact_person", "is_active")
 
 
 @admin.register(TreatmentStep)

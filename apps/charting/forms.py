@@ -1,5 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.clinical.models import TreatmentStepType
@@ -120,15 +121,31 @@ class ToothForm(StyledModelForm):
 
 class TreatmentPlanForm(StyledModelForm):
     dentist = DentistChoiceField(label=_("planned by"), required=False)
+    approved_by = DentistChoiceField(
+        kinds=(Dentist.Kind.SUPERVISOR,), label=_("approved by supervisor"), required=False,
+        help_text=_("Supervisors do not log in: choose who approved the plan."),
+    )
 
     class Meta:
         model = TreatmentPlan
-        fields = ["title", "dentist", "notes"]
+        fields = ["title", "difficulty", "dentist", "approved_by", "notes"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["notes"].widget.attrs["rows"] = 2
-        self.fields["title"].col = self.fields["dentist"].col = "col-md-6"
+        for name in ("title", "difficulty", "dentist", "approved_by"):
+            self.fields[name].col = "col-md-6"
+
+    def save(self, commit=True):
+        plan = super().save(commit=False)
+        if plan.approved_by_id and plan.status == TreatmentPlan.Status.PROPOSED:
+            plan.status = TreatmentPlan.Status.APPROVED
+            plan.approved_at = timezone.now()
+        elif not plan.approved_by_id and plan.status == TreatmentPlan.Status.APPROVED and "approved_by" in self.changed_data:
+            plan.status, plan.approved_at = TreatmentPlan.Status.PROPOSED, None
+        if commit:
+            plan.save()
+        return plan
 
 
 class PlanItemForm(BootstrapFormMixin, forms.ModelForm):

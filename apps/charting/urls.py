@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import plan_finder, views
 
 app_name = "charting"
 
@@ -18,4 +18,5 @@ urlpatterns = [
     path("plan/<int:pk>/action/", views.plan_action, name="plan_action"),
     path("photo/<int:pk>/delete/", views.photo_delete, name="photo_delete"),
     path("preview/", views.chart_preview, name="preview"),
+    path("plans/", plan_finder.plan_finder, name="plan_finder"),
 ]

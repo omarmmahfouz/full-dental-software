@@ -112,6 +112,10 @@ class PurchaseItem(models.Model):
     unit_price = models.DecimalField(
         _("unit price"), max_digits=12, decimal_places=2, validators=[MinValueValidator(0)]
     )
+    stock_item = models.ForeignKey(
+        "stock.StockItem", verbose_name=_("add to stock item"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="purchase_lines",
+    )
 
     class Meta:
         verbose_name = _("purchase item")

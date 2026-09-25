@@ -19,7 +19,7 @@ from apps.complaints.models import Complaint
 from apps.core.forms import DateRangeForm
 from apps.core.mixins import role_required
 from apps.dentists.models import Dentist
-from apps.core.roles import MANAGEMENT, OWNER
+from apps.core.roles import MANAGEMENT, OWNER, TEAM_HEAD, has_role
 from apps.patients.models import Lead, Patient
 from apps.purchasing.models import PurchaseCategory, PurchaseItem
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
@@ -49,7 +49,7 @@ def _pct(part, whole):
     return round(100 * part / whole) if whole else 0
 
 
-@role_required(*MANAGEMENT)
+@role_required(*MANAGEMENT, TEAM_HEAD)
 def index(request):
     return render(request, "reports/index.html")
 
@@ -120,13 +120,23 @@ class DentistReportForm(DateRangeForm):
     course = forms.ModelChoiceField(label=_("batch / course"), queryset=Course.objects.all(), required=False,
                                     empty_label=_("All"))
 
+    def __init__(self, *args, team_only=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if team_only:
+            del self.fields["course"]
+            self.fields["kind"].choices = [c for c in self.fields["kind"].choices if c[0] != Dentist.Kind.CANDIDATE]
 
-@role_required(*MANAGEMENT)
+
+@role_required(*MANAGEMENT, TEAM_HEAD)
 def dentists_report(request):
-    """What each dentist did: treatments, checks, grades, surgeries, implants, lab work, patients, hours."""
+    """What each dentist did: treatments, checks, grades, surgeries, implants, lab work, patients, hours.
+    The head of the CIA dentists team sees the CIA dentists only, not the course candidates."""
     form, date_from, date_to, start, end = _period(request)
-    extra = DentistReportForm(request.GET or None)
+    team_only = not has_role(request.user, *MANAGEMENT)
+    extra = DentistReportForm(request.GET or None, team_only=team_only)
     dentists = Dentist.objects.active().select_related("candidate")
+    if team_only:
+        dentists = dentists.exclude(kind=Dentist.Kind.CANDIDATE)
     if extra.is_valid():
         if extra.cleaned_data.get("kind"):
             dentists = dentists.filter(kind=extra.cleaned_data["kind"])
@@ -232,7 +242,7 @@ def lab_report(request):
     ]
     by_lab = defaultdict(lambda: {"n": 0, "remakes": 0, "days": [], "cost": Decimal("0")})
     for item in requests:
-        stats = by_lab[item.lab.name]
+        stats = by_lab[str(item.lab)]
         stats["n"] += 1
         stats["remakes"] += item.remake_count
         if item.turnaround_days is not None:

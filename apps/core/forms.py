@@ -1,10 +1,11 @@
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 
-from .roles import users_with_role
+from .roles import DENTIST, user_roles, users_with_role
 from .utils import normalize_digits, normalize_phone, validate_phone
 
 
@@ -118,3 +119,14 @@ def validate_upload(file):
 class DateRangeForm(StyledForm):
     date_from = forms.DateField(label=_("From"), required=False)
     date_to = forms.DateField(label=_("To"), required=False)
+
+
+class LoginForm(AuthenticationForm):
+    """The normal login, but course candidates are refused: their work is followed
+    by the academy, they do not use the system themselves."""
+
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+        dentist = getattr(user, "dentist", None)
+        if dentist is not None and dentist.kind == "candidate" and not user_roles(user) - {DENTIST}:
+            raise ValidationError(_("Course candidates do not have access to the system."), code="candidate")

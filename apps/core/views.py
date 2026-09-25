@@ -19,11 +19,22 @@ from apps.academy.models import Enrollment
 from apps.clinical.models import LabRequest, TreatmentStep
 from apps.dentists.models import Dentist
 from apps.complaints.models import Complaint
-from apps.patients.models import Lead, Patient
+from apps.patients.models import CallList, CallListEntry, Lead, Patient
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
 from .models import Notification, UserProfile, branch_for_user
-from .roles import DENTIST, FRONT_DESK, MANAGEMENT, OWNER, SECRETARY, SUPERVISOR, has_role
+from .roles import (
+    FRONT_DESK,
+    HEAD_CIA,
+    MANAGEMENT,
+    OWNER,
+    PATIENT_VIEWERS,
+    PURCHASE_ROLES,
+    SECRETARY,
+    STOCK_ROLES,
+    SUPERVISOR,
+    has_role,
+)
 
 
 def dashboard(request):
@@ -58,8 +69,13 @@ def dashboard(request):
         ).count()
         context["lab_received"] = LabRequest.objects.filter(status=LabRequest.Status.RECEIVED).count()
         context["open_complaints"] = Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES).count()
+        context["call_lists"] = (
+            CallList.objects.filter(entries__outcome=CallListEntry.Outcome.PENDING)
+            .annotate(pending=Count("entries", filter=Q(entries__outcome=CallListEntry.Outcome.PENDING)))
+            .order_by("-created_at")[:6]
+        )
 
-    if has_role(user, SECRETARY, OWNER):
+    if has_role(user, SECRETARY, OWNER, HEAD_CIA):
         overdue = []
         for enrollment in Enrollment.objects.filter(status=Enrollment.Status.ACTIVE).select_related(
             "candidate", "course"
@@ -93,7 +109,12 @@ def dashboard(request):
         context["my_open_labs"] = LabRequest.objects.filter(
             dentist=dentist, status__in=LabRequest.OPEN_STATUSES
         ).count()
-    context["show_supervisor_cards"] = has_role(user, SUPERVISOR, OWNER)
+    context["show_supervisor_cards"] = has_role(user, *MANAGEMENT)
+    if has_role(user, *STOCK_ROLES):
+        from apps.stock.views import expiring_soon, low_stock
+
+        context["low_stock"] = low_stock().select_related("category")[:12]
+        context["expiring"] = expiring_soon()[:8]
     return render(request, "core/dashboard.html", context)
 
 
@@ -141,9 +162,9 @@ def notification_mark_all_read(request):
 
 # Which roles may download files stored under each media folder.
 MEDIA_FOLDER_ROLES = {
-    "patients": FRONT_DESK + (DENTIST,),
-    "candidates": (OWNER, SUPERVISOR, SECRETARY),
-    "purchases": (OWNER, SECRETARY),
+    "patients": PATIENT_VIEWERS,
+    "candidates": (OWNER, HEAD_CIA, SUPERVISOR, SECRETARY),
+    "purchases": PURCHASE_ROLES,
 }
 
 
@@ -154,7 +175,7 @@ def protected_media(request, path):
     if allowed is None or not has_role(request.user, *allowed):
         raise PermissionDenied
     if folder == "patients" and not has_role(request.user, *FRONT_DESK):
-        # Dentists may only open documents of their own patients.
+        # Only files of patients this user may see.
         patient_id = path.split("/")[1] if path.count("/") >= 2 else ""
         from apps.patients.access import visible_patients
 

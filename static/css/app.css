@@ -122,3 +122,10 @@ body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Sego
 .checklist-item.done { background: #F2F8E7; }
 .report-section { page-break-inside: avoid; }
 @media print { .report-page-break { page-break-before: always; } }
+
+/* Patient printouts: prescription and post-op instructions */
+.patient-print { font-size: 1.05rem; }
+.rx-symbol { font-size: 2.2rem; font-weight: 700; color: var(--brand-green-dark); line-height: 1; }
+.rx-lines li { margin-bottom: .9rem; }
+.instruction-list li { margin-bottom: .35rem; }
+@media print { .patient-print { border: 0 !important; box-shadow: none !important; } }

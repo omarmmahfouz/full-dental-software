@@ -3,14 +3,15 @@
 {% block title %}{% trans "Patients" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-people"></i> {% if is_front_desk %}{% trans "Patients" %}{% else %}{% trans "My patients" %}{% endif %}</h1>
+  <h1><i class="bi bi-people"></i> {% if request.GET.mine %}{% trans "My patients" %}{% else %}{% trans "Patients" %}{% endif %}</h1>
   {% if is_front_desk %}<a class="btn btn-primary" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i> {% trans "Register new patient" %}</a>{% endif %}
 </div>
 <form class="card card-body mb-3 no-print">
   <div class="row g-2 align-items-end">
     <div class="col-md-4"><label class="form-label">{{ filter_form.q.label }}</label>{{ filter_form.q }}</div>
     <div class="col-md-2"><label class="form-label">{{ filter_form.status.label }}</label>{{ filter_form.status }}</div>
-    {% if is_front_desk %}<div class="col-md-3"><label class="form-label">{{ filter_form.dentist.label }}</label>{{ filter_form.dentist }}</div>{% endif %}
+    <div class="col-md-3"><label class="form-label">{{ filter_form.dentist.label }}</label>{{ filter_form.dentist }}</div>
+    {% if my_dentist %}<div class="col-md-2"><div class="form-check">{{ filter_form.mine }} <label class="form-check-label" for="{{ filter_form.mine.id_for_label }}">{{ filter_form.mine.label }}</label></div></div>{% endif %}
     <div class="col-md-2"><div class="form-check">{{ filter_form.lab }} <label class="form-check-label" for="{{ filter_form.lab.id_for_label }}">{{ filter_form.lab.label }}</label></div></div>
     <div class="col-md-1"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i></button></div>
   </div>

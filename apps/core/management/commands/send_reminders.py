@@ -12,7 +12,7 @@ from apps.clinical.models import LabRequest
 from apps.complaints.models import Complaint
 from apps.core.models import Notification
 from apps.core.notify import notify_roles, notify_users
-from apps.core.roles import OWNER, SECRETARY, SUPERVISOR
+from apps.core.roles import HEAD_CIA, OWNER, SECRETARY, SUPERVISOR
 
 
 class Command(BaseCommand):
@@ -32,7 +32,7 @@ class Command(BaseCommand):
                 sent += notify_users([complaint.assigned_to], title, message, complaint.get_absolute_url(),
                                      Notification.Level.DANGER, params=params)
             else:
-                sent += notify_roles((SUPERVISOR, OWNER), title, message, complaint.get_absolute_url(),
+                sent += notify_roles((HEAD_CIA, SUPERVISOR, OWNER), title, message, complaint.get_absolute_url(),
                                      Notification.Level.DANGER, params=params)
 
         late_labs = LabRequest.objects.filter(status=LabRequest.Status.SENT, due_date__lt=today).select_related(

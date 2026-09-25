@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,11 +15,11 @@ from apps.complaints.models import Complaint
 from apps.core.forms import clean_digits_value
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import FRONT_DESK, has_role
+from apps.core.roles import FRONT_DESK, PATIENT_VIEWERS, has_role
 from apps.core.utils import normalize_phone
 from apps.scheduling.models import day_bounds
 
-from .access import get_visible_patient_or_403, visible_patients
+from .access import get_visible_patient_or_403, my_patients, visible_patients
 from .forms import LeadCallForm, LeadForm, PatientDocumentForm, PatientFilterForm, PatientForm, PatientRelationForm
 from .models import Lead, LeadCall, Patient, PatientDocument, PatientRelation
 
@@ -135,6 +136,8 @@ class PatientListView(SearchMixin, ListView):
     template_name = "patients/patient_list.html"
 
     def get_queryset(self):
+        if not has_role(self.request.user, *PATIENT_VIEWERS):
+            raise PermissionDenied
         self.filter_form = PatientFilterForm(self.request.GET or None)
         qs = visible_patients(self.request.user).select_related("assigned_dentist")
         qs = qs.annotate(
@@ -152,6 +155,8 @@ class PatientListView(SearchMixin, ListView):
                 qs = qs.filter(assigned_dentist=data["dentist"])
             if data.get("lab"):
                 qs = qs.filter(open_labs__gt=0)
+            if data.get("mine"):
+                qs = qs.filter(pk__in=my_patients(self.request.user).values("pk"))
         return qs.order_by("-created_at")
 
     def get(self, request, *args, **kwargs):

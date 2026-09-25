@@ -5,7 +5,7 @@
 {% with c=complaint %}
 <div class="page-header">
   <h1><i class="bi bi-chat-left-dots"></i> {% trans "Complaint" %} {{ c.number }} {% status_badge c %} {% status_badge c "severity" %}{% if c.is_overdue %} <span class="badge text-bg-danger">{% trans "Follow-up overdue" %}</span>{% endif %}</h1>
-  <a class="btn btn-outline-secondary no-print" href="{% url 'complaints:update' c.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+  {% if is_front_desk %}<a class="btn btn-outline-secondary no-print" href="{% url 'complaints:update' c.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
 </div>
 <div class="row g-3">
   <div class="col-lg-5"><div class="card h-100"><div class="card-body">
@@ -33,12 +33,14 @@
         {% endfor %}
       </ul>
     </div></div>
+    {% if is_front_desk %}
     <div class="card no-print"><div class="card-header">{% trans "Add follow-up" %}</div><div class="card-body">
       <form method="post" action="{% url 'complaints:follow_up' c.pk %}">{% csrf_token %}
         {% include "includes/form_fields.html" %}
         <button class="btn btn-primary mt-3">{% trans "Save follow-up" %}</button>
       </form>
     </div></div>
+    {% endif %}
   </div>
 </div>
 {% endwith %}

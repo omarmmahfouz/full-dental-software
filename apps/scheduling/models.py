@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Branch, TimeStampedModel
@@ -14,6 +15,7 @@ from apps.core.utils import minutes_between
 class Room(models.Model):
     branch = models.ForeignKey(Branch, verbose_name=_("branch"), on_delete=models.PROTECT, related_name="rooms")
     name = models.CharField(_("name"), max_length=50)
+    name_en = models.CharField(_("name (English)"), max_length=50, blank=True)
     sort_order = models.PositiveIntegerField(_("sort order"), default=0)
     is_active = models.BooleanField(_("active"), default=True)
     notes = models.CharField(_("notes"), max_length=255, blank=True)
@@ -25,6 +27,8 @@ class Room(models.Model):
         constraints = [models.UniqueConstraint(fields=["branch", "name"], name="unique_room_name_per_branch")]
 
     def __str__(self):
+        if self.name_en and (get_language() or "").startswith("en"):
+            return self.name_en
         return self.name
 
 

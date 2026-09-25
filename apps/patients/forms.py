@@ -284,3 +284,4 @@ class PatientFilterForm(StyledForm):
     )
     dentist = DentistChoiceField(label=_("dentist"), required=False, empty_label=_("All"))
     lab = forms.BooleanField(label=_("has open lab work"), required=False)
+    mine = forms.BooleanField(label=_("only my patients"), required=False)

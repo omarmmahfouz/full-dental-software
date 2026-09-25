@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Take out of stock" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-box-arrow-right"></i> {% trans "Take out of stock" %}</h1></div>
+<form method="post" novalidate>{% csrf_token %}
+  <div class="card mb-3"><div class="card-body">{% with form=header %}{% include "includes/form_fields.html" %}{% endwith %}</div></div>
+  <div class="card mb-3"><div class="card-header">{% trans "Items" %}</div><div class="card-body">
+    {{ formset.management_form }}
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+      <thead><tr><th>{% trans "Item" %}</th><th style="width:160px">{% trans "Quantity" %}</th></tr></thead>
+      <tbody>{% for line in formset %}<tr>
+        <td>{{ line.item }}{% for e in line.item.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</td>
+        <td>{{ line.quantity }}{% for e in line.quantity.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+  </div></div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary btn-lg px-5"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+    <a class="btn btn-outline-secondary btn-lg" href="{% url 'stock:item_list' %}">{% trans "Cancel" %}</a>
+  </div>
+</form>
+{% endblock %}

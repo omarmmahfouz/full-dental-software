@@ -96,7 +96,14 @@ A screenshot helps a lot.
     Use "إضافة صنف" for more rows. The total should update as you type. Upload the invoice photo and save.
 43. Open "المشتريات". The totals by category should be shown. Filter by "النوع: غير طبية" or by supplier.
 
-## I. General
-44. Every screen should be in Arabic, right to left, with the CIA logo and colours.
-45. Log out, then try to open a page. You should be sent to the login page.
-46. Log in as **dentist1**. The screens should be in **English**. They should **not** see the call list, patient registration, complaints, the academy or purchases, and they should see only their own patients.
+## I. Patients to call and printouts
+44. The home page shows "مرضى للاتصال بهم" when the head of CIA sent a list. Open it:
+    - "ماذا نقول للمرضى" shows what to tell them, and "السبب" shows why each patient is on the list.
+    - Call a patient from the number shown, choose the result ("حجز موعد"، "لم يرد"...), write the patient's answer and save.
+    - The green calendar button opens "حجز موعد" with the patient filled in.
+45. From a patient's dental chart, click "تعليمات بعد العملية". The instructions print in Arabic with the patient's name and the surgery.
+
+## J. General
+46. Every screen should be in Arabic, right to left, with the CIA logo and colours.
+47. Log out, then try to open a page. You should be sent to the login page.
+48. Log in as **dentist1**. The screens should be in **English**. They should **not** see the call list, patient registration, the academy or purchases. They see every patient and can read the complaints, but cannot record or edit them.

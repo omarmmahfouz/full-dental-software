@@ -18,6 +18,8 @@
       <a class="btn btn-sm btn-outline-primary" href="{% url 'charting:plan_create' patient.pk %}"><i class="bi bi-list-ol"></i> {% trans "Treatment plan" %}</a>
       <a class="btn btn-sm btn-outline-primary" href="{% if exam %}{% url 'charting:exam_detail' exam.pk %}{% else %}{% url 'charting:exam_create' patient.pk %}{% endif %}"><i class="bi bi-clipboard2-pulse"></i> {% trans "Examination & history" %}</a>
       <a class="btn btn-sm btn-outline-secondary" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-box-seam"></i> {% trans "Lab request" %}</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'prescriptions:create' patient.pk %}"><i class="bi bi-capsule"></i> {% trans "Prescription" %}</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'prescriptions:instructions' patient.pk %}"><i class="bi bi-card-checklist"></i> {% trans "Post-op instructions" %}</a>
     </div>
     {% endif %}
   </div>
@@ -50,6 +52,13 @@
         {% empty %}<div class="list-group-item text-muted">{% trans "No open treatment plan." %}</div>{% endfor %}
       </div>
     </div>
+    {% if prescriptions %}
+    <div class="card mb-3"><div class="card-header">{% trans "Prescriptions" %}</div>
+      <div class="list-group list-group-flush small">
+        {% for rx in prescriptions %}<a class="list-group-item list-group-item-action" href="{{ rx.get_absolute_url }}"><b>{{ rx.prescribed_on|date:"d/m/Y" }}</b> — {% for line in rx.lines.all %}{{ line.drug }}{% if not forloop.last %}, {% endif %}{% endfor %}</a>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
   </div>
   <div class="col-xl-7">
     <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>{% trans "Treatment log" %}</span>{% if can_edit %}<a class="small" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}">{% trans "Record treatment" %}</a>{% endif %}</div>

@@ -1,5 +1,6 @@
 from datetime import datetime, time, timedelta
 
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -140,3 +141,23 @@ class RoomScheduleTests(TestCase):
 
     def test_week_starts_on_saturday(self):
         self.assertEqual(week_start(self.day).weekday(), 5)
+
+
+class DentistScheduleTests(TestCase):
+    def test_cia_dentist_sees_only_their_own_shifts(self):
+        branch = setup_clinic()
+        dentist = make_dentist("dentist", kind="fulltime")
+        other = make_dentist("dentist2", kind="fulltime")
+        room1, room2 = Room.objects.filter(branch=branch)[:2]
+        day = timezone.localdate()
+        RoomShift.objects.create(room=room1, date=day, start_time=time(9), end_time=time(13), dentist=dentist)
+        RoomShift.objects.create(room=room2, date=day, start_time=time(9), end_time=time(13), dentist=other)
+        self.client.login(username="dentist", password=PASSWORD)
+        rows = self.client.get("/schedule/rooms/").context["rows"]
+        shifts = [shift for _room, cells in rows for _day, day_shifts in cells for shift in day_shifts]
+        self.assertEqual([s.dentist for s in shifts], [dentist])
+        head = make_dentist("head", kind="fulltime")
+        head.user.groups.add(Group.objects.get(name="team_head"))
+        self.client.login(username="head", password=PASSWORD)
+        rows = self.client.get("/schedule/rooms/").context["rows"]
+        self.assertEqual(sum(len(day_shifts) for _room, cells in rows for _day, day_shifts in cells), 2)

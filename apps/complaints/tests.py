@@ -62,6 +62,10 @@ class ComplaintTests(TestCase):
         call_command("send_reminders", stdout=open("/dev/null", "w"))
         self.assertTrue(Notification.objects.filter(recipient=self.supervisor, level="danger").exists())
 
-    def test_dentists_cannot_open_complaints(self):
+    def test_dentists_read_complaints_but_do_not_record_them(self):
+        complaint = Complaint.objects.create(branch=self.branch, patient=self.patient, category="pain", description="x")
         self.client.login(username="dentist", password=PASSWORD)
-        self.assertEqual(self.client.get("/complaints/").status_code, 403)
+        self.assertEqual(self.client.get("/complaints/").status_code, 200)
+        self.assertEqual(self.client.get(f"/complaints/{complaint.pk}/").status_code, 200)
+        self.assertEqual(self.client.get("/complaints/new/").status_code, 403)
+        self.assertEqual(self.client.post(f"/complaints/{complaint.pk}/follow-up/", {"action": "note"}).status_code, 403)

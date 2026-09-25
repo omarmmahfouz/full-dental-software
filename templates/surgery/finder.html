@@ -52,6 +52,7 @@
   </div>
 
   <div class="col-xl-9">
+    {% include "includes/send_to_reception.html" %}
     <div class="row g-2 mb-3">
       <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.implants }}</div><div class="stat-label">{% trans "Implants" %}</div><div class="small text-muted">{% blocktrans with s=overall.sites p=overall.patients %}{{ s }} sites · {{ p }} patients{% endblocktrans %}</div></div></div></div>
       <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{% if overall.survival is not None %}{{ overall.survival }}%{% else %}—{% endif %}</div><div class="stat-label">{% trans "Survival" %}</div><div class="small text-muted">{% blocktrans with f=overall.failed %}{{ f }} failed{% endblocktrans %}</div></div></div></div>

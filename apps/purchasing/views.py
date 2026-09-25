@@ -11,12 +11,12 @@ from django.views.generic import CreateView, ListView, UpdateView
 
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import OWNER, SECRETARY
+from apps.core.roles import PURCHASE_ROLES
+from apps.stock.services import sync_purchase
 
 from .forms import PurchaseFilterForm, PurchaseForm, PurchaseItemFormSet, SupplierForm
 from .models import Purchase, PurchaseCategory, PurchaseItem, Supplier
 
-PURCHASE_ROLES = (OWNER, SECRETARY)
 LINE_TOTAL = ExpressionWrapper(F("quantity") * F("unit_price"), output_field=DecimalField(max_digits=14, decimal_places=2))
 
 
@@ -112,7 +112,11 @@ def _purchase_form(request, purchase=None):
             purchase.save()
             formset.instance = purchase
             formset.save()
-        messages.success(request, _("Purchase saved. Total: %(total)s") % {"total": purchase.total})
+            received = sync_purchase(purchase, request.user)
+        message = _("Purchase saved. Total: %(total)s") % {"total": purchase.total}
+        if received:
+            message += " " + _("%(n)s items added to stock.") % {"n": received}
+        messages.success(request, message)
         return redirect(purchase)
     return render(
         request, "purchasing/purchase_form.html",

@@ -28,21 +28,24 @@
         {% if is_front_desk %}
         <li class="nav-item"><a class="nav-link" href="{% url 'scheduling:today' %}"><i class="bi bi-display"></i> {% trans "Reception today" %}</a></li>
         {% endif %}
+        {% if sees_patients %}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-people"></i> {% trans "Patients" %}</a>
           <ul class="dropdown-menu">
             {% if is_front_desk %}
             <li><a class="dropdown-item" href="{% url 'patients:lead_list' %}"><i class="bi bi-telephone"></i> {% trans "Call list (expected patients)" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'patients:calllist_list' %}"><i class="bi bi-telephone-outbound"></i> {% trans "Patients to call" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i> {% trans "Register new patient" %}</a></li>
             {% endif %}
-            <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% if is_front_desk %}{% trans "All patients" %}{% else %}{% trans "My patients" %}{% endif %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% trans "All patients" %}</a></li>
+            {% if my_dentist %}<li><a class="dropdown-item" href="{% url 'patients:list' %}?mine=on"><i class="bi bi-person-check"></i> {% trans "My patients" %}</a></li>{% endif %}
           </ul>
         </li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-calendar3"></i> {% trans "Schedule" %}</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'scheduling:room_schedule' %}"><i class="bi bi-grid-3x3"></i> {% trans "Room schedule" %}</a></li>
-            <li><a class="dropdown-item" href="{% url 'scheduling:appointment_list' %}"><i class="bi bi-calendar-check"></i> {% trans "Appointments" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'scheduling:room_schedule' %}"><i class="bi bi-grid-3x3"></i> {% if only_dentist %}{% trans "My schedule" %}{% else %}{% trans "Room schedule" %}{% endif %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'scheduling:appointment_list' %}"><i class="bi bi-calendar-check"></i> {% if only_dentist %}{% trans "My appointments" %}{% else %}{% trans "Appointments" %}{% endif %}</a></li>
             {% if is_front_desk %}<li><a class="dropdown-item" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a></li>{% endif %}
           </ul>
         </li>
@@ -53,9 +56,10 @@
             <li><a class="dropdown-item" href="{% url 'surgery:list' %}"><i class="bi bi-nut"></i> {% trans "Implant surgeries" %}</a></li>
             {% if is_clinical %}<li><a class="dropdown-item" href="{% url 'surgery:create' %}"><i class="bi bi-plus-circle"></i> {% trans "New surgery chart" %}</a></li>{% endif %}
             <li><a class="dropdown-item" href="{% url 'clinical:lab_list' %}"><i class="bi bi-box-seam"></i> {% trans "Lab requests" %}</a></li>
-            {% if is_management %}
+            {% if sees_reports %}
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i> {% trans "Case finder & statistics" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'charting:plan_finder' %}"><i class="bi bi-list-ol"></i> {% trans "Treatment plan finder" %}</a></li>
+            {% if is_management %}<li><a class="dropdown-item" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i> {% trans "Case finder & statistics" %}</a></li>{% endif %}
             {% endif %}
             {% if my_dentist %}
             <li><hr class="dropdown-divider"></li>
@@ -63,10 +67,9 @@
             {% endif %}
           </ul>
         </li>
-        {% if is_front_desk %}
         <li class="nav-item"><a class="nav-link" href="{% url 'complaints:list' %}"><i class="bi bi-chat-left-dots"></i> {% trans "Complaints" %}</a></li>
         {% endif %}
-        {% if user|has_role:"owner,supervisor,secretary" %}
+        {% if is_front_desk %}
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-mortarboard"></i> {% trans "Academy" %}</a>
           <ul class="dropdown-menu">
@@ -77,22 +80,34 @@
             <li><a class="dropdown-item" href="{% url 'academy:overdue' %}"><i class="bi bi-exclamation-triangle"></i> {% trans "Overdue installments" %}</a></li>
           </ul>
         </li>
+        {% elif roles.team_head %}
+        <li class="nav-item"><a class="nav-link" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i> {% trans "CIA dentists" %}</a></li>
         {% endif %}
-        {% if user|has_role:"owner,secretary" %}
+        {% if can_stock or can_purchase %}
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-cart3"></i> {% trans "Purchases" %}</a>
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-boxes"></i> {% if can_stock %}{% trans "Stock & purchases" %}{% else %}{% trans "Purchases" %}{% endif %}</a>
           <ul class="dropdown-menu">
+            {% if can_stock %}
+            <li><a class="dropdown-item" href="{% url 'stock:item_list' %}"><i class="bi bi-boxes"></i> {% trans "Stock items" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'stock:item_list' %}?low=on"><i class="bi bi-exclamation-triangle"></i> {% trans "Low stock" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'stock:use' %}"><i class="bi bi-box-arrow-right"></i> {% trans "Take out of stock" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'stock:movement_list' %}"><i class="bi bi-arrow-left-right"></i> {% trans "Stock movements" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'stock:import' %}"><i class="bi bi-file-earmark-arrow-up"></i> {% trans "Import a list" %}</a></li>
+            {% endif %}
+            {% if can_stock and can_purchase %}<li><hr class="dropdown-divider"></li>{% endif %}
+            {% if can_purchase %}
             <li><a class="dropdown-item" href="{% url 'purchasing:purchase_create' %}"><i class="bi bi-plus-circle"></i> {% trans "New purchase" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'purchasing:purchase_list' %}"><i class="bi bi-receipt"></i> {% trans "Purchases" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'purchasing:supplier_list' %}"><i class="bi bi-shop"></i> {% trans "Suppliers" %}</a></li>
+            {% endif %}
           </ul>
         </li>
         {% endif %}
-        {% if is_management %}
+        {% if sees_reports %}
         <li class="nav-item"><a class="nav-link" href="{% url 'reports:index' %}"><i class="bi bi-bar-chart-line"></i> {% trans "Reports" %}</a></li>
         {% endif %}
       </ul>
-      {% if is_front_desk %}
+      {% if sees_patients %}
       <form class="d-flex me-xl-2 my-2 my-xl-0" role="search" action="{% url 'patients:list' %}">
         <input class="form-control form-control-sm" type="search" name="q" placeholder="{% trans 'Search patient: name, mobile, file, ID' %}" aria-label="{% trans 'Search' %}">
       </form>

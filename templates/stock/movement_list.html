@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Stock movements" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-arrow-left-right"></i> {% trans "Stock movements" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
+  <button class="btn btn-outline-secondary no-print" onclick="window.print()"><i class="bi bi-printer"></i></button></div>
+<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  {% for field in filter_form %}<div class="col-6 col-md-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
+</div></form>
+<div class="card"><div class="table-responsive"><table class="table table-sm table-hover mb-0">
+  <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Item" %}</th><th>{% trans "Movement" %}</th><th class="text-end">{% trans "Change" %}</th><th>{% trans "For / taken by" %}</th><th>{% trans "Notes" %}</th><th>{% trans "Recorded by" %}</th></tr></thead>
+  <tbody>{% for m in page_obj %}<tr>
+    <td class="nowrap small">{{ m.moved_at|date:"d/m/Y g:i A" }}</td>
+    <td><a href="{{ m.item.get_absolute_url }}">{{ m.item.name }}</a> <span class="small text-muted">{{ m.item.category }}</span></td>
+    <td class="small">{{ m.get_kind_display }}</td>
+    <td class="text-end fw-bold {% if m.change < 0 %}text-danger{% else %}text-success{% endif %}">{% if m.change > 0 %}+{% endif %}{{ m.change|floatformat:"-2" }} <span class="small fw-normal text-muted">{{ m.item.unit }}</span></td>
+    <td class="small">{{ m.destination }}</td><td class="small">{{ m.notes }}</td><td class="small text-muted">{{ m.created_by|default:"" }}</td>
+  </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No movements in this period." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

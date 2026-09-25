@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.utils import timezone
 
@@ -66,18 +67,44 @@ class DentistTests(TestCase):
         self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.get("/dentists/").status_code, 200)
 
-    def test_front_desk_adds_training_dentist_and_owner_creates_login(self):
+    def test_only_cia_dentists_get_a_login(self):
         self.client.login(username="sec", password=PASSWORD)
-        self.client.post("/dentists/new/", {"full_name": "Dr. Helper", "kind": "training", "phone": "01112223334",
-                                            "is_active": "on"})
-        dentist = Dentist.objects.get(full_name="Dr. Helper")
-        self.assertEqual(dentist.kind, Dentist.Kind.TRAINING)
-        self.assertEqual(self.client.post(f"/dentists/{dentist.pk}/login/").status_code, 403)
+        for name, kind, phone in [("Dr. Helper", "training", "01112223335"), ("Dr. Staff", "fulltime", "01112223334")]:
+            self.client.post("/dentists/new/", {"full_name": name, "kind": kind, "phone": phone, "is_active": "on"})
+        helper, staff = Dentist.objects.get(full_name="Dr. Helper"), Dentist.objects.get(full_name="Dr. Staff")
+        self.assertEqual(staff.get_kind_display(), Dentist.Kind.FULLTIME.label)
+        self.assertEqual(self.client.post(f"/dentists/{staff.pk}/login/").status_code, 403)  # owner only
         self.client.login(username="owner", password=PASSWORD)
-        self.client.post(f"/dentists/{dentist.pk}/login/")
-        dentist.refresh_from_db()
-        self.assertEqual(dentist.user.username, "01112223334")
-        self.assertTrue(dentist.user.groups.filter(name="dentist").exists())
+        self.client.post(f"/dentists/{helper.pk}/login/")
+        helper.refresh_from_db()
+        self.assertIsNone(helper.user)  # training dentists, candidates and supervisors are names only
+        self.client.post(f"/dentists/{staff.pk}/login/")
+        staff.refresh_from_db()
+        self.assertEqual(staff.user.username, "01112223334")
+        self.assertTrue(staff.user.groups.filter(name="dentist").exists())
+
+    def test_candidates_cannot_log_in(self):
+        login = make_user("cand", "dentist")
+        Dentist.objects.filter(candidate=self.candidate).update(user=login)
+        response = self.client.post("/login/", {"username": "cand", "password": PASSWORD})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["form"].non_field_errors().as_data()[0].code, "candidate")
+        make_dentist("staff", kind="fulltime")
+        response = self.client.post("/login/", {"username": "staff", "password": PASSWORD})
+        self.assertEqual(response.status_code, 302)
+
+    def test_team_head_follows_cia_dentists_not_candidates(self):
+        staff = make_dentist("staff", kind="fulltime")
+        head = make_dentist("head", kind="fulltime")
+        head.user.groups.add(Group.objects.get(name="team_head"))
+        self.client.login(username="head", password=PASSWORD)
+        listed = set(self.client.get("/dentists/").context["page_obj"])
+        self.assertIn(staff, listed)
+        self.assertNotIn(self.candidate.dentist, listed)
+        self.assertEqual(self.client.get(f"/dentists/{self.candidate.dentist.pk}/").status_code, 403)
+        rows = self.client.get("/reports/dentists/").context["rows"]
+        self.assertNotIn(self.candidate.dentist, [row["dentist"] for row in rows])
+        self.assertEqual(self.client.get("/reports/visits/").status_code, 403)
 
     def test_candidate_kind_cannot_be_chosen_by_hand(self):
         self.client.login(username="sec", password=PASSWORD)

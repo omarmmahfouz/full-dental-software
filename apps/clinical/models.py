@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Branch, LookupModel, TimeStampedModel
@@ -106,6 +107,7 @@ class TreatmentStep(TimeStampedModel):
 
 class Lab(models.Model):
     name = models.CharField(_("name"), max_length=120, unique=True)
+    name_en = models.CharField(_("name (English)"), max_length=120, blank=True)
     branch = models.ForeignKey(
         Branch, verbose_name=_("our branch"), null=True, blank=True, on_delete=models.SET_NULL,
         help_text=_("Set when the lab is our own lab."),
@@ -120,6 +122,8 @@ class Lab(models.Model):
         verbose_name_plural = _("labs")
 
     def __str__(self):
+        if self.name_en and (get_language() or "").startswith("en"):
+            return self.name_en
         return self.name
 
 
@@ -162,6 +166,11 @@ class LabRequest(TimeStampedModel):
     dentist = models.ForeignKey(
         "dentists.Dentist", verbose_name=_("dentist"), null=True, on_delete=models.PROTECT,
         related_name="lab_requests",
+    )
+    supervisor = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("reviewed by supervisor"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="lab_requests_reviewed",
+        help_text=_("Supervisors do not log in: choose who checked the request and it goes straight to the secretary."),
     )
     due_date = models.DateField(_("needed back by"), null=True, blank=True)
     status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.DRAFT, db_index=True)

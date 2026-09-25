@@ -5,7 +5,7 @@ from .models import Appointment, Room, RoomShift
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ("name", "branch", "sort_order", "is_active")
+    list_display = ("name", "name_en", "branch", "sort_order", "is_active")
     list_editable = ("sort_order", "is_active")
     list_filter = ("branch",)
 

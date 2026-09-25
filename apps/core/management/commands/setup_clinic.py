@@ -10,8 +10,10 @@ from apps.surgery.models import ImplantSystem
 from apps.core.models import Branch
 from apps.core.roles import ALL_ROLES
 from apps.patients.models import MedicalCondition, ReferralSource
+from apps.prescriptions.defaults import load_defaults as load_prescription_defaults
 from apps.purchasing.models import PurchaseCategory
 from apps.scheduling.models import Room
+from apps.stock.models import StockCategory
 
 BRANCHES = [
     # code, kind, Arabic name, English name
@@ -212,6 +214,19 @@ PURCHASE_CATEGORIES = [
 ]
 
 
+STOCK_CATEGORIES = [
+    ("مواد أسنان", "Dental materials"),
+    ("أدوات وآلات", "Instruments"),
+    ("زرعات ومكوناتها", "Implants & components"),
+    ("بنج وأدوية", "Anaesthesia & drugs"),
+    ("مستهلكات (جوانتي، ماسكات، شاش...)", "Consumables (gloves, masks, gauze...)"),
+    ("أجهزة", "Equipment"),
+    ("طعام ومشروبات", "Food & beverage"),
+    ("منظفات", "Cleaning"),
+    ("أدوات مكتبية", "Stationery"),
+]
+
+
 def _lookup(model, rows, extra_fields):
     created = 0
     for order, row in enumerate(rows, start=1):
@@ -237,7 +252,9 @@ class Command(BaseCommand):
             )
         academy = Branch.objects.get(code="CIA")
         for number in range(1, ROOM_COUNT + 1):
-            Room.objects.get_or_create(branch=academy, name=f"غرفة {number}", defaults={"sort_order": number})
+            room, _created = Room.objects.get_or_create(branch=academy, name=f"غرفة {number}", defaults={"sort_order": number})
+            if not room.name_en:
+                Room.objects.filter(pk=room.pk).update(name_en=f"Room {number}")
 
         counts = {
             "referral sources": _lookup(ReferralSource, REFERRAL_SOURCES, extra_fields=lambda r: {"asks_for_patient": r[2]}),
@@ -248,8 +265,10 @@ class Command(BaseCommand):
             ),
             "lab work types": _lookup(LabWorkType, LAB_WORK_TYPES, extra_fields=lambda r: {}),
             "purchase categories": _lookup(PurchaseCategory, PURCHASE_CATEGORIES, extra_fields=lambda r: {"kind": r[2]}),
+            "stock categories": _lookup(StockCategory, STOCK_CATEGORIES, extra_fields=lambda r: {}),
         }
         Lab.objects.get_or_create(name="معمل الأسنان (معملنا)", defaults={"branch": Branch.objects.get(code="LAB")})
+        Lab.objects.filter(name="معمل الأسنان (معملنا)", name_en="").update(name_en="Our dental lab")
         # Older installations: give existing treatment types their chart effect once.
         for name_ar, name_en, effect, procedure, material in TREATMENT_STEPS:
             TreatmentStepType.objects.filter(name_ar=name_ar, chart_effect="none").exclude(chart_effect=effect).update(
@@ -267,6 +286,7 @@ class Command(BaseCommand):
                 )
                 added_photos += created
         counts["photo checklist items"] = added_photos
+        counts["drugs, ready prescriptions and instruction sheets"] = load_prescription_defaults()
 
         for label, count in counts.items():
             self.stdout.write(f"  {label}: {count} added")

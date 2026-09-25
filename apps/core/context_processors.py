@@ -1,7 +1,20 @@
 from django.conf import settings
 
 from .models import branch_for_user
-from .roles import ALL_ROLES, CLINICAL, DENTIST, FRONT_DESK, MANAGEMENT, SUPERVISOR, user_roles
+from .roles import (
+    ALL_ROLES,
+    CLINICAL,
+    DENTISTS,
+    FRONT_DESK,
+    MANAGEMENT,
+    PATIENT_VIEWERS,
+    PURCHASE_ROLES,
+    STOCK_ROLES,
+    SUPERVISOR,
+    TEAM_HEAD,
+    is_only_dentist,
+    user_roles,
+)
 
 
 def app_context(request):
@@ -17,9 +30,14 @@ def app_context(request):
                 "unread_notifications": user.notifications.filter(read_at__isnull=True).count(),
                 "current_branch": branch_for_user(user),
                 "is_clinical": bool(roles & set(CLINICAL)),
+                "sees_patients": bool(roles & set(PATIENT_VIEWERS)),
+                "can_stock": bool(roles & set(STOCK_ROLES)),
+                "can_purchase": bool(roles & set(PURCHASE_ROLES)),
+                "sees_reports": bool(roles & set(MANAGEMENT + (TEAM_HEAD,))),
+                "only_dentist": is_only_dentist(user),
             }
         )
-        if roles & {DENTIST, SUPERVISOR}:
+        if roles & set(DENTISTS + (SUPERVISOR,)):
             from apps.dentists.models import Dentist
 
             context["my_dentist"] = Dentist.for_user(user)

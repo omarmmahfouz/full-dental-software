@@ -18,7 +18,7 @@ from apps.charting.rules import apply_changes, plan_changes
 from apps.clinical.models import ChartEffect, TreatmentStepType
 from apps.core.mixins import role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import CLINICAL, DENTIST, FRONT_DESK, MANAGEMENT, has_role, is_only_dentist
+from apps.core.roles import CLINICAL, HEAD_CIA, MANAGEMENT, OWNER, PATIENT_VIEWERS, has_role, is_only_dentist
 from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403, visible_patients
 
@@ -69,7 +69,7 @@ def complete_plan_for_surgery(surgery):
 
 
 def _can_edit_surgery(user, surgery):
-    if has_role(user, *MANAGEMENT):
+    if has_role(user, *MANAGEMENT) or surgery.created_by_id == user.pk:
         return True
     me = Dentist.for_user(user)
     return me is not None and (me in surgery.team() or me == surgery.instructor)
@@ -77,12 +77,15 @@ def _can_edit_surgery(user, surgery):
 
 # ------------------------------------------------------------ surgeries
 def surgery_list(request):
-    if not has_role(request.user, *FRONT_DESK, DENTIST):
+    if not has_role(request.user, *PATIENT_VIEWERS):
         raise PermissionDenied
     qs = Surgery.objects.select_related("patient", "operator_1", "operator_2", "instructor").prefetch_related("sites")
     if is_only_dentist(request.user):
         me = Dentist.for_user(request.user)
-        qs = qs.filter(Q(operator_1=me) | Q(operator_2=me) | Q(assistant=me) | Q(instructor=me)) if me else qs.none()
+        mine = Q(created_by=request.user)
+        if me is not None:
+            mine |= Q(operator_1=me) | Q(operator_2=me) | Q(assistant=me)
+        qs = qs.filter(mine)
     q = request.GET.get("q", "").strip()
     if q:
         qs = qs.filter(Q(number__icontains=q) | Q(patient__full_name__icontains=q) | Q(patient__file_number__icontains=q))
@@ -101,8 +104,11 @@ def surgery_edit(request, pk=None):
         patient = visible_patients(request.user).filter(pk=request.GET["patient"]).first()
     initial = {}
     me = Dentist.for_user(request.user)
+    if surgery is None and patient is not None and patient.assigned_dentist_id:
+        initial["operator_1"] = patient.assigned_dentist
     if surgery is None and me is not None:
-        initial["instructor" if me.kind == Dentist.Kind.SUPERVISOR else "operator_1"] = me
+        # CIA dentists assist the candidates in surgery.
+        initial["instructor" if me.kind == Dentist.Kind.SUPERVISOR else "assistant"] = me
     form = SurgeryForm(request.POST or None, request.FILES or None, instance=surgery, user=request.user,
                        patient=patient, initial=initial)
     formset = SurgerySiteFormSet(request.POST or None, request.FILES or None,
@@ -196,7 +202,16 @@ def finder(request):
     page = Paginator(facts.sites, 50).get_page(request.GET.get("page"))
     saved = SavedSearch.objects.filter(Q(owner=request.user) | Q(shared=True))
     quick = [(label, urlencode(query, doseq=True)) for label, query in QUICK_SEARCHES]
+    reasons = {}
+    for site in facts.sites:
+        text = f"{site.tooth} {site.get_implant_status_display() or ', '.join(site.procedure_labels())}"
+        reasons.setdefault(site.surgery.patient, []).append(text)
+    call_rows = [(patient, "; ".join(texts)) for patient, texts in reasons.items()]
+    status_labels = [label for code, label in SurgerySite.ImplantStatus.choices if code in (data.get("status") or [])]
     return render(request, "surgery/finder.html", {
+        "call_rows": call_rows,
+        "call_title": _("Implant cases: %(what)s") % {"what": ", ".join(str(s) for s in status_labels)}
+        if status_labels else _("Implant cases"),
         "form": form, "page_obj": page, "overall": overall, "groups": groups, "query": params.urlencode(),
         "saved": saved, "quick": quick, "group_label": dict(form.fields["group_by"].choices).get(data.get("group_by")),
         "group_label_2": dict(form.fields["group_by_2"].choices).get(data.get("group_by_2")),
@@ -219,7 +234,7 @@ def finder_save(request):
 @require_POST
 def finder_delete(request, pk):
     search = get_object_or_404(SavedSearch, pk=pk)
-    if search.owner_id != request.user.pk and not has_role(request.user, "owner"):
+    if search.owner_id != request.user.pk and not has_role(request.user, OWNER, HEAD_CIA):
         raise PermissionDenied
     search.delete()
     messages.success(request, _("Saved search deleted."))

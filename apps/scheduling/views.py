@@ -18,7 +18,7 @@ from django.views.generic import ListView
 from apps.clinical.models import LabRequest
 from apps.core.mixins import SearchMixin, role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import DENTIST, FRONT_DESK, has_role, is_only_dentist
+from apps.core.roles import FRONT_DESK, PATIENT_VIEWERS, has_role, is_only_dentist
 from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403
 from apps.patients.models import Patient
@@ -165,10 +165,10 @@ class AppointmentListView(SearchMixin, ListView):
     def get_queryset(self):
         self.filter_form = AppointmentFilterForm(self.request.GET or None)
         qs = Appointment.objects.select_related("patient", "room", "dentist")
+        if not has_role(self.request.user, *PATIENT_VIEWERS):
+            raise PermissionDenied
         if is_only_dentist(self.request.user):
             qs = qs.filter(dentist=Dentist.for_user(self.request.user))
-        elif not has_role(self.request.user, *FRONT_DESK):
-            raise PermissionDenied
         today = timezone.localdate()
         date_from, date_to = today, today + timedelta(days=7)
         if self.filter_form.is_valid():
@@ -247,7 +247,7 @@ def appointment_detail(request, pk):
 
 # ------------------------------------------------------------ room schedule
 def room_schedule(request):
-    if not has_role(request.user, *FRONT_DESK, DENTIST):
+    if not has_role(request.user, *PATIENT_VIEWERS):
         raise PermissionDenied
     start = week_start(_parse_day(request.GET.get("week")))
     days = [start + timedelta(days=i) for i in range(7)]
@@ -256,7 +256,8 @@ def room_schedule(request):
     shifts = RoomShift.objects.filter(room__in=rooms, date__range=(days[0], days[-1])).select_related(
         "dentist", "supervisor", "room"
     )
-    only_mine = request.GET.get("mine") == "1"
+    # CIA dentists see only their own shifts.
+    only_mine = request.GET.get("mine") == "1" or is_only_dentist(request.user)
     if only_mine:
         shifts = shifts.filter(dentist=Dentist.for_user(request.user))
     grid = {(s.room_id, s.date): [] for s in shifts}

@@ -16,7 +16,7 @@ from apps.charting.teeth import parse_teeth
 from apps.core.forms import clean_digits_value
 from apps.core.mixins import SearchMixin, role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import CLINICAL, DENTIST, FRONT_DESK, MANAGEMENT, has_role, is_only_dentist
+from apps.core.roles import MANAGEMENT, PATIENT_VIEWERS, has_role, is_only_dentist
 from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403, visible_patients
 from apps.scheduling.models import Appointment, day_bounds
@@ -25,7 +25,7 @@ from .forms import LabActionForm, LabFilterForm, LabRequestForm, StepFilterForm,
 from .models import LabRequest, LabRequestEvent, TreatmentStep
 from .services import ACTION_LABELS, TRANSITIONS, available_actions, perform_lab_action
 
-ANY_STAFF = FRONT_DESK + (DENTIST,)
+ANY_STAFF = PATIENT_VIEWERS
 
 
 def _patient_and_appointment(request):
@@ -68,8 +68,12 @@ class StepListView(SearchMixin, ListView):
             "patient", "step_type", "operator", "assistant", "supervisor", "verified_by"
         )
         if is_only_dentist(self.request.user):
+            # Their own work, and what they recorded for the course candidates.
             me = Dentist.for_user(self.request.user)
-            qs = qs.filter(Q(operator=me) | Q(assistant=me) | Q(supervisor=me)) if me else qs.none()
+            mine = Q(created_by=self.request.user)
+            if me is not None:
+                mine |= Q(operator=me) | Q(assistant=me)
+            qs = qs.filter(mine)
         if self.filter_form.is_valid():
             data = self.filter_form.cleaned_data
             if data.get("date_from"):
@@ -98,14 +102,16 @@ def step_create(request):
     patient, appointment = _patient_and_appointment(request)
     me = Dentist.for_user(request.user)
     initial = {"performed_at": timezone.localtime().replace(second=0, microsecond=0)}
-    if me is not None and me.kind != Dentist.Kind.SUPERVISOR:
-        initial["operator"] = me
-    elif appointment and appointment.dentist_id:
+    # The operator is usually the candidate the patient is booked with; the CIA
+    # dentist who writes it down assists.
+    if appointment and appointment.dentist_id:
         initial["operator"] = appointment.dentist
     elif patient and patient.assigned_dentist_id:
         initial["operator"] = patient.assigned_dentist
-    if me is not None and me.kind == Dentist.Kind.SUPERVISOR:
-        initial["supervisor"] = me
+    elif me is not None:
+        initial["operator"] = me
+    if me is not None and initial.get("operator") != me:
+        initial["assistant"] = me
     form = TreatmentStepForm(request.POST or None, user=request.user, patient=patient, initial=initial)
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
@@ -157,10 +163,6 @@ def step_detail(request, pk):
 
 
 # ------------------------------------------------------------ lab requests
-def _is_own_lab_request(lab_request, user):
-    return lab_request.dentist_id is not None and lab_request.dentist.user_id == user.pk
-
-
 class LabListView(SearchMixin, ListView):
     template_name = "clinical/lab_list.html"
     paginate_by = 50
@@ -201,15 +203,17 @@ class LabListView(SearchMixin, ListView):
 
 
 def lab_create(request):
-    if not has_role(request.user, *CLINICAL, *FRONT_DESK):
+    if not has_role(request.user, *ANY_STAFF):
         raise PermissionDenied
     patient, appointment = _patient_and_appointment(request)
     me = Dentist.for_user(request.user)
     initial = {}
-    if me is not None:
-        initial["dentist"] = me
+    if appointment and appointment.dentist_id:
+        initial["dentist"] = appointment.dentist
     elif patient and patient.assigned_dentist_id:
         initial["dentist"] = patient.assigned_dentist
+    elif me is not None:
+        initial["dentist"] = me
     form = LabRequestForm(request.POST or None, user=request.user, patient=patient, initial=initial)
     if request.method == "POST" and form.is_valid():
         lab_request = form.save(commit=False)
@@ -221,7 +225,11 @@ def lab_create(request):
         LabRequestEvent.objects.create(request=lab_request, action=LabRequestEvent.Action.CREATED, by=request.user)
         if "submit_for_review" in request.POST:
             perform_lab_action(lab_request, "submit", request.user)
-            messages.success(request, _("Lab request saved and sent to the supervisor for review."))
+            if lab_request.status == LabRequest.Status.APPROVED:
+                messages.success(request, _("Lab request saved as reviewed by %(supervisor)s. The secretary will send it "
+                                            "to the lab.") % {"supervisor": lab_request.supervisor})
+            else:
+                messages.success(request, _("Lab request saved and sent for review."))
         else:
             messages.success(request, _("Lab request saved as draft."))
         return redirect(lab_request)
@@ -232,7 +240,7 @@ def lab_edit(request, pk):
     lab_request = get_object_or_404(LabRequest.objects.select_related("dentist"), pk=pk)
     get_visible_patient_or_403(request.user, lab_request.patient_id)
     editable = lab_request.status in (LabRequest.Status.DRAFT, LabRequest.Status.PENDING_REVIEW)
-    if not editable or not (_is_own_lab_request(lab_request, request.user) or has_role(request.user, *FRONT_DESK)):
+    if not editable or not has_role(request.user, *ANY_STAFF):
         raise PermissionDenied
     form = LabRequestForm(request.POST or None, instance=lab_request, user=request.user, patient=lab_request.patient)
     if request.method == "POST" and form.is_valid():
@@ -247,7 +255,7 @@ def lab_edit(request, pk):
 def lab_detail(request, pk):
     lab_request = get_object_or_404(
         LabRequest.objects.select_related(
-            "patient", "work_type", "lab", "dentist", "reviewed_by", "sent_by", "received_by"
+            "patient", "work_type", "lab", "dentist", "supervisor", "reviewed_by", "sent_by", "received_by"
         ),
         pk=pk,
     )
@@ -264,7 +272,7 @@ def lab_detail(request, pk):
             "events": lab_request.events.select_related("by"),
             "actions": actions,
             "can_edit": lab_request.status in (LabRequest.Status.DRAFT, LabRequest.Status.PENDING_REVIEW)
-            and (_is_own_lab_request(lab_request, request.user) or has_role(request.user, *FRONT_DESK)),
+            and has_role(request.user, *ANY_STAFF),
         },
     )
 
@@ -288,7 +296,7 @@ def lab_action(request, pk):
     return redirect(lab_request)
 
 
-@role_required(*FRONT_DESK, DENTIST)
+@role_required(*ANY_STAFF)
 def lab_print(request, pk):
     lab_request = get_object_or_404(LabRequest.objects.select_related("patient", "work_type", "lab", "dentist"), pk=pk)
     get_visible_patient_or_403(request.user, lab_request.patient_id)

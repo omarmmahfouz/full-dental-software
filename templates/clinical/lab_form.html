@@ -12,7 +12,7 @@
       {% if object %}
         <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
       {% else %}
-        <button class="btn btn-primary px-4" name="submit_for_review" value="1"><i class="bi bi-send-check"></i> {% trans "Save and send for supervisor review" %}</button>
+        <button class="btn btn-primary px-4" name="submit_for_review" value="1"><i class="bi bi-send-check"></i> {% trans "Save and send" %}</button>
         <button class="btn btn-outline-primary"><i class="bi bi-save"></i> {% trans "Save as draft" %}</button>
       {% endif %}
       <a class="btn btn-outline-secondary" href="{% firstof request.META.HTTP_REFERER "/" %}">{% trans "Cancel" %}</a>

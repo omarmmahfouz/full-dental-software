@@ -34,14 +34,22 @@ class DentistForm(StyledModelForm):
         self.fields["user"].queryset = get_user_model().objects.filter(is_active=True).exclude(pk__in=taken)
         self.fields["user"].help_text = _("The login this dentist uses, so the system knows which work is theirs.")
         if self.instance.pk and self.instance.kind == Dentist.Kind.CANDIDATE:
-            # Candidates are managed from the academy file.
+            # Candidates are managed from the academy file and do not log in.
             self.fields["kind"].disabled = True
             self.fields["full_name"].disabled = True
+            del self.fields["user"]
         else:
             self.fields["kind"].choices = [c for c in Dentist.Kind.choices if c[0] != Dentist.Kind.CANDIDATE]
 
     def clean_phone(self):
         return clean_phone_value(self.cleaned_data.get("phone"), mobile_only=False)
+
+    def clean(self):
+        data = super().clean()
+        if data.get("user") and data.get("kind") not in Dentist.LOGIN_KINDS:
+            self.add_error("user", _("Only CIA dentists log in. Candidates, training dentists and supervisors are "
+                                     "chosen by name on the forms."))
+        return data
 
 
 class DentistFilterForm(StyledForm):

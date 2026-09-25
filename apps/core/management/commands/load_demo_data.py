@@ -5,9 +5,11 @@
 Never run this on the real clinic database.
 """
 
+import csv
 import random
 from datetime import datetime, time, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -25,11 +27,19 @@ from apps.clinical.views import record_treatment_on_chart
 from apps.complaints.models import Complaint
 from apps.core.models import Branch
 from apps.dentists.models import Dentist
-from apps.patients.models import Lead, MedicalCondition, MissingTeeth, Patient, ReferralSource
+from apps.patients.calllists import create_call_list
+from apps.patients.models import CallListEntry, Lead, MedicalCondition, MissingTeeth, Patient, ReferralSource
+from apps.prescriptions.models import Prescription, PrescriptionLine
+from apps.prescriptions.services import best_template, surgery_procedures
 from apps.purchasing.models import Purchase, PurchaseCategory, PurchaseItem, Supplier
 from apps.scheduling.models import Appointment, Room, RoomShift
+from apps.stock.importer import import_items, parse
+from apps.stock.models import StockCategory, StockItem, StockMovement
+from apps.stock.services import record_movement, sync_purchase
 from apps.surgery.models import ImplantSystem, Surgery, SurgerySite
 from apps.surgery.views import complete_plan_for_surgery, update_chart_for_surgery
+
+STOCK_LIST = Path(__file__).resolve().parents[3] / "stock" / "data" / "cia_material_instrument_list.csv"
 
 FIRST = ["محمد", "أحمد", "محمود", "مصطفى", "علي", "حسن", "إبراهيم", "يوسف", "سارة", "منى", "هبة", "فاطمة", "نادية", "سعاد", "أمل"]
 LAST = ["عبد الله", "السيد", "حسين", "عبد الرحمن", "إبراهيم", "مصطفى", "الشريف", "عثمان", "سليمان", "فؤاد"]
@@ -79,9 +89,9 @@ class Command(BaseCommand):
         today = timezone.localdate()
         now = timezone.now()
 
-        def user(username, first, last, role, staff=False):
+        def user(username, first, last, *roles, staff=False):
             obj = User.objects.create_user(username, password=password, first_name=first, last_name=last, is_staff=staff)
-            obj.groups.add(Group.objects.get(name=role))
+            obj.groups.add(*Group.objects.filter(name__in=roles))
             obj.profile.branch = branch
             obj.profile.save()
             return obj
@@ -89,13 +99,16 @@ class Command(BaseCommand):
         def at(day, hour=12):
             return timezone.make_aware(datetime.combine(day, time(hour)))
 
-        owner = user("owner", "Dr. Owner", "", "owner", staff=True)
+        owner = user("owner", "Dr. Owner", "(CEO)", "owner", staff=True)
+        head = user("headcia", "Dr. Tamer", "(Head of CIA)", "head_cia")
         secretary = user("secretary", "منة", "السكرتيرة", "secretary")
-        supervisor_user = user("supervisor", "Dr. Khaled", "(Supervisor)", "supervisor")
+        stock_user = user("stock", "أشرف", "(المخازن)", "stock")
+        Branch.objects.filter(pk=branch.pk).update(phone="0223456789", address="Cairo")
 
         # ---------------------------------------------------------- dentists
+        # Only the CIA dentists log in; supervisors, candidates and training dentists are names.
         supervisor = Dentist.objects.create(full_name="Dr. Khaled Mansour", kind=Dentist.Kind.SUPERVISOR, branch=branch,
-                                            user=supervisor_user, phone="01000000001", created_by=owner)
+                                            phone="01000000001", created_by=owner)
         surgery_supervisor = Dentist.objects.create(full_name="Dr. Hesham Fawzy", kind=Dentist.Kind.SUPERVISOR,
                                                     branch=branch, phone="01000000002", notes="Surgery days",
                                                     created_by=owner)
@@ -105,14 +118,13 @@ class Command(BaseCommand):
         candidates = []
         for i, (name, code) in enumerate([("Dr. Ahmed Samir", "C-101"), ("Dr. Nour Hassan", "C-102"),
                                           ("Dr. Karim Adel", "C-103"), ("Dr. Yasmin Ali", "C-104")], 1):
-            login = user(f"dentist{i}", name, "", "dentist")
             candidate = Candidate.objects.create(
                 code=code, full_name=name, certificate_name=name.replace("Dr. ", ""), phone_primary=f"0123000000{i}",
                 whatsapp=f"0123000000{i}", university="Cairo University", graduation_year=2022 + i % 3,
                 nationality="Egyptian", created_by=secretary,
             )
             dentist = candidate.dentist
-            dentist.user, dentist.branch = login, branch
+            dentist.branch = branch
             dentist.save()
             candidates.append(dentist)
             enrollment = Enrollment.objects.create(candidate=candidate, course=course, enrolled_on=today - timedelta(days=200),
@@ -127,13 +139,26 @@ class Command(BaseCommand):
                 Payment.objects.create(enrollment=enrollment, amount=Decimal("10000"), paid_on=today - timedelta(days=35),
                                        method=PaymentMethod.INSTAPAY, reference=f"IP{rng.randint(10000, 99999)}",
                                        created_by=secretary)
-        training = Dentist.objects.create(full_name="Dr. Omar Tarek", kind=Dentist.Kind.TRAINING, branch=branch,
-                                          user=user("dentist5", "Dr. Omar Tarek", "", "dentist"), phone="01000000005",
-                                          created_by=owner)
-        fulltime = Dentist.objects.create(full_name="Dr. Mona Refaat", kind=Dentist.Kind.FULLTIME, branch=branch,
-                                          user=user("dentist6", "Dr. Mona Refaat", "", "dentist"), phone="01000000006",
-                                          created_by=owner)
+        Dentist.objects.create(full_name="Dr. Omar Tarek", kind=Dentist.Kind.TRAINING, branch=branch,
+                               phone="01000000005", created_by=owner)
+        cia_dentists = []
+        for username, name, phone, roles in [("dentist1", "Dr. Mona Refaat", "01000000006", ("dentist",)),
+                                              ("dentist2", "Dr. Sherif Nabil", "01000000007", ("dentist",)),
+                                              ("teamhead", "Dr. Rania Adel", "01000000008", ("dentist", "team_head"))]:
+            cia_dentists.append(Dentist.objects.create(
+                full_name=name, kind=Dentist.Kind.FULLTIME, branch=branch, phone=phone, created_by=owner,
+                user=user(username, name, "", *roles),
+            ))
+        fulltime = cia_dentists[0]
         treating = candidates + [fulltime]
+
+        def recorder(dentist):
+            """Who typed it in: the dentist themself, or a CIA dentist for a candidate."""
+            return dentist.user or cia_dentists[dentist.pk % 2].user
+
+        def helper(dentist):
+            """The CIA dentist who assists a candidate."""
+            return None if dentist.user_id else cia_dentists[dentist.pk % 2]
 
         # ---------------------------------------------------------- patients & leads
         sources = list(ReferralSource.objects.all())
@@ -213,11 +238,12 @@ class Command(BaseCommand):
                     step = TreatmentStep.objects.create(
                         patient=patient, appointment=appointment, step_type=rng.choice(visit_types),
                         teeth=rng.choice(["", "36", "11, 21"]), performed_at=entered, operator=patient.assigned_dentist,
-                        assistant=training if rng.random() < 0.4 else None, supervisor=supervisor,
-                        created_by=patient.assigned_dentist.user,
+                        assistant=helper(patient.assigned_dentist), supervisor=supervisor,
+                        notes=rng.choice(["", "", "Patient anxious, needs short visits.", "Good oral hygiene."]),
+                        created_by=recorder(patient.assigned_dentist),
                     )
                     if rng.random() < 0.6:
-                        step.verified_by, step.verified_at, step.grade = supervisor_user, left, rng.randint(3, 5)
+                        step.verified_by, step.verified_at, step.grade = head, left, rng.randint(3, 5)
                         step.save()
 
         # ---------------------------------------------------------- charts, plans and implant surgeries
@@ -242,15 +268,16 @@ class Command(BaseCommand):
                 teeth_filled="16" if 16 not in implant_teeth else "", cbct_requested=True, cbct_done=True,
                 smoker=smoker, cigarettes_per_day=15 if smoker else None, bp_clinic_systolic=rng.randint(110, 145),
                 bp_clinic_diastolic=rng.randint(70, 95), cooperation_score=rng.randint(6, 10),
-                implant_willingness_score=rng.randint(7, 10), created_by=operator.user,
+                implant_willingness_score=rng.randint(7, 10), created_by=recorder(operator),
             )
             exam.conditions.set(patient.medical_conditions.all())
-            apply_changes(patient, exam_changes(patient, exam), operator.user, ToothChange.Source.EXAM,
+            apply_changes(patient, exam_changes(patient, exam), recorder(operator), ToothChange.Source.EXAM,
                           examination=exam, when=at(exam_date, 11))
 
             plan = TreatmentPlan.objects.create(patient=patient, title="Implant treatment plan", dentist=operator,
+                                                difficulty=extras.get("difficulty", Surgery.Difficulty.SIMPLE),
                                                 status=TreatmentPlan.Status.APPROVED, approved_by=supervisor,
-                                                approved_at=at(exam_date, 13), created_by=operator.user)
+                                                approved_at=at(exam_date, 13), created_by=recorder(operator))
             teeth_text = ", ".join(str(t) for t in implant_teeth)
             if carious:
                 PlanItem.objects.create(plan=plan, phase=PlanItem.Phase.PREPARATION, step_type=types["Composite restoration"],
@@ -266,15 +293,15 @@ class Command(BaseCommand):
                 step = TreatmentStep.objects.create(
                     patient=patient, step_type=types["Composite restoration"], teeth=str(tooth), surfaces="MO",
                     material="composite", performed_at=at(exam_date + timedelta(days=7)), operator=operator,
-                    supervisor=supervisor, created_by=operator.user,
+                    supervisor=supervisor, created_by=recorder(operator),
                 )
-                record_treatment_on_chart(step, operator.user)
+                record_treatment_on_chart(step, recorder(operator))
 
             surgery = Surgery.objects.create(
                 branch=branch, patient=patient, date=surgery_date, instructor=surgery_supervisor, operator_1=operator,
-                operator_2=operator_2, assistant=training, suture_size="4-0", suture_material=Surgery.SutureMaterial.VICRYL,
+                operator_2=operator_2, assistant=cia_dentists[index % 2], suture_size="4-0", suture_material=Surgery.SutureMaterial.VICRYL,
                 xray_taken=True, temporary=extras.pop("temporary", Surgery.Temporary.HEALING_COLLAR if to_extract else ""),
-                created_by=operator.user, **extras,
+                created_by=recorder(operator), **extras,
             )
             system = systems[index % len(systems)]
             for tooth, procedures, diameter, length in sites:
@@ -284,7 +311,7 @@ class Command(BaseCommand):
                     isq=rng.randint(58, 78), subcrestal=rng.random() < 0.3, lot_number=f"L{rng.randint(10000, 99999)}",
                     **{name: True for name in procedures},
                 )
-            update_chart_for_surgery(surgery, operator.user)
+            update_chart_for_surgery(surgery, recorder(operator))
             complete_plan_for_surgery(surgery)
 
             # Implant life after surgery, recorded as treatments so chart and plan follow.
@@ -293,9 +320,9 @@ class Command(BaseCommand):
                 step = TreatmentStep.objects.create(
                     patient=patient, step_type=types["Implant failure / removal"], teeth=teeth_text,
                     performed_at=at(fail_day), operator=operator, supervisor=supervisor,
-                    notes="Mobile implant, no osseointegration. Removed.", created_by=operator.user,
+                    notes="Mobile implant, no osseointegration. Removed.", created_by=recorder(operator),
                 )
-                record_treatment_on_chart(step, operator.user)
+                record_treatment_on_chart(step, recorder(operator))
                 surgery.sites.update(failure_reason="No osseointegration")
                 continue
             uncover = rng.randint(75, 100)
@@ -310,34 +337,47 @@ class Command(BaseCommand):
                     break
                 step = TreatmentStep.objects.create(
                     patient=patient, step_type=types[step_name], teeth=teeth_text, performed_at=at(day),
-                    operator=operator, supervisor=supervisor, created_by=operator.user,
+                    operator=operator, supervisor=supervisor, created_by=recorder(operator),
                 )
-                record_treatment_on_chart(step, operator.user)
+                record_treatment_on_chart(step, recorder(operator))
 
-        for patient in patients[len(CASES):len(CASES) + 4]:  # planned, not operated yet
+        waiting = patients[len(CASES):len(CASES) + 6]  # planned, not operated yet
+        for number, patient in enumerate(waiting):
+            by = recorder(patient.assigned_dentist)
             exam = Examination.objects.create(
-                patient=patient, exam_date=today - timedelta(days=5), examined_by=patient.assigned_dentist,
-                chief_complaint="Wants implants for missing lower molars.", teeth_missing="36, 46",
-                teeth_carious="25", created_by=secretary,
+                patient=patient, exam_date=today - timedelta(days=5 + number * 3), examined_by=patient.assigned_dentist,
+                supervisor=supervisor, chief_complaint="Wants implants for missing lower molars.", teeth_missing="36, 46",
+                teeth_carious="25", created_by=by,
             )
-            apply_changes(patient, exam_changes(patient, exam), secretary, ToothChange.Source.EXAM, examination=exam)
-            plan = TreatmentPlan.objects.create(patient=patient, title="Implant treatment plan",
-                                                dentist=patient.assigned_dentist, created_by=secretary)
+            apply_changes(patient, exam_changes(patient, exam), by, ToothChange.Source.EXAM, examination=exam)
+            guided = number % 2 == 0
+            plan = TreatmentPlan.objects.create(
+                patient=patient, title="Implant treatment plan", dentist=patient.assigned_dentist, created_by=by,
+                difficulty=[TreatmentPlan.Difficulty.SIMPLE, TreatmentPlan.Difficulty.MODERATE][number % 3 == 1],
+                status=TreatmentPlan.Status.APPROVED if number < 4 else TreatmentPlan.Status.PROPOSED,
+                approved_by=supervisor if number < 4 else None,
+            )
             PlanItem.objects.create(plan=plan, phase=PlanItem.Phase.PREPARATION, step_type=types["Composite restoration"], teeth="25")
-            PlanItem.objects.create(plan=plan, phase=PlanItem.Phase.SURGICAL, step_type=types["Implant placement"], teeth="36, 46")
+            PlanItem.objects.create(plan=plan, phase=PlanItem.Phase.SURGICAL, teeth="36, 46",
+                                    step_type=types["Guided implant surgery" if guided else "Implant placement"])
 
-        # ---------------------------------------------------------- lab, complaints, purchases
+        # ---------------------------------------------------------- lab, complaints
         lab = Lab.objects.first()
         work_types = list(LabWorkType.objects.all())
-        for patient, target in zip(patients[:6], ["submit", "approve", "send", "receive", "deliver", None]):
+        for number, (patient, target) in enumerate(zip(patients[:6], ["submit", "approve", "send", "receive", "deliver", None])):
             dentist = patient.assigned_dentist
+            by = recorder(dentist)
+            reviewed = number % 2 == 1  # the CIA dentist chose the reviewing supervisor's name
             lab_request = LabRequest.objects.create(
                 branch=branch, patient=patient, lab=lab, work_type=rng.choice(work_types), teeth="36",
-                shade="A2", dentist=dentist, due_date=today + timedelta(days=rng.randint(-3, 7)), created_by=dentist.user,
+                shade="A2", dentist=dentist, supervisor=supervisor if reviewed else None,
+                due_date=today + timedelta(days=rng.randint(-3, 7)), created_by=by,
             )
-            LabRequestEvent.objects.create(request=lab_request, action=LabRequestEvent.Action.CREATED, by=dentist.user)
-            for action, actor in [("submit", dentist.user), ("approve", supervisor_user), ("send", secretary),
+            LabRequestEvent.objects.create(request=lab_request, action=LabRequestEvent.Action.CREATED, by=by)
+            for action, actor in [("submit", by), ("approve", head), ("send", secretary),
                                   ("receive", secretary), ("deliver", secretary)]:
+                if action == "approve" and lab_request.status != LabRequest.Status.PENDING_REVIEW:
+                    continue  # already reviewed by the named supervisor
                 perform_lab_action(lab_request, action, actor, checked=True)
                 if action == target:
                     break
@@ -349,22 +389,63 @@ class Command(BaseCommand):
                                  severity=Complaint.Severity.HIGH, description="ألم مستمر بعد الزرعة",
                                  concerned_dentist=patients[5].assigned_dentist, created_by=secretary)
 
+        # ---------------------------------------------------------- stock and purchases
+        with open(STOCK_LIST, newline="", encoding="utf-8") as handle:
+            entries = parse(csv.reader(handle))
+        import_items(entries, StockCategory.objects.get(name_en="Instruments"), stock_user, note="Opening stock")
+        food = StockCategory.objects.get(name_en="Food & beverage")
+        for name, unit, quantity, minimum in [("Tea", "box", 6, 2), ("Coffee", "pack", 1, 2), ("Sugar", "kg", 4, 2),
+                                              ("Mineral water", "bottle", 24, 12), ("Biscuits", "pack", 10, 5)]:
+            item = StockItem.objects.create(name=name, category=food, unit=unit, min_quantity=minimum, created_by=stock_user)
+            record_movement(item, StockMovement.Kind.COUNT, quantity, stock_user, notes="Opening stock")
+        for name, minimum in [("Carpule articaine (Spain)", 20), ("Composite A2", 1), ("Etchant tips", 5), ("Floss", 1)]:
+            StockItem.objects.filter(name=name).update(min_quantity=minimum)
+        for name, quantity, where in [("Carpule articaine (Spain)", 12, "Room 1"), ("Etchant tips", 6, "Room 3"),
+                                      ("Composite A2", 1, "Room 2"), ("Coffee", 1, "Kitchen")]:
+            record_movement(StockItem.objects.get(name=name), StockMovement.Kind.OUT, quantity, stock_user,
+                            destination=where, moved_at=now - timedelta(days=rng.randint(1, 10)))
+
         supplier = Supplier.objects.create(name="شركة المستلزمات الطبية", phone="0223456789")
         market = Supplier.objects.create(name="سوبر ماركت الحي")
         categories = {c.name_en: c for c in PurchaseCategory.objects.all()}
         purchase = Purchase.objects.create(branch=branch, supplier=supplier, purchase_date=today - timedelta(days=3),
-                                           invoice_number="INV-1001", created_by=secretary)
+                                           invoice_number="INV-1001", created_by=stock_user)
         PurchaseItem.objects.create(purchase=purchase, category=categories["Consumables (gloves, masks, gauze...)"],
                                     description="جوانتي لاتكس", quantity=10, unit="علبة", unit_price=Decimal("120"))
-        PurchaseItem.objects.create(purchase=purchase, category=categories["Anaesthesia"], description="بنج", quantity=5,
-                                    unit="علبة", unit_price=Decimal("450"))
-        purchase = Purchase.objects.create(branch=branch, supplier=market, purchase_date=today - timedelta(days=1), created_by=secretary)
-        PurchaseItem.objects.create(purchase=purchase, category=categories["Tea, coffee & sugar"], description="شاي وسكر",
-                                    quantity=1, unit_price=Decimal("250"))
+        PurchaseItem.objects.create(purchase=purchase, category=categories["Anaesthesia"], description="Articaine carpules",
+                                    quantity=50, unit="carpule", unit_price=Decimal("18"),
+                                    stock_item=StockItem.objects.get(name="Carpule articaine (Spain)"))
+        sync_purchase(purchase, stock_user)
+        StockMovement.objects.filter(purchase_item__purchase=purchase).update(expiry_date=today + timedelta(days=45),
+                                                                              lot="ART-2291")
+        purchase = Purchase.objects.create(branch=branch, supplier=market, purchase_date=today - timedelta(days=1),
+                                           created_by=secretary)
+        PurchaseItem.objects.create(purchase=purchase, category=categories["Tea, coffee & sugar"], description="Tea",
+                                    quantity=2, unit="box", unit_price=Decimal("125"), stock_item=StockItem.objects.get(name="Tea"))
         PurchaseItem.objects.create(purchase=purchase, category=categories["Food & candies"], description="بسكويت وحلويات",
                                     quantity=1, unit_price=Decimal("180"))
+        sync_purchase(purchase, secretary)
+
+        # ---------------------------------------------------------- prescription and patients to call
+        last_surgery = Surgery.objects.order_by("-date").first()
+        template = best_template(surgery_procedures(last_surgery))
+        prescription = Prescription.objects.create(patient=last_surgery.patient, surgery=last_surgery,
+                                                   prescribed_on=last_surgery.date, dentist=last_surgery.operator_1,
+                                                   created_by=recorder(last_surgery.operator_1))
+        for line in template.lines.all():
+            PrescriptionLine.objects.create(prescription=prescription, drug=line.group.drugs.first(),
+                                            dose=line.dose or line.group.dose)
+        guided = [p for number, p in enumerate(waiting) if number % 2 == 0]
+        call_list = create_call_list("Treatment plans: Guided implant surgery",
+                                     "Please call to book the guided surgery day (Tuesday).",
+                                     [(p, "Guided implant surgery 36, 46") for p in guided], head)
+        first = call_list.entries.first()
+        first.outcome, first.response = CallListEntry.Outcome.BOOKED, "Booked next Tuesday 11 am"
+        first.attempts, first.called_at, first.called_by = 1, now, secretary
+        first.save()
 
         self.stdout.write(self.style.SUCCESS(
-            "Demo data loaded. Users: owner, secretary, supervisor, dentist1..dentist4 (course candidates), "
-            "dentist5 (training dentist), dentist6 (full-time dentist) - password as given."
+            "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
+            "CIA dentists team), dentist1 and dentist2 (CIA dentists), secretary, stock (stock manager). "
+            "Candidates, training dentists and supervisors have no login."
         ))

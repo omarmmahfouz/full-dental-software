@@ -243,10 +243,18 @@ class TreatmentPlan(TimeStampedModel):
         COMPLETED = "completed", _("Completed")
         CANCELLED = "cancelled", _("Cancelled")
 
+    class Difficulty(models.TextChoices):
+        SIMPLE = "simple", _("Simple")
+        MODERATE = "moderate", _("Moderate")
+        ADVANCED = "advanced", _("Advanced (sinus / GBR / block)")
+
     patient = models.ForeignKey(
         "patients.Patient", verbose_name=_("patient"), on_delete=models.CASCADE, related_name="treatment_plans"
     )
     title = models.CharField(_("plan title"), max_length=150, default=_("Treatment plan"))
+    difficulty = models.CharField(
+        _("case difficulty"), max_length=20, choices=Difficulty.choices, blank=True, db_index=True
+    )
     dentist = models.ForeignKey(
         "dentists.Dentist", verbose_name=_("planned by"), null=True, blank=True, on_delete=models.SET_NULL,
         related_name="+",

@@ -16,14 +16,17 @@ class DentistQuerySet(models.QuerySet):
 
 class Dentist(TimeStampedModel):
     """Everyone who treats patients: paying course candidates, training dentists,
-    full-time dentists and supervisors (and later the private clinic's specialists
-    and freelancers). Patients, room shifts, visits, treatments, surgeries and lab
-    requests all point to this record, so each person's work can be followed."""
+    CIA dentists (full or part time) and supervisors (and later the private clinic's
+    specialists and freelancers). Patients, room shifts, visits, treatments, surgeries
+    and lab requests all point to this record, so each person's work can be followed.
+
+    Only CIA dentists (and later specialists / freelancers) log in. Candidates,
+    training dentists and supervisors are chosen by name on the forms."""
 
     class Kind(models.TextChoices):
         CANDIDATE = "candidate", _("Course candidate")
         TRAINING = "training", _("Training dentist")
-        FULLTIME = "fulltime", _("Full-time dentist")
+        FULLTIME = "fulltime", _("CIA dentist (full / part time)")
         SUPERVISOR = "supervisor", _("Supervisor")
         SPECIALIST = "specialist", _("Specialist")
         FREELANCER = "freelancer", _("Freelance dentist")
@@ -55,8 +58,14 @@ class Dentist(TimeStampedModel):
         verbose_name = _("dentist")
         verbose_name_plural = _("dentists")
 
+    LOGIN_KINDS = (Kind.FULLTIME, Kind.SPECIALIST, Kind.FREELANCER)
+
     def __str__(self):
         return self.full_name
+
+    @property
+    def can_have_login(self):
+        return self.kind in self.LOGIN_KINDS
 
     def get_absolute_url(self):
         return reverse("dentists:detail", args=[self.pk])

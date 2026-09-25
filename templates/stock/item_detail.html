@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ item.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-box"></i> {{ item.name }} <small class="text-muted fs-6">{{ item.category }}</small></h1>
+  <div class="d-flex gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'stock:item_update' item.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'stock:item_list' %}"><i class="bi bi-list"></i> {% trans "Stock" %}</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card stat-card mb-3"><div class="card-body">
+      <div class="stat-label">{% trans "In stock" %}</div>
+      <div class="stat-value {% if item.is_low %}text-danger{% endif %}">{{ item.quantity|floatformat:"-2" }} <span class="fs-6 text-muted">{{ item.unit }}</span></div>
+      {% if item.is_low %}<span class="badge text-bg-danger">{% trans "Low stock" %}</span>{% endif %}
+    </div></div>
+    <div class="card"><div class="card-body"><dl class="dl-grid">
+      <dt>{% trans "Reorder level" %}</dt><dd>{{ item.min_quantity|floatformat:"-2" }}</dd>
+      <dt>{% trans "Place" %}</dt><dd>{{ item.location|default:"—" }}</dd>
+      <dt>{% trans "Code / barcode" %}</dt><dd>{{ item.code|default:"—" }}</dd>
+      <dt>{% trans "Last unit price" %}</dt><dd>{% if item.unit_cost is not None %}{{ item.unit_cost|money }}{% else %}—{% endif %}</dd>
+      <dt>{% trans "Stock value" %}</dt><dd>{% if item.value is not None %}{{ item.value|money }}{% else %}—{% endif %}</dd>
+      <dt>{% trans "Notes" %}</dt><dd>{{ item.notes|default:"—" }}</dd>
+    </dl></div></div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card mb-3 no-print"><div class="card-header">{% trans "Record a stock movement" %}</div><div class="card-body">
+      <form method="post" novalidate>{% csrf_token %}{% include "includes/form_fields.html" %}
+        <button class="btn btn-primary mt-3"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+      </form>
+    </div></div>
+    <div class="card"><div class="card-header">{% trans "Movements" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Movement" %}</th><th class="text-end">{% trans "Change" %}</th><th>{% trans "For / taken by" %}</th><th>{% trans "Lot / expiry" %}</th><th>{% trans "Notes" %}</th><th>{% trans "Recorded by" %}</th></tr></thead>
+        <tbody>{% for m in movements %}<tr>
+          <td class="nowrap small">{{ m.moved_at|date:"d/m/Y" }}</td>
+          <td class="small">{{ m.get_kind_display }}</td>
+          <td class="text-end fw-bold {% if m.change < 0 %}text-danger{% else %}text-success{% endif %}">{% if m.change > 0 %}+{% endif %}{{ m.change|floatformat:"-2" }}</td>
+          <td class="small">{{ m.destination|default:"" }}</td>
+          <td class="small">{{ m.lot }}{% if m.expiry_date %} <span class="{% if m.expiry_date <= today %}text-danger{% endif %}">{{ m.expiry_date|date:"d/m/Y" }}</span>{% endif %}</td>
+          <td class="small">{% if m.purchase_item %}<a href="{{ m.purchase_item.purchase.get_absolute_url }}"><i class="bi bi-receipt"></i></a> {% endif %}{{ m.notes }}</td>
+          <td class="small text-muted">{{ m.created_by|default:"" }}</td>
+        </tr>{% empty %}<tr><td colspan="7" class="text-muted">{% trans "No movements yet." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

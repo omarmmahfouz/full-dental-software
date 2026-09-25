@@ -1,6 +1,6 @@
 import shutil
 import tempfile
-from datetime import date
+from datetime import date, timedelta
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -128,32 +128,96 @@ class PatientRegistrationTests(TestCase):
 class DentistAccessTests(TestCase):
     def setUp(self):
         self.branch = setup_clinic()
-        self.dentist = make_dentist("dentist")
-        self.other_dentist = make_dentist("dentist2")
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.other_dentist = make_dentist("dentist2", kind="fulltime")
         self.mine = make_patient(self.branch, assigned_dentist=self.dentist)
         self.not_mine = make_patient(self.branch, nid="28501010101235", phone="01112223334",
                                      assigned_dentist=self.other_dentist)
         self.client.login(username="dentist", password=PASSWORD)
 
-    def test_dentist_sees_only_own_patients(self):
-        self.assertEqual(self.client.get(self.mine.get_absolute_url()).status_code, 200)
-        self.assertEqual(self.client.get(self.not_mine.get_absolute_url()).status_code, 403)
-        listing = self.client.get("/patients/")
-        self.assertEqual(list(listing.context["page_obj"]), [self.mine])
+    def test_cia_dentist_sees_every_patient_and_can_filter_their_own(self):
+        # They record the work of the course candidates, who do not log in.
+        self.assertEqual(self.client.get(self.not_mine.get_absolute_url()).status_code, 200)
+        self.assertEqual(len(self.client.get("/patients/").context["page_obj"]), 2)
+        self.assertEqual(list(self.client.get("/patients/", {"mine": "on"}).context["page_obj"]), [self.mine])
 
-    def test_dentist_sees_patient_booked_with_them(self):
+    def test_my_patients_include_patients_booked_with_them(self):
         Appointment.objects.create(branch=self.branch, patient=self.not_mine, dentist=self.dentist, scheduled_at=timezone.now())
-        self.assertEqual(self.client.get(self.not_mine.get_absolute_url()).status_code, 200)
-
-    def test_dentist_sees_patients_of_surgeries_they_instructed(self):
-        from apps.surgery.models import Surgery
-
-        instructor = make_dentist("sup", kind="supervisor")
-        Surgery.objects.create(branch=self.branch, patient=self.not_mine, operator_1=self.other_dentist, instructor=instructor)
-        self.client.login(username="sup", password=PASSWORD)
-        self.assertEqual(self.client.get(self.not_mine.get_absolute_url()).status_code, 200)
-        self.assertEqual(self.client.get(self.mine.get_absolute_url()).status_code, 403)
+        self.assertEqual(len(self.client.get("/patients/", {"mine": "on"}).context["page_obj"]), 2)
 
     def test_dentist_cannot_register_or_open_call_list(self):
         self.assertEqual(self.client.get("/patients/new/").status_code, 403)
         self.assertEqual(self.client.get("/patients/calls/").status_code, 403)
+
+    def test_stock_manager_sees_no_patients(self):
+        make_user("stock", "stock")
+        self.client.login(username="stock", password=PASSWORD)
+        self.assertEqual(self.client.get(self.mine.get_absolute_url()).status_code, 403)
+        self.assertEqual(self.client.get("/patients/").status_code, 403)
+
+
+class PlanFinderAndCallListTests(TestCase):
+    def setUp(self):
+        from apps.charting.models import PlanItem, TreatmentPlan
+        from apps.clinical.models import TreatmentStepType
+
+        self.branch = setup_clinic()
+        self.head = make_user("head", "head_cia")
+        self.secretary = make_user("sec", "secretary")
+        guided = TreatmentStepType.objects.get(name_en="Guided implant surgery")
+        simple = TreatmentStepType.objects.get(name_en="Implant placement")
+        self.p1 = make_patient(self.branch)
+        self.p2 = make_patient(self.branch, nid="28501010101235", phone="01112223334")
+        self.p3 = make_patient(self.branch, nid="28501010101236", phone="01112223335")
+        for patient, step_type, difficulty in [(self.p1, guided, "simple"), (self.p2, guided, "moderate"),
+                                               (self.p3, simple, "simple")]:
+            plan = TreatmentPlan.objects.create(patient=patient, difficulty=difficulty)
+            PlanItem.objects.create(plan=plan, step_type=step_type, teeth="36")
+        self.guided = guided
+
+    def find(self, **params):
+        return self.client.get("/chart/plans/", params)
+
+    def found(self, **params):
+        return {plan.patient for plan, *_rest in self.find(**params).context["page_obj"]}
+
+    def test_find_plans_by_procedure_and_difficulty(self):
+        self.client.login(username="head", password=PASSWORD)
+        self.assertEqual(self.found(), {self.p1, self.p2, self.p3})
+        self.assertEqual(self.found(procedures=self.guided.pk), {self.p1, self.p2})
+        self.assertEqual(self.found(procedures=self.guided.pk, difficulty="simple"), {self.p1})
+        Appointment.objects.create(branch=self.branch, patient=self.p1, scheduled_at=timezone.now() + timedelta(days=2))
+        self.assertEqual(self.found(procedures=self.guided.pk, no_appointment="on"), {self.p2})
+        csv = self.find(procedures=self.guided.pk, export="csv").content.decode("utf-8-sig")
+        self.assertEqual(len(csv.strip().splitlines()), 3)
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.find().status_code, 403)
+
+    def test_send_to_reception_and_record_answers(self):
+        from apps.core.models import Notification
+        from apps.patients.models import CallList, CallListEntry
+
+        self.client.login(username="head", password=PASSWORD)
+        response = self.client.post("/patients/to-call/new/", {
+            "title": "Guided cases", "message": "Book the surgery day", "patient": [self.p1.pk, self.p2.pk],
+            f"reason_{self.p1.pk}": "Guided implant surgery 36", "next": "/chart/plans/",
+        })
+        call_list = CallList.objects.get()
+        self.assertRedirects(response, call_list.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual(call_list.entries.count(), 2)
+        self.assertTrue(Notification.objects.filter(recipient=self.secretary, title__contains="Guided cases").exists())
+
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/").context["call_lists"][0], call_list)
+        page = self.client.get(call_list.get_absolute_url())
+        self.assertContains(page, "Guided implant surgery 36")
+        for entry, outcome in zip(call_list.entries.all(), ["booked", "no_answer"]):
+            self.client.post(f"/patients/to-call/answer/{entry.pk}/", {f"e{entry.pk}-outcome": outcome,
+                                                                       f"e{entry.pk}-response": "ok"})
+        first = call_list.entries.get(patient=self.p1)
+        self.assertEqual((first.outcome, first.called_by, first.attempts), ("booked", self.secretary, 1))
+        self.assertEqual(call_list.progress, (2, 2))
+        # The head of CIA is told when every patient was called.
+        self.assertTrue(Notification.objects.filter(recipient=self.head, title__contains="Guided cases").exists())
+        self.assertEqual(self.client.post("/patients/to-call/new/", {"title": "x", "patient": [self.p1.pk]}).status_code, 403)
+        self.assertEqual(CallListEntry.objects.filter(outcome="pending").count(), 0)
