@@ -1,10 +1,11 @@
 {% extends "base.html" %}
-{% load i18n clinic %}
+{% load i18n clinic static %}
 {% block title %}{{ payment.receipt_number }}{% endblock %}
 {% block content %}
 <div class="card mx-auto" style="max-width: 640px"><div class="card-body p-4">
   <div class="text-center border-bottom pb-3 mb-3">
-    <div class="h4 fw-bold mb-0">{{ enrollment.course.branch }}</div>
+    <img class="print-logo mb-2" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+    <div class="h5 fw-bold mb-0">{{ enrollment.course.branch }}</div>
     <div class="text-muted">{% trans "Payment receipt" %}</div>
   </div>
   <dl class="dl-grid fs-6">

@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block title %}{% trans "Log in" %}{% endblock %}
 {% block content %}
 <div class="login-box">
   <div class="text-center mb-4">
-    <i class="bi bi-hospital display-4" style="color: var(--app-primary)"></i>
-    <h1 class="h4 fw-bold mt-2">{% trans "Cairo Implant Academy" %}</h1>
-    <div class="text-muted">{% trans "Dental system" %}</div>
+    <img class="login-logo" src="{% static 'img/cia-logo.png' %}" alt="Cairo Implant Academy">
+    <h1 class="h5 fw-bold mt-3 mb-0" style="color: var(--brand-gray-dark)">{% trans "Cairo Implant Academy" %}</h1>
+    <div class="text-muted small">{% trans "Dental system" %}</div>
   </div>
   <div class="card"><div class="card-body p-4">
     {% if form.errors %}<div class="alert alert-danger">{% trans "Wrong username or password." %}</div>{% endif %}

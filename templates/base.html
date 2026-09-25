@@ -9,13 +9,19 @@
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/cairo/cairo.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+  <meta name="theme-color" content="#9EC64F">
   {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-body-tertiary">
 {% if user.is_authenticated %}
-<nav class="navbar navbar-expand-xl navbar-dark app-navbar no-print">
+<nav class="navbar navbar-expand-xl app-navbar no-print">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="{% url 'core:dashboard' %}"><i class="bi bi-hospital"></i> {% if current_branch %}{{ current_branch.name }}{% else %}{% trans "Dental system" %}{% endif %}</a>
+    <a class="navbar-brand" href="{% url 'core:dashboard' %}">
+      <img src="{% static 'img/cia-mark.png' %}" alt="CIA">
+      <span class="brand-name">{% if current_branch %}{{ current_branch.name }}{% else %}{% trans "Cairo Implant Academy" %}{% endif %}</span>
+    </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="{% trans 'Menu' %}"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav me-auto mb-2 mb-xl-0">

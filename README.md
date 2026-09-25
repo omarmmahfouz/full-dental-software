@@ -96,19 +96,33 @@ An intern can open only their own patients' documents.
 
 ---
 
-## Quick trial on one PC (5 minutes)
+## How to test it now (trial on any PC)
 
-```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env               # set DJANGO_DEBUG=1 and DB_ENGINE=sqlite for a trial
-python manage.py migrate
-python manage.py load_demo_data --password demo12345   # sample data, trial only
-python manage.py runserver 0.0.0.0:8000
-```
+This makes a **practice copy** with sample patients, visits, lab work and installments. Nothing you do there touches real data.
 
-Open http://localhost:8000 and log in as `secretary`, `intern1`, `supervisor` or `owner` (password `demo12345`).
+**Windows**
+1. Install **Python 3.12 or newer** from https://www.python.org/downloads/. On the first installer screen, tick **"Add python.exe to PATH"**.
+2. Download this project:
+   1. On GitHub, open the branch `claude/cairo-implant-academy-system-jqrd1f`.
+   2. Click **Code → Download ZIP**.
+   3. Unzip it, e.g. to `C:\CIA-trial`.
+3. Double-click **`trial-windows.bat`**. The first run takes a few minutes while it installs. The browser then opens at http://localhost:8000.
+   - Other PCs or tablets on the same Wi-Fi can open the address the window prints, e.g. `http://192.168.1.20:8000`. Allow Python in the Windows Firewall when asked.
+4. Log in with one of these users. The password is `demo12345` for all of them.
+
+   | User | Role |
+   |---|---|
+   | `secretary` | secretary |
+   | `intern1` | intern |
+   | `supervisor` | supervisor |
+   | `owner` | owner |
+
+5. Follow **[docs/secretary-test-checklist.md](docs/secretary-test-checklist.md)** step by step.
+
+To stop, close the black window. To start again, double-click `trial-windows.bat`. Your practice data is kept.
+To start over with fresh sample data, delete the `data` folder and run it again.
+
+**Mac / Linux:** run `sh trial-mac-linux.sh` in the project folder, then open http://localhost:8000.
 
 ## Installing on the clinic server
 

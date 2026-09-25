@@ -1,20 +1,66 @@
+/* Cairo Implant Academy brand: logo green #9EC64F and grey #95979A.
+   Both are too light for white text, so buttons/links use darker shades of the same green. */
 :root {
-  --app-primary: #0f5e7a;
-  --app-primary-dark: #0b4659;
-  --app-accent: #1aa39a;
+  --brand-green: #9EC64F;
+  --brand-green-dark: #5C8020;
+  --brand-green-darker: #4E701A;
+  --brand-green-soft: #F2F8E7;
+  --brand-gray: #95979A;
+  --brand-gray-dark: #58595B;
+  --app-primary: var(--brand-green-dark);
+  --app-primary-dark: var(--brand-green-darker);
+  --app-accent: var(--brand-green);
+  --bs-primary: #5C8020;
+  --bs-primary-rgb: 92, 128, 32;
+  --bs-link-color: #4E701A;
+  --bs-link-color-rgb: 78, 112, 26;
+  --bs-link-hover-color: #3B5514;
+  --bs-link-hover-color-rgb: 59, 85, 20;
+  --bs-body-color: #3F4043;
+  --bs-body-color-rgb: 63, 64, 67;
 }
 body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
-.app-navbar { background: linear-gradient(90deg, var(--app-primary-dark), var(--app-primary)); }
-.app-navbar .nav-link { color: rgba(255, 255, 255, .88); white-space: nowrap; font-size: .93rem; }
-.app-navbar .navbar-brand { font-size: 1.05rem; white-space: nowrap; }
+
+/* Bootstrap components recoloured to the brand */
+.btn-primary {
+  --bs-btn-bg: #5C8020; --bs-btn-border-color: #5C8020;
+  --bs-btn-hover-bg: #4E701A; --bs-btn-hover-border-color: #4E701A;
+  --bs-btn-active-bg: #45631A; --bs-btn-active-border-color: #45631A;
+  --bs-btn-disabled-bg: #5C8020; --bs-btn-disabled-border-color: #5C8020;
+  --bs-btn-focus-shadow-rgb: 158, 198, 79;
+}
+.btn-outline-primary {
+  --bs-btn-color: #5C8020; --bs-btn-border-color: #5C8020;
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #5C8020; --bs-btn-hover-border-color: #5C8020;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: #4E701A; --bs-btn-active-border-color: #4E701A;
+  --bs-btn-disabled-color: #5C8020; --bs-btn-disabled-border-color: #5C8020;
+  --bs-btn-focus-shadow-rgb: 158, 198, 79;
+}
+.nav-pills { --bs-nav-pills-link-active-bg: #5C8020; }
+.pagination { --bs-pagination-active-bg: #5C8020; --bs-pagination-active-border-color: #5C8020; --bs-pagination-focus-box-shadow: 0 0 0 .25rem rgba(158, 198, 79, .35); }
+.dropdown-menu { --bs-dropdown-link-active-bg: #5C8020; }
+.form-control:focus, .form-select:focus, .form-check-input:focus { border-color: var(--brand-green); box-shadow: 0 0 0 .25rem rgba(158, 198, 79, .35); }
+.form-check-input:checked { background-color: #5C8020; border-color: #5C8020; }
+
+/* Top bar: white, logo on the start side, green line underneath */
+.app-navbar { background: #fff; border-bottom: 3px solid var(--brand-green); box-shadow: 0 1px 4px rgba(0, 0, 0, .06); }
+.app-navbar .navbar-brand { display: flex; align-items: center; gap: .6rem; white-space: nowrap; color: var(--brand-gray-dark); font-size: .95rem; font-weight: 700; }
+.app-navbar .navbar-brand img { height: 42px; width: auto; }
+.app-navbar .brand-name { display: none; border-inline-start: 2px solid var(--brand-green); padding-inline-start: .6rem; line-height: 1.2; }
+/* The full name fits next to the menu only on wide screens (and on phones, where the menu is collapsed). */
+@media (min-width: 1600px), (max-width: 1199.98px) and (min-width: 400px) { .app-navbar .brand-name { display: inline; } }
+.app-navbar .nav-link { color: var(--brand-gray-dark); white-space: nowrap; font-size: .93rem; font-weight: 600; }
+.app-navbar .nav-link .bi { color: var(--brand-green-dark); }
+.app-navbar .nav-link:hover, .app-navbar .nav-link:focus, .app-navbar .nav-link.show { color: var(--brand-green-darker); }
 @media (min-width: 1200px) { .app-navbar .navbar-nav .nav-link { padding-inline: .45rem; } }
-.app-navbar form[role=search] input { min-width: 230px; }
-.app-navbar .nav-link:hover, .app-navbar .nav-link:focus { color: #fff; }
+.app-navbar form[role=search] input { min-width: 190px; }
 .notif-badge { position: absolute; top: 2px; inset-inline-end: -2px; font-size: .65rem; }
 .page-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: 1rem; }
-.page-header h1 { font-size: 1.45rem; font-weight: 700; margin: 0; color: var(--app-primary-dark); }
+.page-header h1 { font-size: 1.45rem; font-weight: 700; margin: 0; color: var(--brand-gray-dark); }
+.page-header h1 > .bi { color: var(--brand-green-dark); }
 .card { border: 0; box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
 .card-header { background: #fff; font-weight: 600; }
+.stat-card { border-top: 3px solid var(--brand-green); }
 .stat-card .stat-value { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
 .stat-card .stat-label { color: #6c757d; font-size: .9rem; }
 .table > :not(caption) > * > * { vertical-align: middle; }
@@ -33,20 +79,21 @@ body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Sego
 .dl-grid dd { margin: 0; }
 .doc-thumb { width: 100%; max-height: 180px; object-fit: contain; background: #f8f9fa; border-radius: .5rem; }
 .schedule-grid td { min-width: 150px; vertical-align: top; }
-.shift-chip { display: block; background: #e8f4f8; border-inline-start: 3px solid var(--app-primary); border-radius: .35rem; padding: .25rem .4rem; margin-bottom: .3rem; font-size: .82rem; }
+.shift-chip { display: block; background: var(--brand-green-soft); border-inline-start: 3px solid var(--app-primary); border-radius: .35rem; padding: .25rem .4rem; margin-bottom: .3rem; font-size: .82rem; }
 .today-col { background: #fffbea !important; }
 .board-row.status-arrived { background: #fff8e1; }
-.board-row.status-in_room { background: #e6f6fb; }
+.board-row.status-in_room { background: #EAF4FA; }
 .board-row.status-completed { background: #eef8f0; }
 .board-row.status-no_show, .board-row.status-cancelled { opacity: .6; }
 .timeline { border-inline-start: 2px solid #dee2e6; padding-inline-start: 1rem; list-style: none; margin: 0; }
 .timeline li { position: relative; margin-bottom: .75rem; }
-.timeline li::before { content: ""; position: absolute; inset-inline-start: calc(-1rem - 6px); top: .45rem; width: 10px; height: 10px; border-radius: 50%; background: var(--app-primary); }
+.timeline li::before { content: ""; position: absolute; inset-inline-start: calc(-1rem - 6px); top: .45rem; width: 10px; height: 10px; border-radius: 50%; background: var(--brand-green); }
 .bar { height: .6rem; border-radius: .3rem; background: var(--app-accent); min-width: 2px; }
-.btn-primary { --bs-btn-bg: var(--app-primary); --bs-btn-border-color: var(--app-primary); --bs-btn-hover-bg: var(--app-primary-dark); --bs-btn-hover-border-color: var(--app-primary-dark); }
 .nowrap { white-space: nowrap; }
 .ltr { direction: ltr; unicode-bidi: embed; display: inline-block; }
-.login-box { max-width: 420px; margin: 8vh auto; }
+.login-box { max-width: 420px; margin: 6vh auto; }
+.login-box .login-logo { width: 240px; max-width: 80%; height: auto; }
+.print-logo { height: 70px; width: auto; }
 @media print {
   .no-print, .app-navbar, .alert { display: none !important; }
   body { background: #fff !important; }
