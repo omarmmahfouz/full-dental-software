@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Money" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-cash-stack"></i> {% trans "Money" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1></div>
+{% include "reports/_period.html" %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-success">{{ collected|money }}</div><div class="stat-label">{% trans "Installments collected in period" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-primary">{{ outstanding|money }}</div><div class="stat-label">{% trans "Still to collect (all active candidates)" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-danger">{{ overdue|money }}</div><div class="stat-label">{% trans "Overdue installments now" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ spent|money }}</div><div class="stat-label">{% trans "Purchases in period" %}</div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Collected by payment method" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, amount in collected_by_method %}<tr><td>{{ label }}</td><td class="fw-bold">{{ amount|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table>
+  <div class="card-header border-top">{% trans "Collected by course" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for r in collected_by_course %}<tr><td>{{ r.enrollment__course__name }} ({{ r.enrollment__course__code }})</td><td class="fw-bold">{{ r.total|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Purchases: dental / non-dental" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, amount in spent_by_kind %}<tr><td>{{ label }}</td><td class="fw-bold">{{ amount|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table>
+  <div class="card-header border-top">{% trans "Purchases by category" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for category, amount in spent_by_category %}<tr><td>{{ category }}</td><td class="fw-bold">{{ amount|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table>
+  <div class="card-header border-top">{% trans "Top suppliers" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for r in spent_by_supplier %}<tr><td>{{ r.purchase__supplier__name }}</td><td class="fw-bold">{{ r.total|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table></div></div>
+</div>
+{% endblock %}

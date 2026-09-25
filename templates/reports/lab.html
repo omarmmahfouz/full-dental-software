@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab work" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-box-seam"></i> {% trans "Lab work" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1></div>
+{% include "reports/_period.html" %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% blocktrans %}Requests ({{ total }}){% endblocktrans %}</div><ul class="list-group list-group-flush">
+    {% for label, code, n in by_status %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'clinical:lab_list' %}?status={{ code }}">{{ label }}</a><span class="badge text-bg-{{ code|status_color }}">{{ n }}</span></li>{% empty %}<li class="list-group-item text-muted">—</li>{% endfor %}
+  </ul></div></div>
+  <div class="col-lg-8"><div class="card h-100"><div class="card-header">{% trans "Per lab" %}</div><div class="table-responsive"><table class="table mb-0">
+    <thead><tr><th>{% trans "Lab" %}</th><th>{% trans "Requests" %}</th><th>{% trans "Average days at lab" %}</th><th>{% trans "Remakes" %}</th>{% if roles.owner %}<th>{% trans "Lab cost" %}</th>{% endif %}</tr></thead>
+    <tbody>{% for r in lab_rows %}<tr><td>{{ r.lab }}</td><td>{{ r.n }}</td><td>{{ r.avg_days|default_if_none:"—" }}</td><td>{{ r.remakes }}</td>{% if roles.owner %}<td>{{ r.cost|money }}</td>{% endif %}</tr>{% empty %}<tr><td colspan="5" class="text-muted">—</td></tr>{% endfor %}</tbody>
+  </table></div></div></div>
+</div>
+<div class="card"><div class="card-header text-danger">{% trans "Late at the lab now" %}</div><div class="table-responsive"><table class="table mb-0">
+  <thead><tr><th>{% trans "No." %}</th><th>{% trans "Patient" %}</th><th>{% trans "Work" %}</th><th>{% trans "Lab" %}</th><th>{% trans "Sent" %}</th><th>{% trans "Needed by" %}</th><th>{% trans "Doctor" %}</th></tr></thead>
+  <tbody>{% for lr in overdue %}<tr><td><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a></td><td>{{ lr.patient.full_name }}</td><td>{{ lr.work_type }}</td><td>{{ lr.lab }}</td><td>{{ lr.sent_at|date:"d/m/Y" }}</td><td class="text-danger">{{ lr.due_date|date:"d/m/Y" }}</td><td>{{ lr.requested_by }}</td></tr>{% empty %}<tr><td colspan="7" class="text-muted">{% trans "Nothing is late." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

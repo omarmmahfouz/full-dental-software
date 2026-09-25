@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Appointment" %}{% endblock %}
+{% block content %}
+{% with a=appointment %}
+<div class="page-header">
+  <h1>{% trans "Appointment" %}: <a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a> {% status_badge a %}</h1>
+  <div class="d-flex gap-2 flex-wrap no-print">
+    {% if is_front_desk %}<a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_update' a.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
+    <a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>
+    <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-box-seam"></i> {% trans "New lab request" %}</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "Appointment time" %}</dt><dd>{{ a.scheduled_at|date:"l d/m/Y g:i A" }}{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}</dd>
+      <dt>{% trans "Expected duration" %}</dt><dd>{{ a.duration_minutes|minutes }}</dd>
+      <dt>{% trans "Intern" %}</dt><dd>{{ a.intern|default:"—" }}</dd>
+      <dt>{% trans "Room" %}</dt><dd>{{ a.room|default:"—" }}</dd>
+      <dt>{% trans "Procedure" %}</dt><dd>{{ a.purpose|default:"—" }}</dd>
+      <dt>{% trans "Notes" %}</dt><dd>{{ a.notes|linebreaksbr|default:"—" }}</dd>
+      {% if a.cancel_reason %}<dt>{% trans "Reason" %}</dt><dd>{{ a.cancel_reason }}</dd>{% endif %}
+      <dt>{% trans "Booked by" %}</dt><dd class="small text-muted">{{ a.created_by|default:"—" }} — {{ a.created_at|date:"d/m/Y g:i A" }}</dd>
+    </dl>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Visit times" %}</div><div class="card-body">
+    <ul class="timeline">
+      <li><strong>{% trans "Arrived at clinic" %}</strong>: {{ a.arrived_at|time:"g:i A"|default:"—" }} {% if a.is_late %}<span class="badge text-bg-danger">{% trans "Late" %} {{ a.late_minutes|minutes }}</span>{% elif a.late_minutes is not None %}<span class="badge text-bg-success">{% trans "on time" %}</span>{% endif %}</li>
+      <li><strong>{% trans "Entered the room" %}</strong>: {{ a.entered_room_at|time:"g:i A"|default:"—" }} <span class="text-muted small">({% trans "waited" %} {{ a.waiting_minutes|minutes }})</span></li>
+      <li><strong>{% trans "Left" %}</strong>: {{ a.left_at|time:"g:i A"|default:"—" }} <span class="text-muted small">({% trans "in chair" %} {{ a.chair_minutes|minutes }})</span></li>
+    </ul>
+    <div class="fw-bold">{% trans "Total time in clinic" %}: {{ a.total_minutes|minutes }}</div>
+    {% if is_front_desk %}
+    <form method="post" action="{% url 'scheduling:appointment_action' a.pk %}" class="d-flex flex-wrap gap-2 mt-3 no-print">{% csrf_token %}
+      {% if a.status == "scheduled" or a.status == "confirmed" %}
+        <button name="action" value="arrive" class="btn btn-warning">{% trans "Arrived" %}</button>
+        <input name="reason" class="form-control w-auto" placeholder="{% trans 'Reason (for cancel)' %}">
+        <button name="action" value="cancel" class="btn btn-outline-dark" data-confirm="{% trans 'Cancel this appointment?' %}">{% trans "Cancel appointment" %}</button>
+        <button name="action" value="no_show" class="btn btn-outline-danger" data-confirm="{% trans 'Mark as did not come?' %}">{% trans "No-show" %}</button>
+      {% elif a.status == "arrived" %}
+        <select name="room" class="form-select w-auto">{% for r in rooms %}<option value="{{ r.pk }}" {% if r.pk == a.room_id %}selected{% endif %}>{{ r }}</option>{% endfor %}</select>
+        <button name="action" value="enter" class="btn btn-info">{% trans "Entered room" %}</button>
+      {% elif a.status == "in_room" %}
+        <button name="action" value="leave" class="btn btn-success">{% trans "Left" %}</button>
+      {% endif %}
+      {% if a.status != "scheduled" %}<button name="action" value="undo" class="btn btn-link" data-confirm="{% trans 'Undo the last step?' %}">{% trans "Undo last step" %}</button>{% endif %}
+    </form>
+    {% endif %}
+  </div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-header">{% trans "Steps done in this visit" %}</div><ul class="list-group list-group-flush">
+    {% for s in steps %}<li class="list-group-item"><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a> {{ s.teeth }} — {{ s.performed_by }}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}
+  </ul></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-header">{% trans "Lab requests from this visit" %}</div><ul class="list-group list-group-flush">
+    {% for lr in lab_requests %}<li class="list-group-item"><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a> {{ lr.work_type }} {% status_badge lr %}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}
+  </ul></div></div>
+</div>
+{% endwith %}
+{% endblock %}

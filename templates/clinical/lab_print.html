@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ lab_request.number }}{% endblock %}
+{% block content %}
+{% with lr=lab_request %}
+<div class="card mx-auto" style="max-width: 800px"><div class="card-body p-4">
+  <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+    <div><h1 class="h4 fw-bold mb-0">{% trans "Lab prescription" %}</h1><div class="text-muted">{{ lr.branch }}</div></div>
+    <div class="text-end"><div class="fs-5 fw-bold">{{ lr.number }}</div><div>{{ lr.created_at|date:"d/m/Y" }}</div></div>
+  </div>
+  <dl class="dl-grid fs-6">
+    <dt>{% trans "Lab" %}</dt><dd>{{ lr.lab }}</dd>
+    <dt>{% trans "Patient" %}</dt><dd>{{ lr.patient.full_name }} ({{ lr.patient.file_number }})</dd>
+    <dt>{% trans "Doctor" %}</dt><dd>{{ lr.requested_by }}</dd>
+    <dt>{% trans "Work" %}</dt><dd>{{ lr.work_type }} — {% blocktrans with n=lr.units %}{{ n }} unit(s){% endblocktrans %}</dd>
+    <dt>{% trans "Teeth" %}</dt><dd>{{ lr.teeth }}</dd>
+    <dt>{% trans "Shade" %}</dt><dd>{{ lr.shade|default:"—" }}</dd>
+    <dt>{% trans "Material" %}</dt><dd>{{ lr.material|default:"—" }}</dd>
+    <dt>{% trans "Needed by" %}</dt><dd>{{ lr.due_date|date:"l d/m/Y"|default:"—" }}</dd>
+    <dt>{% trans "Instructions" %}</dt><dd>{{ lr.instructions|linebreaksbr|default:"—" }}</dd>
+  </dl>
+  <div class="row mt-5 text-center">
+    <div class="col">{% trans "Doctor signature" %}<br><br>__________________</div>
+    <div class="col">{% trans "Reviewed by" %}: {{ lr.reviewed_by|default:"" }}<br><br>__________________</div>
+    <div class="col">{% trans "Received by (lab)" %}<br><br>__________________</div>
+  </div>
+</div></div>
+<div class="text-center mt-3 no-print"><button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button></div>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,2858 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-25 10:55+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+msgid "Academy"
+msgstr "الأكاديمية"
+
+msgid "Personal data"
+msgstr "البيانات الشخصية"
+
+msgid "Professional data"
+msgstr "البيانات المهنية"
+
+msgid "down payment paid now"
+msgstr "المقدم المدفوع الآن"
+
+msgid "down payment method"
+msgstr "طريقة دفع المقدم"
+
+msgid "number of installments (after down payment)"
+msgstr "عدد الأقساط (بعد المقدم)"
+
+msgid "first installment date"
+msgstr "تاريخ أول قسط"
+
+msgid "Installment plan"
+msgstr "خطة التقسيط"
+
+msgid "Leave empty to use the course fee."
+msgstr "اتركه فارغًا لاستخدام سعر الكورس."
+
+msgid "Following installments are monthly."
+msgstr "باقي الأقساط شهرية."
+
+msgid "This candidate is already enrolled in this course."
+msgstr "هذا الدارس مسجل بالفعل في هذا الكورس."
+
+msgid "The discount is larger than the fee."
+msgstr "الخصم أكبر من الرسوم."
+
+msgid "The down payment is larger than the fee."
+msgstr "المقدم أكبر من الرسوم."
+
+msgid "Enter the number of installments for the remaining amount."
+msgstr "أدخل عدد الأقساط للمبلغ المتبقي."
+
+msgid "Enter the date of the first installment."
+msgstr "أدخل تاريخ أول قسط."
+
+#, python-format
+msgid "The amount is more than the remaining balance (%(balance)s)."
+msgstr "المبلغ أكبر من الرصيد المتبقي (%(balance)s)."
+
+msgid "Write the transaction / transfer reference number."
+msgstr "اكتب رقم العملية / التحويل."
+
+msgid "From"
+msgstr "من"
+
+msgid "To"
+msgstr "إلى"
+
+msgid "payment method"
+msgstr "طريقة الدفع"
+
+msgid "All"
+msgstr "الكل"
+
+msgid "course"
+msgstr "الكورس"
+
+msgid "Cash"
+msgstr "كاش"
+
+msgid "Visa / card"
+msgstr "فيزا / كارت"
+
+msgid "InstaPay"
+msgstr "إنستاباي"
+
+msgid "Mobile wallet (Vodafone Cash...)"
+msgstr "محفظة موبايل (فودافون كاش...)"
+
+msgid "Bank transfer"
+msgstr "تحويل بنكي"
+
+msgid "Cheque"
+msgstr "شيك"
+
+msgid "branch"
+msgstr "الفرع"
+
+msgid "course name"
+msgstr "اسم الكورس"
+
+msgid "code / batch"
+msgstr "الكود / الدفعة"
+
+msgid "start date"
+msgstr "تاريخ البداية"
+
+msgid "end date"
+msgstr "تاريخ النهاية"
+
+msgid "course fee"
+msgstr "رسوم الكورس"
+
+msgid "capacity"
+msgstr "العدد الأقصى"
+
+msgid "open"
+msgstr "مفتوح"
+
+msgid "description"
+msgstr "الوصف"
+
+msgid "courses"
+msgstr "الكورسات"
+
+msgid "full name"
+msgstr "الاسم بالكامل"
+
+msgid "national ID / passport no."
+msgstr "الرقم القومي / رقم الجواز"
+
+msgid "A candidate with this ID number is already registered."
+msgstr "يوجد دارس مسجل بنفس رقم الهوية."
+
+msgid "mobile 1 (primary)"
+msgstr "موبايل 1 (الأساسي)"
+
+msgid "This mobile number is already registered for another candidate."
+msgstr "رقم الموبايل هذا مسجل لدارس آخر."
+
+msgid "mobile 2"
+msgstr "موبايل 2"
+
+msgid "email"
+msgstr "البريد الإلكتروني"
+
+msgid "university"
+msgstr "الجامعة"
+
+msgid "graduation year"
+msgstr "سنة التخرج"
+
+msgid "syndicate registration no."
+msgstr "رقم القيد بالنقابة"
+
+msgid "ID scan"
+msgstr "صورة البطاقة"
+
+msgid "system login (if intern)"
+msgstr "حساب الدخول على النظام (لو امتياز)"
+
+msgid "notes"
+msgstr "ملاحظات"
+
+msgid "candidate"
+msgstr "دارس"
+
+msgid "candidates"
+msgstr "الدارسون"
+
+msgid "Studying"
+msgstr "يدرس"
+
+msgid "Completed"
+msgstr "أنهى"
+
+msgid "Withdrawn"
+msgstr "انسحب"
+
+msgid "enrollment date"
+msgstr "تاريخ التسجيل"
+
+msgid "agreed fee"
+msgstr "الرسوم المتفق عليها"
+
+msgid "discount"
+msgstr "الخصم"
+
+msgid "status"
+msgstr "الحالة"
+
+msgid "enrollment"
+msgstr "تسجيل"
+
+msgid "enrollments"
+msgstr "التسجيلات"
+
+msgid "installment no."
+msgstr "رقم القسط"
+
+msgid "due date"
+msgstr "تاريخ الاستحقاق"
+
+msgid "amount"
+msgstr "المبلغ"
+
+msgid "installment"
+msgstr "قسط"
+
+msgid "installments"
+msgstr "الأقساط"
+
+msgid "receipt number"
+msgstr "رقم الإيصال"
+
+msgid "amount paid"
+msgstr "المبلغ المدفوع"
+
+msgid "payment date"
+msgstr "تاريخ الدفع"
+
+msgid "transaction reference"
+msgstr "رقم العملية"
+
+msgid "Transfer / InstaPay / wallet reference number, if any."
+msgstr "رقم التحويل / إنستاباي / المحفظة إن وجد."
+
+msgid "payment"
+msgstr "دفعة"
+
+msgid "payments"
+msgstr "المدفوعات"
+
+msgid "New course"
+msgstr "كورس جديد"
+
+msgid "Edit course"
+msgstr "تعديل الكورس"
+
+msgid "New candidate"
+msgstr "دارس جديد"
+
+msgid "Edit candidate"
+msgstr "تعديل بيانات الدارس"
+
+msgid "Down payment"
+msgstr "مقدم"
+
+msgid "Candidate enrolled and installment plan created."
+msgstr "تم تسجيل الدارس وعمل خطة الأقساط."
+
+#, python-format
+msgid "Enroll %(name)s in a course"
+msgstr "تسجيل %(name)s في كورس"
+
+#, python-format
+msgid "Payment saved. Receipt %(number)s."
+msgstr "تم حفظ الدفعة. إيصال رقم %(number)s."
+
+#, python-format
+msgid "Installments total %(total)s but the fee after discount is %(net)s."
+msgstr "مجموع الأقساط %(total)s بينما الرسوم بعد الخصم %(net)s."
+
+msgid "Installment plan saved."
+msgstr "تم حفظ خطة الأقساط."
+
+msgid "Clinical"
+msgstr "العلاج"
+
+msgid "This patient is not assigned to you."
+msgstr "هذا المريض ليس مسؤوليتك."
+
+msgid "patient"
+msgstr "المريض"
+
+msgid "done by (intern)"
+msgstr "قام بها (طبيب الامتياز)"
+
+msgid "supervisor present"
+msgstr "المشرف الحاضر"
+
+msgid "Implant details (if an implant was placed)"
+msgstr "بيانات الزرعة (لو تم تركيب زرعة)"
+
+msgid "requested by (doctor)"
+msgstr "الطبيب الطالب"
+
+msgid "I checked the work against the lab request"
+msgstr "راجعت الشغل على طلب المعمل"
+
+msgid "intern"
+msgstr "طبيب الامتياز"
+
+msgid "step"
+msgstr "الخطوة"
+
+msgid "not checked yet"
+msgstr "لم تتم مراجعتها"
+
+msgid "Search"
+msgstr "بحث"
+
+msgid "Open (not delivered)"
+msgstr "مفتوح (لم يُسلَّم)"
+
+msgid "lab"
+msgstr "المعمل"
+
+msgid "late at the lab"
+msgstr "متأخر في المعمل"
+
+msgid "my requests"
+msgstr "طلباتي"
+
+msgid "treatment step type"
+msgstr "نوع خطوة علاج"
+
+msgid "treatment step types"
+msgstr "أنواع خطوات العلاج"
+
+msgid "visit"
+msgstr "الزيارة"
+
+msgid "teeth (FDI numbers)"
+msgstr "الأسنان (ترقيم FDI)"
+
+msgid "e.g. 36, 37 or 11-13"
+msgstr "مثال: 36، 37 أو 11-13"
+
+msgid "done at"
+msgstr "وقت التنفيذ"
+
+msgid "implant system / brand"
+msgstr "نوع / ماركة الزرعة"
+
+msgid "implant size (diameter x length)"
+msgstr "مقاس الزرعة (القطر × الطول)"
+
+msgid "details"
+msgstr "التفاصيل"
+
+msgid "checked by"
+msgstr "راجعها"
+
+msgid "checked at"
+msgstr "وقت المراجعة"
+
+msgid "grade"
+msgstr "التقييم"
+
+msgid "Supervisor evaluation from 1 (poor) to 5 (excellent)."
+msgstr "تقييم المشرف من 1 (ضعيف) إلى 5 (ممتاز)."
+
+msgid "supervisor comment"
+msgstr "تعليق المشرف"
+
+msgid "treatment step"
+msgstr "خطوة علاج"
+
+msgid "treatment steps"
+msgstr "خطوات العلاج"
+
+msgid "name"
+msgstr "الاسم"
+
+msgid "our branch"
+msgstr "فرعنا"
+
+msgid "Set when the lab is our own lab."
+msgstr "اختره لو المعمل تابع لنا."
+
+msgid "phone"
+msgstr "التليفون"
+
+msgid "contact person"
+msgstr "الشخص المسؤول"
+
+msgid "active"
+msgstr "فعال"
+
+msgid "labs"
+msgstr "المعامل"
+
+msgid "lab work type"
+msgstr "نوع شغل معمل"
+
+msgid "lab work types"
+msgstr "أنواع شغل المعمل"
+
+msgid "Draft"
+msgstr "مسودة"
+
+msgid "Waiting for supervisor review"
+msgstr "في انتظار مراجعة المشرف"
+
+msgid "Reviewed - ready to send"
+msgstr "تمت المراجعة - جاهز للإرسال"
+
+msgid "At the lab"
+msgstr "في المعمل"
+
+msgid "Received from lab"
+msgstr "تم الاستلام من المعمل"
+
+msgid "Delivered to patient"
+msgstr "تم التركيب للمريض"
+
+msgid "Cancelled"
+msgstr "ملغي"
+
+msgid "request number"
+msgstr "رقم الطلب"
+
+msgid "work type"
+msgstr "نوع الشغل"
+
+msgid "number of units"
+msgstr "عدد الوحدات"
+
+msgid "shade"
+msgstr "اللون"
+
+msgid "material"
+msgstr "الخامة"
+
+msgid "instructions to the lab"
+msgstr "تعليمات للمعمل"
+
+msgid "needed back by"
+msgstr "مطلوب استلامه يوم"
+
+msgid "reviewed by"
+msgstr "راجعه"
+
+msgid "reviewed at"
+msgstr "وقت المراجعة"
+
+msgid "sent by"
+msgstr "أرسله"
+
+msgid "sent at"
+msgstr "وقت الإرسال"
+
+msgid "received by"
+msgstr "استلمه"
+
+msgid "received at"
+msgstr "وقت الاستلام"
+
+msgid "delivered to patient at"
+msgstr "وقت التركيب للمريض"
+
+msgid "times returned to lab"
+msgstr "مرات الإرجاع للمعمل"
+
+msgid "lab cost"
+msgstr "تكلفة المعمل"
+
+msgid "lab request"
+msgstr "طلب معمل"
+
+msgid "lab requests"
+msgstr "طلبات المعمل"
+
+msgid "Created"
+msgstr "تم الإنشاء"
+
+msgid "Sent for review"
+msgstr "أُرسل للمراجعة"
+
+msgid "Reviewed and approved"
+msgstr "تمت المراجعة والموافقة"
+
+msgid "Returned to doctor for changes"
+msgstr "أُعيد للطبيب للتعديل"
+
+msgid "Sent to lab"
+msgstr "أُرسل للمعمل"
+
+msgid "Returned to lab for remake"
+msgstr "أُرجع للمعمل لإعادة العمل"
+
+msgid "action"
+msgstr "الإجراء"
+
+msgid "by"
+msgstr "بواسطة"
+
+msgid "time"
+msgstr "الوقت"
+
+msgid "work checked against the request"
+msgstr "تمت مراجعة الشغل على الطلب"
+
+msgid "lab request history"
+msgstr "سجل طلب المعمل"
+
+msgid "Send for supervisor review"
+msgstr "إرسال لمراجعة المشرف"
+
+msgid "Approve (reviewed)"
+msgstr "موافقة (تمت المراجعة)"
+
+msgid "Return to doctor for changes"
+msgstr "إعادة للطبيب للتعديل"
+
+msgid "Mark as sent to lab"
+msgstr "تسجيل الإرسال للمعمل"
+
+msgid "Mark as received from lab"
+msgstr "تسجيل الاستلام من المعمل"
+
+msgid "Return to lab for remake"
+msgstr "إرجاع للمعمل لإعادة العمل"
+
+msgid "Delivered / fitted to patient"
+msgstr "تم التركيب / التسليم للمريض"
+
+msgid "Cancel request"
+msgstr "إلغاء الطلب"
+
+msgid "Unknown action."
+msgstr "إجراء غير معروف."
+
+msgid "This action is not possible in the current status."
+msgstr "لا يمكن تنفيذ هذا الإجراء في الحالة الحالية."
+
+msgid "Confirm that you checked the work against the lab request."
+msgstr "أكّد أنك راجعت الشغل على طلب المعمل."
+
+msgid "Please write the reason."
+msgstr "من فضلك اكتب السبب."
+
+#, python-format
+msgid "Lab request %(number)s needs your review"
+msgstr "طلب المعمل %(number)s يحتاج مراجعتك"
+
+#, python-format
+msgid "Patient: %(patient)s"
+msgstr "المريض: %(patient)s"
+
+#, python-format
+msgid "Lab request %(number)s is reviewed - send it to the lab"
+msgstr "تمت مراجعة طلب المعمل %(number)s - أرسليه للمعمل"
+
+#, python-format
+msgid "Your lab request %(number)s was approved"
+msgstr "تمت الموافقة على طلب المعمل %(number)s"
+
+#, python-format
+msgid "Lab request %(number)s was returned for changes"
+msgstr "طلب المعمل %(number)s أُعيد للتعديل"
+
+#, python-format
+msgid "Lab work %(number)s arrived from the lab"
+msgstr "شغل المعمل %(number)s وصل من المعمل"
+
+#, python-format
+msgid "Lab work %(number)s returned to the lab for remake"
+msgstr "شغل المعمل %(number)s أُرجع للمعمل لإعادته"
+
+msgid "Treatment step saved."
+msgstr "تم حفظ خطوة العلاج."
+
+msgid "Record treatment step"
+msgstr "تسجيل خطوة علاج"
+
+msgid "Step checked."
+msgstr "تمت مراجعة الخطوة."
+
+msgid "Lab request saved and sent to the supervisor for review."
+msgstr "تم حفظ طلب المعمل وإرساله للمشرف للمراجعة."
+
+msgid "Lab request saved as draft."
+msgstr "تم حفظ طلب المعمل كمسودة."
+
+msgid "New lab request"
+msgstr "طلب معمل جديد"
+
+msgid "Lab request updated."
+msgstr "تم تعديل طلب المعمل."
+
+msgid "Edit lab request"
+msgstr "تعديل طلب المعمل"
+
+#, python-format
+msgid "Done: %(action)s"
+msgstr "تم: %(action)s"
+
+msgid "Complaints"
+msgstr "الشكاوى"
+
+msgid "followed up by"
+msgstr "المتابع"
+
+msgid "The supervisor responsible for solving it."
+msgstr "المشرف المسؤول عن حلها."
+
+msgid "Leave empty for the default follow-up period."
+msgstr "اتركه فارغًا لمدة المتابعة الافتراضية."
+
+msgid "Set the next follow-up date while the complaint is still open."
+msgstr "حدد موعد المتابعة القادمة طالما الشكوى مفتوحة."
+
+msgid "Open"
+msgstr "مفتوحة"
+
+msgid "category"
+msgstr "النوع"
+
+msgid "follow-up overdue"
+msgstr "متابعة متأخرة"
+
+msgid "Waiting time / delay"
+msgstr "الانتظار / التأخير"
+
+msgid "Treatment result"
+msgstr "نتيجة العلاج"
+
+msgid "Pain / problem after treatment"
+msgstr "ألم / مشكلة بعد العلاج"
+
+msgid "Staff behaviour"
+msgstr "تعامل الموظفين"
+
+msgid "Doctor behaviour"
+msgstr "تعامل الطبيب"
+
+msgid "Payment / prices"
+msgstr "الدفع / الأسعار"
+
+msgid "Cleanliness"
+msgstr "النظافة"
+
+msgid "Lab work"
+msgstr "شغل معمل"
+
+msgid "Appointments"
+msgstr "المواعيد"
+
+msgid "Other"
+msgstr "أخرى"
+
+msgid "Low"
+msgstr "بسيطة"
+
+msgid "Medium"
+msgstr "متوسطة"
+
+msgid "High - urgent"
+msgstr "عالية - عاجلة"
+
+msgid "New"
+msgstr "جديد"
+
+msgid "Being followed up"
+msgstr "قيد المتابعة"
+
+msgid "Resolved"
+msgstr "تم الحل"
+
+msgid "Closed"
+msgstr "مغلقة"
+
+msgid "complaint number"
+msgstr "رقم الشكوى"
+
+msgid "severity"
+msgstr "الأهمية"
+
+msgid "complaint (in the patient's words)"
+msgstr "الشكوى (بكلام المريض)"
+
+msgid "concerned doctor / staff"
+msgstr "الطبيب / الموظف المعني"
+
+msgid "next follow-up date"
+msgstr "موعد المتابعة القادمة"
+
+msgid "how it was solved"
+msgstr "طريقة الحل"
+
+msgid "resolved at"
+msgstr "وقت الحل"
+
+msgid "resolved by"
+msgstr "تم الحل بواسطة"
+
+msgid "complaint"
+msgstr "شكوى"
+
+msgid "complaints"
+msgstr "الشكاوى"
+
+msgid "Called the patient"
+msgstr "اتصال بالمريض"
+
+msgid "Met the patient"
+msgstr "مقابلة المريض"
+
+msgid "Spoke to the doctor / staff"
+msgstr "التحدث مع الطبيب / الموظف"
+
+msgid "Booked a correction visit"
+msgstr "حجز زيارة لتصحيح العلاج"
+
+msgid "Refund / discount"
+msgstr "استرداد / خصم"
+
+msgid "Note"
+msgstr "ملاحظة"
+
+msgid "action taken"
+msgstr "الإجراء المتخذ"
+
+msgid "status after this step"
+msgstr "الحالة بعد هذا الإجراء"
+
+msgid "follow-up"
+msgstr "متابعة"
+
+msgid "follow-ups"
+msgstr "المتابعات"
+
+#, python-format
+msgid "New patient complaint %(number)s: %(patient)s"
+msgstr "شكوى جديدة %(number)s: %(patient)s"
+
+#, python-format
+msgid "Complaint %(number)s recorded and the supervisors were notified."
+msgstr "تم تسجيل الشكوى %(number)s وإبلاغ المشرفين."
+
+msgid "Record patient complaint"
+msgstr "تسجيل شكوى مريض"
+
+msgid "Complaint updated."
+msgstr "تم تعديل الشكوى."
+
+msgid "Edit complaint"
+msgstr "تعديل الشكوى"
+
+#, python-format
+msgid "Complaint %(number)s updated: %(status)s"
+msgstr "تحديث الشكوى %(number)s: %(status)s"
+
+msgid "Follow-up saved."
+msgstr "تم حفظ المتابعة."
+
+msgid "staff profile"
+msgstr "بيانات الموظف"
+
+msgid "Personal info"
+msgstr "البيانات الشخصية"
+
+msgid "Roles and access"
+msgstr "الأدوار والصلاحيات"
+
+msgid ""
+"Choose the roles (groups): secretary, intern, supervisor, owner. 'Staff "
+"status' allows opening this settings area."
+msgstr ""
+"اختر الأدوار (المجموعات): secretary = سكرتارية، intern = امتياز، supervisor "
+"= مشرف، owner = المالك. خيار \"حالة الطاقم\" يسمح بفتح شاشة الإعدادات هذه."
+
+msgid "Important dates"
+msgstr "تواريخ مهمة"
+
+msgid "roles"
+msgstr "الأدوار"
+
+msgid "Core"
+msgstr "الأساسيات"
+
+#, python-format
+msgid "The file is too large (maximum %(size)s MB)."
+msgstr "الملف كبير جدًا (الحد الأقصى %(size)s ميجا)."
+
+msgid "Only images or PDF files can be uploaded."
+msgstr "يمكن رفع الصور أو ملفات PDF فقط."
+
+#, python-format
+msgid "Complaint %(number)s needs follow-up (overdue)"
+msgstr "الشكوى %(number)s تحتاج متابعة (متأخرة)"
+
+#, python-format
+msgid "Lab work %(number)s is late at %(lab)s"
+msgstr "شغل المعمل %(number)s متأخر في %(lab)s"
+
+msgid "Saved successfully."
+msgstr "تم الحفظ بنجاح."
+
+msgid "created at"
+msgstr "تاريخ الإنشاء"
+
+msgid "updated at"
+msgstr "آخر تعديل"
+
+msgid "created by"
+msgstr "أنشأه"
+
+msgid "name (Arabic)"
+msgstr "الاسم (عربي)"
+
+msgid "name (English)"
+msgstr "الاسم (إنجليزي)"
+
+msgid "sort order"
+msgstr "الترتيب"
+
+msgid "Teaching academy"
+msgstr "أكاديمية تعليمية"
+
+msgid "Private clinic"
+msgstr "عيادة خاصة"
+
+msgid "Dental lab"
+msgstr "معمل أسنان"
+
+msgid "code"
+msgstr "الكود"
+
+msgid "Short prefix used in file numbers, e.g. CIA."
+msgstr "اختصار يستخدم في أرقام الملفات، مثل CIA."
+
+msgid "type"
+msgstr "النوع"
+
+msgid "address"
+msgstr "العنوان"
+
+msgid "branches"
+msgstr "الفروع"
+
+msgid "user"
+msgstr "المستخدم"
+
+msgid "mobile"
+msgstr "الموبايل"
+
+msgid "staff profiles"
+msgstr "بيانات الموظفين"
+
+msgid "Info"
+msgstr "معلومة"
+
+msgid "Success"
+msgstr "نجاح"
+
+msgid "Warning"
+msgstr "تنبيه"
+
+msgid "Urgent"
+msgstr "عاجل"
+
+msgid "recipient"
+msgstr "المستلم"
+
+msgid "title"
+msgstr "العنوان"
+
+msgid "message"
+msgstr "الرسالة"
+
+msgid "link"
+msgstr "الرابط"
+
+msgid "level"
+msgstr "الأهمية"
+
+msgid "read at"
+msgstr "وقت القراءة"
+
+msgid "notification"
+msgstr "إشعار"
+
+msgid "notifications"
+msgstr "الإشعارات"
+
+msgid "Owner / Manager"
+msgstr "المالك / المدير"
+
+msgid "Supervisor"
+msgstr "مشرف"
+
+msgid "Secretary"
+msgstr "سكرتارية"
+
+msgid "Intern doctor"
+msgstr "طبيب امتياز"
+
+#, python-format
+msgid "%(m)s min"
+msgstr "%(m)s دقيقة"
+
+#, python-format
+msgid "%(h)s h %(m)s min"
+msgstr "%(h)s س %(m)s د"
+
+msgid ""
+"Enter a valid mobile number, e.g. 01001234567 (or +country code for foreign "
+"numbers)."
+msgstr ""
+"أدخل رقم موبايل صحيح، مثل 01001234567 (أو + كود الدولة للأرقام الأجنبية)."
+
+msgid "Cairo"
+msgstr "القاهرة"
+
+msgid "Alexandria"
+msgstr "الإسكندرية"
+
+msgid "Port Said"
+msgstr "بورسعيد"
+
+msgid "Suez"
+msgstr "السويس"
+
+msgid "Damietta"
+msgstr "دمياط"
+
+msgid "Dakahlia"
+msgstr "الدقهلية"
+
+msgid "Sharqia"
+msgstr "الشرقية"
+
+msgid "Qalyubia"
+msgstr "القليوبية"
+
+msgid "Kafr El Sheikh"
+msgstr "كفر الشيخ"
+
+msgid "Gharbia"
+msgstr "الغربية"
+
+msgid "Monufia"
+msgstr "المنوفية"
+
+msgid "Beheira"
+msgstr "البحيرة"
+
+msgid "Ismailia"
+msgstr "الإسماعيلية"
+
+msgid "Giza"
+msgstr "الجيزة"
+
+msgid "Beni Suef"
+msgstr "بني سويف"
+
+msgid "Fayoum"
+msgstr "الفيوم"
+
+msgid "Minya"
+msgstr "المنيا"
+
+msgid "Asyut"
+msgstr "أسيوط"
+
+msgid "Sohag"
+msgstr "سوهاج"
+
+msgid "Qena"
+msgstr "قنا"
+
+msgid "Aswan"
+msgstr "أسوان"
+
+msgid "Luxor"
+msgstr "الأقصر"
+
+msgid "Red Sea"
+msgstr "البحر الأحمر"
+
+msgid "New Valley"
+msgstr "الوادي الجديد"
+
+msgid "Matrouh"
+msgstr "مطروح"
+
+msgid "North Sinai"
+msgstr "شمال سيناء"
+
+msgid "South Sinai"
+msgstr "جنوب سيناء"
+
+msgid "Born abroad"
+msgstr "مولود بالخارج"
+
+msgid "The national ID must be exactly 14 digits."
+msgstr "الرقم القومي يجب أن يكون 14 رقمًا بالضبط."
+
+msgid "The national ID must start with 2 or 3."
+msgstr "الرقم القومي يجب أن يبدأ بـ 2 أو 3."
+
+msgid "The birth date inside the national ID is not valid."
+msgstr "تاريخ الميلاد داخل الرقم القومي غير صحيح."
+
+msgid "The birth date inside the national ID is in the future."
+msgstr "تاريخ الميلاد داخل الرقم القومي في المستقبل."
+
+msgid "All notifications marked as read."
+msgstr "تم تعليم كل الإشعارات كمقروءة."
+
+msgid "Patients"
+msgstr "المرضى"
+
+msgid "Type the patient's file number, mobile or national ID."
+msgstr "اكتب رقم ملف المريض أو الموبايل أو الرقم القومي."
+
+msgid "No patient found with this file number, mobile or ID."
+msgstr "لا يوجد مريض بهذا الرقم (ملف / موبايل / قومي)."
+
+#, python-format
+msgid ""
+"This mobile belongs to the registered patient %(name)s (file %(file)s)."
+msgstr "هذا الموبايل خاص بالمريض المسجل %(name)s (ملف %(file)s)."
+
+#, python-format
+msgid "This mobile is already in the call list under the name %(name)s."
+msgstr "هذا الموبايل موجود بالفعل في قائمة المكالمات باسم %(name)s."
+
+msgid "Caller"
+msgstr "المتصل"
+
+msgid "Teeth and health (as told by the caller)"
+msgstr "الأسنان والحالة الصحية (كما قال المتصل)"
+
+msgid "Follow-up"
+msgstr "المتابعة"
+
+msgid "change status to"
+msgstr "تغيير الحالة إلى"
+
+msgid "next call"
+msgstr "المكالمة القادمة"
+
+msgid "— keep current —"
+msgstr "— بدون تغيير —"
+
+msgid "referring patient"
+msgstr "المريض الذي رشّحه"
+
+msgid "If referred by one of our patients: type their file number or mobile."
+msgstr "لو رشّحه أحد مرضانا: اكتب رقم ملفه أو موبايله."
+
+msgid "relative / friend who is our patient"
+msgstr "قريب / صديق من مرضانا"
+
+msgid ""
+"Optional: type the file number or mobile of a relative or friend already "
+"registered."
+msgstr "اختياري: اكتب رقم ملف أو موبايل قريب أو صديق مسجل عندنا."
+
+msgid "relation"
+msgstr "صلة القرابة"
+
+msgid "ID scan - front"
+msgstr "صورة البطاقة - الوجه"
+
+msgid "Scanned image or photo (JPG, PNG or PDF)."
+msgstr "صورة سكانر أو صورة كاميرا (JPG أو PNG أو PDF)."
+
+msgid "ID scan - back"
+msgstr "صورة البطاقة - الظهر"
+
+msgid "responsible intern"
+msgstr "طبيب الامتياز المسؤول"
+
+msgid "Contact"
+msgstr "التواصل"
+
+msgid "Teeth and medical history (as told by the patient)"
+msgstr "الأسنان والتاريخ المرضي (كما قال المريض)"
+
+msgid "Who referred you?"
+msgstr "مين رشّحك لنا؟"
+
+msgid "Relatives or friends among our patients"
+msgstr "أقارب أو أصدقاء من مرضانا"
+
+msgid "Filled automatically from the national ID."
+msgstr "يُملأ تلقائيًا من الرقم القومي."
+
+#, python-format
+msgid ""
+"This ID is already registered for %(name)s (file %(file)s). Do not create a "
+"second file."
+msgstr ""
+"هذا الرقم مسجل بالفعل باسم %(name)s (ملف %(file)s). لا تفتحي ملفًا ثانيًا."
+
+msgid "The date of birth does not match the national ID."
+msgstr "تاريخ الميلاد لا يطابق الرقم القومي."
+
+msgid "The second mobile is the same as the first one."
+msgstr "الموبايل الثاني هو نفس الأول."
+
+msgid "Type the file number or mobile of the referring patient."
+msgstr "اكتب رقم ملف أو موبايل المريض الذي رشّحه."
+
+msgid "A patient cannot refer himself."
+msgstr "المريض لا يمكن أن يرشّح نفسه."
+
+msgid "Choose the relation."
+msgstr "اختر صلة القرابة."
+
+msgid "related patient"
+msgstr "المريض القريب / الصديق"
+
+msgid "A patient cannot be related to himself."
+msgstr "لا يمكن ربط المريض بنفسه."
+
+msgid "This relation is already recorded."
+msgstr "هذه الصلة مسجلة بالفعل."
+
+msgid "has open lab work"
+msgstr "عنده شغل معمل مفتوح"
+
+msgid "Single tooth"
+msgstr "سنة واحدة"
+
+msgid "Multiple teeth"
+msgstr "عدة أسنان"
+
+msgid "Full arch"
+msgstr "فك كامل"
+
+msgid "Both arches (full mouth)"
+msgstr "الفكين (الفم كامل)"
+
+msgid "Not sure"
+msgstr "غير متأكد"
+
+msgid "Male"
+msgstr "ذكر"
+
+msgid "Female"
+msgstr "أنثى"
+
+msgid "First mobile"
+msgstr "الموبايل الأول"
+
+msgid "Second mobile"
+msgstr "الموبايل الثاني"
+
+msgid "ask for the referring patient"
+msgstr "اطلب المريض المرشِّح"
+
+msgid ""
+"Tick for sources like 'referred by a patient' so the secretary links the "
+"referring patient."
+msgstr "علّم عليها لمصادر مثل \"رشّحه مريض\" حتى تربط السكرتيرة المريض المرشِّح."
+
+msgid "referral source"
+msgstr "مصدر المعرفة"
+
+msgid "referral sources"
+msgstr "مصادر المعرفة"
+
+msgid "show as alert"
+msgstr "إظهار كتنبيه"
+
+msgid "Highlight in red on the patient file."
+msgstr "يظهر باللون الأحمر في ملف المريض."
+
+msgid "medical condition"
+msgstr "حالة مرضية"
+
+msgid "medical conditions"
+msgstr "الحالات المرضية"
+
+msgid "Call back later"
+msgstr "معاودة الاتصال لاحقًا"
+
+msgid "Appointment booked"
+msgstr "تم حجز موعد"
+
+msgid "Became a patient"
+msgstr "أصبح مريضًا"
+
+msgid "Not interested"
+msgstr "غير مهتم"
+
+msgid "Unreachable"
+msgstr "لا يمكن الوصول إليه"
+
+msgid "mobile 1"
+msgstr "موبايل 1"
+
+msgid "preferred mobile"
+msgstr "الموبايل المفضل"
+
+msgid "age"
+msgstr "السن"
+
+msgid "gender"
+msgstr "النوع"
+
+msgid "city / area"
+msgstr "المدينة / المنطقة"
+
+msgid "missing teeth"
+msgstr "الأسنان المفقودة"
+
+msgid "missing teeth details"
+msgstr "تفاصيل الأسنان المفقودة"
+
+msgid "medical history (as told by the caller)"
+msgstr "التاريخ المرضي (كما قال المتصل)"
+
+msgid "other medical notes"
+msgstr "ملاحظات صحية أخرى"
+
+msgid "how did they hear about us"
+msgstr "عرف عنا منين"
+
+msgid "referral details"
+msgstr "تفاصيل الترشيح"
+
+msgid "patient file"
+msgstr "ملف المريض"
+
+msgid "expected patient"
+msgstr "مريض متوقع"
+
+msgid "expected patients (call list)"
+msgstr "المرضى المتوقعون (قائمة المكالمات)"
+
+msgid "Answered"
+msgstr "رد"
+
+msgid "No answer"
+msgstr "لم يرد"
+
+msgid "Busy / closed"
+msgstr "مشغول / مغلق"
+
+msgid "Wrong number"
+msgstr "رقم خطأ"
+
+msgid "Asked to call back"
+msgstr "طلب معاودة الاتصال"
+
+msgid "Booked an appointment"
+msgstr "حجز موعد"
+
+msgid "call time"
+msgstr "وقت المكالمة"
+
+msgid "result"
+msgstr "النتيجة"
+
+msgid "call"
+msgstr "مكالمة"
+
+msgid "calls"
+msgstr "المكالمات"
+
+msgid "Egyptian national ID"
+msgstr "رقم قومي مصري"
+
+msgid "Passport"
+msgstr "جواز سفر"
+
+msgid "Under treatment"
+msgstr "تحت العلاج"
+
+msgid "Treatment finished"
+msgstr "انتهى العلاج"
+
+msgid "Stopped / inactive"
+msgstr "متوقف / غير نشط"
+
+msgid "file number"
+msgstr "رقم الملف"
+
+msgid "full name (as on ID)"
+msgstr "الاسم بالكامل (كما في البطاقة)"
+
+msgid "ID type"
+msgstr "نوع الهوية"
+
+msgid "A patient with this ID number is already registered."
+msgstr "يوجد مريض مسجل بنفس رقم الهوية."
+
+msgid "date of birth"
+msgstr "تاريخ الميلاد"
+
+msgid "This mobile number is already registered for another patient."
+msgstr "رقم الموبايل هذا مسجل لمريض آخر."
+
+msgid "occupation"
+msgstr "الوظيفة"
+
+msgid "medical history (self-reported)"
+msgstr "التاريخ المرضي (كما قاله المريض)"
+
+msgid "who referred you / how did you hear about us"
+msgstr "مين رشّحك / عرفتنا منين"
+
+msgid "referred by patient"
+msgstr "رشّحه المريض"
+
+msgid "patients"
+msgstr "المرضى"
+
+msgid "ID card - front"
+msgstr "البطاقة - الوجه"
+
+msgid "ID card - back"
+msgstr "البطاقة - الظهر"
+
+msgid "Signed consent"
+msgstr "إقرار موقّع"
+
+msgid "X-ray / CBCT"
+msgstr "أشعة / CBCT"
+
+msgid "document type"
+msgstr "نوع المستند"
+
+msgid "file"
+msgstr "الملف"
+
+msgid "patient document"
+msgstr "مستند مريض"
+
+msgid "patient documents"
+msgstr "مستندات المرضى"
+
+msgid "Relative"
+msgstr "قريب"
+
+msgid "Spouse"
+msgstr "زوج / زوجة"
+
+msgid "Parent / child"
+msgstr "أب أو أم / ابن أو ابنة"
+
+msgid "Brother / sister"
+msgstr "أخ / أخت"
+
+msgid "Friend"
+msgstr "صديق"
+
+msgid "Neighbour"
+msgstr "جار"
+
+msgid "Work colleague"
+msgstr "زميل عمل"
+
+msgid "patient relation"
+msgstr "صلة بين مرضى"
+
+msgid "patient relations"
+msgstr "الصلات بين المرضى"
+
+msgid "New expected patient (incoming call)"
+msgstr "مريض متوقع جديد (مكالمة واردة)"
+
+msgid "Edit expected patient"
+msgstr "تعديل المريض المتوقع"
+
+msgid "Call saved."
+msgstr "تم حفظ المكالمة."
+
+msgid "Register new patient"
+msgstr "تسجيل مريض جديد"
+
+#, python-format
+msgid "Patient registered. File number: %(file)s"
+msgstr "تم تسجيل المريض. رقم الملف: %(file)s"
+
+msgid "Edit patient data"
+msgstr "تعديل بيانات المريض"
+
+msgid "Document uploaded."
+msgstr "تم رفع المستند."
+
+msgid "Document deleted."
+msgstr "تم حذف المستند."
+
+msgid "Relation saved."
+msgstr "تم حفظ الصلة."
+
+msgid "Relation removed."
+msgstr "تم حذف الصلة."
+
+msgid "Purchasing"
+msgstr "المشتريات"
+
+#, python-format
+msgid "Not in the list? <a href=\"%(url)s\" target=\"_blank\">Add a supplier</a>."
+msgstr "غير موجود في القائمة؟ <a href=\"%(url)s\" target=\"_blank\">أضف موردًا</a>."
+
+msgid "Enter how much was paid."
+msgstr "أدخل المبلغ المدفوع."
+
+msgid "Add at least one item."
+msgstr "أضف صنفًا واحدًا على الأقل."
+
+msgid "supplier"
+msgstr "المورد"
+
+msgid "company / shop name"
+msgstr "اسم الشركة / المحل"
+
+msgid "suppliers"
+msgstr "الموردون"
+
+msgid "Dental"
+msgstr "مستلزمات أسنان"
+
+msgid "Non-dental"
+msgstr "غير طبية"
+
+msgid "purchase category"
+msgstr "تصنيف مشتريات"
+
+msgid "purchase categories"
+msgstr "تصنيفات المشتريات"
+
+msgid "Paid"
+msgstr "مدفوع"
+
+msgid "Partly paid"
+msgstr "مدفوع جزئيًا"
+
+msgid "On credit (not paid)"
+msgstr "آجل (لم يُدفع)"
+
+msgid "purchase date"
+msgstr "تاريخ الشراء"
+
+msgid "supplier invoice no."
+msgstr "رقم فاتورة المورد"
+
+msgid "payment status"
+msgstr "حالة الدفع"
+
+msgid "Leave empty when the full invoice is paid."
+msgstr "اتركه فارغًا لو الفاتورة مدفوعة بالكامل."
+
+msgid "invoice photo"
+msgstr "صورة الفاتورة"
+
+msgid "purchase"
+msgstr "مشتريات"
+
+msgid "purchases"
+msgstr "المشتريات"
+
+msgid "item"
+msgstr "الصنف"
+
+msgid "quantity"
+msgstr "الكمية"
+
+msgid "unit"
+msgstr "الوحدة"
+
+msgid "piece, box, kg..."
+msgstr "قطعة، علبة، كيلو..."
+
+msgid "unit price"
+msgstr "سعر الوحدة"
+
+msgid "purchase item"
+msgstr "صنف مشتريات"
+
+msgid "purchase items"
+msgstr "أصناف المشتريات"
+
+msgid "New supplier"
+msgstr "مورد جديد"
+
+msgid "Edit supplier"
+msgstr "تعديل المورد"
+
+#, python-format
+msgid "Purchase saved. Total: %(total)s"
+msgstr "تم حفظ المشتريات. الإجمالي: %(total)s"
+
+msgid "Edit purchase"
+msgstr "تعديل المشتريات"
+
+msgid "New purchase"
+msgstr "مشتريات جديدة"
+
+msgid "Reports"
+msgstr "التقارير"
+
+msgid "Scheduling"
+msgstr "المواعيد"
+
+msgid "intern doctor"
+msgstr "طبيب الامتياز"
+
+msgid "supervisor"
+msgstr "المشرف"
+
+msgid "Leave empty to use the patient's responsible intern."
+msgstr "اتركه فارغًا لاستخدام طبيب الامتياز المسؤول عن المريض."
+
+msgid "Leave empty to use the room of the intern's shift."
+msgstr "اتركه فارغًا لاستخدام غرفة نوبة الطبيب."
+
+#, python-format
+msgid "This patient already has an appointment at %(time)s."
+msgstr "هذا المريض عنده موعد بالفعل الساعة %(time)s."
+
+msgid "reason for visit"
+msgstr "سبب الزيارة"
+
+msgid "reason"
+msgstr "السبب"
+
+msgid "room"
+msgstr "الغرفة"
+
+msgid "rooms"
+msgstr "الغرف"
+
+msgid "date"
+msgstr "التاريخ"
+
+msgid "from"
+msgstr "من"
+
+msgid "to"
+msgstr "إلى"
+
+msgid "room shift"
+msgstr "نوبة غرفة"
+
+msgid "room schedule"
+msgstr "جدول الغرف"
+
+msgid "The end time must be after the start time."
+msgstr "وقت النهاية يجب أن يكون بعد وقت البداية."
+
+#, python-format
+msgid "%(room)s is already booked for %(intern)s from %(start)s to %(end)s."
+msgstr "%(room)s محجوزة بالفعل لـ %(intern)s من %(start)s إلى %(end)s."
+
+#, python-format
+msgid "This intern already works in %(room)s at that time."
+msgstr "هذا الطبيب يعمل بالفعل في %(room)s في نفس الوقت."
+
+msgid "Booked"
+msgstr "محجوز"
+
+msgid "Confirmed by phone"
+msgstr "تم التأكيد تليفونيًا"
+
+msgid "Arrived - waiting"
+msgstr "وصل - في الانتظار"
+
+msgid "In the room"
+msgstr "داخل الغرفة"
+
+msgid "Left"
+msgstr "انصرف"
+
+msgid "Did not come"
+msgstr "لم يحضر"
+
+msgid "appointment time"
+msgstr "وقت الموعد"
+
+msgid "expected duration (minutes)"
+msgstr "المدة المتوقعة (دقائق)"
+
+msgid "planned procedure"
+msgstr "الإجراء المخطط"
+
+msgid "walk-in (no booking)"
+msgstr "بدون حجز"
+
+msgid "arrived at clinic"
+msgstr "وقت الوصول للعيادة"
+
+msgid "entered the room"
+msgstr "وقت دخول الغرفة"
+
+msgid "left"
+msgstr "وقت الانصراف"
+
+msgid "cancellation reason"
+msgstr "سبب الإلغاء"
+
+msgid "appointment"
+msgstr "موعد"
+
+msgid "appointments"
+msgstr "المواعيد"
+
+#, python-format
+msgid "%(name)s registered as arrived (walk-in)."
+msgstr "تم تسجيل وصول %(name)s (بدون حجز)."
+
+msgid "confirmed"
+msgstr "تم التأكيد"
+
+msgid "arrived"
+msgstr "وصل"
+
+msgid "did not come"
+msgstr "لم يحضر"
+
+msgid "cancelled"
+msgstr "تم الإلغاء"
+
+msgid "last step undone"
+msgstr "تم التراجع عن آخر خطوة"
+
+#, python-format
+msgid "%(name)s: %(action)s."
+msgstr "%(name)s: %(action)s."
+
+msgid "Appointment booked."
+msgstr "تم حجز الموعد."
+
+msgid "Book appointment"
+msgstr "حجز موعد"
+
+msgid "Appointment updated."
+msgstr "تم تعديل الموعد."
+
+msgid "Edit appointment"
+msgstr "تعديل الموعد"
+
+msgid "Room schedule saved."
+msgstr "تم حفظ جدول الغرف."
+
+msgid "Edit shift"
+msgstr "تعديل النوبة"
+
+msgid "Add room shift"
+msgstr "إضافة نوبة غرفة"
+
+msgid "Shift deleted."
+msgstr "تم حذف النوبة."
+
+#, python-format
+msgid ""
+"%(copied)s shifts copied from last week (%(skipped)s skipped because of "
+"clashes)."
+msgstr ""
+"تم نسخ %(copied)s نوبة من الأسبوع الماضي (وتم تخطي %(skipped)s بسبب "
+"التعارض)."
+
+msgid "Arabic"
+msgstr "العربية"
+
+msgid "English"
+msgstr "الإنجليزية"
+
+msgid "Dental group - system settings"
+msgstr "مجموعة الأسنان - إعدادات النظام"
+
+msgid "Dental group"
+msgstr "مجموعة الأسنان"
+
+msgid "Settings and lists"
+msgstr "الإعدادات والقوائم"
+
+msgid "You are not allowed to open this page."
+msgstr "غير مسموح لك بفتح هذه الصفحة."
+
+msgid "Ask the manager if you need access."
+msgstr "اطلب من المدير لو تحتاج صلاحية."
+
+msgid "Home"
+msgstr "الرئيسية"
+
+msgid "Page not found."
+msgstr "الصفحة غير موجودة."
+
+msgid "Edit"
+msgstr "تعديل"
+
+msgid "Enroll in a course"
+msgstr "تسجيل في كورس"
+
+msgid "Mobile 1"
+msgstr "موبايل 1"
+
+msgid "Mobile 2"
+msgstr "موبايل 2"
+
+msgid "Email"
+msgstr "البريد الإلكتروني"
+
+msgid "National ID"
+msgstr "الرقم القومي"
+
+msgid "University"
+msgstr "الجامعة"
+
+msgid "Syndicate no."
+msgstr "رقم النقابة"
+
+msgid "Notes"
+msgstr "ملاحظات"
+
+msgid "Courses and balances"
+msgstr "الكورسات والأرصدة"
+
+msgid "Course"
+msgstr "الكورس"
+
+msgid "Fee after discount"
+msgstr "الرسوم بعد الخصم"
+
+msgid "Remaining"
+msgstr "المتبقي"
+
+msgid "Status"
+msgstr "الحالة"
+
+msgid "Not enrolled in any course yet."
+msgstr "غير مسجل في أي كورس بعد."
+
+msgid "Candidates"
+msgstr "الدارسون"
+
+msgid "Course candidates"
+msgstr "دارسو الكورسات"
+
+msgid "Name, mobile, ID or university"
+msgstr "الاسم أو الموبايل أو الرقم القومي أو الجامعة"
+
+msgid "Name"
+msgstr "الاسم"
+
+msgid "Mobile"
+msgstr "الموبايل"
+
+msgid "Graduation"
+msgstr "التخرج"
+
+msgid "Courses"
+msgstr "الكورسات"
+
+msgid "No candidates."
+msgstr "لا يوجد دارسون."
+
+msgid "Total fees"
+msgstr "إجمالي الرسوم"
+
+msgid "Collected"
+msgstr "المُحصَّل"
+
+msgid "Overdue"
+msgstr "متأخر"
+
+msgid "Candidate"
+msgstr "الدارس"
+
+msgid "No candidates enrolled yet."
+msgstr "لم يسجل أي دارس بعد."
+
+msgid "Code / batch"
+msgstr "الكود / الدفعة"
+
+msgid "Start"
+msgstr "البداية"
+
+msgid "End"
+msgstr "النهاية"
+
+msgid "Fee"
+msgstr "الرسوم"
+
+msgid "Students"
+msgstr "الدارسون"
+
+msgid "No courses yet."
+msgstr "لا توجد كورسات بعد."
+
+msgid "Edit installment plan"
+msgstr "تعديل خطة الأقساط"
+
+msgid "Installments"
+msgstr "الأقساط"
+
+msgid "Due date"
+msgstr "تاريخ الاستحقاق"
+
+msgid "Amount"
+msgstr "المبلغ"
+
+msgid "Not due yet"
+msgstr "لم يحل بعد"
+
+msgid "No installment plan."
+msgstr "لا توجد خطة أقساط."
+
+msgid "Record a payment"
+msgstr "تسجيل دفعة"
+
+msgid "Save payment and print receipt"
+msgstr "حفظ الدفعة وطباعة الإيصال"
+
+msgid "Fully paid."
+msgstr "تم السداد بالكامل."
+
+msgid "Payments"
+msgstr "المدفوعات"
+
+msgid "Receipt"
+msgstr "الإيصال"
+
+msgid "Date"
+msgstr "التاريخ"
+
+msgid "Method"
+msgstr "الطريقة"
+
+msgid "Reference"
+msgstr "رقم العملية"
+
+msgid "Received by"
+msgstr "استلمها"
+
+msgid "No payments yet."
+msgstr "لا توجد مدفوعات بعد."
+
+msgid "Overdue installments"
+msgstr "الأقساط المتأخرة"
+
+msgid "Overdue amount"
+msgstr "المبلغ المتأخر"
+
+msgid "Oldest due date"
+msgstr "أقدم تاريخ استحقاق"
+
+msgid "Days late"
+msgstr "أيام التأخير"
+
+msgid "No overdue installments."
+msgstr "لا توجد أقساط متأخرة."
+
+msgid "Installment payments"
+msgstr "مدفوعات الأقساط"
+
+msgid "Filter"
+msgstr "تصفية"
+
+msgid "Total collected"
+msgstr "إجمالي المُحصَّل"
+
+#, python-format
+msgid "%(counter)s payment"
+msgid_plural "%(counter)s payments"
+msgstr[0] "%(counter)s دفعة"
+msgstr[1] "%(counter)s دفعة"
+
+msgid "No payments in this period."
+msgstr "لا توجد مدفوعات في هذه الفترة."
+
+#, python-format
+msgid "The installments should add up to the fee after discount: %(net)s."
+msgstr "يجب أن يساوي مجموع الأقساط الرسوم بعد الخصم: %(net)s."
+
+msgid "Delete"
+msgstr "حذف"
+
+msgid "Save"
+msgstr "حفظ"
+
+msgid "Cancel"
+msgstr "إلغاء"
+
+msgid "Payment receipt"
+msgstr "إيصال استلام نقدية"
+
+msgid "Receipt number"
+msgstr "رقم الإيصال"
+
+msgid "Received from"
+msgstr "استلمنا من"
+
+msgid "Payment method"
+msgstr "طريقة الدفع"
+
+msgid "Remaining balance"
+msgstr "الرصيد المتبقي"
+
+msgid "Signature"
+msgstr "التوقيع"
+
+msgid "Stamp"
+msgstr "الختم"
+
+msgid "Print"
+msgstr "طباعة"
+
+msgid "Back"
+msgstr "رجوع"
+
+msgid "Cairo Implant Academy"
+msgstr "أكاديمية القاهرة لزراعة الأسنان"
+
+msgid "Dental system"
+msgstr "نظام الأسنان"
+
+msgid "Menu"
+msgstr "القائمة"
+
+msgid "Reception today"
+msgstr "الاستقبال اليوم"
+
+msgid "Call list (expected patients)"
+msgstr "قائمة المكالمات (المرضى المتوقعون)"
+
+msgid "All patients"
+msgstr "كل المرضى"
+
+msgid "My patients"
+msgstr "مرضاي"
+
+msgid "Schedule"
+msgstr "الجدول"
+
+msgid "Room schedule"
+msgstr "جدول الغرف"
+
+msgid "Treatment steps"
+msgstr "خطوات العلاج"
+
+msgid "Lab requests"
+msgstr "طلبات المعمل"
+
+msgid "Purchases"
+msgstr "المشتريات"
+
+msgid "Suppliers"
+msgstr "الموردون"
+
+msgid "Search patient: name, mobile, file, ID"
+msgstr "بحث عن مريض: الاسم، الموبايل، رقم الملف، الرقم القومي"
+
+msgid "Notifications"
+msgstr "الإشعارات"
+
+msgid "Change password"
+msgstr "تغيير كلمة المرور"
+
+msgid "Settings, users and lists"
+msgstr "الإعدادات والمستخدمون والقوائم"
+
+msgid "Log out"
+msgstr "تسجيل الخروج"
+
+msgid "Late at the lab"
+msgstr "متأخر في المعمل"
+
+msgid "Print lab form"
+msgstr "طباعة طلب المعمل"
+
+msgid "Patient"
+msgstr "المريض"
+
+msgid "Doctor"
+msgstr "الطبيب"
+
+msgid "Lab"
+msgstr "المعمل"
+
+msgid "Work"
+msgstr "الشغل"
+
+#, python-format
+msgid "%(n)s unit(s)"
+msgstr "%(n)s وحدة"
+
+msgid "Teeth"
+msgstr "الأسنان"
+
+msgid "Shade"
+msgstr "اللون"
+
+msgid "Material"
+msgstr "الخامة"
+
+msgid "Needed by"
+msgstr "مطلوب يوم"
+
+msgid "Instructions"
+msgstr "التعليمات"
+
+msgid "Lab cost"
+msgstr "تكلفة المعمل"
+
+msgid "Remakes"
+msgstr "مرات الإعادة"
+
+msgid "Journey"
+msgstr "مسار الطلب"
+
+msgid "Reviewed by"
+msgstr "راجعه"
+
+msgid "Sent by"
+msgstr "أرسله"
+
+msgid "Next step"
+msgstr "الخطوة التالية"
+
+msgid "Reason / notes (required)"
+msgstr "السبب / ملاحظات (مطلوب)"
+
+msgid "Notes (optional)"
+msgstr "ملاحظات (اختياري)"
+
+msgid "History"
+msgstr "السجل"
+
+msgid "checked against request"
+msgstr "تمت المراجعة على الطلب"
+
+msgid "Save and send for supervisor review"
+msgstr "حفظ وإرسال لمراجعة المشرف"
+
+msgid "Save as draft"
+msgstr "حفظ كمسودة"
+
+msgid "No."
+msgstr "الرقم"
+
+msgid "Sent"
+msgstr "أُرسل"
+
+msgid "remake"
+msgstr "إعادة"
+
+msgid "Late"
+msgstr "متأخر"
+
+msgid "No lab requests."
+msgstr "لا توجد طلبات معمل."
+
+msgid "Lab prescription"
+msgstr "طلب معمل"
+
+msgid "Doctor signature"
+msgstr "توقيع الطبيب"
+
+msgid "Received by (lab)"
+msgstr "استلمه (المعمل)"
+
+msgid "Done at"
+msgstr "وقت التنفيذ"
+
+msgid "Done by"
+msgstr "قام بها"
+
+msgid "Supervisor present"
+msgstr "المشرف الحاضر"
+
+msgid "Implant"
+msgstr "الزرعة"
+
+msgid "Details"
+msgstr "التفاصيل"
+
+msgid "Visit"
+msgstr "الزيارة"
+
+msgid "Recorded by"
+msgstr "سجّلها"
+
+msgid "Supervisor check"
+msgstr "مراجعة المشرف"
+
+#, python-format
+msgid "Checked by %(by)s on %(at)s"
+msgstr "راجعها %(by)s في %(at)s"
+
+msgid "Grade"
+msgstr "التقييم"
+
+msgid "Not checked yet."
+msgstr "لم تتم المراجعة بعد."
+
+msgid "Update check"
+msgstr "تحديث المراجعة"
+
+msgid "Mark as checked"
+msgstr "تمت المراجعة"
+
+msgid "Step"
+msgstr "الخطوة"
+
+msgid "Not checked"
+msgstr "لم تُراجَع"
+
+msgid "No treatment steps."
+msgstr "لا توجد خطوات علاج."
+
+msgid "Complaint"
+msgstr "الشكوى"
+
+msgid "Follow-up overdue"
+msgstr "المتابعة متأخرة"
+
+msgid "Category"
+msgstr "النوع"
+
+msgid "Concerned staff"
+msgstr "الموظف المعني"
+
+msgid "Followed up by"
+msgstr "المتابع"
+
+msgid "Next follow-up"
+msgstr "المتابعة القادمة"
+
+msgid "How it was solved"
+msgstr "طريقة الحل"
+
+msgid "Follow-up history"
+msgstr "سجل المتابعة"
+
+msgid "Complaint recorded"
+msgstr "تم تسجيل الشكوى"
+
+msgid "Add follow-up"
+msgstr "إضافة متابعة"
+
+msgid "Save follow-up"
+msgstr "حفظ المتابعة"
+
+msgid "Patient complaints"
+msgstr "شكاوى المرضى"
+
+msgid "Severity"
+msgstr "الأهمية"
+
+msgid "No complaints."
+msgstr "لا توجد شكاوى."
+
+#, python-format
+msgid "Welcome, %(name)s"
+msgstr "أهلًا، %(name)s"
+
+msgid "Appointments today"
+msgstr "مواعيد اليوم"
+
+msgid "Not arrived yet"
+msgstr "لم يصل بعد"
+
+msgid "Waiting in reception"
+msgstr "في الاستقبال"
+
+msgid "In the rooms now"
+msgstr "في الغرف الآن"
+
+msgid "Finished"
+msgstr "انتهى"
+
+msgid "My day"
+msgstr "يومي"
+
+msgid "You have no room shift today."
+msgstr "ليس لديك نوبة في أي غرفة اليوم."
+
+msgid "No appointments for you today."
+msgstr "لا توجد مواعيد لك اليوم."
+
+msgid "My open lab requests"
+msgstr "طلبات المعمل المفتوحة"
+
+msgid "Calls to make today"
+msgstr "مكالمات مطلوبة اليوم"
+
+msgid "No calls due."
+msgstr "لا توجد مكالمات مطلوبة."
+
+msgid "Reviewed, waiting to be sent to the lab"
+msgstr "تمت المراجعة، في انتظار الإرسال للمعمل"
+
+msgid "Late at the lab (past due date)"
+msgstr "متأخر في المعمل (تعدى الموعد)"
+
+msgid "Received, not yet delivered to patient"
+msgstr "تم الاستلام، لم يُركَّب للمريض بعد"
+
+msgid "Complaints needing follow-up"
+msgstr "شكاوى تحتاج متابعة"
+
+msgid "No overdue complaints."
+msgstr "لا توجد شكاوى متأخرة."
+
+msgid "Treatment steps waiting for your check"
+msgstr "خطوات علاج في انتظار مراجعتك"
+
+msgid "Mark all as read"
+msgstr "تعليم الكل كمقروء"
+
+msgid "No notifications."
+msgstr "لا توجد إشعارات."
+
+msgid "Previous"
+msgstr "السابق"
+
+#, python-format
+msgid "Page %(n)s of %(total)s"
+msgstr "صفحة %(n)s من %(total)s"
+
+msgid "Next"
+msgstr "التالي"
+
+msgid "Open patient file"
+msgstr "فتح ملف المريض"
+
+msgid "Patient came: register full file"
+msgstr "المريض حضر: تسجيل الملف كامل"
+
+msgid "preferred"
+msgstr "المفضل"
+
+msgid "Age"
+msgstr "السن"
+
+msgid "Gender"
+msgstr "النوع"
+
+msgid "City / area"
+msgstr "المدينة / المنطقة"
+
+msgid "Missing teeth"
+msgstr "الأسنان المفقودة"
+
+msgid "Medical history"
+msgstr "التاريخ المرضي"
+
+msgid "Source"
+msgstr "المصدر"
+
+msgid "Next call"
+msgstr "المكالمة القادمة"
+
+msgid "Added by"
+msgstr "أضافه"
+
+msgid "Log a call"
+msgstr "تسجيل مكالمة"
+
+msgid "Save call"
+msgstr "حفظ المكالمة"
+
+msgid "Call history"
+msgstr "سجل المكالمات"
+
+msgid "No calls yet."
+msgstr "لا توجد مكالمات بعد."
+
+msgid "New incoming call"
+msgstr "مكالمة واردة جديدة"
+
+msgid "Calls due today"
+msgstr "مكالمات اليوم"
+
+msgid "Name or mobile"
+msgstr "الاسم أو الموبايل"
+
+msgid "Missing teeth: all"
+msgstr "الأسنان المفقودة: الكل"
+
+msgid "Preferred mobile"
+msgstr "الموبايل المفضل"
+
+msgid "Added"
+msgstr "تاريخ الإضافة"
+
+msgid "No records."
+msgstr "لا توجد سجلات."
+
+msgid "Open complaint"
+msgstr "شكوى مفتوحة"
+
+msgid "Record complaint"
+msgstr "تسجيل شكوى"
+
+msgid "Data"
+msgstr "البيانات"
+
+msgid "Visits"
+msgstr "الزيارات"
+
+msgid "ID & documents"
+msgstr "البطاقة والمستندات"
+
+msgid "Referral & relations"
+msgstr "الترشيح والأقارب"
+
+msgid "File number"
+msgstr "رقم الملف"
+
+msgid "Date of birth"
+msgstr "تاريخ الميلاد"
+
+#, python-format
+msgid "%(age)s years"
+msgstr "%(age)s سنة"
+
+msgid "Occupation"
+msgstr "الوظيفة"
+
+msgid "Address"
+msgstr "العنوان"
+
+msgid "Responsible intern"
+msgstr "الطبيب المسؤول"
+
+msgid "Registered"
+msgstr "تاريخ التسجيل"
+
+msgid "Appointment"
+msgstr "الموعد"
+
+msgid "Room"
+msgstr "الغرفة"
+
+msgid "Intern"
+msgstr "الطبيب"
+
+msgid "Arrived"
+msgstr "وصل"
+
+msgid "Late by"
+msgstr "متأخر بـ"
+
+msgid "Entered room"
+msgstr "دخل الغرفة"
+
+msgid "In chair"
+msgstr "على الكرسي"
+
+msgid "walk-in"
+msgstr "بدون حجز"
+
+msgid "No visits yet."
+msgstr "لا توجد زيارات بعد."
+
+msgid "No treatment steps yet."
+msgstr "لا توجد خطوات علاج بعد."
+
+msgid "No lab work."
+msgstr "لا يوجد شغل معمل."
+
+msgid "Delete this document?"
+msgstr "حذف هذا المستند؟"
+
+msgid "No ID scan uploaded yet."
+msgstr "لم يتم رفع صورة البطاقة بعد."
+
+msgid "Upload a document / ID scan"
+msgstr "رفع مستند / صورة بطاقة"
+
+msgid "Upload"
+msgstr "رفع"
+
+msgid "Who referred this patient"
+msgstr "مين رشّح هذا المريض"
+
+msgid "Referred by patient"
+msgstr "رشّحه المريض"
+
+msgid "Patients referred by this patient"
+msgstr "مرضى رشّحهم هذا المريض"
+
+msgid "Relatives and friends among our patients"
+msgstr "الأقارب والأصدقاء من مرضانا"
+
+msgid "Remove this relation?"
+msgstr "حذف هذه الصلة؟"
+
+msgid "None recorded."
+msgstr "لا يوجد."
+
+msgid "Add relation"
+msgstr "إضافة صلة"
+
+#, python-format
+msgid ""
+"Data copied from the call list (%(name)s). Complete the ID data and scan the"
+" ID card."
+msgstr ""
+"تم نقل البيانات من قائمة المكالمات (%(name)s). أكملي بيانات البطاقة وارفعي "
+"صورتها."
+
+msgid "File"
+msgstr "الملف"
+
+msgid "Has lab work"
+msgstr "عنده شغل معمل"
+
+msgid "No patients found."
+msgstr "لا يوجد مرضى."
+
+msgid "Purchase"
+msgstr "مشتريات"
+
+msgid "Supplier"
+msgstr "المورد"
+
+msgid "Invoice no."
+msgstr "رقم الفاتورة"
+
+msgid "Payment status"
+msgstr "حالة الدفع"
+
+msgid "Still owed"
+msgstr "المتبقي للمورد"
+
+msgid "Invoice photo"
+msgstr "صورة الفاتورة"
+
+msgid "Entered by"
+msgstr "أدخلها"
+
+msgid "Item"
+msgstr "الصنف"
+
+msgid "Quantity"
+msgstr "الكمية"
+
+msgid "Unit price"
+msgstr "سعر الوحدة"
+
+msgid "Total"
+msgstr "الإجمالي"
+
+msgid "Items (each item under its category)"
+msgstr "الأصناف (كل صنف تحت تصنيفه)"
+
+msgid "Unit"
+msgstr "الوحدة"
+
+msgid "delete"
+msgstr "حذف"
+
+msgid "Add item"
+msgstr "إضافة صنف"
+
+msgid "Total spent"
+msgstr "إجمالي المصروف"
+
+msgid "By category"
+msgstr "حسب التصنيف"
+
+msgid "Items"
+msgstr "الأصناف"
+
+msgid "Payment"
+msgstr "الدفع"
+
+msgid "No purchases in this period."
+msgstr "لا توجد مشتريات في هذه الفترة."
+
+msgid "Phone"
+msgstr "التليفون"
+
+msgid "Contact person"
+msgstr "الشخص المسؤول"
+
+msgid "Total purchases"
+msgstr "إجمالي المشتريات"
+
+msgid "Still owed to supplier"
+msgstr "المتبقي للمورد"
+
+msgid "No purchases yet."
+msgstr "لا توجد مشتريات بعد."
+
+msgid "Suppliers and companies"
+msgstr "الموردون والشركات"
+
+msgid "inactive"
+msgstr "غير نشط"
+
+msgid "No suppliers yet."
+msgstr "لا يوجد موردون بعد."
+
+msgid "Log in"
+msgstr "تسجيل الدخول"
+
+msgid "Wrong username or password."
+msgstr "اسم المستخدم أو كلمة المرور غير صحيحة."
+
+msgid "Username"
+msgstr "اسم المستخدم"
+
+msgid "Password"
+msgstr "كلمة المرور"
+
+msgid "Your password was changed."
+msgstr "تم تغيير كلمة المرور."
+
+msgid "Show"
+msgstr "عرض"
+
+msgid "Reports and statistics"
+msgstr "التقارير والإحصائيات"
+
+msgid "Patient visits and timing"
+msgstr "زيارات المرضى والتوقيتات"
+
+msgid ""
+"Late arrivals, waiting time, time in the chair, total stay, no-shows — per "
+"intern and per room."
+msgstr ""
+"التأخير عن المواعيد، وقت الانتظار، الوقت على الكرسي، مدة البقاء، عدم الحضور "
+"— لكل طبيب ولكل غرفة."
+
+msgid "Intern follow-up"
+msgstr "متابعة أطباء الامتياز"
+
+msgid ""
+"Steps done by each intern, supervisor checks and grades, lab requests, "
+"patients, complaints and hours."
+msgstr ""
+"الخطوات التي قام بها كل طبيب، مراجعات وتقييمات المشرف، طلبات المعمل، المرضى،"
+" الشكاوى وساعات العمل."
+
+msgid "Requests by status, turnaround days, remakes and late work per lab."
+msgstr ""
+"الطلبات حسب الحالة، أيام التنفيذ، مرات الإعادة والشغل المتأخر لكل معمل."
+
+msgid "Patients, referrals and complaints"
+msgstr "المرضى والترشيحات والشكاوى"
+
+msgid ""
+"Call list conversion, where patients come from, top referring patients, "
+"complaint categories."
+msgstr ""
+"تحويل قائمة المكالمات لمرضى، مصادر المرضى، أكثر المرضى ترشيحًا، أنواع "
+"الشكاوى."
+
+msgid "Money"
+msgstr "الماليات"
+
+msgid ""
+"Installments collected and outstanding; purchases by category and supplier."
+msgstr "الأقساط المحصلة والمتبقية؛ المشتريات حسب التصنيف والمورد."
+
+msgid "Steps done"
+msgstr "الخطوات المنفذة"
+
+msgid "Checked by supervisor"
+msgstr "راجعها المشرف"
+
+msgid "Average grade"
+msgstr "متوسط التقييم"
+
+msgid "Active patients"
+msgstr "المرضى الحاليون"
+
+msgid "Scheduled hours"
+msgstr "ساعات الجدول"
+
+msgid "Chair hours"
+msgstr "ساعات الكرسي"
+
+msgid "Patient no-shows"
+msgstr "مرضى لم يحضروا"
+
+msgid "No interns registered. Add users with the intern role."
+msgstr "لا يوجد أطباء امتياز مسجلون. أضف مستخدمين بدور intern."
+
+msgid "Steps by type"
+msgstr "الخطوات حسب النوع"
+
+#, python-format
+msgid "Requests (%(total)s)"
+msgstr "الطلبات (%(total)s)"
+
+msgid "Per lab"
+msgstr "لكل معمل"
+
+msgid "Requests"
+msgstr "الطلبات"
+
+msgid "Average days at lab"
+msgstr "متوسط الأيام في المعمل"
+
+msgid "Late at the lab now"
+msgstr "متأخر في المعمل الآن"
+
+msgid "Nothing is late."
+msgstr "لا يوجد تأخير."
+
+msgid "Installments collected in period"
+msgstr "الأقساط المحصلة في الفترة"
+
+msgid "Still to collect (all active candidates)"
+msgstr "المتبقي للتحصيل (كل الدارسين الحاليين)"
+
+msgid "Overdue installments now"
+msgstr "الأقساط المتأخرة الآن"
+
+msgid "Purchases in period"
+msgstr "المشتريات في الفترة"
+
+msgid "Collected by payment method"
+msgstr "المحصل حسب طريقة الدفع"
+
+msgid "Collected by course"
+msgstr "المحصل حسب الكورس"
+
+msgid "Purchases: dental / non-dental"
+msgstr "المشتريات: أسنان / غير طبية"
+
+msgid "Purchases by category"
+msgstr "المشتريات حسب التصنيف"
+
+msgid "Top suppliers"
+msgstr "أكبر الموردين"
+
+msgid "Incoming calls (expected patients)"
+msgstr "المكالمات الواردة (مرضى متوقعون)"
+
+#, python-format
+msgid "Became patients (%(converted)s)"
+msgstr "أصبحوا مرضى (%(converted)s)"
+
+msgid "New patient files"
+msgstr "ملفات مرضى جديدة"
+
+#, python-format
+msgid "Complaints (%(complaint_open)s still open)"
+msgstr "الشكاوى (%(complaint_open)s ما زالت مفتوحة)"
+
+#, python-format
+msgid "Solved in %(d)s days on average"
+msgstr "تُحل في %(d)s يوم في المتوسط"
+
+msgid "Where new patients came from"
+msgstr "مصادر المرضى الجدد"
+
+msgid "Patients who referred others"
+msgstr "مرضى رشّحوا آخرين"
+
+msgid "Missing teeth (new patients)"
+msgstr "الأسنان المفقودة (المرضى الجدد)"
+
+msgid "Call list status"
+msgstr "حالة قائمة المكالمات"
+
+msgid "Complaints by category"
+msgstr "الشكاوى حسب النوع"
+
+msgid "Visits (came)"
+msgstr "الزيارات (حضروا)"
+
+#, python-format
+msgid "%(b)s booked, %(w)s walk-in"
+msgstr "%(b)s بحجز، %(w)s بدون حجز"
+
+#, python-format
+msgid "Came late (more than %(t)s min)"
+msgstr "حضروا متأخرين (أكثر من %(t)s دقيقة)"
+
+msgid "average"
+msgstr "المتوسط"
+
+msgid "Average waiting before the room"
+msgstr "متوسط الانتظار قبل الدخول"
+
+msgid "Average time in the room"
+msgstr "متوسط الوقت داخل الغرفة"
+
+msgid "Average total stay in clinic"
+msgstr "متوسط مدة البقاء في العيادة"
+
+msgid "Per intern"
+msgstr "لكل طبيب"
+
+msgid "Late patients"
+msgstr "نسبة المتأخرين"
+
+msgid "Avg wait"
+msgstr "متوسط الانتظار"
+
+msgid "Avg in room"
+msgstr "متوسط داخل الغرفة"
+
+msgid "Total chair time"
+msgstr "إجمالي وقت الكرسي"
+
+msgid "No-shows"
+msgstr "لم يحضروا"
+
+msgid "Per room"
+msgstr "لكل غرفة"
+
+msgid "Patients who came late"
+msgstr "مرضى حضروا متأخرين"
+
+msgid "Nobody came late."
+msgstr "لم يتأخر أحد."
+
+msgid "Waited more than 30 minutes"
+msgstr "انتظروا أكثر من 30 دقيقة"
+
+msgid "Waited"
+msgstr "انتظر"
+
+msgid "Appointment time"
+msgstr "وقت الموعد"
+
+msgid "Expected duration"
+msgstr "المدة المتوقعة"
+
+msgid "Procedure"
+msgstr "الإجراء"
+
+msgid "Reason"
+msgstr "السبب"
+
+msgid "Booked by"
+msgstr "حجزه"
+
+msgid "Visit times"
+msgstr "توقيتات الزيارة"
+
+msgid "Arrived at clinic"
+msgstr "وصل العيادة"
+
+msgid "on time"
+msgstr "في الموعد"
+
+msgid "Entered the room"
+msgstr "دخل الغرفة"
+
+msgid "waited"
+msgstr "انتظر"
+
+msgid "in chair"
+msgstr "على الكرسي"
+
+msgid "Total time in clinic"
+msgstr "إجمالي الوقت في العيادة"
+
+msgid "Reason (for cancel)"
+msgstr "السبب (للإلغاء)"
+
+msgid "Cancel this appointment?"
+msgstr "إلغاء هذا الموعد؟"
+
+msgid "Cancel appointment"
+msgstr "إلغاء الموعد"
+
+msgid "Mark as did not come?"
+msgstr "تسجيل أنه لم يحضر؟"
+
+msgid "No-show"
+msgstr "لم يحضر"
+
+msgid "Undo the last step?"
+msgstr "التراجع عن آخر خطوة؟"
+
+msgid "Undo last step"
+msgstr "تراجع عن آخر خطوة"
+
+msgid "Steps done in this visit"
+msgstr "الخطوات المنفذة في هذه الزيارة"
+
+msgid "None yet."
+msgstr "لا يوجد بعد."
+
+msgid "Lab requests from this visit"
+msgstr "طلبات المعمل من هذه الزيارة"
+
+msgid "None."
+msgstr "لا يوجد."
+
+msgid "Time"
+msgstr "الوقت"
+
+msgid "No appointments."
+msgstr "لا توجد مواعيد."
+
+msgid "Previous week"
+msgstr "الأسبوع السابق"
+
+msgid "This week"
+msgstr "هذا الأسبوع"
+
+msgid "Next week"
+msgstr "الأسبوع القادم"
+
+msgid "Show all"
+msgstr "عرض الكل"
+
+msgid "Only my shifts"
+msgstr "نوباتي فقط"
+
+msgid "Copy all shifts of the previous week into this week?"
+msgstr "نسخ كل نوبات الأسبوع السابق إلى هذا الأسبوع؟"
+
+msgid "Copy previous week"
+msgstr "نسخ الأسبوع السابق"
+
+msgid "Add shift"
+msgstr "إضافة نوبة"
+
+msgid "Delete this shift?"
+msgstr "حذف هذه النوبة؟"
+
+msgid "add"
+msgstr "إضافة"
+
+msgid "No rooms defined. Run the setup command or add rooms in settings."
+msgstr "لا توجد غرف. شغّل أمر الإعداد أو أضف الغرف من الإعدادات."
+
+msgid "Reception"
+msgstr "الاستقبال"
+
+msgid "Today"
+msgstr "اليوم"
+
+msgid "Patient arrived without appointment (walk-in)"
+msgstr "مريض حضر بدون موعد"
+
+msgid "Register arrival"
+msgstr "تسجيل الوصول"
+
+msgid "Action"
+msgstr "إجراء"
+
+msgid "No appointments on this day."
+msgstr "لا توجد مواعيد في هذا اليوم."
+
+msgid "Rooms today"
+msgstr "الغرف اليوم"
+
+msgid "Weekly room schedule"
+msgstr "جدول الغرف الأسبوعي"
+
+msgid "Free"
+msgstr "فاضية"
+
+msgid "min"
+msgstr "دقيقة"

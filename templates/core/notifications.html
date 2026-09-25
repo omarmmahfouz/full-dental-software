@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Notifications" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{% trans "Notifications" %}</h1>
+  <form method="post" action="{% url 'core:notifications_read_all' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">{% trans "Mark all as read" %}</button></form>
+</div>
+<div class="card"><div class="list-group list-group-flush">
+  {% for n in page_obj %}
+  <a class="list-group-item list-group-item-action {% if not n.is_read %}fw-bold{% endif %}" href="{% url 'core:notification_open' n.pk %}">
+    <div class="d-flex justify-content-between">
+      <span>{% if not n.is_read %}<i class="bi bi-circle-fill text-{{ n.level }} small"></i>{% endif %} {{ n.title }}</span>
+      <small class="text-muted">{{ n.created_at|date:"d/m/Y g:i A" }}</small>
+    </div>
+    {% if n.message %}<div class="small text-muted fw-normal">{{ n.message|linebreaksbr }}</div>{% endif %}
+  </a>
+  {% empty %}<div class="list-group-item text-muted">{% trans "No notifications." %}</div>{% endfor %}
+</div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

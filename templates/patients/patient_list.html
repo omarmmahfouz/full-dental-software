@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Patients" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-people"></i> {% if is_front_desk %}{% trans "Patients" %}{% else %}{% trans "My patients" %}{% endif %}</h1>
+  {% if is_front_desk %}<a class="btn btn-primary" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i> {% trans "Register new patient" %}</a>{% endif %}
+</div>
+<form class="card card-body mb-3 no-print">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4"><label class="form-label">{{ filter_form.q.label }}</label>{{ filter_form.q }}</div>
+    <div class="col-md-2"><label class="form-label">{{ filter_form.status.label }}</label>{{ filter_form.status }}</div>
+    {% if is_front_desk %}<div class="col-md-3"><label class="form-label">{{ filter_form.intern.label }}</label>{{ filter_form.intern }}</div>{% endif %}
+    <div class="col-md-2"><div class="form-check">{{ filter_form.lab }} <label class="form-check-label" for="{{ filter_form.lab.id_for_label }}">{{ filter_form.lab.label }}</label></div></div>
+    <div class="col-md-1"><button class="btn btn-outline-primary w-100"><i class="bi bi-search"></i></button></div>
+  </div>
+</form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "File" %}</th><th>{% trans "Name" %}</th><th>{% trans "Mobile" %}</th><th>{% trans "Age" %}</th><th>{% trans "Missing teeth" %}</th><th>{% trans "Responsible intern" %}</th><th>{% trans "Status" %}</th></tr></thead>
+  <tbody>
+  {% for p in page_obj %}
+  <tr>
+    <td class="nowrap"><a href="{{ p.get_absolute_url }}">{{ p.file_number }}</a></td>
+    <td><a href="{{ p.get_absolute_url }}" class="fw-semibold">{{ p.full_name }}</a>
+      {% if p.open_labs %}<span class="lab-flag" title="{% trans 'Has lab work' %}"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}</span>{% endif %}
+      {% if p.open_complaints %}<span class="complaint-flag"><i class="bi bi-exclamation-circle"></i> {% trans "Complaint" %}</span>{% endif %}
+    </td>
+    <td><span class="ltr">{{ p.phone_primary }}</span></td>
+    <td>{{ p.age|default:"—" }}</td>
+    <td>{{ p.get_missing_teeth_display }}</td>
+    <td>{{ p.assigned_intern|default:"—" }}</td>
+    <td>{% status_badge p %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No patients found." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

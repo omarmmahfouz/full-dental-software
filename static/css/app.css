@@ -1,0 +1,55 @@
+:root {
+  --app-primary: #0f5e7a;
+  --app-primary-dark: #0b4659;
+  --app-accent: #1aa39a;
+}
+body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
+.app-navbar { background: linear-gradient(90deg, var(--app-primary-dark), var(--app-primary)); }
+.app-navbar .nav-link { color: rgba(255, 255, 255, .88); white-space: nowrap; font-size: .93rem; }
+.app-navbar .navbar-brand { font-size: 1.05rem; white-space: nowrap; }
+@media (min-width: 1200px) { .app-navbar .navbar-nav .nav-link { padding-inline: .45rem; } }
+.app-navbar form[role=search] input { min-width: 230px; }
+.app-navbar .nav-link:hover, .app-navbar .nav-link:focus { color: #fff; }
+.notif-badge { position: absolute; top: 2px; inset-inline-end: -2px; font-size: .65rem; }
+.page-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: 1rem; }
+.page-header h1 { font-size: 1.45rem; font-weight: 700; margin: 0; color: var(--app-primary-dark); }
+.card { border: 0; box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
+.card-header { background: #fff; font-weight: 600; }
+.stat-card .stat-value { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+.stat-card .stat-label { color: #6c757d; font-size: .9rem; }
+.table > :not(caption) > * > * { vertical-align: middle; }
+.table thead th { font-size: .85rem; color: #495057; white-space: nowrap; }
+.form-label { font-weight: 600; font-size: .9rem; margin-bottom: .25rem; }
+.required-mark { color: #dc3545; }
+.errorlist { list-style: none; padding: 0; margin: .25rem 0 0; color: #dc3545; font-size: .85rem; }
+.checkbox-grid > div { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
+.checkbox-grid label { display: inline-flex; align-items: center; gap: .35rem; font-weight: 400; }
+.checkbox-grid input { margin: 0; }
+.medical-alert { background: #fff1f0; border: 1px solid #f5c2c7; color: #842029; border-radius: .5rem; padding: .35rem .6rem; display: inline-block; margin: .1rem; font-size: .85rem; }
+.lab-flag { background: #e7f1ff; color: #0a58ca; border-radius: 1rem; padding: .05rem .5rem; font-size: .75rem; white-space: nowrap; }
+.complaint-flag { background: #fff3cd; color: #997404; border-radius: 1rem; padding: .05rem .5rem; font-size: .75rem; white-space: nowrap; }
+.dl-grid { display: grid; grid-template-columns: max-content 1fr; gap: .35rem 1rem; margin: 0; }
+.dl-grid dt { color: #6c757d; font-weight: 600; }
+.dl-grid dd { margin: 0; }
+.doc-thumb { width: 100%; max-height: 180px; object-fit: contain; background: #f8f9fa; border-radius: .5rem; }
+.schedule-grid td { min-width: 150px; vertical-align: top; }
+.shift-chip { display: block; background: #e8f4f8; border-inline-start: 3px solid var(--app-primary); border-radius: .35rem; padding: .25rem .4rem; margin-bottom: .3rem; font-size: .82rem; }
+.today-col { background: #fffbea !important; }
+.board-row.status-arrived { background: #fff8e1; }
+.board-row.status-in_room { background: #e6f6fb; }
+.board-row.status-completed { background: #eef8f0; }
+.board-row.status-no_show, .board-row.status-cancelled { opacity: .6; }
+.timeline { border-inline-start: 2px solid #dee2e6; padding-inline-start: 1rem; list-style: none; margin: 0; }
+.timeline li { position: relative; margin-bottom: .75rem; }
+.timeline li::before { content: ""; position: absolute; inset-inline-start: calc(-1rem - 6px); top: .45rem; width: 10px; height: 10px; border-radius: 50%; background: var(--app-primary); }
+.bar { height: .6rem; border-radius: .3rem; background: var(--app-accent); min-width: 2px; }
+.btn-primary { --bs-btn-bg: var(--app-primary); --bs-btn-border-color: var(--app-primary); --bs-btn-hover-bg: var(--app-primary-dark); --bs-btn-hover-border-color: var(--app-primary-dark); }
+.nowrap { white-space: nowrap; }
+.ltr { direction: ltr; unicode-bidi: embed; display: inline-block; }
+.login-box { max-width: 420px; margin: 8vh auto; }
+@media print {
+  .no-print, .app-navbar, .alert { display: none !important; }
+  body { background: #fff !important; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+  main { padding: 0 !important; }
+}

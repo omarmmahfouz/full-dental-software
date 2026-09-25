@@ -1,0 +1,12 @@
+{% if form.non_field_errors %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+{% for hidden in form.hidden_fields %}{{ hidden }}{% if hidden.errors %}<div class="alert alert-danger">{{ hidden.errors }}</div>{% endif %}{% endfor %}
+{% if form.fieldsets %}
+  {% for title, fields in form.bound_fieldsets %}
+  <fieldset class="mb-4">
+    {% if title %}<legend class="fs-6 fw-bold border-bottom pb-2 mb-3" style="color: var(--app-primary)">{{ title }}</legend>{% endif %}
+    <div class="row g-3">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div>
+  </fieldset>
+  {% endfor %}
+{% else %}
+<div class="row g-3">{% for field in form.visible_fields %}{% include "includes/field.html" %}{% endfor %}</div>
+{% endif %}

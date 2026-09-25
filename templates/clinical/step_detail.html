@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ step.step_type }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-clipboard2-check"></i> {{ step.step_type }} — <a href="{{ step.patient.get_absolute_url }}">{{ step.patient.full_name }}</a></h1></div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "Done at" %}</dt><dd>{{ step.performed_at|date:"l d/m/Y g:i A" }}</dd>
+      <dt>{% trans "Done by" %}</dt><dd class="fw-bold">{{ step.performed_by }}</dd>
+      <dt>{% trans "Supervisor present" %}</dt><dd>{{ step.supervised_by|default:"—" }}</dd>
+      <dt>{% trans "Teeth" %}</dt><dd>{{ step.teeth|default:"—" }}</dd>
+      {% if step.implant_system or step.implant_size %}<dt>{% trans "Implant" %}</dt><dd>{{ step.implant_system }} {{ step.implant_size }}</dd>{% endif %}
+      <dt>{% trans "Details" %}</dt><dd>{{ step.notes|linebreaksbr|default:"—" }}</dd>
+      {% if step.appointment %}<dt>{% trans "Visit" %}</dt><dd><a href="{{ step.appointment.get_absolute_url }}">{{ step.appointment.scheduled_at|date:"d/m/Y g:i A" }}</a></dd>{% endif %}
+      <dt>{% trans "Recorded by" %}</dt><dd class="small text-muted">{{ step.created_by|default:"—" }} — {{ step.created_at|date:"d/m/Y g:i A" }}</dd>
+    </dl>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Supervisor check" %}</div><div class="card-body">
+    {% if step.is_verified %}
+      <div class="alert alert-success mb-3"><i class="bi bi-check2-circle"></i> {% blocktrans with by=step.verified_by at=step.verified_at|date:"d/m/Y g:i A" %}Checked by {{ by }} on {{ at }}{% endblocktrans %}{% if step.grade %} — {% trans "Grade" %}: <strong>{{ step.grade }}/5</strong>{% endif %}
+        {% if step.supervisor_comment %}<div class="mt-2">{{ step.supervisor_comment|linebreaksbr }}</div>{% endif %}</div>
+    {% else %}<div class="alert alert-warning">{% trans "Not checked yet." %}</div>{% endif %}
+    {% if review_form %}
+    <form method="post">{% csrf_token %}
+      {% with form=review_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-success mt-3"><i class="bi bi-check2-all"></i> {% if step.is_verified %}{% trans "Update check" %}{% else %}{% trans "Mark as checked" %}{% endif %}</button>
+    </form>
+    {% endif %}
+  </div></div></div>
+</div>
+{% endblock %}

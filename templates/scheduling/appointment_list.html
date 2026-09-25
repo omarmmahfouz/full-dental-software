@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Appointments" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-calendar-check"></i> {% trans "Appointments" %} <small class="text-muted fs-6">{{ date_from|date:"d/m" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
+  {% if is_front_desk %}<a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>{% endif %}
+</div>
+<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  {% for field in filter_form %}{% if field.name != "intern" or is_front_desk %}<div class="col-6 col-md-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endif %}{% endfor %}
+  <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
+</div></form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Time" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Mobile" %}</th><th>{% trans "Intern" %}</th><th>{% trans "Room" %}</th><th>{% trans "Procedure" %}</th><th>{% trans "Status" %}</th></tr></thead>
+  <tbody>
+  {% for a in page_obj %}
+  {% ifchanged %}<tr class="table-light"><td colspan="8" class="fw-bold">{{ a.scheduled_at|date:"l j F" }}</td></tr>{% endifchanged %}
+  <tr>
+    <td class="nowrap">{{ a.scheduled_at|date:"d/m" }}</td>
+    <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|time:"g:i A" }}</a></td>
+    <td><a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a></td>
+    <td><span class="ltr">{{ a.patient.preferred_number }}</span></td>
+    <td>{{ a.intern|default:"—" }}</td><td>{{ a.room|default:"—" }}</td><td>{{ a.purpose|default:"—" }}</td>
+    <td>{% status_badge a %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No appointments." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

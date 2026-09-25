@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Purchase" %}{% endblock %}
+{% block content %}
+{% with p=purchase %}
+<div class="page-header">
+  <h1><i class="bi bi-receipt"></i> {% trans "Purchase" %} — {{ p.supplier }} — {{ p.purchase_date|date:"d/m/Y" }}</h1>
+  <a class="btn btn-outline-secondary no-print" href="{% url 'purchasing:purchase_update' p.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "Supplier" %}</dt><dd><a href="{{ p.supplier.get_absolute_url }}">{{ p.supplier }}</a></dd>
+      <dt>{% trans "Invoice no." %}</dt><dd>{{ p.invoice_number|default:"—" }}</dd>
+      <dt>{% trans "Payment method" %}</dt><dd>{{ p.get_payment_method_display }}</dd>
+      <dt>{% trans "Payment status" %}</dt><dd>{% status_badge p "payment_status" %}</dd>
+      <dt>{% trans "Paid" %}</dt><dd>{{ p.paid|money }}</dd>
+      {% if p.unpaid %}<dt>{% trans "Still owed" %}</dt><dd class="text-danger fw-bold">{{ p.unpaid|money }}</dd>{% endif %}
+      <dt>{% trans "Invoice photo" %}</dt><dd>{% if p.invoice_image %}<a href="{{ p.invoice_image.url }}" target="_blank"><i class="bi bi-image"></i> {% trans "Open" %}</a>{% else %}—{% endif %}</dd>
+      <dt>{% trans "Notes" %}</dt><dd>{{ p.notes|linebreaksbr|default:"—" }}</dd>
+      <dt>{% trans "Entered by" %}</dt><dd class="small text-muted">{{ p.created_by|default:"—" }} — {{ p.created_at|date:"d/m/Y g:i A" }}</dd>
+    </dl>
+  </div></div></div>
+  <div class="col-lg-8"><div class="card h-100"><div class="table-responsive"><table class="table mb-0">
+    <thead><tr><th>{% trans "Category" %}</th><th>{% trans "Item" %}</th><th>{% trans "Quantity" %}</th><th>{% trans "Unit price" %}</th><th>{% trans "Total" %}</th></tr></thead>
+    <tbody>
+    {% for i in items %}<tr><td>{{ i.category }}</td><td>{{ i.description }}</td><td>{{ i.quantity|floatformat:"-2" }} {{ i.unit }}</td><td>{{ i.unit_price|money }}</td><td class="fw-bold">{{ i.total|money }}</td></tr>{% endfor %}
+    </tbody>
+    <tfoot><tr><th colspan="4">{% trans "Total" %}</th><th>{{ p.total|money }} {{ CLINIC.CURRENCY }}</th></tr></tfoot>
+  </table></div></div></div>
+</div>
+{% endwith %}
+{% endblock %}

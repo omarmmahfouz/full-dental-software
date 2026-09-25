@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-cart3"></i> {{ title }}</h1></div>
+<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+  <div class="card mb-3"><div class="card-body">{% include "includes/form_fields.html" %}</div></div>
+  <div class="card mb-3" data-formset="items">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>{% trans "Items (each item under its category)" %}</span>
+      <span class="fw-bold">{% trans "Total" %}: <span id="grand-total">0</span></span>
+    </div>
+    <div class="card-body">
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}<div class="alert alert-danger">{% for e in formset.non_form_errors %}{{ e }} {% endfor %}</div>{% endif %}
+      <div class="table-responsive"><table class="table table-sm align-middle">
+        <thead><tr><th style="min-width:180px">{% trans "Category" %}</th><th style="min-width:200px">{% trans "Item" %}</th><th style="width:100px">{% trans "Quantity" %}</th><th style="width:110px">{% trans "Unit" %}</th><th style="width:130px">{% trans "Unit price" %}</th><th style="width:110px">{% trans "Total" %}</th><th></th></tr></thead>
+        <tbody data-formset-rows>
+        {% for item in formset %}
+          <tr class="item-row">
+            <td>{% for hidden in item.hidden_fields %}{{ hidden }}{% endfor %}{{ item.category }}{{ item.category.errors }}</td>
+            <td>{{ item.description }}{{ item.description.errors }}</td>
+            <td>{{ item.quantity }}{{ item.quantity.errors }}</td>
+            <td>{{ item.unit }}</td>
+            <td>{{ item.unit_price }}{{ item.unit_price.errors }}</td>
+            <td class="line-total fw-semibold">0</td>
+            <td>{% if item.instance.pk %}<label class="small text-danger">{{ item.DELETE }} {% trans "delete" %}</label>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      <template>
+        <tr class="item-row">
+          <td>{% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}{{ formset.empty_form.category }}</td>
+          <td>{{ formset.empty_form.description }}</td>
+          <td>{{ formset.empty_form.quantity }}</td>
+          <td>{{ formset.empty_form.unit }}</td>
+          <td>{{ formset.empty_form.unit_price }}</td>
+          <td class="line-total fw-semibold">0</td><td></td>
+        </tr>
+      </template>
+      <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add item" %}</button>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary btn-lg px-5"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+    <a class="btn btn-outline-secondary btn-lg" href="{% url 'purchasing:purchase_list' %}">{% trans "Cancel" %}</a>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+  (function () {
+    function recalc() {
+      var grand = 0;
+      document.querySelectorAll(".item-row").forEach(function (row) {
+        var qty = parseFloat((row.querySelector("[name$='-quantity']") || {}).value) || 0;
+        var price = parseFloat((row.querySelector("[name$='-unit_price']") || {}).value) || 0;
+        var del = row.querySelector("[name$='-DELETE']");
+        var total = (del && del.checked) ? 0 : qty * price;
+        row.querySelector(".line-total").textContent = total.toFixed(2);
+        grand += total;
+      });
+      document.getElementById("grand-total").textContent = grand.toFixed(2);
+    }
+    document.addEventListener("input", recalc);
+    document.addEventListener("change", recalc);
+    document.addEventListener("formset:added", recalc);
+    recalc();
+  })();
+</script>
+{% endblock %}

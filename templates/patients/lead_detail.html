@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ object.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ object.full_name }} {% status_badge object %}</h1>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-secondary" href="{% url 'patients:lead_update' object.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    {% if object.converted_patient %}
+      <a class="btn btn-success" href="{{ object.converted_patient.get_absolute_url }}"><i class="bi bi-folder2-open"></i> {% trans "Open patient file" %}</a>
+    {% else %}
+      <a class="btn btn-primary" href="{% url 'patients:create' %}?lead={{ object.pk }}"><i class="bi bi-person-check"></i> {% trans "Patient came: register full file" %}</a>
+    {% endif %}
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card"><div class="card-body">
+      <dl class="dl-grid">
+        <dt>{% trans "Mobile 1" %}</dt><dd><span class="ltr">{{ object.phone_primary }}</span>{% if object.preferred_phone == "primary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
+        <dt>{% trans "Mobile 2" %}</dt><dd><span class="ltr">{{ object.phone_secondary|default:"—" }}</span>{% if object.preferred_phone == "secondary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
+        <dt>{% trans "Age" %}</dt><dd>{{ object.age|default:"—" }}</dd>
+        <dt>{% trans "Gender" %}</dt><dd>{{ object.get_gender_display|default:"—" }}</dd>
+        <dt>{% trans "City / area" %}</dt><dd>{{ object.city|default:"—" }}</dd>
+        <dt>{% trans "Missing teeth" %}</dt><dd>{{ object.get_missing_teeth_display }} {{ object.missing_teeth_notes }}</dd>
+        <dt>{% trans "Medical history" %}</dt><dd>{% for c in object.medical_conditions.all %}<span class="medical-alert">{{ c }}</span>{% empty %}—{% endfor %}{% if object.medical_notes %}<div class="small">{{ object.medical_notes }}</div>{% endif %}</dd>
+        <dt>{% trans "Source" %}</dt><dd>{{ object.referral_source|default:"—" }} {{ object.referral_notes }}</dd>
+        <dt>{% trans "Next call" %}</dt><dd>{{ object.next_call_at|date:"l d/m g:i A"|default:"—" }}</dd>
+        <dt>{% trans "Notes" %}</dt><dd>{{ object.notes|linebreaksbr|default:"—" }}</dd>
+        <dt>{% trans "Added by" %}</dt><dd class="small text-muted">{{ object.created_by|default:"—" }} — {{ object.created_at|date:"d/m/Y g:i A" }}</dd>
+      </dl>
+    </div></div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-telephone-plus"></i> {% trans "Log a call" %}</div>
+      <div class="card-body">
+        <form method="post" action="{% url 'patients:lead_add_call' object.pk %}">{% csrf_token %}
+          {% with form=call_form %}{% include "includes/form_fields.html" %}{% endwith %}
+          <button class="btn btn-primary mt-3">{% trans "Save call" %}</button>
+        </form>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">{% trans "Call history" %}</div>
+      <ul class="list-group list-group-flush">
+        {% for call in calls %}
+        <li class="list-group-item"><strong>{{ call.get_outcome_display }}</strong> <span class="text-muted small">— {{ call.called_at|date:"d/m/Y g:i A" }} — {{ call.created_by|default:"" }}</span>{% if call.notes %}<div class="small">{{ call.notes }}</div>{% endif %}</li>
+        {% empty %}<li class="list-group-item text-muted">{% trans "No calls yet." %}</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

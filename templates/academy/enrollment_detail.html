@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ enrollment.candidate }}{% endblock %}
+{% block content %}
+{% with e=enrollment %}
+<div class="page-header">
+  <h1><i class="bi bi-cash-coin"></i> <a href="{{ e.candidate.get_absolute_url }}">{{ e.candidate }}</a> — {{ e.course }}</h1>
+  {% if roles.owner or roles.secretary %}<a class="btn btn-outline-secondary" href="{% url 'academy:enrollment_plan' e.pk %}"><i class="bi bi-calendar3"></i> {% trans "Edit installment plan" %}</a>{% endif %}
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value">{{ e.net_fee|money }}</div><div class="stat-label">{% trans "Fee after discount" %}{% if e.discount %} ({% trans "discount" %} {{ e.discount|money }}){% endif %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value text-success">{{ e.total_paid|money }}</div><div class="stat-label">{% trans "Paid" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value text-primary">{{ e.balance|money }}</div><div class="stat-label">{% trans "Remaining" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value text-danger">{{ e.overdue_amount|money }}</div><div class="stat-label">{% trans "Overdue" %}</div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">{% trans "Installments" %}</div><div class="table-responsive"><table class="table mb-0">
+      <thead><tr><th>#</th><th>{% trans "Due date" %}</th><th>{% trans "Amount" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Remaining" %}</th><th>{% trans "Status" %}</th></tr></thead>
+      <tbody>
+      {% for row in schedule %}
+      <tr><td>{{ row.installment.number }}</td><td>{{ row.installment.due_date|date:"d/m/Y" }}</td><td>{{ row.installment.amount|money }}</td><td>{{ row.paid|money }}</td><td>{{ row.remaining|money }}</td>
+        <td><span class="badge text-bg-{{ row.state|status_color }}">{% if row.state == "paid" %}{% trans "Paid" %}{% elif row.state == "partial" %}{% trans "Partly paid" %}{% elif row.state == "overdue" %}{% trans "Overdue" %}{% else %}{% trans "Not due yet" %}{% endif %}</span></td></tr>
+      {% empty %}<tr><td colspan="6" class="text-muted">{% trans "No installment plan." %}</td></tr>{% endfor %}
+      </tbody>
+    </table></div></div>
+  </div>
+  <div class="col-lg-6">
+    {% if e.balance > 0 %}
+    <div class="card mb-3 no-print"><div class="card-header"><i class="bi bi-plus-circle"></i> {% trans "Record a payment" %}</div><div class="card-body">
+      <form method="post">{% csrf_token %}
+        {% with form=payment_form %}{% include "includes/form_fields.html" %}{% endwith %}
+        <button class="btn btn-success mt-3"><i class="bi bi-cash"></i> {% trans "Save payment and print receipt" %}</button>
+      </form>
+    </div></div>
+    {% else %}<div class="alert alert-success"><i class="bi bi-check2-circle"></i> {% trans "Fully paid." %}</div>{% endif %}
+    <div class="card"><div class="card-header">{% trans "Payments" %}</div><div class="table-responsive"><table class="table mb-0">
+      <thead><tr><th>{% trans "Receipt" %}</th><th>{% trans "Date" %}</th><th>{% trans "Amount" %}</th><th>{% trans "Method" %}</th><th>{% trans "Reference" %}</th><th>{% trans "Received by" %}</th></tr></thead>
+      <tbody>
+      {% for p in payments %}
+      <tr><td><a href="{% url 'academy:payment_receipt' p.pk %}">{{ p.receipt_number }}</a></td><td>{{ p.paid_on|date:"d/m/Y" }}</td><td class="fw-bold">{{ p.amount|money }}</td><td>{{ p.get_method_display }}</td><td class="small">{{ p.reference|default:"—" }}</td><td class="small">{{ p.created_by|default:"—" }}</td></tr>
+      {% empty %}<tr><td colspan="6" class="text-muted">{% trans "No payments yet." %}</td></tr>{% endfor %}
+      </tbody>
+    </table></div></div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

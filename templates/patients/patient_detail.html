@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ patient.full_name }} <small class="text-muted fs-6">{{ patient.file_number }}</small> {% status_badge patient %}</h1>
+    <div class="mt-1">
+      {% for lr in open_labs %}<span class="lab-flag"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}: {{ lr.work_type }} — {{ lr.get_status_display }}</span> {% endfor %}
+      {% for c in complaints %}{% if c.is_open %}<span class="complaint-flag"><i class="bi bi-exclamation-circle"></i> {% trans "Open complaint" %} {{ c.number }}</span> {% endif %}{% endfor %}
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap no-print">
+    {% if can_edit %}
+    <a class="btn btn-outline-secondary" href="{% url 'patients:update' patient.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>
+    <a class="btn btn-outline-warning" href="{% url 'complaints:create' %}?patient={{ patient.pk }}"><i class="bi bi-chat-left-dots"></i> {% trans "Record complaint" %}</a>
+    {% endif %}
+    <a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>
+    <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-box-seam"></i> {% trans "New lab request" %}</a>
+  </div>
+</div>
+
+{% if medical_conditions %}
+<div class="mb-3"><i class="bi bi-heart-pulse text-danger"></i> {% for c in medical_conditions %}<span class="medical-alert">{{ c }}</span>{% endfor %}{% if patient.medical_notes %} <span class="small">{{ patient.medical_notes }}</span>{% endif %}</div>
+{% endif %}
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#info" type="button">{% trans "Data" %}</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#visits" type="button">{% trans "Visits" %} <span class="badge text-bg-light">{{ appointments|length }}</span></button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#steps" type="button">{% trans "Treatment steps" %} <span class="badge text-bg-light">{{ steps|length }}</span></button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#lab" type="button">{% trans "Lab" %} <span class="badge text-bg-light">{{ lab_requests|length }}</span></button></li>
+  {% if can_edit %}
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#documents" type="button">{% trans "ID & documents" %} <span class="badge text-bg-light">{{ documents|length }}</span></button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#relations" type="button">{% trans "Referral & relations" %}</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#complaints" type="button">{% trans "Complaints" %} <span class="badge text-bg-light">{{ complaints|length }}</span></button></li>
+  {% endif %}
+</ul>
+
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="info">
+    <div class="card"><div class="card-body">
+      <div class="row">
+        <div class="col-md-6"><dl class="dl-grid">
+          <dt>{% trans "File number" %}</dt><dd>{{ patient.file_number }}</dd>
+          <dt>{{ patient.get_id_type_display }}</dt><dd><span class="ltr">{{ patient.national_id }}</span></dd>
+          <dt>{% trans "Date of birth" %}</dt><dd>{{ patient.birth_date|date:"d/m/Y"|default:"—" }} {% if patient.age is not None %}({% blocktrans with age=patient.age %}{{ age }} years{% endblocktrans %}){% endif %}</dd>
+          <dt>{% trans "Gender" %}</dt><dd>{{ patient.get_gender_display|default:"—" }}</dd>
+          <dt>{% trans "Occupation" %}</dt><dd>{{ patient.occupation|default:"—" }}</dd>
+          <dt>{% trans "Missing teeth" %}</dt><dd>{{ patient.get_missing_teeth_display }} {{ patient.missing_teeth_notes }}</dd>
+        </dl></div>
+        <div class="col-md-6"><dl class="dl-grid">
+          <dt>{% trans "Mobile 1" %}</dt><dd><span class="ltr">{{ patient.phone_primary }}</span>{% if patient.preferred_phone == "primary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
+          <dt>{% trans "Mobile 2" %}</dt><dd><span class="ltr">{{ patient.phone_secondary|default:"—" }}</span>{% if patient.preferred_phone == "secondary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
+          <dt>{% trans "Address" %}</dt><dd>{{ patient.city }} {{ patient.address }}</dd>
+          <dt>{% trans "Responsible intern" %}</dt><dd class="fw-bold">{{ patient.assigned_intern|default:"—" }}</dd>
+          <dt>{% trans "Registered" %}</dt><dd class="small text-muted">{{ patient.created_at|date:"d/m/Y" }} — {{ patient.created_by|default:"" }}</dd>
+          <dt>{% trans "Notes" %}</dt><dd>{{ patient.notes|linebreaksbr|default:"—" }}</dd>
+        </dl></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="tab-pane fade" id="visits">
+    <div class="card"><div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th>{% trans "Appointment" %}</th><th>{% trans "Room" %}</th><th>{% trans "Intern" %}</th><th>{% trans "Arrived" %}</th><th>{% trans "Late by" %}</th><th>{% trans "Entered room" %}</th><th>{% trans "Left" %}</th><th>{% trans "In chair" %}</th><th>{% trans "Status" %}</th></tr></thead>
+      <tbody>
+      {% for a in appointments %}
+      <tr>
+        <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|date:"d/m/Y g:i A" }}</a>{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}</td>
+        <td>{{ a.room|default:"—" }}</td><td>{{ a.intern|default:"—" }}</td>
+        <td>{{ a.arrived_at|time:"g:i A"|default:"—" }}</td>
+        <td>{% if a.is_late %}<span class="text-danger fw-bold">{{ a.late_minutes|minutes }}</span>{% elif a.late_minutes is not None %}{{ a.late_minutes|minutes }}{% else %}—{% endif %}</td>
+        <td>{{ a.entered_room_at|time:"g:i A"|default:"—" }}</td>
+        <td>{{ a.left_at|time:"g:i A"|default:"—" }}</td>
+        <td>{{ a.chair_minutes|minutes }}</td>
+        <td>{% status_badge a %}</td>
+      </tr>
+      {% empty %}<tr><td colspan="9" class="text-muted text-center py-3">{% trans "No visits yet." %}</td></tr>{% endfor %}
+      </tbody>
+    </table></div></div>
+  </div>
+
+  <div class="tab-pane fade" id="steps">
+    <div class="card"><div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Step" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Done by" %}</th><th>{% trans "Details" %}</th><th>{% trans "Supervisor check" %}</th></tr></thead>
+      <tbody>
+      {% for s in steps %}
+      <tr>
+        <td class="nowrap">{{ s.performed_at|date:"d/m/Y" }}</td>
+        <td><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a></td>
+        <td>{{ s.teeth|default:"—" }}</td>
+        <td>{{ s.performed_by }}</td>
+        <td class="small">{% if s.implant_system %}{{ s.implant_system }} {{ s.implant_size }} — {% endif %}{{ s.notes|truncatechars:80 }}</td>
+        <td>{% if s.is_verified %}<span class="badge text-bg-success"><i class="bi bi-check2"></i> {{ s.verified_by }}{% if s.grade %} · {{ s.grade }}/5{% endif %}</span>{% else %}<span class="badge text-bg-warning">{% trans "Not checked" %}</span>{% endif %}</td>
+      </tr>
+      {% empty %}<tr><td colspan="6" class="text-muted text-center py-3">{% trans "No treatment steps yet." %}</td></tr>{% endfor %}
+      </tbody>
+    </table></div></div>
+  </div>
+
+  <div class="tab-pane fade" id="lab">
+    <div class="card"><div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th>{% trans "No." %}</th><th>{% trans "Work" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Lab" %}</th><th>{% trans "Doctor" %}</th><th>{% trans "Needed by" %}</th><th>{% trans "Status" %}</th></tr></thead>
+      <tbody>
+      {% for lr in lab_requests %}
+      <tr>
+        <td><a href="{{ lr.get_absolute_url }}">{{ lr.number }}</a></td><td>{{ lr.work_type }}</td><td>{{ lr.teeth }}</td><td>{{ lr.lab }}</td><td>{{ lr.requested_by }}</td>
+        <td>{{ lr.due_date|date:"d/m/Y"|default:"—" }}{% if lr.is_overdue %} <span class="badge text-bg-danger">{% trans "Late" %}</span>{% endif %}</td>
+        <td>{% status_badge lr %}</td>
+      </tr>
+      {% empty %}<tr><td colspan="7" class="text-muted text-center py-3">{% trans "No lab work." %}</td></tr>{% endfor %}
+      </tbody>
+    </table></div></div>
+  </div>
+
+  {% if can_edit %}
+  <div class="tab-pane fade" id="documents">
+    <div class="row g-3 mb-3">
+      {% for d in documents %}
+      <div class="col-6 col-md-4 col-xl-3"><div class="card h-100"><div class="card-body p-2 text-center">
+        <a href="{{ d.file.url }}" target="_blank">{% if d.is_image %}<img src="{{ d.file.url }}" class="doc-thumb" alt="{{ d.get_kind_display }}">{% else %}<i class="bi bi-file-earmark-pdf display-4 text-danger"></i>{% endif %}</a>
+        <div class="fw-semibold small mt-1">{{ d.get_kind_display }}</div>
+        <div class="small text-muted">{{ d.created_at|date:"d/m/Y" }} {{ d.notes }}</div>
+        <form method="post" action="{% url 'patients:document_delete' patient.pk d.pk %}" class="mt-1">{% csrf_token %}<button class="btn btn-sm btn-link text-danger" data-confirm="{% trans 'Delete this document?' %}"><i class="bi bi-trash"></i></button></form>
+      </div></div></div>
+      {% empty %}<div class="col-12"><div class="alert alert-warning">{% trans "No ID scan uploaded yet." %}</div></div>{% endfor %}
+    </div>
+    <div class="card"><div class="card-header">{% trans "Upload a document / ID scan" %}</div><div class="card-body">
+      <form method="post" enctype="multipart/form-data" action="{% url 'patients:document_upload' patient.pk %}">{% csrf_token %}
+        {% with form=document_form %}{% include "includes/form_fields.html" %}{% endwith %}
+        <button class="btn btn-primary mt-3"><i class="bi bi-upload"></i> {% trans "Upload" %}</button>
+      </form>
+    </div></div>
+  </div>
+
+  <div class="tab-pane fade" id="relations">
+    <div class="row g-3">
+      <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Who referred this patient" %}</div><div class="card-body">
+        <dl class="dl-grid">
+          <dt>{% trans "Source" %}</dt><dd>{{ patient.referral_source|default:"—" }} {{ patient.referral_notes }}</dd>
+          <dt>{% trans "Referred by patient" %}</dt><dd>{% if patient.referred_by %}<a href="{{ patient.referred_by.get_absolute_url }}">{{ patient.referred_by }}</a>{% else %}—{% endif %}</dd>
+        </dl>
+        <div class="mt-3 fw-semibold">{% trans "Patients referred by this patient" %}</div>
+        <ul class="mb-0">{% for p in referred_patients %}<li><a href="{{ p.get_absolute_url }}">{{ p }}</a></li>{% empty %}<li class="text-muted">—</li>{% endfor %}</ul>
+      </div></div></div>
+      <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Relatives and friends among our patients" %}</div>
+        <ul class="list-group list-group-flush">
+          {% for other, label, rel in relations %}
+          <li class="list-group-item d-flex justify-content-between align-items-center"><span><a href="{{ other.get_absolute_url }}">{{ other }}</a> — {{ label }}{% if rel.notes %} <span class="small text-muted">({{ rel.notes }})</span>{% endif %}</span>
+            <form method="post" action="{% url 'patients:relation_delete' patient.pk rel.pk %}">{% csrf_token %}<button class="btn btn-sm btn-link text-danger" data-confirm="{% trans 'Remove this relation?' %}"><i class="bi bi-x-lg"></i></button></form></li>
+          {% empty %}<li class="list-group-item text-muted">{% trans "None recorded." %}</li>{% endfor %}
+        </ul>
+        <div class="card-body border-top">
+          <form method="post" action="{% url 'patients:relation_add' patient.pk %}">{% csrf_token %}
+            {% with form=relation_form %}{% include "includes/form_fields.html" %}{% endwith %}
+            <button class="btn btn-outline-primary mt-3"><i class="bi bi-link-45deg"></i> {% trans "Add relation" %}</button>
+          </form>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="complaints">
+    <div class="card"><div class="list-group list-group-flush">
+      {% for c in complaints %}
+      <a class="list-group-item list-group-item-action" href="{{ c.get_absolute_url }}">{{ c.number }} — {{ c.get_category_display }} {% status_badge c %} <span class="small text-muted">{{ c.created_at|date:"d/m/Y" }}</span><div class="small">{{ c.description|truncatechars:120 }}</div></a>
+      {% empty %}<div class="list-group-item text-muted">{% trans "No complaints." %}</div>{% endfor %}
+    </div></div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  // Open the tab named in the URL (e.g. #documents after an upload).
+  (function () {
+    var hash = window.location.hash;
+    if (!hash) return;
+    var button = document.querySelector('[data-bs-target="' + hash + '"]');
+    if (button) bootstrap.Tab.getOrCreateInstance(button).show();
+  })();
+</script>
+{% endblock %}

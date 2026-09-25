@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Reception" %} {{ day|date:"d/m" }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-display"></i> {% trans "Reception" %} — {{ day|date:"l j F Y" }}</h1>
+  <div class="d-flex gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="?day={{ prev_day|date:'Y-m-d' }}"><i class="bi bi-chevron-right"></i></a>
+    {% if not is_today %}<a class="btn btn-outline-primary" href="?">{% trans "Today" %}</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="?day={{ next_day|date:'Y-m-d' }}"><i class="bi bi-chevron-left"></i></a>
+    <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>
+  </div>
+</div>
+
+{% if is_today %}
+<div class="card mb-3 no-print"><div class="card-body">
+  <form method="post" action="{% url 'scheduling:walk_in' %}" class="row g-2 align-items-end">{% csrf_token %}
+    <div class="col-12 fw-semibold"><i class="bi bi-person-walking"></i> {% trans "Patient arrived without appointment (walk-in)" %}</div>
+    {% for field in walk_in_form %}<div class="col-md-3"><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+    <div class="col-md-3"><button class="btn btn-outline-primary w-100">{% trans "Register arrival" %}</button></div>
+  </form>
+</div></div>
+{% endif %}
+
+<div class="card mb-3"><div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+  <thead><tr>
+    <th>{% trans "Time" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Intern" %}</th><th>{% trans "Room" %}</th><th>{% trans "Status" %}</th>
+    <th>{% trans "Arrived" %}</th><th>{% trans "Late" %}</th><th>{% trans "Entered room" %}</th><th>{% trans "Waited" %}</th><th>{% trans "Left" %}</th><th>{% trans "In chair" %}</th><th class="no-print">{% trans "Action" %}</th>
+  </tr></thead>
+  <tbody>
+  {% for a in appointments %}
+  <tr class="board-row status-{{ a.status }}">
+    <td class="nowrap fw-bold">{% if a.is_walk_in %}<span class="badge text-bg-light">{% trans "walk-in" %}</span>{% else %}{{ a.scheduled_at|time:"g:i A" }}{% endif %}</td>
+    <td>
+      <a href="{{ a.patient.get_absolute_url }}" class="fw-semibold">{{ a.patient.full_name }}</a> <span class="small text-muted">{{ a.patient.file_number }}</span>
+      {% if a.open_labs %}<span class="lab-flag"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}</span>{% endif %}
+      {% for c in a.patient.medical_conditions.all %}{% if c.is_alert %}<span class="medical-alert py-0">{{ c }}</span>{% endif %}{% endfor %}
+      {% if a.purpose %}<div class="small text-muted">{{ a.purpose }}</div>{% endif %}
+    </td>
+    <td class="nowrap">{{ a.intern|default:"—" }}</td>
+    <td class="nowrap">{{ a.room|default:"—" }}</td>
+    <td>{% status_badge a %}</td>
+    <td class="nowrap">{{ a.arrived_at|time:"g:i A"|default:"—" }}</td>
+    <td class="nowrap">{% if a.is_late %}<span class="text-danger fw-bold">{{ a.late_minutes|minutes }}</span>{% elif a.late_minutes is not None %}<span class="text-success">{% trans "on time" %}</span>{% else %}—{% endif %}</td>
+    <td class="nowrap">{{ a.entered_room_at|time:"g:i A"|default:"—" }}</td>
+    <td class="nowrap">{% if a.status == "arrived" %}<span class="text-warning fw-bold" data-since="{{ a.arrived_at|date:'c' }}">…</span>{% else %}{{ a.waiting_minutes|minutes }}{% endif %}</td>
+    <td class="nowrap">{{ a.left_at|time:"g:i A"|default:"—" }}</td>
+    <td class="nowrap">{% if a.status == "in_room" %}<span class="text-info fw-bold" data-since="{{ a.entered_room_at|date:'c' }}">…</span>{% else %}{{ a.chair_minutes|minutes }}{% endif %}</td>
+    <td class="no-print">
+      <form method="post" action="{% url 'scheduling:appointment_action' a.pk %}" class="d-flex flex-wrap gap-1">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% if a.status == "scheduled" or a.status == "confirmed" %}
+          <button name="action" value="arrive" class="btn btn-sm btn-warning">{% trans "Arrived" %}</button>
+          {% if a.status == "scheduled" %}<button name="action" value="confirm" class="btn btn-sm btn-outline-primary" title="{% trans 'Confirmed by phone' %}"><i class="bi bi-telephone-check"></i></button>{% endif %}
+          <button name="action" value="no_show" class="btn btn-sm btn-outline-danger" data-confirm="{% trans 'Mark as did not come?' %}">{% trans "No-show" %}</button>
+        {% elif a.status == "arrived" %}
+          <select name="room" class="form-select form-select-sm w-auto">{% for r in rooms %}<option value="{{ r.pk }}" {% if r.pk == a.room_id %}selected{% endif %}>{{ r }}</option>{% endfor %}</select>
+          <button name="action" value="enter" class="btn btn-sm btn-info">{% trans "Entered room" %}</button>
+        {% elif a.status == "in_room" %}
+          <button name="action" value="leave" class="btn btn-sm btn-success">{% trans "Left" %}</button>
+        {% endif %}
+        {% if a.status != "scheduled" %}<button name="action" value="undo" class="btn btn-sm btn-link text-secondary" title="{% trans 'Undo last step' %}" data-confirm="{% trans 'Undo the last step?' %}"><i class="bi bi-arrow-counterclockwise"></i></button>{% endif %}
+      </form>
+    </td>
+  </tr>
+  {% empty %}<tr><td colspan="12" class="text-center text-muted py-4">{% trans "No appointments on this day." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between"><span><i class="bi bi-grid-3x3"></i> {% trans "Rooms today" %}</span><a class="small" href="{% url 'scheduling:room_schedule' %}?week={{ day|date:'Y-m-d' }}">{% trans "Weekly room schedule" %}</a></div>
+  <div class="card-body"><div class="row g-2">
+    {% for room in rooms %}
+    <div class="col-6 col-md-4 col-xl"><div class="border rounded p-2 h-100">
+      <div class="fw-bold mb-1">{{ room }}</div>
+      {% for s in room.day_shifts %}<span class="shift-chip">{{ s.intern }}<br><span class="ltr small">{{ s.start_time|time:"H:i" }}-{{ s.end_time|time:"H:i" }}</span>{% if s.supervisor %}<br><span class="small text-muted">{% trans "Supervisor" %}: {{ s.supervisor }}</span>{% endif %}</span>
+      {% empty %}<span class="small text-muted">{% trans "Free" %}</span>{% endfor %}
+    </div></div>
+    {% endfor %}
+  </div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  // Live "waiting for / in chair for" counters.
+  (function () {
+    var minLabel = "{% trans 'min' %}";
+    function tick() {
+      document.querySelectorAll("[data-since]").forEach(function (el) {
+        var since = Date.parse(el.getAttribute("data-since"));
+        if (!isNaN(since)) el.textContent = Math.max(0, Math.round((Date.now() - since) / 60000)) + " " + minLabel;
+      });
+    }
+    tick();
+    setInterval(tick, 30000);
+  })();
+</script>
+{% endblock %}

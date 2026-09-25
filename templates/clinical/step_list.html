@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Treatment steps" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-list-check"></i> {% trans "Treatment steps" %}</h1>
+  <a class="btn btn-primary" href="{% url 'clinical:step_create' %}"><i class="bi bi-plus-lg"></i> {% trans "Record treatment step" %}</a>
+</div>
+<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  {% for field in filter_form %}{% if field.name == "unchecked" %}<div class="col-md-2"><div class="form-check">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div></div>{% elif field.name != "intern" or is_front_desk %}<div class="col-6 col-md-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endif %}{% endfor %}
+  <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
+</div></form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Step" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Done by" %}</th><th>{% trans "Supervisor check" %}</th></tr></thead>
+  <tbody>
+  {% for s in page_obj %}
+  <tr>
+    <td class="nowrap">{{ s.performed_at|date:"d/m/Y g:i A" }}</td>
+    <td><a href="{{ s.patient.get_absolute_url }}">{{ s.patient.full_name }}</a></td>
+    <td><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a></td>
+    <td>{{ s.teeth|default:"—" }}</td>
+    <td>{{ s.performed_by }}</td>
+    <td>{% if s.is_verified %}<span class="badge text-bg-success"><i class="bi bi-check2"></i> {{ s.verified_by }}{% if s.grade %} · {{ s.grade }}/5{% endif %}</span>{% else %}<span class="badge text-bg-warning">{% trans "Not checked" %}</span>{% endif %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">{% trans "No treatment steps." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

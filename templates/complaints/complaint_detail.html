@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ complaint.number }}{% endblock %}
+{% block content %}
+{% with c=complaint %}
+<div class="page-header">
+  <h1><i class="bi bi-chat-left-dots"></i> {% trans "Complaint" %} {{ c.number }} {% status_badge c %} {% status_badge c "severity" %}{% if c.is_overdue %} <span class="badge text-bg-danger">{% trans "Follow-up overdue" %}</span>{% endif %}</h1>
+  <a class="btn btn-outline-secondary no-print" href="{% url 'complaints:update' c.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "Patient" %}</dt><dd><a href="{{ c.patient.get_absolute_url }}">{{ c.patient }}</a> <span class="ltr small">{{ c.patient.preferred_number }}</span></dd>
+      <dt>{% trans "Category" %}</dt><dd>{{ c.get_category_display }}</dd>
+      <dt>{% trans "Concerned staff" %}</dt><dd>{{ c.concerned_staff|default:"—" }}</dd>
+      <dt>{% trans "Followed up by" %}</dt><dd>{{ c.assigned_to|default:"—" }}</dd>
+      <dt>{% trans "Next follow-up" %}</dt><dd>{{ c.follow_up_due|date:"l d/m/Y"|default:"—" }}</dd>
+      <dt>{% trans "Recorded by" %}</dt><dd class="small text-muted">{{ c.created_by|default:"—" }} — {{ c.created_at|date:"d/m/Y g:i A" }}</dd>
+      {% if c.resolved_at %}<dt>{% trans "Resolved" %}</dt><dd>{{ c.resolved_by }} — {{ c.resolved_at|date:"d/m/Y" }}</dd>{% endif %}
+    </dl>
+    <hr>
+    <div class="fw-semibold mb-1">{% trans "Complaint" %}</div>
+    <div class="bg-light rounded p-2">{{ c.description|linebreaksbr }}</div>
+    {% if c.resolution %}<div class="fw-semibold mt-3 mb-1">{% trans "How it was solved" %}</div><div class="bg-light rounded p-2">{{ c.resolution|linebreaksbr }}</div>{% endif %}
+  </div></div></div>
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header">{% trans "Follow-up history" %}</div><div class="card-body">
+      <ul class="timeline">
+        <li><strong>{% trans "Complaint recorded" %}</strong> — {{ c.created_by|default:"" }} <span class="small text-muted">{{ c.created_at|date:"d/m/Y g:i A" }}</span></li>
+        {% for f in follow_ups %}
+        <li><strong>{{ f.get_action_display }}</strong> → {{ f.get_new_status_display }} — {{ f.created_by|default:"" }} <span class="small text-muted">{{ f.created_at|date:"d/m/Y g:i A" }}</span><div class="small">{{ f.note|linebreaksbr }}</div>{% if f.next_follow_up %}<div class="small text-muted">{% trans "Next follow-up" %}: {{ f.next_follow_up|date:"d/m/Y" }}</div>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </div></div>
+    <div class="card no-print"><div class="card-header">{% trans "Add follow-up" %}</div><div class="card-body">
+      <form method="post" action="{% url 'complaints:follow_up' c.pk %}">{% csrf_token %}
+        {% include "includes/form_fields.html" %}
+        <button class="btn btn-primary mt-3">{% trans "Save follow-up" %}</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

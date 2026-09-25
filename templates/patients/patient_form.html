@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-person-vcard"></i> {{ title }}</h1></div>
+{% if lead %}<div class="alert alert-info"><i class="bi bi-telephone"></i> {% blocktrans with name=lead.full_name %}Data copied from the call list ({{ name }}). Complete the ID data and scan the ID card.{% endblocktrans %}</div>{% endif %}
+<div class="card"><div class="card-body">
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if lead %}<input type="hidden" name="lead" value="{{ lead.pk }}">{% endif %}
+    {% include "includes/form_fields.html" %}
+    <div class="mt-2 d-flex gap-2">
+      <button class="btn btn-primary btn-lg px-5"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+      <a class="btn btn-outline-secondary btn-lg" href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'patients:list' %}{% endif %}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

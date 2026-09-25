@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Purchases" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-receipt"></i> {% trans "Purchases" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
+  <a class="btn btn-primary" href="{% url 'purchasing:purchase_create' %}"><i class="bi bi-plus-lg"></i> {% trans "New purchase" %}</a>
+</div>
+<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  {% for field in filter_form %}<div class="col-6 col-md-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
+</div></form>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ total|money }}</div><div class="stat-label">{% trans "Total spent" %} ({{ CLINIC.CURRENCY }})</div></div></div></div>
+  <div class="col-md-8"><div class="card h-100"><div class="card-header">{% trans "By category" %}</div><div class="card-body">
+    <table class="table table-sm mb-0"><tbody>
+    {% for category, amount in by_category %}
+      <tr><td>{{ category }} <span class="badge text-bg-light">{{ category.get_kind_display }}</span></td><td class="fw-bold nowrap">{{ amount|money }}</td></tr>
+    {% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+    </tbody></table>
+  </div></div></div>
+</div>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Supplier" %}</th><th>{% trans "Invoice no." %}</th><th>{% trans "Items" %}</th><th>{% trans "Total" %}</th><th>{% trans "Payment" %}</th><th>{% trans "Entered by" %}</th></tr></thead>
+  <tbody>
+  {% for p in purchases %}
+  <tr>
+    <td class="nowrap"><a href="{{ p.get_absolute_url }}">{{ p.purchase_date|date:"d/m/Y" }}</a></td>
+    <td><a href="{{ p.supplier.get_absolute_url }}">{{ p.supplier }}</a></td>
+    <td>{{ p.invoice_number|default:"—" }}</td>
+    <td class="small">{% for i in p.items.all %}{{ i.description }} <span class="text-muted">({{ i.category }})</span>{% if not forloop.last %}، {% endif %}{% endfor %}</td>
+    <td class="fw-bold nowrap">{{ p.total|money }}</td>
+    <td>{{ p.get_payment_method_display }} {% status_badge p "payment_status" %}</td>
+    <td class="small">{{ p.created_by|default:"—" }}</td>
+  </tr>
+  {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No purchases in this period." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% endblock %}

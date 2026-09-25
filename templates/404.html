@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="text-center py-5">
+  <i class="bi bi-question-circle display-3 text-secondary"></i>
+  <h1 class="h3 mt-3">{% trans "Page not found." %}</h1>
+  <a class="btn btn-primary" href="/">{% trans "Home" %}</a>
+</div>
+{% endblock %}

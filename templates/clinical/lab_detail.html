@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ lab_request.number }}{% endblock %}
+{% block content %}
+{% with lr=lab_request %}
+<div class="page-header">
+  <h1><i class="bi bi-box-seam"></i> {{ lr.number }} — {{ lr.work_type }} {% status_badge lr %}{% if lr.is_overdue %} <span class="badge text-bg-danger">{% trans "Late at the lab" %}</span>{% endif %}</h1>
+  <div class="d-flex gap-2 no-print">
+    {% if can_edit %}<a class="btn btn-outline-secondary" href="{% url 'clinical:lab_edit' lr.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="{% url 'clinical:lab_print' lr.pk %}" target="_blank"><i class="bi bi-printer"></i> {% trans "Print lab form" %}</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "Patient" %}</dt><dd><a href="{{ lr.patient.get_absolute_url }}">{{ lr.patient }}</a></dd>
+      <dt>{% trans "Doctor" %}</dt><dd>{{ lr.requested_by }}</dd>
+      <dt>{% trans "Lab" %}</dt><dd>{{ lr.lab }}</dd>
+      <dt>{% trans "Work" %}</dt><dd>{{ lr.work_type }} — {% blocktrans with n=lr.units %}{{ n }} unit(s){% endblocktrans %}</dd>
+      <dt>{% trans "Teeth" %}</dt><dd>{{ lr.teeth }}</dd>
+      <dt>{% trans "Shade" %}</dt><dd>{{ lr.shade|default:"—" }}</dd>
+      <dt>{% trans "Material" %}</dt><dd>{{ lr.material|default:"—" }}</dd>
+      <dt>{% trans "Needed by" %}</dt><dd>{{ lr.due_date|date:"l d/m/Y"|default:"—" }}</dd>
+      <dt>{% trans "Instructions" %}</dt><dd>{{ lr.instructions|linebreaksbr|default:"—" }}</dd>
+      {% if lr.lab_cost is not None and is_front_desk %}<dt>{% trans "Lab cost" %}</dt><dd>{{ lr.lab_cost|money }}</dd>{% endif %}
+      {% if lr.remake_count %}<dt>{% trans "Remakes" %}</dt><dd class="text-danger">{{ lr.remake_count }}</dd>{% endif %}
+    </dl>
+  </div></div></div>
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">{% trans "Journey" %}</div><div class="card-body">
+      <dl class="dl-grid">
+        <dt>{% trans "Reviewed by" %}</dt><dd>{% if lr.reviewed_by %}{{ lr.reviewed_by }} — {{ lr.reviewed_at|date:"d/m/Y g:i A" }}{% else %}—{% endif %}</dd>
+        <dt>{% trans "Sent by" %}</dt><dd>{% if lr.sent_by %}{{ lr.sent_by }} — {{ lr.sent_at|date:"d/m/Y g:i A" }}{% else %}—{% endif %}</dd>
+        <dt>{% trans "Received by" %}</dt><dd>{% if lr.received_by %}{{ lr.received_by }} — {{ lr.received_at|date:"d/m/Y g:i A" }}{% else %}—{% endif %}</dd>
+        <dt>{% trans "Delivered to patient" %}</dt><dd>{{ lr.delivered_at|date:"d/m/Y g:i A"|default:"—" }}</dd>
+      </dl>
+    </div></div>
+    {% if actions %}
+    <div class="card mb-3 no-print"><div class="card-header">{% trans "Next step" %}</div><div class="card-body">
+      {% for a in actions %}
+      <form method="post" action="{% url 'clinical:lab_action' lr.pk %}" class="border rounded p-2 mb-2">{% csrf_token %}
+        <input type="hidden" name="action" value="{{ a.code }}">
+        {% if a.needs_notes %}<textarea name="notes" rows="2" class="form-control mb-2" placeholder="{% trans 'Reason / notes (required)' %}" required></textarea>
+        {% else %}<input name="notes" class="form-control form-control-sm mb-2" placeholder="{% trans 'Notes (optional)' %}">{% endif %}
+        {% if a.needs_check %}<div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="checked" id="chk-{{ a.code }}" required><label class="form-check-label" for="chk-{{ a.code }}">{% trans "I checked the work against the lab request" %}</label></div>{% endif %}
+        <button class="btn btn-sm {% if a.code == 'cancel' or a.code == 'return' or a.code == 'remake' %}btn-outline-danger{% else %}btn-primary{% endif %}">{{ a.label }}</button>
+      </form>
+      {% endfor %}
+    </div></div>
+    {% endif %}
+    <div class="card"><div class="card-header">{% trans "History" %}</div><div class="card-body">
+      <ul class="timeline">
+        {% for e in events %}<li><strong>{{ e.get_action_display }}</strong> — {{ e.by|default:"" }} <span class="small text-muted">{{ e.at|date:"d/m/Y g:i A" }}</span>{% if e.checked_against_request %} <span class="badge text-bg-success"><i class="bi bi-check2"></i> {% trans "checked against request" %}</span>{% endif %}{% if e.notes %}<div class="small">{{ e.notes }}</div>{% endif %}</li>{% endfor %}
+      </ul>
+    </div></div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Patients, referrals and complaints" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-people"></i> {% trans "Patients, referrals and complaints" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1></div>
+{% include "reports/_period.html" %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ lead_total }}</div><div class="stat-label">{% trans "Incoming calls (expected patients)" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-success">{{ conversion_pct }}%</div><div class="stat-label">{% blocktrans %}Became patients ({{ converted }}){% endblocktrans %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-primary">{{ new_patients }}</div><div class="stat-label">{% trans "New patient files" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-danger">{{ complaint_total }}</div><div class="stat-label">{% blocktrans %}Complaints ({{ complaint_open }} still open){% endblocktrans %}</div>{% if avg_resolution_days is not None %}<div class="small text-muted">{% blocktrans with d=avg_resolution_days %}Solved in {{ d }} days on average{% endblocktrans %}</div>{% endif %}</div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "Where new patients came from" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for name, n in by_source %}<tr><td>{{ name }}</td><td class="fw-bold">{{ n }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "Patients who referred others" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for p in top_referrers %}<tr><td><a href="{{ p.get_absolute_url }}">{{ p }}</a></td><td class="fw-bold">{{ p.n }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table>
+  <div class="card-header border-top">{% trans "Missing teeth (new patients)" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, n in by_teeth %}<tr><td>{{ label }}</td><td class="fw-bold">{{ n }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "Call list status" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, n in lead_status %}<tr><td>{{ label }}</td><td class="fw-bold">{{ n }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table>
+  <div class="card-header border-top">{% trans "Complaints by category" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, n in complaint_categories %}<tr><td>{{ label }}</td><td class="fw-bold">{{ n }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table></div></div>
+</div>
+{% endblock %}

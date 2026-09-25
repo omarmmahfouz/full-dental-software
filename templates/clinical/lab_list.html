@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab requests" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-box-seam"></i> {% trans "Lab requests" %}</h1>
+  <a class="btn btn-primary" href="{% url 'clinical:lab_create' %}"><i class="bi bi-plus-lg"></i> {% trans "New lab request" %}</a>
+</div>
+<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  {% for field in filter_form %}{% if field.name == "overdue" or field.name == "mine" %}<div class="col-6 col-md-2"><div class="form-check">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div></div>{% else %}<div class="col-6 col-md-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endif %}{% endfor %}
+  <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
+</div></form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "No." %}</th><th>{% trans "Patient" %}</th><th>{% trans "Work" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Lab" %}</th><th>{% trans "Doctor" %}</th><th>{% trans "Sent" %}</th><th>{% trans "Needed by" %}</th><th>{% trans "Status" %}</th></tr></thead>
+  <tbody>
+  {% for lr in page_obj %}
+  <tr>
+    <td><a href="{{ lr.get_absolute_url }}" class="fw-semibold">{{ lr.number }}</a></td>
+    <td><a href="{{ lr.patient.get_absolute_url }}">{{ lr.patient.full_name }}</a></td>
+    <td>{{ lr.work_type }}{% if lr.remake_count %} <span class="badge text-bg-danger">{% trans "remake" %} ×{{ lr.remake_count }}</span>{% endif %}</td>
+    <td>{{ lr.teeth }}</td><td>{{ lr.lab }}</td><td>{{ lr.requested_by }}</td>
+    <td class="nowrap">{{ lr.sent_at|date:"d/m"|default:"—" }}</td>
+    <td class="nowrap">{{ lr.due_date|date:"d/m/Y"|default:"—" }}{% if lr.is_overdue %} <span class="badge text-bg-danger">{% trans "Late" %}</span>{% endif %}</td>
+    <td>{% status_badge lr %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="9" class="text-center text-muted py-4">{% trans "No lab requests." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

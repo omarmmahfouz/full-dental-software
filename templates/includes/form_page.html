@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% comment %}Generic create/edit page. Context: form, title, cancel_url (optional), intro (optional).{% endcomment %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>{{ title }}</h1></div>
+{% if intro %}<p class="text-muted">{{ intro }}</p>{% endif %}
+<div class="card"><div class="card-body">
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_fields.html" %}
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {{ submit_label|default:_("Save") }}</button>
+      <a class="btn btn-outline-secondary" href="{% firstof cancel_url request.META.HTTP_REFERER "/" %}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

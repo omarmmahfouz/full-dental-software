@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Patient visits and timing" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-stopwatch"></i> {% trans "Patient visits and timing" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1></div>
+{% include "reports/_period.html" %}
+{% with s=summary %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ s.arrived }}</div><div class="stat-label">{% trans "Visits (came)" %}</div><div class="small text-muted">{% blocktrans with b=s.booked w=s.walk_in %}{{ b }} booked, {{ w }} walk-in{% endblocktrans %}</div></div></div></div>
+  <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-danger">{{ s.late_pct }}%</div><div class="stat-label">{% blocktrans with t=threshold %}Came late (more than {{ t }} min){% endblocktrans %}</div><div class="small text-muted">{{ s.late }} — {% trans "average" %} {{ s.avg_late|minutes }}</div></div></div></div>
+  <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-warning">{{ s.avg_wait|minutes }}</div><div class="stat-label">{% trans "Average waiting before the room" %}</div></div></div></div>
+  <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-info">{{ s.avg_chair|minutes }}</div><div class="stat-label">{% trans "Average time in the room" %}</div></div></div></div>
+  <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ s.avg_total|minutes }}</div><div class="stat-label">{% trans "Average total stay in clinic" %}</div></div></div></div>
+  <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-secondary">{{ s.no_show }}</div><div class="stat-label">{% trans "Did not come" %}</div><div class="small text-muted">{% trans "Cancelled" %}: {{ s.cancelled }}</div></div></div></div>
+</div>
+{% endwith %}
+<div class="row g-3 mb-3">
+  <div class="col-xl-7"><div class="card h-100"><div class="card-header">{% trans "Per intern" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Intern" %}</th><th>{% trans "Visits" %}</th><th>{% trans "Late patients" %}</th><th>{% trans "Avg wait" %}</th><th>{% trans "Avg in room" %}</th><th>{% trans "Total chair time" %}</th><th>{% trans "No-shows" %}</th></tr></thead>
+    <tbody>{% for r in by_intern %}<tr><td>{{ r.name }}</td><td>{{ r.visits }}</td><td>{{ r.late_pct }}%</td><td>{{ r.avg_wait|minutes }}</td><td>{{ r.avg_chair|minutes }}</td><td>{{ r.chair_total|minutes }}</td><td>{{ r.no_show }}</td></tr>{% empty %}<tr><td colspan="7" class="text-muted">—</td></tr>{% endfor %}</tbody>
+  </table></div></div></div>
+  <div class="col-xl-5"><div class="card h-100"><div class="card-header">{% trans "Per room" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Room" %}</th><th>{% trans "Visits" %}</th><th>{% trans "Avg in room" %}</th><th>{% trans "Total chair time" %}</th></tr></thead>
+    <tbody>{% for r in by_room %}<tr><td>{{ r.name }}</td><td>{{ r.visits }}</td><td>{{ r.avg_chair|minutes }}</td><td>{{ r.chair_total|minutes }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">—</td></tr>{% endfor %}</tbody>
+  </table></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-xl-6"><div class="card h-100"><div class="card-header text-danger">{% trans "Patients who came late" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Appointment" %}</th><th>{% trans "Arrived" %}</th><th>{% trans "Late by" %}</th></tr></thead>
+    <tbody>{% for a in late_list %}<tr><td><a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a></td><td class="nowrap">{{ a.scheduled_at|date:"d/m g:i A" }}</td><td class="nowrap">{{ a.arrived_at|time:"g:i A" }}</td><td class="text-danger fw-bold">{{ a.late_minutes|minutes }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">{% trans "Nobody came late." %}</td></tr>{% endfor %}</tbody>
+  </table></div></div></div>
+  <div class="col-xl-6"><div class="card h-100"><div class="card-header text-warning">{% trans "Waited more than 30 minutes" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Date" %}</th><th>{% trans "Intern" %}</th><th>{% trans "Waited" %}</th></tr></thead>
+    <tbody>{% for a in long_waits %}<tr><td><a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a></td><td class="nowrap">{{ a.arrived_at|date:"d/m g:i A" }}</td><td>{{ a.intern|default:"—" }}</td><td class="fw-bold">{{ a.waiting_minutes|minutes }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">—</td></tr>{% endfor %}</tbody>
+  </table></div></div></div>
+</div>
+{% endblock %}

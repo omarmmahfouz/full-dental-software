@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Complaints" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-chat-left-dots"></i> {% trans "Patient complaints" %}</h1>
+  <a class="btn btn-warning" href="{% url 'complaints:create' %}"><i class="bi bi-plus-lg"></i> {% trans "Record patient complaint" %}</a>
+</div>
+<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  <div class="col-md-3"><label class="form-label">{{ filter_form.status.label }}</label>{{ filter_form.status }}</div>
+  <div class="col-md-3"><label class="form-label">{{ filter_form.category.label }}</label>{{ filter_form.category }}</div>
+  <div class="col-md-3"><div class="form-check">{{ filter_form.overdue }} <label class="form-check-label" for="{{ filter_form.overdue.id_for_label }}">{{ filter_form.overdue.label }}</label></div></div>
+  <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
+</div></form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "No." %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Category" %}</th><th>{% trans "Severity" %}</th><th>{% trans "Followed up by" %}</th><th>{% trans "Next follow-up" %}</th><th>{% trans "Status" %}</th></tr></thead>
+  <tbody>
+  {% for c in page_obj %}
+  <tr>
+    <td><a href="{{ c.get_absolute_url }}" class="fw-semibold">{{ c.number }}</a></td>
+    <td class="nowrap">{{ c.created_at|date:"d/m/Y" }}</td>
+    <td><a href="{{ c.patient.get_absolute_url }}">{{ c.patient.full_name }}</a></td>
+    <td>{{ c.get_category_display }}</td>
+    <td>{% status_badge c "severity" %}</td>
+    <td>{{ c.assigned_to|default:"—" }}</td>
+    <td class="nowrap">{{ c.follow_up_due|date:"d/m/Y"|default:"—" }}{% if c.is_overdue %} <span class="badge text-bg-danger">{% trans "Overdue" %}</span>{% endif %}</td>
+    <td>{% status_badge c %}</td>
+  </tr>
+  {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No complaints." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

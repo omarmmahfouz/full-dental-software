@@ -1,0 +1,120 @@
+{% load static i18n clinic %}<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as RTL %}
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if RTL %}rtl{% else %}ltr{% endif %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% trans "Cairo Implant Academy" %}{% endblock %} · {% trans "Dental system" %}</title>
+  {% if RTL %}<link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">{% else %}<link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">{% endif %}
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/cairo/cairo.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-body-tertiary">
+{% if user.is_authenticated %}
+<nav class="navbar navbar-expand-xl navbar-dark app-navbar no-print">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" href="{% url 'core:dashboard' %}"><i class="bi bi-hospital"></i> {% if current_branch %}{{ current_branch.name }}{% else %}{% trans "Dental system" %}{% endif %}</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="{% trans 'Menu' %}"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto mb-2 mb-xl-0">
+        {% if is_front_desk %}
+        <li class="nav-item"><a class="nav-link" href="{% url 'scheduling:today' %}"><i class="bi bi-display"></i> {% trans "Reception today" %}</a></li>
+        {% endif %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-people"></i> {% trans "Patients" %}</a>
+          <ul class="dropdown-menu">
+            {% if is_front_desk %}
+            <li><a class="dropdown-item" href="{% url 'patients:lead_list' %}"><i class="bi bi-telephone"></i> {% trans "Call list (expected patients)" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i> {% trans "Register new patient" %}</a></li>
+            {% endif %}
+            <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% if is_front_desk %}{% trans "All patients" %}{% else %}{% trans "My patients" %}{% endif %}</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-calendar3"></i> {% trans "Schedule" %}</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'scheduling:room_schedule' %}"><i class="bi bi-grid-3x3"></i> {% trans "Room schedule" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'scheduling:appointment_list' %}"><i class="bi bi-calendar-check"></i> {% trans "Appointments" %}</a></li>
+            {% if is_front_desk %}<li><a class="dropdown-item" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a></li>{% endif %}
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-clipboard2-pulse"></i> {% trans "Clinical" %}</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'clinical:step_list' %}"><i class="bi bi-list-check"></i> {% trans "Treatment steps" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'clinical:lab_list' %}"><i class="bi bi-box-seam"></i> {% trans "Lab requests" %}</a></li>
+          </ul>
+        </li>
+        {% if is_front_desk %}
+        <li class="nav-item"><a class="nav-link" href="{% url 'complaints:list' %}"><i class="bi bi-chat-left-dots"></i> {% trans "Complaints" %}</a></li>
+        {% endif %}
+        {% if user|has_role:"owner,supervisor,secretary" %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-mortarboard"></i> {% trans "Academy" %}</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'academy:candidate_list' %}"><i class="bi bi-person-badge"></i> {% trans "Candidates" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'academy:course_list' %}"><i class="bi bi-journal-bookmark"></i> {% trans "Courses" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'academy:payment_list' %}"><i class="bi bi-cash-coin"></i> {% trans "Installment payments" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'academy:overdue' %}"><i class="bi bi-exclamation-triangle"></i> {% trans "Overdue installments" %}</a></li>
+          </ul>
+        </li>
+        {% endif %}
+        {% if user|has_role:"owner,secretary" %}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-cart3"></i> {% trans "Purchases" %}</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'purchasing:purchase_create' %}"><i class="bi bi-plus-circle"></i> {% trans "New purchase" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'purchasing:purchase_list' %}"><i class="bi bi-receipt"></i> {% trans "Purchases" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'purchasing:supplier_list' %}"><i class="bi bi-shop"></i> {% trans "Suppliers" %}</a></li>
+          </ul>
+        </li>
+        {% endif %}
+        {% if is_management %}
+        <li class="nav-item"><a class="nav-link" href="{% url 'reports:index' %}"><i class="bi bi-bar-chart-line"></i> {% trans "Reports" %}</a></li>
+        {% endif %}
+      </ul>
+      {% if is_front_desk %}
+      <form class="d-flex me-xl-2 my-2 my-xl-0" role="search" action="{% url 'patients:list' %}">
+        <input class="form-control form-control-sm" type="search" name="q" placeholder="{% trans 'Search patient: name, mobile, file, ID' %}" aria-label="{% trans 'Search' %}">
+      </form>
+      {% endif %}
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="{% url 'core:notifications' %}" title="{% trans 'Notifications' %}">
+            <i class="bi bi-bell fs-5"></i>{% if unread_notifications %}<span class="badge rounded-pill bg-danger notif-badge">{{ unread_notifications }}</span>{% endif %}
+          </a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> {{ user }}</a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><form action="{% url 'set_language' %}" method="post" class="px-3 py-1">{% csrf_token %}
+              <input name="next" type="hidden" value="{{ request.get_full_path }}">
+              {% if LANGUAGE_CODE == "ar" %}<button class="btn btn-link p-0" name="language" value="en"><i class="bi bi-translate"></i> English</button>
+              {% else %}<button class="btn btn-link p-0" name="language" value="ar"><i class="bi bi-translate"></i> العربية</button>{% endif %}
+            </form></li>
+            <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key"></i> {% trans "Change password" %}</a></li>
+            {% if user.is_staff %}<li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-gear"></i> {% trans "Settings, users and lists" %}</a></li>{% endif %}
+            <li><hr class="dropdown-divider"></li>
+            <li><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> {% trans "Log out" %}</button></form></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+{% endif %}
+<main class="container-fluid py-3 px-3 px-lg-4">
+  {% for message in messages %}
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show no-print" role="alert">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
