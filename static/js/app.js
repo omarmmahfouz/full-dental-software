@@ -201,7 +201,8 @@
   });
 
   // Unsaved data: after typing in a form, leaving the page asks "Save / Leave without saving / Stay".
-  // Forms marked data-no-leave-warning (and search forms, which use GET) are not watched.
+  // Forms marked data-no-leave-warning (and search forms, which use GET) are not watched, and links
+  // inside data-in-page-links are handled by the page itself (e.g. the day grid fills the booking form).
   var dirtyForm = null;
   var leaving = false;
   function watched(form) {
@@ -268,7 +269,7 @@
     if (!dirtyForm || !document.contains(dirtyForm) || event.defaultPrevented) return;
     var link = event.target.closest("a[href]");
     if (!link || link.target === "_blank" || link.hasAttribute("download") || link.hasAttribute("data-bs-toggle") ||
-        event.ctrlKey || event.metaKey || event.shiftKey) return;
+        link.closest("[data-in-page-links]") || event.ctrlKey || event.metaKey || event.shiftKey) return;
     var href = link.getAttribute("href");
     if (!href || href.charAt(0) === "#" || href.indexOf("javascript:") === 0) return;
     event.preventDefault();

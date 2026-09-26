@@ -24,7 +24,7 @@
 </div></div>
 <div class="card no-print"><div class="card-header"><i class="bi bi-calendar3-week"></i> {% trans "Appointments on this day" %} <span class="text-muted small" id="day-panel-date"></span>
   <span class="small text-muted d-block">{% trans "Click a free (green) place to take its time, room and dentist." %}</span></div>
-  <div class="card-body p-2" id="day-panel" data-url="{% url 'scheduling:day_planner' %}?fragment=1"><div class="text-muted small p-2">{% trans "Choose the date to see the day." %}</div></div>
+  <div class="card-body p-2" id="day-panel" data-in-page-links data-url="{% url 'scheduling:day_planner' %}?fragment=1"><div class="text-muted small p-2">{% trans "Choose the date to see the day." %}</div></div>
 </div>
 {% endblock %}
 {% block extra_js %}
