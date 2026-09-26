@@ -20,7 +20,7 @@ from apps.dentists.forms import DentistChoiceField
 from apps.dentists.models import Dentist
 from apps.patients.models import Gender, MedicalCondition, Patient, ReferralSource
 
-from .models import ImplantSystem, Surgery, SurgerySite
+from .models import ImplantSystem, Prosthesis, Surgery, SurgerySite
 
 YES_NO = [("", _("Any")), ("yes", _("Yes")), ("no", _("No"))]
 PROCEDURE_CHOICES = [(name, label) for name, label in SurgerySite.PROCEDURES]
@@ -47,6 +47,7 @@ GROUP_CHOICES = [
     ("instructor", _("Instructor")),
     ("bone_particle", _("Bone particle")),
     ("temporary", _("Temporary")),
+    ("prosthesis", _("Prosthesis")),
     ("year", _("Year")),
     ("month", _("Month")),
 ]
@@ -111,6 +112,8 @@ class FinderForm(StyledForm):
     torque_max = forms.IntegerField(label=_("torque to (Ncm)"), required=False, min_value=0)
     subcrestal = forms.ChoiceField(label=_("subcrestal"), required=False, choices=YES_NO)
     status = forms.MultipleChoiceField(label=_("implant status"), required=False, choices=SurgerySite.ImplantStatus.choices)
+    prosthesis = forms.MultipleChoiceField(label=_("prosthesis on it"), required=False,
+                                           choices=list(Prosthesis.Kind.choices) + [("none", _("No prosthesis yet"))])
     group_by = forms.ChoiceField(label=_("statistics by"), required=False, choices=GROUP_CHOICES)
     group_by_2 = forms.ChoiceField(label=_("then by"), required=False, choices=GROUP_CHOICES)
 
@@ -120,7 +123,7 @@ class FinderForm(StyledForm):
         (_("Team"), ["dentist", "operator", "dentist_kind", "course", "instructor"]),
         (_("Site and procedure"), ["teeth", "jaw", "region", "tooth_type", "procedures_any", "procedures_all"]),
         (_("Implant"), ["company", "system", "diameter_min", "diameter_max", "length_min", "length_max",
-                        "torque_min", "torque_max", "subcrestal", "status"]),
+                        "torque_min", "torque_max", "subcrestal", "status", "prosthesis"]),
         (_("Surgery details"), ["difficulty", "bone_particle", "block_graft", "block_donor", "membrane_used",
                                 "soft_tissue_graft", "temporary", "suture_material"]),
     ]
@@ -161,6 +164,7 @@ def _years_ago(day, years):
 def filter_sites(data):
     qs = SurgerySite.objects.select_related(
         "surgery__patient", "surgery__operator_1__candidate", "surgery__operator_2", "surgery__assistant",
+        "operator__candidate",
         "surgery__instructor", "implant_system",
     )
     if data.get("result", "implants") != "sites":
@@ -195,12 +199,15 @@ def filter_sites(data):
     if data.get("dentist"):
         d = data["dentist"]
         qs = qs.filter(Q(surgery__operator_1=d) | Q(surgery__operator_2=d) | Q(surgery__assistant=d) | Q(surgery__instructor=d))
+    # the operator of each tooth (operator 2 may have done some teeth of the surgery)
     if data.get("operator"):
-        qs = qs.filter(surgery__operator_1=data["operator"])
+        qs = qs.done_by(data["operator"])
     if data.get("dentist_kind"):
-        qs = qs.filter(surgery__operator_1__kind=data["dentist_kind"])
+        qs = qs.filter(Q(operator__kind=data["dentist_kind"]) |
+                       Q(operator__isnull=True, surgery__operator_1__kind=data["dentist_kind"]))
     if data.get("course"):
-        qs = qs.filter(surgery__operator_1__candidate__enrollments__course=data["course"])
+        qs = qs.filter(Q(operator__candidate__enrollments__course=data["course"]) |
+                       Q(operator__isnull=True, surgery__operator_1__candidate__enrollments__course=data["course"]))
     if data.get("instructor"):
         qs = qs.filter(surgery__instructor=data["instructor"])
     # surgery
@@ -241,7 +248,13 @@ def filter_sites(data):
         qs = qs.filter(subcrestal=data["subcrestal"] == "yes")
     if data.get("status"):
         qs = qs.filter(implant_status__in=data["status"])
-    return qs.distinct().order_by("-surgery__date", "surgery__pk", "tooth")
+    if data.get("prosthesis"):
+        kinds = [k for k in data["prosthesis"] if k != "none"]
+        wanted = Q(prostheses__kind__in=kinds) if kinds else Q(pk__in=[])
+        if "none" in data["prosthesis"]:
+            wanted |= Q(prostheses__isnull=True)
+        qs = qs.filter(wanted)
+    return qs.distinct().prefetch_related("prostheses").order_by("-surgery__date", "surgery__pk", "tooth")
 
 
 class SiteFacts:
@@ -254,7 +267,7 @@ class SiteFacts:
         self.diabetics = _flag_patient_ids("diabet") & patient_ids
         self.batches = {}
         for s in self.sites:
-            op = s.surgery.operator_1
+            op = s.done_by
             if op.candidate_id and op.pk not in self.batches:
                 enrollment = op.candidate.current_enrollment
                 self.batches[op.pk] = enrollment.course.code if enrollment else ""
@@ -296,15 +309,17 @@ class SiteFacts:
         if key == "diabetic":
             return [str(_("Diabetic") if s.patient_id in self.diabetics else _("Not diabetic"))]
         if key == "operator":
-            return [str(s.operator_1)]
+            return [str(site.done_by)]
         if key == "batch":
-            return [self.batches.get(s.operator_1_id) or "—"]
+            return [self.batches.get(site.done_by.pk) or "—"]
         if key == "instructor":
             return [str(s.instructor or "—")]
         if key == "bone_particle":
             return [s.get_bone_particle_display() or "—"]
         if key == "temporary":
             return [s.get_temporary_display() or "—"]
+        if key == "prosthesis":
+            return [p.get_kind_display() for p in site.prostheses.all()] or [str(_("No prosthesis yet"))]
         if key == "year":
             return [str(s.date.year)]
         if key == "month":
@@ -322,6 +337,7 @@ def _stats(sites):
         "sites": len(sites),
         "implants": len(implants),
         "patients": len({s.surgery.patient_id for s in sites}),
+        "surgeries": len({s.surgery_id for s in sites}),
         "failed": failed,
         "survival": round(100 * (len(implants) - failed) / len(implants), 1) if implants else None,
         "loaded": loaded,
@@ -348,6 +364,39 @@ def statistics(facts, group_by="", group_by_2=""):
     return overall, groups
 
 
+def procedure_totals(sites):
+    """For each procedure: how many sites (cases), surgeries and patients. One patient can count under
+    several procedures (open sinus and a simple implant), or twice under one (two simple sites)."""
+    rows = []
+    for code, label in SurgerySite.PROCEDURES:
+        matching = [site for site in sites if getattr(site, code)]
+        if matching:
+            rows.append({
+                "code": code, "label": label, "sites": len(matching),
+                "surgeries": len({site.surgery_id for site in matching}),
+                "patients": len({site.surgery.patient_id for site in matching}),
+            })
+    return rows
+
+
+def prosthesis_totals(sites):
+    """The prostheses on the implants found: how many of each kind, their units, implants and patients."""
+    rows = {}
+    for site in sites:
+        for prosthesis in site.prostheses.all():
+            row = rows.setdefault(prosthesis.kind, {"label": prosthesis.get_kind_display(), "ids": set(),
+                                                    "units": 0, "implants": 0, "patients": set()})
+            if prosthesis.pk not in row["ids"]:
+                row["ids"].add(prosthesis.pk)
+                row["units"] += prosthesis.units
+            row["implants"] += 1
+            row["patients"].add(site.surgery.patient_id)
+    order = [kind for kind, _label in Prosthesis.Kind.choices]
+    return [{"code": kind, "label": row["label"], "prostheses": len(row["ids"]), "units": row["units"],
+             "implants": row["implants"], "patients": len(row["patients"])}
+            for kind, row in sorted(rows.items(), key=lambda kv: order.index(kv[0]))]
+
+
 def export_csv(facts, filename="cases.csv"):
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -358,8 +407,8 @@ def export_csv(facts, filename="cases.csv"):
         "tooth_type", "procedures", "implant_company", "implant_line", "diameter", "length", "lot", "torque_ncm",
         "isq", "subcrestal", "difficulty", "bone_particle", "autogenous_percent", "block_graft", "block_donor",
         "membrane", "membrane_material", "sinus_approach", "soft_tissue_graft", "suture", "temporary",
-        "operator_1", "operator_1_type", "batch", "operator_2", "assistant", "instructor", "implant_status",
-        "uncovered_on", "impression_on", "loaded_on", "days_to_loading", "failed_on", "failure_reason",
+        "operator", "operator_type", "batch", "operator_2", "assistant", "instructor", "implant_status",
+        "uncovered_on", "impression_on", "loaded_on", "days_to_loading", "failed_on", "failure_reason", "prosthesis",
     ])
     for site in facts.sites:
         s, p = site.surgery, site.surgery.patient
@@ -375,10 +424,11 @@ def export_csv(facts, filename="cases.csv"):
             s.autogenous_percent if s.autogenous_percent is not None else "", "yes" if s.block_graft else "no",
             s.block_donor, "yes" if s.membrane_used else "no", s.membrane_material, s.sinus_approach,
             s.soft_tissue_graft, f"{s.suture_size} {s.suture_material}".strip(), s.temporary,
-            s.operator_1.full_name, s.operator_1.kind, facts.batches.get(s.operator_1_id, ""),
+            site.done_by.full_name, site.done_by.kind, facts.batches.get(site.done_by.pk, ""),
             s.operator_2.full_name if s.operator_2_id else "", s.assistant.full_name if s.assistant_id else "",
             s.instructor.full_name if s.instructor_id else "", site.implant_status,
             site.uncovered_on or "", site.impression_on or "", site.loaded_on or "",
             site.days_to_loading if site.days_to_loading is not None else "", site.failed_on or "", site.failure_reason,
+            "; ".join(str(p) for p in site.prostheses.all()),
         ])
     return response

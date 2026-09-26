@@ -13,6 +13,14 @@
   <li class="nav-item"><a class="nav-link {% if s.code == stage %}active{% endif %}" href="?stage={{ s.code }}">{{ s.label }} <span class="badge {% if s.required and s.done == s.required %}text-bg-success{% else %}text-bg-light{% endif %}">{{ s.done }}/{{ s.required }}</span></a></li>
   {% endfor %}
 </ul>
+<div class="photo-sessions d-flex flex-wrap align-items-center gap-2 mb-3">
+  <span class="small fw-semibold">{% trans "Sessions" %}:</span>
+  {% for sess in sessions %}<a class="btn btn-sm {% if sess.current %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="{{ sess.url }}"><i class="bi bi-calendar-event"></i> {{ sess.on|date:"d/m/Y" }}{% if sess.teeth %} · {{ sess.teeth }}{% endif %} <span class="badge text-bg-light">{{ sess.count }}</span></a>
+  {% empty %}<span class="small text-muted">{% trans "No photos in this stage yet." %}</span>{% endfor %}
+  <a class="btn btn-sm btn-outline-success" href="?stage={{ stage }}&new=1"><i class="bi bi-plus-lg"></i> {% trans "New session (other date or teeth)" %}</a>
+  {% if sessions %}<a class="btn btn-sm {% if show_all %}btn-dark{% else %}btn-outline-dark{% endif %}" href="?stage={{ stage }}&all=1"><i class="bi bi-images"></i> {% trans "Show all" %}</a>{% endif %}
+</div>
+{% if session and not show_all %}<p class="small text-muted">{% blocktrans with day=session.0|date:"d/m/Y" teeth=session.1|default:"—" %}The checklist shows the photos of {{ day }}, teeth {{ teeth }}. New photos are saved in this session unless you change the date or the teeth below.{% endblocktrans %}</p>{% endif %}
 {% for s in stages %}{% if s.code == stage %}
 <form method="post" enctype="multipart/form-data" data-teeth-missing="{{ missing }}">{% csrf_token %}
   <input type="hidden" name="stage" value="{{ s.code }}">
@@ -44,8 +52,10 @@
     <div class="col-sm-6 col-lg-4 col-xl-3">
       <div class="card h-100"><div class="card-body p-2">
         <div class="small fw-semibold">{% trans "Other photos / videos" %}</div>
-        <div class="row g-1 mt-1">{% for photo in s.extra %}<div class="col-6"><a href="{{ photo.file.url }}" target="_blank">{% if photo.is_video %}<div class="photo-thumb d-flex align-items-center justify-content-center"><i class="bi bi-play-circle fs-2"></i></div>{% else %}<img class="photo-thumb" src="{{ photo.file.url }}" alt="">{% endif %}</a><div class="small text-muted">{{ photo.notes|truncatechars:30 }}</div></div>{% endfor %}</div>
-        {% if can_upload %}<input type="file" class="form-control form-control-sm mt-2" name="extra" accept="image/*,video/*,application/pdf" multiple>{% endif %}
+        <div class="small text-muted">{% trans "Steps that are not on the checklist: write the name, then choose the photo." %}</div>
+        <div class="row g-1 mt-1">{% for photo in s.extra %}<div class="col-6"><a href="{{ photo.file.url }}" target="_blank">{% if photo.is_video %}<div class="photo-thumb d-flex align-items-center justify-content-center"><i class="bi bi-play-circle fs-2"></i></div>{% else %}<img class="photo-thumb" src="{{ photo.file.url }}" alt="">{% endif %}</a><div class="small text-muted">{{ photo.notes|truncatechars:30 }} {{ photo.teeth }}</div></div>{% endfor %}</div>
+        {% if can_upload %}<input type="text" class="form-control form-control-sm mt-2" name="extra_name" maxlength="255" placeholder="{% trans 'Name of this photo (a step not on the list)' %}">
+        <input type="file" class="form-control form-control-sm mt-1" name="extra" accept="image/*,video/*,application/pdf" multiple>{% endif %}
       </div></div>
     </div>
   </div>

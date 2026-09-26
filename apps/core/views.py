@@ -9,8 +9,9 @@ from django.core.exceptions import PermissionDenied, SuspiciousFileOperation
 from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
@@ -19,6 +20,7 @@ from django.views.decorators.http import require_POST
 from apps.academy.models import Enrollment
 from apps.clinical.models import LabRequest, TreatmentStep
 from apps.dentists.models import Dentist
+from apps.clinical.visit_notes import send_notes_alerts
 from apps.complaints.alerts import send_answer_alerts, unanswered
 from apps.complaints.models import Complaint
 from apps.patients.models import CallList, CallListEntry, Lead, Patient
@@ -48,6 +50,7 @@ def dashboard(request):
     branch = branch_for_user(user)
     context = {"today": today}
     send_answer_alerts(today)  # complaints a dentist has not answered in time
+    send_notes_alerts()  # visits left without notes in the patient's file
     if has_role(user, *PATIENT_VIEWERS):
         counts = dict(Patient.objects.values_list("status").annotate(n=Count("id")))
         context["patient_totals"] = {
@@ -90,6 +93,12 @@ def dashboard(request):
                                          created_at__gte=timezone.now() - timedelta(days=3))
             .exclude(messages__kind="confirmation").count()
         )
+        context["coming_next"] = (
+            todays.filter(status__in=Appointment.WAITING_STATUSES, scheduled_at__gte=timezone.now() - timedelta(hours=1))
+            .select_related("patient", "dentist", "room").order_by("scheduled_at")[:6]
+        )
+        context["here_now"] = todays.filter(status=Appointment.Status.ARRIVED).select_related("patient", "dentist")\
+            .order_by("arrived_at")[:6]
         context["call_lists"] = (
             CallList.objects.filter(entries__outcome=CallListEntry.Outcome.PENDING)
             .annotate(pending=Count("entries", filter=Q(entries__outcome=CallListEntry.Outcome.PENDING)))
@@ -178,6 +187,19 @@ def notification_open(request, pk):
     if notification.url and url_has_allowed_host_and_scheme(notification.url, allowed_hosts={request.get_host()}):
         return redirect(notification.url)
     return redirect("core:notifications")
+
+
+def notification_poll(request):
+    """New notifications since the last one the page knows (for the pop-up and the sound)."""
+    since = int(request.GET["since"]) if request.GET.get("since", "").isdigit() else 0
+    unread = request.user.notifications.filter(read_at__isnull=True)
+    fresh = unread.filter(pk__gt=since).order_by("pk")[:5]
+    return JsonResponse({
+        "unread": unread.count(),
+        "last": request.user.notifications.order_by("-pk").values_list("pk", flat=True).first() or 0,
+        "new": [{"id": n.pk, "title": n.title, "message": n.message, "level": n.level,
+                 "url": reverse("core:notification_open", args=[n.pk])} for n in fresh],
+    })
 
 
 @require_POST

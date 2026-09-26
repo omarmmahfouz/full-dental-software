@@ -21,8 +21,15 @@ from .models import (
 )
 
 
+def lookup_value(patient):
+    """What a patient box shows when the patient is already chosen: the file number and the name."""
+    return f"{patient.file_number} — {patient.full_name}"
+
+
 def find_patient(value):
     """Find one patient by file number, mobile or national ID (as typed at the desk)."""
+    if value and " — " in value:  # "CIA-00014 — name", as filled in for a chosen patient
+        value = value.split(" — ", 1)[0]
     value = clean_digits_value(value)
     if not value:
         return None

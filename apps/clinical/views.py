@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
@@ -15,17 +17,20 @@ from apps.charting.plans import complete_plan_items
 from apps.charting.rules import apply_changes, plan_changes
 from apps.charting.teeth import parse_teeth
 from apps.core.forms import clean_digits_value
+from apps.billing.models import Bill, create_bill
+from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import SearchMixin, role_required
-from apps.core.models import ClinicSettings, branch_for_user
-from apps.core.roles import CLINICAL, MANAGEMENT, PATIENT_VIEWERS, has_role, is_only_dentist
+from apps.core.models import ChangeRequest, ClinicSettings, branch_for_user
+from apps.core.roles import CLINICAL, MANAGEMENT, PATIENT_VIEWERS, TEAM_HEAD, has_role, is_only_dentist
 from apps.dentists.models import Dentist
 from apps.patients.access import get_clinical_patient_or_403, get_visible_patient_or_403, visible_patients
 from apps.scheduling.models import Appointment, day_bounds
 
 from .forms import (
-    LabActionForm, LabFilterForm, LabRequestForm, OutsideRequestForm, StepFilterForm, StepReviewForm, TreatmentStepForm,
+    LabActionForm, LabFilterForm, LabRequestForm, OutsideRequestForm, StepFilterForm, StepOperatorForm, StepReviewForm,
+    TreatmentStepForm,
 )
-from .models import LabRequest, LabRequestEvent, OutsideRequest, TreatmentStep
+from .models import LabRequest, LabRequestEvent, OutsideRequest, TreatmentStep, TreatmentStepType
 from .services import ACTION_LABELS, TRANSITIONS, available_actions, perform_lab_action
 
 ANY_STAFF = PATIENT_VIEWERS
@@ -124,7 +129,16 @@ def step_create(request):
             step.created_by = request.user
             step.save()
             changed, completed = record_treatment_on_chart(step, request.user, form.cleaned_data.get("update_chart"))
+            bill = None
+            if form.cleaned_data.get("bill_service"):
+                bill = create_bill(step.patient, [{"service": form.cleaned_data["bill_service"], "teeth": step.teeth,
+                                                   "price": form.cleaned_data.get("bill_price")}],
+                                   request.user, billed_on=timezone.localtime(step.performed_at).date(),
+                                   appointment=step.appointment, dentist=step.operator, source=Bill.Source.DENTIST,
+                                   notes=str(step.step_type))
         message = _("Treatment saved.")
+        if bill is not None:
+            message += " " + _("Bill %(number)s sent to the reception to collect.") % {"number": bill.number}
         if changed:
             message += " " + _("Dental chart updated for %(n)s teeth.") % {"n": changed}
         if completed:
@@ -161,8 +175,30 @@ def step_detail(request, pk):
             return redirect("clinical:step_detail", pk=step.pk)
     return render(
         request, "clinical/step_detail.html",
-        {"step": step, "review_form": form, "chart_changes": step.tooth_changes.all()},
+        {"step": step, "review_form": form, "chart_changes": step.tooth_changes.all(),
+         "operator_form": StepOperatorForm(instance=step) if has_role(request.user, *CLINICAL) else None,
+         "pending_changes": pending_for(step)},
     )
+
+
+@require_POST
+def step_operator(request, pk):
+    """The operator is chosen freely when the treatment is recorded; changing it afterwards needs the
+    approval of the head of CIA (who changes it directly)."""
+    step = get_object_or_404(TreatmentStep, pk=pk)
+    get_clinical_patient_or_403(request.user, step.patient_id)
+    form = StepOperatorForm(request.POST, instance=TreatmentStep.objects.get(pk=pk))
+    if form.is_valid():
+        values = {name: form.cleaned_data.get(name) for name in form.fields}
+        if needs_approval(request.user):
+            if request_change(ChangeRequest.Kind.OPERATOR, step, values, request.user, form.cleaned_data.get("why", "")):
+                messages.success(request, _("Sent to the head of CIA for approval."))
+        else:
+            for name, value in values.items():
+                setattr(step, name, value)
+            step.save(update_fields=list(values) + ["updated_at"])
+            messages.success(request, _("Operator changed."))
+    return redirect(step)
 
 
 # ------------------------------------------------------------ lab requests
@@ -276,8 +312,25 @@ def lab_detail(request, pk):
             "actions": actions,
             "can_edit": lab_request.status in (LabRequest.Status.DRAFT, LabRequest.Status.PENDING_REVIEW)
             and has_role(request.user, *ANY_STAFF),
+            "fitting_url": _fitting_url(lab_request) if lab_request.status == LabRequest.Status.RECEIVED else "",
+            "next_appointment": Appointment.objects.filter(
+                patient=lab_request.patient, status__in=Appointment.WAITING_STATUSES,
+                scheduled_at__gte=timezone.now()).order_by("scheduled_at").first(),
         },
     )
+
+
+def _fitting_url(lab_request):
+    """Book the patient to try in / fit the work that came back from the lab."""
+    fitting = TreatmentStepType.objects.filter(name_en__in=("Try-in", "Final prosthesis delivery")).order_by(
+        "-name_en").first()
+    params = {"patient": lab_request.patient_id, "purpose": f"{lab_request.work_type} {lab_request.teeth} "
+                                                            f"({lab_request.number})"}
+    if lab_request.dentist_id:
+        params["dentist"] = lab_request.dentist_id
+    if fitting is not None:
+        params["procedure"] = fitting.pk
+    return f"{reverse('scheduling:appointment_create')}?{urlencode(params)}"
 
 
 @require_POST
@@ -337,3 +390,17 @@ def outside_print(request, pk):
     return render(request, "clinical/outside_print.html", {
         "outside": outside, "dicom_email": ClinicSettings.get().dicom_email, "branch": branch_for_user(request.user),
     })
+
+
+def visits_missing_notes(request):
+    """The visits with nothing written in the patient's file: the dentist's own, or all for the heads."""
+    from .visit_notes import visits_without_notes
+
+    if not has_role(request.user, *CLINICAL):
+        raise PermissionDenied
+    me = Dentist.for_user(request.user)
+    everyone = has_role(request.user, *MANAGEMENT) or has_role(request.user, TEAM_HEAD)
+    if me is None and not everyone:
+        raise PermissionDenied
+    visits = visits_without_notes(None if everyone and not request.GET.get("mine") else me)
+    return render(request, "clinical/visits_missing_notes.html", {"visits": visits, "everyone": everyone})

@@ -22,7 +22,7 @@ from apps.core.models import ClinicSettings
 from apps.dentists.models import Dentist
 from apps.core.roles import MANAGEMENT, OWNER, TEAM_HEAD, has_role
 from apps.patients.models import Lead, Patient
-from apps.purchasing.models import PurchaseCategory, PurchaseItem
+from apps.purchasing.models import Purchase, PurchaseCategory, PurchaseItem
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
 from apps.surgery.models import Surgery, SurgerySite
 
@@ -74,6 +74,7 @@ def visits_report(request):
         "arrived": len(arrived),
         "no_show": sum(a.status == Appointment.Status.NO_SHOW for a in appointments),
         "cancelled": sum(a.status == Appointment.Status.CANCELLED for a in appointments),
+        "late_not_seen": sum(a.status == Appointment.Status.LATE_NOT_SEEN for a in appointments),
         "late": len(late),
         "late_pct": _pct(len(late), len(booked_arrived)),
         "avg_late": _avg(a.late_minutes for a in late),
@@ -324,6 +325,94 @@ def money_report(request):
             "patients_owe": patients_owe,
         },
     )
+
+
+@role_required(OWNER)
+def balance_sheet(request):
+    """Income and costs of each place (academy, private clinic, CIC) over the period, how the money
+    came in, the Fawry machine, and what is still owed both ways."""
+    from apps.billing.fawry import held_at_fawry
+    from apps.billing.models import FawryMove
+    from apps.core.models import Branch
+
+    form, date_from, date_to, _start, _end = _period(request)
+    zero = Decimal("0")
+    branches = list(Branch.objects.order_by("sort_order", "pk"))
+    table = defaultdict(lambda: defaultdict(lambda: zero))  # line -> branch id -> amount
+
+    patient_payments = PatientPayment.objects.filter(paid_on__range=(date_from, date_to))
+    for row in patient_payments.values("patient__branch").annotate(total=Sum("amount")):
+        table["patients"][row["patient__branch"]] += row["total"]
+    course_payments = Payment.objects.filter(paid_on__range=(date_from, date_to))
+    for row in course_payments.values("enrollment__course__branch").annotate(total=Sum("amount")):
+        table["courses"][row["enrollment__course__branch"]] += row["total"]
+    moves = FawryMove.objects.filter(moved_on__range=(date_from, date_to))
+    for row in moves.values("branch", "kind", "purchase").annotate(
+            amount=Sum("amount"), fee=Sum("fee"), cash=Sum("cash_received")):
+        branch = row["branch"]
+        table["fawry_fees"][branch] += row["fee"]
+        table["bills_cash"][branch] += row["cash"]
+        if row["kind"] == FawryMove.Kind.CHARGE:
+            table["fawry_fees"][branch] += row["amount"]
+        elif row["kind"] == FawryMove.Kind.SERVICE and row["purchase"] is None:
+            table["bills"][branch] += row["amount"]
+    line_total = ExpressionWrapper(F("quantity") * F("unit_price"), output_field=DecimalField(max_digits=14, decimal_places=2))
+    items = PurchaseItem.objects.filter(purchase__purchase_date__range=(date_from, date_to))
+    kinds = dict(PurchaseCategory.Kind.choices)
+    purchase_lines = []
+    for row in items.values("purchase__branch", "category__kind").annotate(total=Sum(line_total)):
+        key = f"purchases_{row['category__kind']}"
+        if key not in purchase_lines:
+            purchase_lines.append(key)
+        table[key][row["purchase__branch"]] += row["total"]
+
+    income_lines = [("patients", _("Patient payments (services, bills)")), ("courses", _("Course installments")),
+                    ("bills_cash", _("Cash taken for bills paid on the Fawry machine"))]
+    cost_lines = [("fawry_fees", _("Kept by Fawry (percentage and charges)")),
+                  ("bills", _("Bills paid through the Fawry machine (mobile, electricity...)"))]
+    cost_lines += [(key, _("Purchases: %(kind)s") % {"kind": kinds.get(key.split("_", 1)[1], key)})
+                   for key in sorted(purchase_lines)]
+    used = {branch for line in table.values() for branch, amount in line.items() if amount}
+    columns = [b for b in branches if b.pk in used or (b.is_active and b.kind != Branch.Kind.LAB)]
+
+    def section(lines):
+        rows, totals = [], [zero] * len(columns)
+        for key, label in lines:
+            values = [table[key][b.pk] for b in columns]
+            totals = [a + b for a, b in zip(totals, values)]
+            rows.append({"label": label, "values": values, "total": sum(values, zero)})
+        return rows, totals, sum(totals, zero)
+
+    income_rows, income_totals, income_total = section(income_lines)
+    cost_rows, cost_totals, cost_total = section(cost_lines)
+    net = [a - b for a, b in zip(income_totals, cost_totals)]
+
+    method_labels = dict(PaymentMethod.choices)
+    by_method = defaultdict(lambda: zero)
+    for qs in (patient_payments, course_payments):
+        for row in qs.values("method").annotate(total=Sum("amount")):
+            by_method[row["method"]] += row["total"]
+    fawry_in_period = moves.aggregate(
+        collected=Sum("amount", filter=Q(kind=FawryMove.Kind.COLLECTION)),
+        settled=Sum("amount", filter=Q(kind=FawryMove.Kind.SETTLEMENT)),
+        topped=Sum("amount", filter=Q(kind=FawryMove.Kind.TOP_UP)),
+    )
+    unpaid_purchases = sum((p.unpaid for p in Purchase.objects.exclude(payment_status=Purchase.PaymentStatus.PAID)
+                            .prefetch_related("items")), zero)
+    candidates_owe = sum((e.balance for e in Enrollment.objects.filter(status=Enrollment.Status.ACTIVE)), zero)
+    patients_owe = sum((max(account(p)["balance"], zero)
+                        for p in Patient.objects.filter(charges__isnull=False).distinct()), zero)
+    return render(request, "reports/balance.html", {
+        "form": form, "date_from": date_from, "date_to": date_to, "columns": columns,
+        "income_rows": income_rows, "income_totals": income_totals, "income_total": income_total,
+        "cost_rows": cost_rows, "cost_totals": cost_totals, "cost_total": cost_total,
+        "net": net, "net_total": income_total - cost_total,
+        "by_method": sorted(((method_labels.get(m, m), a) for m, a in by_method.items()), key=lambda r: -r[1]),
+        "fawry": {k: v or zero for k, v in fawry_in_period.items()},
+        "fawry_held_start": held_at_fawry(until=date_from - timedelta(days=1)),
+        "fawry_held_end": held_at_fawry(until=date_to),
+        "patients_owe": patients_owe, "candidates_owe": candidates_owe, "unpaid_purchases": unpaid_purchases,
+    })
 
 
 @role_required(*MANAGEMENT)

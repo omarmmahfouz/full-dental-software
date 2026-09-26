@@ -2,6 +2,8 @@
 {% load i18n static %}
 {% block title %}{% trans "Prescription" %} — {{ patient.full_name }}{% endblock %}
 {% block content %}
+{% if request.GET.flow and prescription.surgery %}<div class="alert alert-success d-flex flex-wrap align-items-center gap-2 no-print"><i class="bi bi-check2-circle"></i> {% trans "Prescription saved. Print it, then the post-op instructions for this surgery." %}
+  <a class="btn btn-success ms-auto" href="{% url 'prescriptions:instructions' patient.pk %}?surgery={{ prescription.surgery_id }}"><i class="bi bi-arrow-right"></i> {% trans "Next: post-op instructions" %}</a></div>{% endif %}
 <div class="text-center mb-3 no-print d-flex gap-2 justify-content-center">
   <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
   <a class="btn btn-outline-secondary" href="{% url 'prescriptions:instructions' patient.pk %}{% if prescription.surgery %}?surgery={{ prescription.surgery_id }}{% endif %}"><i class="bi bi-card-checklist"></i> {% trans "Post-op instructions" %}</a>

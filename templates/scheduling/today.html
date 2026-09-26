@@ -15,7 +15,7 @@
 </div>
 
 {% if is_today %}
-<div class="card mb-3 no-print"><div class="card-body">
+<div class="card mb-3 no-print" id="walk-in"><div class="card-body">
   <form method="post" action="{% url 'scheduling:walk_in' %}" class="row g-2 align-items-end">{% csrf_token %}
     <div class="col-12 fw-semibold"><i class="bi bi-person-walking"></i> {% trans "Patient arrived without appointment (walk-in)" %}</div>
     {% for field in walk_in_form %}<div class="col-md-3"><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
@@ -24,31 +24,85 @@
 </div></div>
 {% endif %}
 
+{% if checked and checked.others %}
+<div class="alert alert-warning no-print" role="alert">
+  <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle"></i> {% blocktrans with name=checked.patient.full_name %}{{ name }} came without an appointment, but has other appointments booked:{% endblocktrans %}</div>
+  {% for o in checked.others %}
+  <form method="post" action="{% url 'scheduling:appointment_action' o.pk %}" class="d-flex flex-wrap align-items-center gap-2 mb-1">{% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'scheduling:today' %}"><input type="hidden" name="reason" value="{% trans 'Came as a walk-in instead' %}">
+    <b>{{ o.scheduled_at|date:"l d/m/Y g:i A" }}</b> <span>{{ o.dentist|default:"" }}{% if o.what %} · {{ o.what }}{% endif %}</span>
+    <button name="action" value="cancel" class="btn btn-sm btn-outline-danger">{% trans "Cancel it" %}</button>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'scheduling:appointment_reschedule' o.pk %}">{% trans "Move it" %}</a>
+  </form>
+  {% endfor %}
+  <a class="small" href="{% url 'scheduling:today' %}">{% trans "Keep them as they are" %}</a>
+</div>
+{% endif %}
+{% if just_left %}
+<div class="alert alert-info no-print" role="alert">
+  <div class="fw-semibold"><i class="bi bi-calendar-plus"></i> {% blocktrans with name=just_left.appointment.patient.full_name %}{{ name }} left without a next appointment.{% endblocktrans %}</div>
+  {% if just_left.next_visit %}<div class="small">{% trans "The dentist wrote for the next visit" %}: <b>{{ just_left.next_visit }}</b></div>{% endif %}
+  <div class="d-flex gap-2 mt-2">
+    <a class="btn btn-sm btn-primary" href="{{ just_left.book_url }}">{% trans "Book the next visit" %}</a>
+    <form method="post" action="{% url 'scheduling:appointment_action' just_left.appointment.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'scheduling:today' %}"><button name="action" value="no_follow_up" class="btn btn-sm btn-outline-secondary">{% trans "No next visit needed" %}</button></form>
+  </div>
+</div>
+{% endif %}
+
+{% if is_today and appointments %}
+<div class="card mb-3 no-print now-panel" data-late="{{ late_threshold }}">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold"><i class="bi bi-clock-history"></i> {% trans "Now" %} <span class="now-clock" data-now-clock></span></span>
+    <span class="small text-muted">{% trans "Sorted by the time on this computer, updated every minute. Click a name to find the patient below." %}</span>
+  </div>
+  <div class="card-body p-2"><div class="now-grid">
+    <div class="now-col is-late"><div class="now-title">{% trans "Late — not here yet" %} <span class="badge" data-count="late"></span></div><div data-bucket="late"></div></div>
+    <div class="now-col is-due"><div class="now-title">{% trans "Expected now" %} <span class="badge" data-count="due"></span></div><div data-bucket="due"></div></div>
+    <div class="now-col is-next"><div class="now-title">{% trans "Next 2 hours" %} <span class="badge" data-count="next"></span></div><div data-bucket="next"></div></div>
+    <div class="now-col is-waiting"><div class="now-title">{% trans "Waiting" %} <span class="badge" data-count="waiting"></span></div><div data-bucket="waiting"></div></div>
+    <div class="now-col is-room"><div class="now-title">{% trans "In the room" %} <span class="badge" data-count="room"></span></div><div data-bucket="room"></div></div>
+  </div></div>
+</div>
+{% endif %}
+
+<div class="d-flex flex-wrap gap-2 align-items-center mb-2 no-print board-filters">
+  <div class="btn-group btn-group-sm" role="group">
+    <button type="button" class="btn btn-outline-secondary active" data-show="all">{% trans "All" %} <span class="badge text-bg-light" data-total="all"></span></button>
+    <button type="button" class="btn btn-outline-secondary" data-show="coming">{% trans "Still to come" %} <span class="badge text-bg-light" data-total="coming"></span></button>
+    <button type="button" class="btn btn-outline-secondary" data-show="here">{% trans "Here now" %} <span class="badge text-bg-light" data-total="here"></span></button>
+    <button type="button" class="btn btn-outline-secondary" data-show="done">{% trans "Finished" %} <span class="badge text-bg-light" data-total="done"></span></button>
+  </div>
+  <input type="search" class="form-control form-control-sm" style="max-width: 16rem" placeholder="{% trans 'Find a name on this list' %}" data-board-search>
+  <div class="form-check form-switch ms-auto"><input class="form-check-input" type="checkbox" id="compact-board" data-compact><label class="form-check-label small" for="compact-board">{% trans "Short list (hide the times)" %}</label></div>
+</div>
+
 <div class="card mb-3"><div class="table-responsive">
-<table class="table table-hover mb-0 align-middle">
+<table class="table table-hover mb-0 align-middle board-table">
   <thead><tr>
     <th>{% trans "Time" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Room" %}</th><th>{% trans "Status" %}</th>
-    <th>{% trans "Arrived" %}</th><th>{% trans "Late" %}</th><th>{% trans "Entered room" %}</th><th>{% trans "Waited" %}</th><th>{% trans "Left" %}</th><th>{% trans "In chair" %}</th><th class="no-print">{% trans "Action" %}</th>
+    <th class="board-time">{% trans "Arrived" %}</th><th class="board-time">{% trans "Late" %}</th><th class="board-time">{% trans "Entered room" %}</th><th>{% trans "Waited" %}</th><th class="board-time">{% trans "Left" %}</th><th class="board-time">{% trans "In chair" %}</th><th class="no-print">{% trans "Action" %}</th>
   </tr></thead>
   <tbody>
   {% for a in appointments %}
-  <tr class="board-row status-{{ a.status }}">
+  <tr class="board-row status-{{ a.status }}" id="appt-{{ a.pk }}" data-at="{{ a.scheduled_at|date:'c' }}" data-status="{{ a.status }}"
+      data-walk-in="{% if a.is_walk_in %}1{% endif %}" data-since="{% if a.status == 'arrived' %}{{ a.waiting_since|date:'c' }}{% elif a.status == 'in_room' %}{{ a.entered_room_at|date:'c' }}{% endif %}"
+      data-name="{{ a.patient.full_name }}" data-info="{{ a.scheduled_at|time:'g:i A' }} · {{ a.dentist|default:'' }}{% if a.room %} · {{ a.room }}{% endif %}">
     <td class="nowrap fw-bold">{% if a.is_walk_in %}<span class="badge text-bg-light">{% trans "walk-in" %}</span>{% else %}{{ a.scheduled_at|time:"g:i A" }}{% endif %}</td>
     <td>
       <a href="{{ a.patient.get_absolute_url }}" class="fw-semibold">{{ a.patient.full_name }}</a> <span class="small text-muted">{{ a.patient.file_number }}</span>
       {% if a.open_labs %}<span class="lab-flag"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}</span>{% endif %}
       {% for c in a.patient.medical_conditions.all %}{% if c.is_alert %}<span class="medical-alert py-0">{{ c }}</span>{% endif %}{% endfor %}
-      {% if a.purpose %}<div class="small text-muted">{{ a.purpose }}</div>{% endif %}
+      {% if a.what %}<div class="small text-muted">{{ a.what }}</div>{% endif %}{% if a.requested_by or a.second_dentist %}<div class="small text-muted">{% if a.requested_by %}{% trans "asked by" %} {{ a.requested_by }}{% endif %}{% if a.second_dentist %} · {% trans "with" %} {{ a.second_dentist }}{% endif %}</div>{% endif %}
     </td>
     <td class="nowrap">{{ a.dentist|default:"—" }}</td>
     <td class="nowrap">{{ a.room|default:"—" }}</td>
     <td>{% status_badge a %}</td>
-    <td class="nowrap">{{ a.arrived_at|time:"g:i A"|default:"—" }}</td>
-    <td class="nowrap">{% if a.is_late %}<span class="text-danger fw-bold">{{ a.late_minutes|minutes }}</span>{% elif a.late_minutes is not None %}<span class="text-success">{% trans "on time" %}</span>{% else %}—{% endif %}</td>
-    <td class="nowrap">{{ a.entered_room_at|time:"g:i A"|default:"—" }}</td>
-    <td class="nowrap">{% if a.status == "arrived" %}<span class="text-warning fw-bold" data-since="{{ a.arrived_at|date:'c' }}">…</span>{% else %}{{ a.waiting_minutes|minutes }}{% endif %}</td>
-    <td class="nowrap">{{ a.left_at|time:"g:i A"|default:"—" }}</td>
-    <td class="nowrap">{% if a.status == "in_room" %}<span class="text-info fw-bold" data-since="{{ a.entered_room_at|date:'c' }}">…</span>{% else %}{{ a.chair_minutes|minutes }}{% endif %}</td>
+    <td class="nowrap board-time">{{ a.arrived_at|time:"g:i A"|default:"—" }}</td>
+    <td class="nowrap board-time">{% if a.is_late %}<span class="text-danger fw-bold">{{ a.late_minutes|minutes }}</span>{% elif a.late_minutes is not None %}<span class="text-success">{% trans "on time" %}</span>{% else %}—{% endif %}</td>
+    <td class="nowrap board-time">{{ a.entered_room_at|time:"g:i A"|default:"—" }}</td>
+    <td class="nowrap">{% if a.status == "arrived" %}<span class="text-warning fw-bold" data-since="{{ a.waiting_since|date:'c' }}">…</span>{% else %}{{ a.waiting_minutes|minutes }}{% endif %}</td>
+    <td class="nowrap board-time">{{ a.left_at|time:"g:i A"|default:"—" }}</td>
+    <td class="nowrap board-time">{% if a.status == "in_room" %}<span class="text-info fw-bold" data-since="{{ a.entered_room_at|date:'c' }}">…</span>{% else %}{{ a.chair_minutes|minutes }}{% endif %}</td>
     <td class="no-print">
       <form method="post" action="{% url 'scheduling:appointment_action' a.pk %}" class="d-flex flex-wrap gap-1">{% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -60,9 +114,11 @@
         {% elif a.status == "arrived" %}
           <select name="room" class="form-select form-select-sm w-auto">{% for r in rooms %}<option value="{{ r.pk }}" {% if r.pk == a.room_id %}selected{% endif %}>{{ r }}</option>{% endfor %}</select>
           <button name="action" value="enter" class="btn btn-sm btn-info">{% trans "Entered room" %}</button>
+          <button name="action" value="late" class="btn btn-sm btn-outline-danger" title="{% trans 'Came late: will not enter today' %}" data-confirm="{% trans 'The patient came late and will not be seen today? You will then book another time.' %}"><i class="bi bi-clock-history"></i> {% trans "Late, not seen" %}</button>
         {% elif a.status == "in_room" %}
           <button name="action" value="leave" class="btn btn-sm btn-success">{% trans "Left" %}</button>
         {% endif %}
+        {% if a.status == "arrived" or a.status == "in_room" or a.status == "completed" %}<a class="btn btn-sm btn-outline-success" href="{% url 'billing:bill_create' %}?appointment={{ a.pk }}" title="{% trans 'New bill' %}"><i class="bi bi-receipt"></i></a>{% endif %}
         {% if a.status != "scheduled" %}<button name="action" value="undo" class="btn btn-sm btn-link text-secondary" title="{% trans 'Undo last step' %}" data-confirm="{% trans 'Undo the last step?' %}"><i class="bi bi-arrow-counterclockwise"></i></button>{% endif %}
       </form>
     </td>
@@ -72,13 +128,38 @@
 </table>
 </div></div>
 
+{% if bills_to_collect %}
+<div class="card mb-3 border-success no-print">
+  <div class="card-header"><i class="bi bi-receipt"></i> {% trans "Bills from the dentists to collect" %} <span class="badge text-bg-success">{{ bills_to_collect|length }}</span></div>
+  <ul class="list-group list-group-flush">{% for row in bills_to_collect %}
+    <li class="list-group-item d-flex flex-wrap align-items-center gap-2"><a href="{{ row.bill.get_absolute_url }}">{{ row.bill.number }}</a>
+      <span>{{ row.bill.patient.full_name }}</span><span class="small text-muted">{{ row.bill.dentist|default:"" }} · {{ row.bill.notes }}</span>
+      <b class="ms-auto text-danger">{{ row.left|floatformat:2 }} {{ CLINIC.CURRENCY }}</b>
+      <a class="btn btn-sm btn-success" href="{{ row.bill.get_absolute_url }}">{% trans "Collect" %}</a></li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% if left_rows %}
+<div class="card mb-3 border-info no-print">
+  <div class="card-header"><i class="bi bi-calendar-plus"></i> {% trans "Left today without a next appointment" %} <span class="badge text-bg-info">{{ left_rows|length }}</span></div>
+  <ul class="list-group list-group-flush">{% for row in left_rows %}
+    <li class="list-group-item d-flex flex-wrap align-items-center gap-2">
+      <a href="{{ row.appointment.patient.get_absolute_url }}">{{ row.appointment.patient.full_name }}</a>
+      <span class="small text-muted">{{ row.appointment.dentist|default:"" }}{% if row.next_visit %} · {% trans "next visit" %}: {{ row.next_visit }}{% endif %}</span>
+      <a class="btn btn-sm btn-primary ms-auto" href="{{ row.book_url }}">{% trans "Book" %}</a>
+      <form method="post" action="{% url 'scheduling:appointment_action' row.appointment.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button name="action" value="no_follow_up" class="btn btn-sm btn-outline-secondary">{% trans "Not needed" %}</button></form>
+    </li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <div class="card">
   <div class="card-header d-flex justify-content-between"><span><i class="bi bi-grid-3x3"></i> {% trans "Rooms today" %}</span><a class="small" href="{% url 'scheduling:room_schedule' %}?week={{ day|date:'Y-m-d' }}">{% trans "Weekly room schedule" %}</a></div>
   <div class="card-body"><div class="row g-2">
     {% for room in rooms %}
     <div class="col-6 col-md-4 col-xl"><div class="border rounded p-2 h-100">
       <div class="fw-bold mb-1">{{ room }}</div>
-      {% for s in room.day_shifts %}<span class="shift-chip">{% if s.day_type == "surgery" %}<span class="badge text-bg-danger">{% trans "Surgery day" %}</span><br>{% endif %}{{ s.dentist }}<br><span class="ltr small">{{ s.start_time|time:"H:i" }}-{{ s.end_time|time:"H:i" }}</span>{% if s.supervisor %}<br><span class="small text-muted">{% trans "Supervisor" %}: {{ s.supervisor }}</span>{% endif %}</span>
+      {% for s in room.day_shifts %}<span class="shift-chip">{% if s.day_type == "surgery" %}<span class="badge text-bg-danger">{% trans "Surgery day" %}</span><br>{% endif %}{{ s.dentist }}{% if s.second_dentist %} + {{ s.second_dentist }}{% endif %}<br><span class="ltr small">{{ s.start_time|time:"H:i" }}-{{ s.end_time|time:"H:i" }}</span>{% if s.supervisor %}<br><span class="small text-muted">{% trans "Supervisor" %}: {{ s.supervisor }}</span>{% endif %}</span>
       {% empty %}<span class="small text-muted">{% trans "Free" %}</span>{% endfor %}
     </div></div>
     {% endfor %}
@@ -87,17 +168,106 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-  // Live "waiting for / in chair for" counters.
   (function () {
     var minLabel = "{% trans 'min' %}";
+    var rows = Array.prototype.slice.call(document.querySelectorAll(".board-row"));
+    // Live "waiting for / in chair for" counters.
     function tick() {
-      document.querySelectorAll("[data-since]").forEach(function (el) {
+      document.querySelectorAll("td [data-since]").forEach(function (el) {
         var since = Date.parse(el.getAttribute("data-since"));
         if (!isNaN(since)) el.textContent = Math.max(0, Math.round((Date.now() - since) / 60000)) + " " + minLabel;
       });
     }
+    // The "Now" panel: each patient in a box by the time on this computer.
+    var panel = document.querySelector(".now-panel");
+    function group(row, now, late) {
+      var status = row.getAttribute("data-status");
+      if (status === "arrived") return "waiting";
+      if (status === "in_room") return "room";
+      if (status !== "scheduled" && status !== "confirmed") return null;
+      var at = Date.parse(row.getAttribute("data-at"));
+      var minutes = (at - now) / 60000;
+      if (minutes < -late) return "late";
+      if (minutes <= 20) return "due";
+      if (minutes <= 120) return "next";
+      return null;
+    }
+    function fillPanel() {
+      if (!panel) return;
+      var now = Date.now(), late = parseInt(panel.getAttribute("data-late"), 10) || 10;
+      var clock = panel.querySelector("[data-now-clock]");
+      clock.textContent = new Date(now).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      var boxes = {};
+      panel.querySelectorAll("[data-bucket]").forEach(function (box) { box.innerHTML = ""; boxes[box.getAttribute("data-bucket")] = box; });
+      var counts = { late: 0, due: 0, next: 0, waiting: 0, room: 0 };
+      rows.forEach(function (row) {
+        var bucket = group(row, now, late);
+        if (!bucket) return;
+        counts[bucket] += 1;
+        var chip = document.createElement("a");
+        chip.href = "#" + row.id;
+        chip.className = "now-chip";
+        var extra = "";
+        var since = Date.parse(row.getAttribute("data-since"));
+        if (!isNaN(since)) extra = " · " + Math.max(0, Math.round((now - since) / 60000)) + " " + minLabel;
+        if (bucket === "late") extra = " · " + Math.round((now - Date.parse(row.getAttribute("data-at"))) / 60000) + " " + minLabel;
+        chip.innerHTML = "<b></b><span></span>";
+        chip.querySelector("b").textContent = row.getAttribute("data-name");
+        chip.querySelector("span").textContent = row.getAttribute("data-info") + extra;
+        chip.addEventListener("click", function () {
+          row.classList.add("is-flash");
+          setTimeout(function () { row.classList.remove("is-flash"); }, 2000);
+        });
+        boxes[bucket].appendChild(chip);
+      });
+      Object.keys(counts).forEach(function (key) {
+        var badge = panel.querySelector('[data-count="' + key + '"]');
+        badge.textContent = counts[key];
+        badge.className = "badge " + (counts[key] ? "text-bg-dark" : "text-bg-light");
+      });
+    }
+    // Filters above the list.
+    var show = "all", search = "";
+    var kinds = { coming: ["scheduled", "confirmed"], here: ["arrived", "in_room"], done: ["completed", "no_show", "cancelled", "late_not_seen"] };
+    function applyFilters() {
+      var totals = { all: 0, coming: 0, here: 0, done: 0 };
+      rows.forEach(function (row) {
+        var status = row.getAttribute("data-status");
+        totals.all += 1;
+        Object.keys(kinds).forEach(function (k) { if (kinds[k].indexOf(status) >= 0) totals[k] += 1; });
+        var visible = (show === "all" || kinds[show].indexOf(status) >= 0) &&
+                      (!search || row.getAttribute("data-name").toLowerCase().indexOf(search) >= 0);
+        row.hidden = !visible;
+      });
+      Object.keys(totals).forEach(function (k) {
+        var badge = document.querySelector('[data-total="' + k + '"]');
+        if (badge) badge.textContent = totals[k];
+      });
+    }
+    document.querySelectorAll("[data-show]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        show = button.getAttribute("data-show");
+        document.querySelectorAll("[data-show]").forEach(function (b) { b.classList.toggle("active", b === button); });
+        applyFilters();
+      });
+    });
+    var searchBox = document.querySelector("[data-board-search]");
+    if (searchBox) searchBox.addEventListener("input", function () { search = searchBox.value.trim().toLowerCase(); applyFilters(); });
+    var compact = document.querySelector("[data-compact]");
+    if (compact) {
+      try { compact.checked = localStorage.getItem("board-compact") === "1"; } catch (e) {}
+      var table = document.querySelector(".board-table");
+      var setCompact = function () {
+        table.classList.toggle("is-compact", compact.checked);
+        try { localStorage.setItem("board-compact", compact.checked ? "1" : "0"); } catch (e) {}
+      };
+      compact.addEventListener("change", setCompact);
+      setCompact();
+    }
     tick();
-    setInterval(tick, 30000);
+    fillPanel();
+    applyFilters();
+    setInterval(function () { tick(); fillPanel(); }, 60000);
   })();
 </script>
 {% endblock %}

@@ -42,6 +42,16 @@
         </tbody>
       </table></div>
     </div>
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-bricks"></i> {% trans "Prostheses on implants" %}</span>{% if can_edit %}<a class="small" href="{% url 'surgery:prosthesis_create' patient.pk %}">{% trans "Add" %}</a>{% endif %}</div>
+      <div class="list-group list-group-flush">
+        {% for pr in prostheses %}
+        <a class="list-group-item list-group-item-action" href="{% if can_edit %}{% url 'surgery:prosthesis_update' pr.pk %}{% else %}#{% endif %}">
+          <div class="d-flex justify-content-between gap-2"><strong>{{ pr.label }}</strong><span class="badge {% if pr.status == 'delivered' %}text-bg-success{% else %}text-bg-light border{% endif %}">{{ pr.get_status_display }}{% if pr.is_temporary %} · {% trans "temporary" %}{% endif %}</span></div>
+          <div class="small text-muted">{% trans "on implants" %} {{ pr.implant_teeth|join:", " }}{% if pr.pontics %} · {% trans "pontics" %} {{ pr.pontics|join:", " }}{% endif %}{% if pr.material %} · {{ pr.get_material_display }}{% endif %}{% if pr.retention %} · {{ pr.get_retention_display }}{% endif %}{% if pr.delivered_on %} · {{ pr.delivered_on|date:"d/m/Y" }}{% endif %}</div>
+        </a>
+        {% empty %}<div class="list-group-item text-muted small">{% trans "None yet: single crowns, bridges and full arches on implants are written here." %}</div>{% endfor %}
+      </div>
+    </div>
     <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span>{% trans "Open treatment plans" %}</span>{% if can_edit %}<a class="small" href="{% url 'charting:plan_create' patient.pk %}">{% trans "New plan" %}</a>{% endif %}</div>
       <div class="list-group list-group-flush">
         {% for plan in plans %}

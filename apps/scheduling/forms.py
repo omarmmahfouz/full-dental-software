@@ -7,12 +7,12 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.forms import StyledForm, StyledModelForm
 from apps.core.models import ClinicSettings
 from apps.clinical.models import TreatmentStepType
-from apps.core.widgets import DatalistInput, DateTimeSplitWidget, TimeSelect
+from apps.core.widgets import DateTimeSplitWidget, TimeSelect
 from apps.dentists.forms import DentistChoiceField
 from apps.dentists.models import Dentist
-from apps.patients.forms import PatientLookupField
+from apps.patients.forms import PatientLookupField, lookup_value
 
-from .models import Appointment, PatientRequest, Room, RoomShift
+from .models import Appointment, PatientRequest, Room, RoomShift, WaitingEntry
 
 
 class RoomShiftForm(StyledModelForm):
@@ -23,13 +23,17 @@ class RoomShiftForm(StyledModelForm):
         help_text=_("When a supervisor or a candidate works in the room instead of a CIA dentist."),
     )
     supervisor = DentistChoiceField(kinds=(Dentist.Kind.SUPERVISOR,), label=_("supervisor"), required=False)
+    second_dentist = DentistChoiceField(
+        label=_("second dentist in the room"), required=False,
+        help_text=_("Two dentists in the same room, e.g. a candidate with a CIA dentist."))
 
     fieldsets = [("", ["room", "date", "start_time", "end_time", "day_type", "supervisor", "dentist",
-                       "other_dentist", "notes"])]
+                       "other_dentist", "second_dentist", "notes"])]
 
     class Meta:
         model = RoomShift
-        fields = ["room", "day_type", "date", "start_time", "end_time", "dentist", "supervisor", "notes"]
+        fields = ["room", "day_type", "date", "start_time", "end_time", "dentist", "supervisor", "second_dentist",
+                  "notes"]
         widgets = {"start_time": TimeSelect(start=time(7), end=time(23, 45)),
                    "end_time": TimeSelect(start=time(7), end=time(23, 45))}
 
@@ -63,7 +67,7 @@ class RoomShiftForm(StyledModelForm):
         return data
 
 
-DURATIONS = [15, 30, 45, 60, 90, 120, 150, 180, 240]
+DURATIONS = [5, 10, 15, 30, 45, 60, 90, 120, 150, 180, 240]  # 5 and 10: short visits squeezed in
 
 
 def duration_choices(current=None):
@@ -78,13 +82,19 @@ class AppointmentForm(StyledModelForm):
         help_text=_("Leave empty to use the patient's responsible dentist."),
     )
 
+    second_dentist = DentistChoiceField(
+        label=_("second dentist in the room"), required=False,
+        help_text=_("When two dentists work in the room, e.g. a candidate with a CIA dentist."))
+
     fieldsets = [
-        ("", ["patient_lookup", "scheduled_at", "duration_minutes", "dentist", "room", "purpose", "status", "notes"]),
+        ("", ["patient_lookup", "scheduled_at", "duration_minutes", "dentist", "room", "procedure", "purpose",
+              "second_dentist", "status", "notes"]),
     ]
 
     class Meta:
         model = Appointment
-        fields = ["scheduled_at", "duration_minutes", "dentist", "room", "purpose", "status", "notes"]
+        fields = ["scheduled_at", "duration_minutes", "dentist", "room", "procedure", "purpose", "second_dentist",
+                  "status", "notes"]
         widgets = {"scheduled_at": DateTimeSplitWidget(step=15, start=time(7), end=time(23, 45))}
 
     def __init__(self, *args, branch=None, patient=None, **kwargs):
@@ -102,13 +112,13 @@ class AppointmentForm(StyledModelForm):
         )
         if "notes" in self.fields:
             self.fields["notes"].widget.attrs["rows"] = 2
-        if "purpose" in self.fields:
-            self.fields["purpose"].widget = DatalistInput(
-                options=lambda: [str(t) for t in TreatmentStepType.objects.filter(is_active=True)],
-                attrs={"class": "form-control", "maxlength": 200})
+        if "procedure" in self.fields:
+            self.fields["procedure"].queryset = TreatmentStepType.objects.filter(is_active=True).order_by(
+                "category", "sort_order", "name_ar")
+            self.fields["purpose"].widget.attrs["placeholder"] = _("e.g. teeth 36, 46")
         patient = patient or (self.instance.patient if self.instance.pk else None)
         if patient is not None:
-            self.fields["patient_lookup"].initial = patient.file_number
+            self.fields["patient_lookup"].initial = lookup_value(patient)
             self.fields["patient_lookup"].help_text = str(patient)
         if "status" not in self.fields:
             pass
@@ -168,17 +178,20 @@ class RescheduleForm(AppointmentForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for name in ("patient_lookup", "purpose", "status", "notes"):
+        for name in ("patient_lookup", "procedure", "purpose", "second_dentist", "status", "notes"):
             self.fields.pop(name, None)
 
 
 class WalkInForm(StyledForm):
     patient_lookup = PatientLookupField(label=_("patient"))
+    procedure = forms.ModelChoiceField(label=_("procedure"), required=False, queryset=None)
     purpose = forms.CharField(label=_("reason for visit"), required=False, max_length=200)
     dentist = DentistChoiceField(label=_("dentist"), required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["procedure"].queryset = TreatmentStepType.objects.filter(is_active=True).order_by(
+            "category", "sort_order", "name_ar")
         for field in self.fields.values():
             field.col = "col-md-4"
             field.help_text = ""
@@ -259,3 +272,26 @@ class PatientRequestForm(StyledModelForm):
         if data.get("wanted_to") and data.get("wanted_from") and data["wanted_to"] < data["wanted_from"]:
             self.add_error("wanted_to", _("The last day is before the first day."))
         return data
+
+
+class WaitingEntryForm(StyledModelForm):
+    patient_lookup = PatientLookupField(label=_("patient"))
+    dentist = DentistChoiceField(label=_("dentist"), required=False)
+
+    fieldsets = [("", ["patient_lookup", "dentist", "procedure", "minutes", "wanted_from", "wanted_to", "notes"])]
+
+    class Meta:
+        model = WaitingEntry
+        fields = ["dentist", "procedure", "minutes", "wanted_from", "wanted_to", "notes"]
+
+    def __init__(self, *args, patient=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["procedure"].queryset = TreatmentStepType.objects.filter(is_active=True).order_by(
+            "category", "sort_order", "name_ar")
+        self.fields["minutes"].widget = forms.Select(choices=duration_choices(30), attrs={"class": "form-select"})
+        if patient is not None:
+            self.fields["patient_lookup"].initial = lookup_value(patient)
+            self.fields["patient_lookup"].help_text = str(patient)
+        for field in self.fields.values():
+            field.col = "col-md-4"
+        self.fields["notes"].col = "col-md-8"

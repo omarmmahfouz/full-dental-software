@@ -47,9 +47,15 @@ class LabWorkflowTests(TestCase):
         self.assertEqual((lab_request.status, lab_request.reviewed_by), (LabRequest.Status.APPROVED, self.supervisor))
 
         self.login("sec")
-        self.action(lab_request, "send")  # missing "checked against request" confirmation
+        self.action(lab_request, "send", checked="on")  # physical work: first taken from the dentist
         lab_request.refresh_from_db()
         self.assertEqual(lab_request.status, LabRequest.Status.APPROVED)
+        self.action(lab_request, "collect")
+        lab_request.refresh_from_db()
+        self.assertEqual((lab_request.status, lab_request.collected_by), (LabRequest.Status.COLLECTED, self.secretary))
+        self.action(lab_request, "send")  # missing "checked against request" confirmation
+        lab_request.refresh_from_db()
+        self.assertEqual(lab_request.status, LabRequest.Status.COLLECTED)
         self.action(lab_request, "send", checked="on")
         lab_request.refresh_from_db()
         self.assertEqual((lab_request.status, lab_request.sent_by), (LabRequest.Status.SENT, self.secretary))
@@ -73,7 +79,8 @@ class LabWorkflowTests(TestCase):
         self.assertEqual(self.patient.open_lab_requests().count(), 0)
 
         actions = list(LabRequestEvent.objects.filter(request=lab_request).values_list("action", flat=True))
-        self.assertEqual(actions, ["created", "submitted", "approved", "sent", "received", "remake", "received", "delivered"])
+        self.assertEqual(actions, ["created", "submitted", "approved", "collected", "sent", "received", "remake", "received",
+                                   "delivered"])
         self.assertTrue(LabRequestEvent.objects.get(request=lab_request, action="sent").checked_against_request)
 
     def test_cia_dentist_records_for_a_candidate_with_the_supervisor_name(self):
@@ -103,6 +110,48 @@ class LabWorkflowTests(TestCase):
         self.action(lab_request, "return", notes="add shade")
         lab_request.refresh_from_db()
         self.assertEqual(lab_request.status, LabRequest.Status.DRAFT)
+
+
+class LabDetailsTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.secretary = make_user("sec", "secretary")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+        self.lab = Lab.objects.first()
+        self.zirconia = LabWorkType.objects.get(name_en="Zirconia crown")
+
+    def test_digital_work_shade_guide_usual_days_and_fitting(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        supervisor = make_dentist("sup", kind="supervisor", login=False)
+        self.client.login(username="dentist", password=PASSWORD)
+        page = self.client.get(f"/clinical/lab/new/?patient={self.patient.pk}")
+        self.assertEqual(page.context["form"]["patient_lookup"].value(),
+                         f"{self.patient.file_number} — {self.patient.full_name}")  # the name is already there
+        response = self.client.post(f"/clinical/lab/new/?patient={self.patient.pk}", {
+            "patient_lookup": f"{self.patient.file_number} — {self.patient.full_name}", "dentist": self.dentist.pk,
+            "supervisor": supervisor.pk, "lab": self.lab.pk, "work_type": self.zirconia.pk, "work_form": "digital",
+            "teeth": "36", "units": 1, "shade_guide": "classical", "shade": "2M2", "submit_for_review": "1"})
+        self.assertIn("shade", response.context["form"].errors)  # 2M2 is a 3D-Master shade
+        self.client.post(f"/clinical/lab/new/?patient={self.patient.pk}", {
+            "patient_lookup": self.patient.file_number, "dentist": self.dentist.pk, "supervisor": supervisor.pk,
+            "lab": self.lab.pk, "work_type": self.zirconia.pk, "work_form": "digital", "teeth": "36", "units": 1,
+            "shade": "A3", "submit_for_review": "1"})
+        lab_request = LabRequest.objects.get()
+        self.assertEqual((lab_request.shade_guide, lab_request.status), ("classical", LabRequest.Status.APPROVED))
+        self.client.login(username="sec", password=PASSWORD)
+        self.client.post(f"/clinical/lab/{lab_request.pk}/action/", {"action": "send", "checked": "on"})  # no collection
+        lab_request.refresh_from_db()
+        self.assertEqual(lab_request.status, LabRequest.Status.SENT)
+        self.assertEqual(lab_request.due_date, timezone.localdate() + timedelta(days=self.zirconia.default_days))
+        self.client.post(f"/clinical/lab/{lab_request.pk}/action/", {"action": "receive", "checked": "on"})
+        page = self.client.get(f"/clinical/lab/{lab_request.pk}/")
+        self.assertIn(f"patient={self.patient.pk}", page.context["fitting_url"])
+        self.assertTrue(Notification.objects.filter(recipient=self.secretary, url=lab_request.get_absolute_url())
+                        .exists())
 
 
 class TreatmentStepTests(TestCase):
@@ -185,6 +234,19 @@ class TreatmentStepTests(TestCase):
         self.client.login(username="dentist", password=PASSWORD)
         response = self.post_step(step_type=self.composite.pk)
         self.assertIn("teeth", response.context["form"].errors)
+
+
+    def test_dentist_adds_the_bill_for_the_reception(self):
+        from decimal import Decimal
+
+        from apps.billing.models import Bill, Service
+
+        filling = Service.objects.get(name_en="Filling")
+        self.client.login(username="dentist", password=PASSWORD)
+        self.post_step(step_type=self.composite.pk, teeth="12", bill_service=filling.pk, bill_price="450")
+        bill = Bill.objects.get()
+        self.assertEqual((bill.source, bill.dentist, bill.patient), ("dentist", self.dentist, self.patient))
+        self.assertEqual((bill.totals()["left"], bill.charges.get().teeth), (Decimal("450"), "12"))
 
 
 class OutsideRequestTests(TestCase):

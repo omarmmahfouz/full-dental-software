@@ -22,6 +22,7 @@ BRANCHES = [
     ("CIA", Branch.Kind.ACADEMY, "أكاديمية القاهرة لزراعة الأسنان", "Cairo Implant Academy"),
     ("PVT", Branch.Kind.CLINIC, "العيادة الخاصة", "Private Clinic"),
     ("LAB", Branch.Kind.LAB, "معمل الأسنان", "Dental Lab"),
+    ("CIC", Branch.Kind.CLINIC, "عيادة CIC الاقتصادية", "CIC economical clinic"),
 ]
 
 ROOM_COUNT = 5
@@ -116,6 +117,9 @@ TREATMENT_STEPS = [
     ("تجربة (Try-in)", "Try-in", "none", "", ""),
     ("تركيب التركيبة النهائية", "Final prosthesis delivery", "delivery", "", ""),
     ("تركيبة مؤقتة", "Temporary prosthesis", "none", "", ""),
+    ("كوبري على زرعات", "Bridge on implants", "delivery", "", ""),
+    ("تركيبة كاملة ثابتة على زرعات (All-on-X)", "Full arch fixed on implants (All-on-X)", "delivery", "", ""),
+    ("طقم متحرك على زرعات (Overdenture)", "Overdenture on implants", "delivery", "", ""),
     ("فشل الزرعة / إزالتها", "Implant failure / removal", "implant_failed", "", ""),
     ("متابعة", "Follow-up", "none", "", ""),
     ("أخرى", "Other", "none", "", ""),
@@ -156,8 +160,19 @@ TREATMENT_EXPLANATIONS = {
     "Try-in": "تجربة التركيبة في الفم قبل تجهيزها النهائي.",
     "Final prosthesis delivery": "تركيب التركيبة النهائية (طربوش أو كوبري أو طقم).",
     "Temporary prosthesis": "تركيبة مؤقتة لحين تجهيز التركيبة النهائية.",
+    "Bridge on implants": "كوبري ثابت محمول على زرعتين أو أكثر يعوّض أكثر من سن.",
+    "Full arch fixed on implants (All-on-X)": "تركيبة ثابتة لفك كامل محمولة على عدة زرعات.",
+    "Overdenture on implants": "طقم متحرك لفك كامل يثبت على الزرعات بأزرار أو بار.",
     "Implant failure / removal": "الزرعة لم تلتحم بالعظم فتمت إزالتها.",
     "Follow-up": "زيارة متابعة للاطمئنان على الحالة.",
+}
+
+# Usual working days at the lab for each work type (sets the date the work is needed back).
+LAB_DAYS = {
+    "Zirconia crown": 7, "PFM crown": 7, "E.max crown": 7, "Bridge": 10, "Screw-retained implant crown": 10,
+    "Cement-retained implant crown": 10, "Full-arch hybrid (All-on-X)": 21, "Implant overdenture": 21,
+    "Complete denture": 14, "Partial denture": 14, "Surgical guide": 5, "Custom abutment": 7,
+    "Temporary (PMMA)": 3, "Study model": 2,
 }
 
 LAB_WORK_TYPES = [
@@ -346,6 +361,10 @@ class Command(BaseCommand):
                 chart_effect=effect)
             if procedure:
                 TreatmentStepType.objects.filter(name_ar=name_ar, surgery_procedure="").update(surgery_procedure=procedure)
+        for name_en, days in LAB_DAYS.items():  # a starting point: the owner changes them in Settings
+            LabWorkType.objects.filter(name_en=name_en, default_days__isnull=True).update(default_days=days)
+        if not Service.objects.filter(quick_button=True).exists():  # one-click buttons on a new bill
+            Service.objects.filter(name_en__in=("Consultation", "CBCT")).update(quick_button=True)
         for name_en, explanation in TREATMENT_EXPLANATIONS.items():
             TreatmentStepType.objects.filter(name_en=name_en, description_ar="").update(description_ar=explanation)
         for company, line in IMPLANT_SYSTEMS:

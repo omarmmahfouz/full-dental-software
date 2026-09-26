@@ -1,6 +1,31 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% block title %}{{ title }}{% endblock %}
+{% block extra_js %}
+<script>
+  // The shade list follows the shade guide (VITA classical or 3D-Master).
+  (function () {
+    var guide = document.querySelector("[data-shade-guide]"), shade = document.querySelector("[data-shade]");
+    if (!guide || !shade) return;
+    function filter() {
+      var label = guide.value ? guide.options[guide.selectedIndex].text : "";
+      Array.prototype.forEach.call(shade.querySelectorAll("optgroup"), function (group) {
+        group.hidden = !!label && group.label !== label;
+        group.disabled = group.hidden;
+      });
+      var chosen = shade.options[shade.selectedIndex];
+      if (chosen && chosen.parentNode.disabled) shade.value = "";
+    }
+    guide.addEventListener("change", filter);
+    shade.addEventListener("change", function () {
+      if (guide.value || !shade.value) return;  // choosing a shade first picks its guide
+      var group = shade.options[shade.selectedIndex].parentNode;
+      Array.prototype.forEach.call(guide.options, function (o) { if (o.text === group.label) guide.value = o.value; });
+    });
+    filter();
+  })();
+</script>
+{% endblock %}
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-box-seam"></i> {{ title }}</h1></div>
 <div class="card"><div class="card-body">

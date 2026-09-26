@@ -4,9 +4,18 @@
 {% block content %}
 <div class="page-header"><h1>{{ title }}</h1></div>
 <div class="card mb-3"><div class="card-body">
-  <form method="post" novalidate id="appointment-form">
+  <form method="post" novalidate id="appointment-form" data-free-url="{% url 'scheduling:free_times' %}" data-day-url="{% url 'scheduling:dentist_day' %}">
     {% csrf_token %}
     {% include "includes/form_fields.html" %}
+    <div class="booking-helper mt-3 no-print">
+      <div class="alert py-2 small mb-2" data-dentist-day hidden></div>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-primary" data-find-free><i class="bi bi-search"></i> {% trans "Nearest free times" %}</button>
+        <span class="small text-muted">{% trans "For the chosen dentist, or for any dentist when none is chosen." %}</span>
+        <a class="btn btn-sm btn-outline-secondary ms-auto" href="{% url 'scheduling:waiting_list' %}{% if request.GET.patient %}?patient={{ request.GET.patient }}{% endif %}"><i class="bi bi-hourglass-split"></i> {% trans "Day full? Add to the waiting list" %}</a>
+      </div>
+      <div class="free-times mt-2" data-free-results></div>
+    </div>
     <div class="mt-4 d-flex gap-2">
       <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
       <a class="btn btn-outline-secondary" href="{% firstof cancel_url request.META.HTTP_REFERER "/" %}">{% trans "Cancel" %}</a>
@@ -31,10 +40,65 @@
     document.getElementById("day-panel-date").textContent = "— " + day;
     fetch(panel.getAttribute("data-url") + "&day=" + encodeURIComponent(day), { credentials: "same-origin" })
       .then(function (r) { return r.text(); })
-      .then(function (html) { panel.innerHTML = html; });
+      .then(function (html) { panel.innerHTML = html; document.dispatchEvent(new CustomEvent("daygrid:loaded")); });
   }
   dateInput.addEventListener("change", load);
   load();
+
+  // The dentist's day: is he on the room schedule, and in which room.
+  var form = document.getElementById("appointment-form");
+  var dentistSelect = document.getElementById("id_dentist");
+  var roomSelect = document.getElementById("id_room");
+  var durationSelect = document.getElementById("id_duration_minutes");
+  var dayBox = form.querySelector("[data-dentist-day]");
+  function checkDentistDay() {
+    if (!dentistSelect || !dentistSelect.value || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateInput.value.trim())) { dayBox.hidden = true; return; }
+    fetch(form.getAttribute("data-day-url") + "?dentist=" + dentistSelect.value + "&day=" + encodeURIComponent(dateInput.value.trim()),
+          { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        dayBox.hidden = !data.text;
+        dayBox.textContent = data.text;
+        dayBox.className = "alert py-2 small mb-2 " + (data.working ? "alert-success" : "alert-warning");
+        if (data.working && roomSelect) {
+          var rooms = data.shifts.map(function (s) { return String(s.room_id); });
+          if (rooms.indexOf(roomSelect.value) < 0) roomSelect.value = rooms[0];  // the room of his shift; it can still be changed
+        }
+      });
+  }
+  if (dentistSelect) dentistSelect.addEventListener("change", checkDentistDay);
+  dateInput.addEventListener("change", checkDentistDay);
+  checkDentistDay();
+
+  // The nearest free times.
+  var results = form.querySelector("[data-free-results]");
+  form.querySelector("[data-find-free]").addEventListener("click", function () {
+    var url = form.getAttribute("data-free-url") + "?duration=" + (durationSelect ? durationSelect.value : 30) +
+              "&from=" + encodeURIComponent(dateInput.value.trim()) + (dentistSelect && dentistSelect.value ? "&dentist=" + dentistSelect.value : "");
+    results.innerHTML = "<span class='small text-muted'>…</span>";
+    fetch(url, { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (data) {
+      results.innerHTML = "";
+      if (!data.results.length) { results.innerHTML = "<span class='small text-danger'>{{ _('No free time found in the next weeks.')|escapejs }}</span>"; return; }
+      data.results.forEach(function (row) {
+        var chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "btn btn-sm btn-outline-success free-time";
+        chip.innerHTML = "<b></b><span></span>";
+        chip.querySelector("b").textContent = row.label;
+        chip.querySelector("span").textContent = row.who;
+        chip.addEventListener("click", function () {
+          if (dateInput._flatpickr) dateInput._flatpickr.setDate(row.date, false, "d/m/Y"); else dateInput.value = row.date;
+          if (timeSelect) timeSelect.value = row.time;
+          if (roomSelect) roomSelect.value = row.room;
+          if (dentistSelect) dentistSelect.value = row.dentist;
+          dateInput.dispatchEvent(new Event("change", { bubbles: true }));
+          results.querySelectorAll(".free-time").forEach(function (b) { b.classList.remove("active"); });
+          chip.classList.add("active");
+        });
+        results.appendChild(chip);
+      });
+    });
+  });
   panel.addEventListener("click", function (event) {
     var slot = event.target.closest(".daygrid-slot");
     if (!slot) return;

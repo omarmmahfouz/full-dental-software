@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.generic import CreateView, ListView, UpdateView
 
+from apps.billing import fawry
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, role_required
 from apps.core.models import branch_for_user
 from apps.core.roles import PURCHASE_ROLES
@@ -113,6 +114,7 @@ def _purchase_form(request, purchase=None):
             formset.instance = purchase
             formset.save()
             received = sync_purchase(purchase, request.user)
+            fawry.sync(purchase)
         message = _("Purchase saved. Total: %(total)s") % {"total": purchase.total}
         if received:
             message += " " + _("%(n)s items added to stock.") % {"n": received}

@@ -37,4 +37,15 @@
     {% endif %}
   </div></div></div>
 </div>
+{% if operator_form %}
+<form method="post" action="{% url 'clinical:step_operator' step.pk %}" class="card mt-3 no-print" novalidate>{% csrf_token %}
+  <div class="card-header"><i class="bi bi-person-gear"></i> {% trans "Change the operator" %}</div>
+  <div class="card-body">
+    {% include "includes/pending_changes.html" with changes=pending_changes %}
+    <p class="small text-muted">{% trans "After saving, a change of operator is sent to the head of CIA for approval." %}</p>
+    {% with form=operator_form %}{% include "includes/form_fields.html" %}{% endwith %}
+    <button class="btn btn-outline-primary mt-2">{% trans "Send" %}</button>
+  </div>
+</form>
+{% endif %}
 {% endblock %}

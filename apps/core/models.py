@@ -154,6 +154,9 @@ class ClinicSettings(models.Model):
     dicom_email = models.EmailField(
         _("e-mail for CBCT files"), blank=True, default="ciapts@gmail.com",
         help_text=_("Printed on CBCT requests: the centre sends the DICOM files here."))
+    fawry_fee_percent = models.DecimalField(
+        _("Fawry percentage on card payments (%)"), max_digits=5, decimal_places=2, default=0,
+        help_text=_("What Fawry keeps from each payment taken on its machine, e.g. 1.5. Each move can still be corrected."))
 
     class Meta:
         verbose_name = _("clinic options")
@@ -222,6 +225,7 @@ class ChangeRequest(models.Model):
     class Kind(models.TextChoices):
         PATIENT = "patient", _("Patient data")
         VISIT_TIMES = "visit_times", _("Visit times")
+        OPERATOR = "operator", _("Operator of a treatment or surgery")
 
     class Status(models.TextChoices):
         PENDING = "pending", _("Waiting for approval")

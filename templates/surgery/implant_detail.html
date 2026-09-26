@@ -17,6 +17,8 @@
       <dt>{% trans "Impression / scan on" %}</dt><dd>{{ site.impression_on|date:"d/m/Y"|default:"—" }}</dd>
       <dt>{% trans "Loaded on" %}</dt><dd>{{ site.loaded_on|date:"d/m/Y"|default:"—" }}{% if site.days_to_loading is not None %} ({{ site.days_to_loading }} {% trans "days after surgery" %}){% endif %}</dd>
       {% if site.failed_on %}<dt class="text-danger">{% trans "Failed on" %}</dt><dd class="text-danger">{{ site.failed_on|date:"d/m/Y" }} — {{ site.failure_reason }}</dd>{% endif %}
+      <dt>{% trans "Prosthesis" %}</dt><dd>{% for pr in site.prostheses.all %}<div><a href="{% url 'surgery:prosthesis_update' pr.pk %}">{{ pr.label }}</a> <span class="small text-muted">— {{ pr.get_status_display }}</span></div>{% empty %}—{% endfor %}
+        {% if form %}<a class="small no-print" href="{% url 'surgery:prosthesis_create' patient.pk %}?implant={{ site.pk }}"><i class="bi bi-plus"></i> {% trans "Add a crown, bridge or full arch on it" %}</a>{% endif %}</dd>
     </dl>
   </div></div></div>
   {% if form %}

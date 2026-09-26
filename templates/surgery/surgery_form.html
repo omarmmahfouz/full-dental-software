@@ -81,5 +81,55 @@
       });
     });
   })();
+
+  // Implants from stock: choosing the company lists the implants in stock (size, lot, expiry, how many
+  // left); choosing one fills the size and the lot. The chart takes it out of stock when saved.
+  (function () {
+    var url = "{% url 'surgery:implant_lots' %}";
+    var notFromStock = "{{ _('not from stock')|escapejs }}";
+    var noneLeft = "{{ _('No implant of this company in stock.')|escapejs }}";
+    function field(card, name) { return card.querySelector("[name$='-" + name + "']"); }
+    function loadLots(card) {
+      var system = field(card, "implant_system"), select = field(card, "stock_choice");
+      if (!system || !select) return;
+      var chosen = select.value;
+      if (!system.value) { select.innerHTML = "<option value=''>" + notFromStock + "</option>"; return; }
+      fetch(url + "?system=" + system.value, { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (data) {
+        select.innerHTML = "";
+        var empty = document.createElement("option");
+        empty.value = ""; empty.textContent = data.lots.length ? notFromStock : noneLeft;
+        select.appendChild(empty);
+        var diameter = parseFloat(field(card, "implant_diameter").value), length = parseFloat(field(card, "implant_length").value);
+        data.lots.forEach(function (row) {
+          var option = document.createElement("option");
+          option.value = row.value; option.textContent = row.label;
+          option.dataset.diameter = row.diameter; option.dataset.length = row.length; option.dataset.lot = row.lot;
+          // The chosen size first; other sizes stay below.
+          var sameSize = (!diameter || parseFloat(row.diameter) === diameter) && (!length || parseFloat(row.length) === length);
+          if (sameSize) select.insertBefore(option, select.children[1] || null); else select.appendChild(option);
+        });
+        select.value = chosen;
+      });
+    }
+    document.addEventListener("change", function (event) {
+      var card = event.target.closest(".site-card");
+      if (!card) return;
+      if (/-implant_system$/.test(event.target.name)) { field(card, "stock_choice").value = ""; loadLots(card); }
+      if (/-stock_choice$/.test(event.target.name)) {
+        var option = event.target.selectedOptions[0];
+        if (!option || !option.value) return;
+        field(card, "implant_diameter").value = option.dataset.diameter;
+        field(card, "implant_length").value = option.dataset.length;
+        field(card, "lot_number").value = option.dataset.lot;
+        var placed = ["simple_implant", "immediate_implant", "guided"].some(function (n) { var b = field(card, n); return b && b.checked; });
+        if (!placed && field(card, "simple_implant")) field(card, "simple_implant").checked = true;
+      }
+    });
+    document.addEventListener("formset:added", function (event) {
+      var row = event.detail && event.detail.row;
+      var card = row && (row.classList.contains("site-card") ? row : row.querySelector(".site-card"));
+      if (card) loadLots(card);
+    });
+  })();
 </script>
 {% endblock %}

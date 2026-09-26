@@ -21,7 +21,7 @@
     <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|time:"g:i A" }}</a></td>
     <td><a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a></td>
     <td><span class="ltr">{{ a.patient.preferred_number }}</span></td>
-    <td>{{ a.dentist|default:"—" }}</td><td>{{ a.room|default:"—" }}</td><td>{{ a.purpose|default:"—" }}</td>
+    <td>{{ a.dentist|default:"—" }}</td><td>{{ a.room|default:"—" }}</td><td>{{ a.what|default:"—" }}{% if a.requested_by %}<div class="small text-muted">{% trans "asked by" %} {{ a.requested_by }}</div>{% endif %}</td>
     <td>{% status_badge a %}</td>
   </tr>
   {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No appointments." %}</td></tr>{% endfor %}

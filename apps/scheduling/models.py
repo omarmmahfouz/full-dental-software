@@ -56,6 +56,11 @@ class RoomShift(TimeStampedModel):
         "dentists.Dentist", verbose_name=_("supervisor"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="supervised_shifts",
     )
+    second_dentist = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("second dentist in the room"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="second_shifts",
+        help_text=_("Two dentists in the same room, e.g. a candidate with a CIA dentist."),
+    )
     notes = models.CharField(_("notes"), max_length=255, blank=True)
 
     class Meta:
@@ -100,9 +105,10 @@ class Appointment(TimeStampedModel):
         COMPLETED = "completed", _("Left")
         NO_SHOW = "no_show", _("Did not come")
         CANCELLED = "cancelled", _("Cancelled")
+        LATE_NOT_SEEN = "late_not_seen", _("Came late — not seen")
 
     WAITING_STATUSES = (Status.SCHEDULED, Status.CONFIRMED)
-    CLOSED_STATUSES = (Status.COMPLETED, Status.NO_SHOW, Status.CANCELLED)
+    CLOSED_STATUSES = (Status.COMPLETED, Status.NO_SHOW, Status.CANCELLED, Status.LATE_NOT_SEEN)
 
     branch = models.ForeignKey(Branch, verbose_name=_("branch"), on_delete=models.PROTECT, related_name="appointments")
     patient = models.ForeignKey(
@@ -117,7 +123,16 @@ class Appointment(TimeStampedModel):
         "dentists.Dentist", verbose_name=_("dentist"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="appointments",
     )
-    purpose = models.CharField(_("planned procedure"), max_length=200, blank=True)
+    procedure = models.ForeignKey(
+        "clinical.TreatmentStepType", verbose_name=_("procedure"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="appointments", help_text=_("Shown to each person in their own language."))
+    purpose = models.CharField(_("details (teeth, notes)"), max_length=200, blank=True)
+    requested_by = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("asked by (dentist)"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="requested_appointments", help_text=_("The dentist who asked the reception for this visit."))
+    second_dentist = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("second dentist in the room"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="assisted_appointments")
     is_walk_in = models.BooleanField(_("walk-in (no booking)"), default=False)
     status = models.CharField(
         _("status"), max_length=20, choices=Status.choices, default=Status.SCHEDULED, db_index=True
@@ -130,6 +145,12 @@ class Appointment(TimeStampedModel):
     rescheduled_at = models.DateTimeField(_("moved on"), null=True, blank=True)
     reschedule_reason = models.CharField(_("why it was moved"), max_length=255, blank=True)
     notes = models.TextField(_("notes"), blank=True)
+    no_follow_up = models.BooleanField(
+        _("no next visit needed"), default=False,
+        help_text=_("Ticked by the reception when the patient left and needs no other appointment."))
+    notes_reminded_at = models.DateTimeField(_("dentist reminded to write the visit notes"), null=True, blank=True)
+    notes_escalated_at = models.DateTimeField(_("supervisor told the visit notes are missing"), null=True,
+                                              blank=True)
 
     class Meta:
         ordering = ["scheduled_at"]
@@ -142,6 +163,11 @@ class Appointment(TimeStampedModel):
 
     def get_absolute_url(self):
         return reverse("scheduling:appointment_detail", args=[self.pk])
+
+    @property
+    def what(self):
+        """The planned procedure (in the reader's language) and the details."""
+        return " ".join(str(part) for part in (self.procedure or "", self.purpose) if part)
 
     @property
     def scheduled_end(self):
@@ -161,8 +187,16 @@ class Appointment(TimeStampedModel):
         return late is not None and late > ClinicSettings.get().late_threshold_minutes
 
     @property
+    def waiting_since(self):
+        """Waiting starts at the appointment time for a patient who came early (walk-ins: on arrival)."""
+        if not self.arrived_at:
+            return None
+        return self.arrived_at if self.is_walk_in else max(self.arrived_at, self.scheduled_at)
+
+    @property
     def waiting_minutes(self):
-        return minutes_between(self.arrived_at, self.entered_room_at)
+        minutes = minutes_between(self.waiting_since, self.entered_room_at)
+        return None if minutes is None else max(minutes, 0)
 
     @property
     def chair_minutes(self):
@@ -215,9 +249,25 @@ class Appointment(TimeStampedModel):
         elif self.status == self.Status.ARRIVED:
             self.arrived_at = None
             self.status = self.Status.SCHEDULED
+        elif self.status == self.Status.LATE_NOT_SEEN:
+            self.status = self.Status.ARRIVED if self.arrived_at else self.Status.SCHEDULED
+            self.cancel_reason = ""
         elif self.status in (self.Status.NO_SHOW, self.Status.CANCELLED):
             self.status = self.Status.SCHEDULED
             self.cancel_reason = ""
+
+    def mark_late_not_seen(self, when=None, reason=""):
+        """The patient came too late and could not be seen: kept apart from the no-shows."""
+        if not self.arrived_at:
+            self.arrived_at = when or timezone.now()
+        self.status = self.Status.LATE_NOT_SEEN
+        self.cancel_reason = reason
+
+    def other_upcoming(self):
+        """The patient's other booked appointments from now on."""
+        return (Appointment.objects.filter(patient_id=self.patient_id, status__in=self.WAITING_STATUSES,
+                                           scheduled_at__gte=timezone.now() - timedelta(hours=2))
+                .exclude(pk=self.pk).select_related("dentist", "room").order_by("scheduled_at"))
 
     def find_shift(self):
         """The room shift that covers this appointment for its dentist, if any."""
@@ -226,7 +276,8 @@ class Appointment(TimeStampedModel):
         local = timezone.localtime(self.scheduled_at)
         return (
             RoomShift.objects.filter(
-                dentist_id=self.dentist_id, date=local.date(), start_time__lte=local.time(), end_time__gt=local.time()
+                models.Q(dentist_id=self.dentist_id) | models.Q(second_dentist_id=self.dentist_id),
+                date=local.date(), start_time__lte=local.time(), end_time__gt=local.time()
             )
             .select_related("room")
             .first()
@@ -350,3 +401,47 @@ class PatientRequest(TimeStampedModel):
     @property
     def time_given(self):
         return self.approved_minutes or self.minutes
+
+
+class WaitingEntry(TimeStampedModel):
+    """A patient waiting for a place on busy days. When an appointment is cancelled or moved,
+    the reception is told that a place is free and who is waiting for it."""
+
+    class Status(models.TextChoices):
+        WAITING = "waiting", _("Waiting for a place")
+        BOOKED = "booked", _("Booked")
+        REMOVED = "removed", _("Removed from the list")
+
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="waiting_entries")
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="waiting_entries",
+                                help_text=_("Leave empty if any dentist will do."))
+    procedure = models.ForeignKey("clinical.TreatmentStepType", verbose_name=_("procedure"), null=True, blank=True,
+                                  on_delete=models.SET_NULL, related_name="+")
+    minutes = models.PositiveSmallIntegerField(_("time needed (minutes)"), default=30)
+    wanted_from = models.DateField(_("from"), default=timezone.localdate)
+    wanted_to = models.DateField(_("to"), null=True, blank=True)
+    notes = models.CharField(_("notes"), max_length=255, blank=True,
+                             help_text=_("e.g. only mornings, can come within 30 minutes"))
+    status = models.CharField(_("status"), max_length=10, choices=Status.choices, default=Status.WAITING,
+                              db_index=True)
+    appointment = models.ForeignKey(Appointment, verbose_name=_("appointment"), null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="waiting_entries")
+
+    class Meta:
+        ordering = ["created_at"]
+        verbose_name = _("waiting list entry")
+        verbose_name_plural = _("waiting list")
+
+    def __str__(self):
+        return f"{self.patient} ({self.wanted_from:%d/%m/%Y})"
+
+    @classmethod
+    def for_place(cls, day, dentist_id=None):
+        """Who is waiting for a place on ``day`` (with this dentist, or any dentist)."""
+        entries = cls.objects.filter(status=cls.Status.WAITING, wanted_from__lte=day).filter(
+            models.Q(wanted_to__isnull=True) | models.Q(wanted_to__gte=day))
+        if dentist_id:
+            entries = entries.filter(models.Q(dentist_id=dentist_id) | models.Q(dentist__isnull=True))
+        return entries.select_related("patient", "dentist", "procedure")

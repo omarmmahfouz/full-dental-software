@@ -11,7 +11,7 @@
   <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-warning">{{ s.avg_wait|minutes }}</div><div class="stat-label">{% trans "Average waiting before the room" %}</div></div></div></div>
   <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-info">{{ s.avg_chair|minutes }}</div><div class="stat-label">{% trans "Average time in the room" %}</div></div></div></div>
   <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ s.avg_total|minutes }}</div><div class="stat-label">{% trans "Average total stay in clinic" %}</div></div></div></div>
-  <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-secondary">{{ s.no_show }}</div><div class="stat-label">{% trans "Did not come" %}</div><div class="small text-muted">{% trans "Cancelled" %}: {{ s.cancelled }}</div></div></div></div>
+  <div class="col-6 col-md-3 col-xl-2"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-secondary">{{ s.no_show }}</div><div class="stat-label">{% trans "Did not come" %}</div><div class="small text-muted">{% trans "Cancelled" %}: {{ s.cancelled }} · {% trans "Came late, not seen" %}: {{ s.late_not_seen }}</div></div></div></div>
 </div>
 {% endwith %}
 <div class="row g-3 mb-3">

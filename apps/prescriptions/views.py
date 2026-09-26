@@ -58,6 +58,8 @@ def prescription_create(request, patient_pk):
                 PrescriptionLine.objects.bulk_create(
                     PrescriptionLine(prescription=prescription, drug=line["drug"], dose=line["dose"]) for line in chosen
                 )
+            if request.GET.get("flow") and surgery is not None:  # then the post-op instructions
+                return redirect(f"{prescription.get_absolute_url()}?flow=1")
             return redirect(prescription)
     return render(request, "prescriptions/prescription_form.html", {
         "patient": patient, "surgery": surgery, "form": form, "formset": formset, "templates": templates,

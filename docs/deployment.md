@@ -27,7 +27,7 @@ That starts four services:
 |---|---|
 | `db` | PostgreSQL. The data lives in `./data/postgres` |
 | `web` | The system on port **80**. Uploads go to `./data/media` |
-| `reminders` | Creates the daily reminders at 07:00: overdue complaints and late lab work |
+| `reminders` | Creates the daily reminders at 07:00: overdue complaints and late lab work. The reminders for visits without notes (the dentist after 1 hour, the supervisors after 1 day) are also sent each time someone opens the home page |
 | `backup` | A nightly database backup into `./backups`, kept for 30 days |
 
 To update to a new version:

@@ -54,12 +54,35 @@
   <div class="col-xl-9">
     {% include "includes/send_to_reception.html" %}
     <div class="row g-2 mb-3">
-      <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.implants }}</div><div class="stat-label">{% trans "Implants" %}</div><div class="small text-muted">{% blocktrans with s=overall.sites p=overall.patients %}{{ s }} sites · {{ p }} patients{% endblocktrans %}</div></div></div></div>
+      <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100 border-primary"><div class="card-body p-2"><div class="stat-value text-primary">{{ overall.patients }}</div><div class="stat-label">{% trans "Patients" %}</div><div class="small text-muted">{% blocktrans with n=overall.surgeries %}{{ n }} surgeries{% endblocktrans %}</div></div></div></div>
+      <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.sites }}</div><div class="stat-label">{% trans "Cases (sites)" %}</div><div class="small text-muted">{% blocktrans with n=overall.implants %}{{ n }} implants{% endblocktrans %}</div></div></div></div>
       <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{% if overall.survival is not None %}{{ overall.survival }}%{% else %}—{% endif %}</div><div class="stat-label">{% trans "Survival" %}</div><div class="small text-muted">{% blocktrans with f=overall.failed %}{{ f }} failed{% endblocktrans %}</div></div></div></div>
       <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.loaded }}</div><div class="stat-label">{% trans "Loaded" %}</div><div class="small text-muted">{% blocktrans with w=overall.waiting %}{{ w }} waiting{% endblocktrans %}</div></div></div></div>
       <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.days_to_loading|default:"—" }}</div><div class="stat-label">{% trans "Mean days to loading" %}</div></div></div></div>
       <div class="col-6 col-md-3 col-xxl-2"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.torque|default:"—" }}</div><div class="stat-label">{% trans "Mean torque (Ncm)" %}</div></div></div></div>
     </div>
+
+    <div class="card mb-3"><div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2"><span class="fw-semibold"><i class="bi bi-list-check"></i> {% trans "By procedure" %}</span><span class="small text-muted">{% trans "Click a procedure to show only its cases; click again to remove it." %}</span></div>
+      <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+        <thead><tr><th>{% trans "Procedure" %}</th><th class="text-end">{% trans "Cases (sites)" %}</th><th class="text-end">{% trans "Surgeries" %}</th><th class="text-end">{% trans "Patients" %}</th></tr></thead>
+        <tbody>{% for r in procedure_totals %}<tr class="{% if r.active %}table-primary{% endif %}">
+          <td><a class="fw-semibold text-decoration-none" href="?{{ r.query }}">{% if r.active %}<i class="bi bi-check2-square"></i>{% else %}<i class="bi bi-square"></i>{% endif %} {{ r.label }}</a></td>
+          <td class="text-end fw-bold">{{ r.sites }}</td><td class="text-end">{{ r.surgeries }}</td><td class="text-end">{{ r.patients }}</td>
+        </tr>{% empty %}<tr><td colspan="4" class="text-muted">—</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <div class="card-body py-2 d-flex flex-wrap gap-1 align-items-center border-top no-print"><span class="small text-muted me-1">{% trans "Implant status:" %}</span>
+        {% for c in status_chips %}<a class="btn btn-sm {% if c.active %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="?{{ c.query }}">{{ c.label }}</a>{% endfor %}
+      </div>
+    </div>
+
+    {% if prosthesis_totals %}
+    <div class="card mb-3"><div class="card-header fw-semibold"><i class="bi bi-bricks"></i> {% trans "Prostheses on these implants" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+        <thead><tr><th>{% trans "Prosthesis" %}</th><th class="text-end">{% trans "Number" %}</th><th class="text-end">{% trans "Units" %}</th><th class="text-end">{% trans "Implants" %}</th><th class="text-end">{% trans "Patients" %}</th></tr></thead>
+        <tbody>{% for r in prosthesis_totals %}<tr><td><a href="?{{ query }}{% if query %}&{% endif %}prosthesis={{ r.code }}">{{ r.label }}</a></td><td class="text-end fw-bold">{{ r.prostheses }}</td><td class="text-end">{{ r.units }}</td><td class="text-end">{{ r.implants }}</td><td class="text-end">{{ r.patients }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% endif %}
 
     {% if groups %}
     <div class="card mb-3"><div class="card-header">{% trans "Statistics by" %} {{ group_label }}{% if group_label_2 and groups.0.key2 %} / {{ group_label_2 }}{% endif %}</div>

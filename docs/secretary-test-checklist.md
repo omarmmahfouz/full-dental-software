@@ -144,3 +144,17 @@ For WhatsApp to open on the reception PC, install **WhatsApp Desktop** or open *
 70. **Save before leaving**: open "تسجيل مريض جديد", type a name, then click "رجوع" or another menu. A box asks "الحفظ قبل الخروج؟": try "البقاء في الصفحة", then "خروج بدون حفظ".
 71. **Report a problem**: the user menu (your name, top) → "الإبلاغ عن مشكلة". Write what happened and send; a green line says it was sent. "بلاغاتك السابقة" shows it with the owner's answer later.
 72. The home page shows the total number of patients, the active ones, finished, out, and the new files this month.
+
+## N. New in this version (3)
+73. **Reception now**: open "الاستقبال اليوم". The top box sorts today's patients by the time on this PC: "متأخر — لم يصل بعد", "متوقع الآن", "الساعتين القادمتين", "في الانتظار", "موجود الآن". Click a name to jump to the patient in the list. Try the filters, the search box and "قائمة مختصرة (إخفاء الأوقات)".
+74. **Came late, not seen**: the 9:00 patient of Dr. Mona is "جاء متأخرًا — لم يدخل". On another patient who has not entered, press "متأخر، لم يدخل": the booking page opens to give another time, and the dentist is told.
+75. **Walk-in**: in "مريض حضر بدون موعد" choose a patient who is booked on another day and press "تسجيل الوصول": a yellow box lists the other appointments with "إلغاؤه" / "تغيير ميعاده" / "اتركها كما هي".
+76. **Leaving**: press "انصرف" for a patient with no next appointment: a box says so with "احجز الزيارة القادمة" or "لا يحتاج زيارة قادمة".
+77. **Booking**: "حجز موعد" → choose Dr. Mona and a date: a green line says her room that day (the room is filled in). Choose a Friday: a yellow line says she is not on the schedule; you can still book, and the supervisor is told. Press "أقرب مواعيد فاضية" with and without a dentist, and click a time. The procedure is a list in Arabic; teeth and notes go in "التفاصيل". Try "طبيب ثانٍ في الغرفة".
+78. **WhatsApp**: "رسائل واتساب": tick "اختر كل غير المرسل" → "علّم المختار كمرسل". Or press "أرسل التالي" again and again: WhatsApp opens for each patient in turn.
+79. **Bills**: "المرضى" → "فاتورة جديدة": choose a patient, press the "كشف" and "أشعة مقطعية CBCT" buttons, add a line with teeth, write a payment now (method "ماكينة فوري") → "حفظ وطباعة الفاتورة". "الفواتير" lists them. On "الاستقبال اليوم", "فواتير من الأطباء للتحصيل" shows the dentists' bills: press "تحصيل".
+80. **Waiting list**: "الجدول" → "قائمة الانتظار": 3 patients wait. Add one (a short 10-minute visit is fine). Cancel an appointment of Dr. Mona: a notification says a place is free and who is waiting; "احجز" books him.
+81. **Lab**: open a lab request "تمت المراجعة - جاهز للإرسال": press "تم الاستلام من الطبيب" (the impression / model is now at the reception), then "تسجيل الإرسال للمعمل", then "تسجيل الاستلام من المعمل": you are told to book the fitting, and "احجز ميعاد التركيب" opens the booking with the patient filled in. A digital scan goes to the lab without the first step.
+82. **Complaints**: open a complaint: "الوضع الحالي" is at the top; "تحديث الوضع الحالي" changes it. "ما قمت به: إضافة متابعة" adds what you did; the pencil corrects your own note. The list shows the current situation of each complaint.
+83. **Fawry**: "المرضى" → "ماكينة فوري". The card payments of patients and candidates are there by themselves with Fawry's percentage. Add "فاتورة مدفوعة من الماكينة" (e.g. electricity for the academy), "تحويل للبنك", and "حركة أخرى" (money put on the machine). "عند فوري الآن" changes each time.
+84. On a long page, the round arrow at the bottom corner goes back to the top.

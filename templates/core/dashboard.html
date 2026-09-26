@@ -7,6 +7,41 @@
   <span class="text-muted">{{ today|date:"l d/m/Y" }}</span>
 </div>
 
+{% if is_front_desk %}
+<div class="quick-actions mb-3 no-print">
+  <form class="quick-search" role="search" action="{% url 'patients:list' %}">
+    <i class="bi bi-search"></i>
+    <input class="form-control form-control-lg" type="search" name="q" placeholder="{% trans 'Find a patient: name, mobile, file number or ID' %}" aria-label="{% trans 'Search' %}" autofocus>
+  </form>
+  <a class="quick-tile tile-green" href="{% url 'scheduling:today' %}"><i class="bi bi-display"></i><span>{% trans "Reception now" %}</span></a>
+  <a class="quick-tile tile-blue" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i><span>{% trans "Book appointment" %}</span></a>
+  <a class="quick-tile tile-amber" href="{% url 'scheduling:today' %}#walk-in"><i class="bi bi-person-walking"></i><span>{% trans "Walk-in patient" %}</span></a>
+  <a class="quick-tile tile-teal" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i><span>{% trans "Register new patient" %}</span></a>
+  {% if "billing" not in hidden_areas %}<a class="quick-tile tile-purple" href="{% url 'billing:bill_create' %}"><i class="bi bi-receipt"></i><span>{% trans "New bill" %}</span></a>{% endif %}
+  <a class="quick-tile tile-gray" href="{% url 'scheduling:day_planner' %}"><i class="bi bi-calendar3-week"></i><span>{% trans "Day planner" %}</span></a>
+  <a class="quick-tile tile-green" href="{% url 'scheduling:whatsapp' %}"><i class="bi bi-whatsapp"></i><span>{% trans "WhatsApp" %}{% if whatsapp_to_send %} <b class="badge text-bg-danger">{{ whatsapp_to_send }}</b>{% endif %}</span></a>
+  <a class="quick-tile tile-blue" href="{% url 'scheduling:requests_reception' %}"><i class="bi bi-telephone-forward"></i><span>{% trans "Patients the dentists asked for" %}{% if requests_to_call %} <b class="badge text-bg-danger">{{ requests_to_call }}</b>{% endif %}</span></a>
+</div>
+{% if coming_next or here_now %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header"><i class="bi bi-hourglass-split"></i> {% trans "Coming next" %}</div>
+    <ul class="list-group list-group-flush">{% for a in coming_next %}
+      <li class="list-group-item d-flex flex-wrap align-items-center gap-2">
+        <b class="nowrap">{{ a.scheduled_at|time:"g:i A" }}</b> <a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a>
+        <span class="small text-muted">{{ a.dentist|default:"" }}{% if a.room %} · {{ a.room }}{% endif %}</span>
+        <form method="post" action="{% url 'scheduling:appointment_action' a.pk %}" class="ms-auto">{% csrf_token %}<input type="hidden" name="next" value="/"><button name="action" value="arrive" class="btn btn-sm btn-warning">{% trans "Arrived" %}</button></form>
+      </li>{% empty %}<li class="list-group-item text-muted">{% trans "No more patients expected today." %}</li>{% endfor %}
+    </ul></div></div>
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header"><i class="bi bi-people"></i> {% trans "Waiting in reception" %}</div>
+    <ul class="list-group list-group-flush">{% for a in here_now %}
+      <li class="list-group-item d-flex flex-wrap align-items-center gap-2"><a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a>
+        <span class="small text-muted">{{ a.dentist|default:"" }}</span><span class="ms-auto badge text-bg-warning" data-since-badge="{{ a.arrived_at|date:'c' }}">{{ a.arrived_at|time:"g:i A" }}</span></li>
+      {% empty %}<li class="list-group-item text-muted">{% trans "Nobody is waiting." %}</li>{% endfor %}
+    </ul></div></div>
+</div>
+{% endif %}
+{% endif %}
+
 {% if patient_totals %}
 <div class="row g-3 mb-3">
   {% url 'patients:list' as patients_url %}
@@ -49,7 +84,7 @@
             <div class="fw-bold">{{ d.day|date:"l" }} <span class="fw-normal text-muted small">{{ d.day|date:"d/m" }}</span></div>
             {% for s in d.shifts %}<div class="small">{% if s.day_type == "surgery" %}<i class="bi bi-scissors text-danger"></i> {% endif %}{{ s.room }} · {{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</div>{% empty %}<div class="small text-muted">{% trans "no shift" %}</div>{% endfor %}
             <ul class="list-unstyled small mb-0 mt-1">
-              {% for a in d.appointments %}<li><a href="{{ a.get_absolute_url }}"><b>{{ a.scheduled_at|time:"g:i" }}</b> {{ a.patient.full_name }}</a>{% if a.status == "no_show" %} <span class="badge text-bg-danger">{% trans "did not come" %}</span>{% elif a.rescheduled_from %} <span class="badge text-bg-warning" title="{% trans 'Moved' %}"><i class="bi bi-arrow-left-right"></i></span>{% endif %}</li>
+              {% for a in d.appointments %}<li><a href="{% url 'scheduling:visit' a.pk %}"><b>{{ a.scheduled_at|time:"g:i" }}</b> {{ a.patient.full_name }}</a>{% if a.status == "no_show" %} <span class="badge text-bg-danger">{% trans "did not come" %}</span>{% elif a.rescheduled_from %} <span class="badge text-bg-warning" title="{% trans 'Moved' %}"><i class="bi bi-arrow-left-right"></i></span>{% endif %}</li>
               {% empty %}<li class="text-muted">{% trans "No appointments." %}</li>{% endfor %}
             </ul>
           </div>

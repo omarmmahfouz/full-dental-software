@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Fawry machine" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-credit-card-2-front"></i> {% trans "Fawry machine" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-primary" href="{% url 'billing:fawry_create' %}?kind=service"><i class="bi bi-lightning-charge"></i> {% trans "Bill paid through the machine" %}</a>
+    <a class="btn btn-outline-primary" href="{% url 'billing:fawry_create' %}?kind=settlement"><i class="bi bi-bank"></i> {% trans "Transfer to the bank" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'billing:fawry_create' %}?kind=top_up"><i class="bi bi-plus-lg"></i> {% trans "Other move" %}</a>
+  </div>
+</div>
+<p class="small text-muted">{% blocktrans with percent=fee_percent %}Card payments taken on the machine for patients and course candidates appear here by themselves, with Fawry's {{ percent }}% taken off. Write here the bills paid through the machine (mobile, electricity...), money put on it and Fawry's transfers to the bank.{% endblocktrans %}{% if not fee_percent %} <span class="text-danger">{% trans "The Fawry percentage is not set yet: the owner sets it in Settings → Clinic options." %}</span>{% endif %}</p>
+<form class="row g-2 align-items-end mb-3 no-print">
+  {% for field in form %}<div class="col-6 col-md-2"><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <div class="col-md-3"><button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Show" %}</button> <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button></div>
+</form>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-success">{{ totals.collection|money }}</div><div class="stat-label">{% trans "Card payments taken" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-danger">{{ kept|money }}</div><div class="stat-label">{% trans "Kept by Fawry (percentage and charges)" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ totals.service|money }}</div><div class="stat-label">{% trans "Bills paid through the machine" %}{% if totals.cash_received %} <span class="d-block">{% trans "cash taken for them" %}: {{ totals.cash_received|money }}</span>{% endif %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100 border-primary"><div class="card-body"><div class="stat-value text-primary">{{ held_now|money }}</div><div class="stat-label">{% trans "Held at Fawry now (not yet in the bank)" %}</div></div></div></div>
+</div>
+<div class="d-flex flex-wrap gap-2 mb-2 small">
+  <span class="badge text-bg-light border">{% trans "Money put on the machine" %}: {{ totals.top_up|money }}</span>
+  <span class="badge text-bg-light border">{% trans "Transferred to the bank" %}: {{ totals.settlement|money }}</span>
+  {% if not filtered %}<span class="badge text-bg-light border">{% trans "Held at the start" %}: {{ opening|money }}</span>
+  <span class="badge text-bg-light border">{% trans "Held at the end" %}: {{ closing|money }}</span>{% endif %}
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover table-sm align-middle mb-0">
+  <thead><tr><th>{% trans "No." %}</th><th>{% trans "Date" %}</th><th>{% trans "For" %}</th><th>{% trans "Move" %}</th><th>{% trans "Details" %}</th><th class="text-end">{% trans "Amount" %}</th><th class="text-end">{% trans "Fawry fee" %}</th><th class="text-end">{% trans "Change" %}</th>{% if not filtered %}<th class="text-end">{% trans "Held at Fawry" %}</th>{% endif %}<th class="no-print"></th></tr></thead>
+  <tbody>{% for m in moves %}<tr>
+    <td class="small">{{ m.number }}</td>
+    <td class="nowrap">{{ m.moved_on|date:"d/m/Y" }}</td>
+    <td class="small">{{ m.branch }}</td>
+    <td>{{ m.get_kind_display }}{% if m.service %} <span class="small text-muted">— {{ m.get_service_display }}</span>{% endif %}</td>
+    <td class="small">{% if m.source %}<a href="{{ m.source.get_absolute_url }}">{% if m.purchase_id %}{{ m.description }}{% else %}{{ m.source.receipt_number }} — {{ m.description }}{% endif %}</a>{% else %}{{ m.description|default:"" }}{% endif %}{% if m.reference %} <span class="text-muted ltr">#{{ m.reference }}</span>{% endif %}{% if m.cash_received %}<div class="text-success">{% trans "cash taken" %}: {{ m.cash_received|money }}</div>{% endif %}</td>
+    <td class="text-end fw-semibold">{{ m.amount|money }}</td>
+    <td class="text-end small">{% if m.fee %}{{ m.fee|money }}{% else %}—{% endif %}</td>
+    <td class="text-end {% if m.balance_change < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.balance_change|money }}</td>
+    {% if not filtered %}<td class="text-end fw-semibold">{{ m.running|money }}</td>{% endif %}
+    <td class="text-end no-print nowrap">{% if can_correct %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'billing:fawry_update' m.pk %}" title="{% trans 'Correct' %}"><i class="bi bi-pencil"></i></a>
+      {% if not m.is_automatic %}<form class="d-inline" method="post" action="{% url 'billing:fawry_delete' m.pk %}" data-confirm="{% trans 'Delete this move?' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" title="{% trans 'Delete' %}"><i class="bi bi-trash"></i></button></form>{% endif %}{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="10" class="text-center text-muted py-4">{% trans "No moves in this period." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

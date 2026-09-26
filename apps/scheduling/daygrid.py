@@ -57,10 +57,11 @@ def _place(appointments, first):
 def day_grid(branch, day, dentist=None):
     options = ClinicSettings.get()
     rooms = list(Room.objects.filter(branch=branch, is_active=True))
-    shifts = list(RoomShift.objects.filter(room__in=rooms, date=day).select_related("dentist", "supervisor"))
+    shifts = list(RoomShift.objects.filter(room__in=rooms, date=day).select_related("dentist", "supervisor",
+                                                                                   "second_dentist"))
     start, end = day_bounds(day)
     appointments = (Appointment.objects.filter(branch=branch, scheduled_at__gte=start, scheduled_at__lt=end)
-                    .exclude(status=Appointment.Status.CANCELLED).select_related("patient", "dentist", "room"))
+                    .exclude(status=Appointment.Status.CANCELLED).select_related("patient", "dentist", "room", "procedure", "second_dentist"))
     if dentist is not None:
         appointments = appointments.filter(dentist=dentist)
     appointments = list(appointments)
@@ -99,7 +100,8 @@ def day_grid(branch, day, dentist=None):
               "hour": m % 60 == 0}
              for m in range(first, first + rows * SLOT, 30)]
     return {"day": day, "columns": columns, "height": rows * ROW_PX, "row_px": ROW_PX, "marks": marks,
-            "booked": len(appointments)}
+            "booked": len(appointments), "first_minute": first, "slot": SLOT,
+            "is_today": day == timezone.localdate()}
 
 
 def week_outline(branch, week_days):

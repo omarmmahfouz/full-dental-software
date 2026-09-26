@@ -129,7 +129,7 @@ def patient_docx(patient):
         if appointments:
             document.add_heading("Appointments", level=1)
             _table(document, ["Date", "Status", "Room", "Dentist", "Purpose"],
-                   [(a.scheduled_at, a.get_status_display(), a.room, a.dentist, a.purpose) for a in appointments])
+                   [(a.scheduled_at, a.get_status_display(), a.room, a.dentist, a.what) for a in appointments])
 
         money = account(patient)
         if money["rows"] or money["payments"]:

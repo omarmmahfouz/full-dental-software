@@ -31,3 +31,43 @@
 </tbody></table></div></div>
 {% endif %}
 {% endblock %}
+{% block extra_js %}
+<script>
+  // Select, mark as sent, or send one after another (WhatsApp opens once per click).
+  document.querySelectorAll("[data-wa-group]").forEach(function (group) {
+    var form = group.querySelector("form[data-no-leave-warning]");
+    var picks = group.querySelectorAll("[data-wa-pick]");
+    var markButton = group.querySelector("[data-wa-mark]");
+    var left = group.querySelector("[data-wa-left]");
+    var unsent = group.querySelectorAll('[data-wa-row][data-sent="0"]');
+    left.textContent = unsent.length;
+    group.querySelector("[data-wa-next]").disabled = group.querySelector("[data-wa-next]").disabled || !unsent.length;
+    function update() {
+      var chosen = Array.prototype.filter.call(picks, function (p) { return p.checked; });
+      markButton.disabled = !chosen.length || markButton.hasAttribute("data-read-only");
+    }
+    group.querySelector("[data-wa-all]").addEventListener("change", function (event) {
+      picks.forEach(function (p) { p.checked = event.target.checked; });
+      update();
+    });
+    picks.forEach(function (p) { p.addEventListener("change", update); });
+    form.addEventListener("submit", function () {
+      Array.prototype.forEach.call(picks, function (p) {
+        if (!p.checked) return;
+        var input = document.createElement("input");
+        input.type = "hidden"; input.name = "appointment"; input.value = p.value;
+        form.appendChild(input);
+      });
+    });
+    group.querySelector("[data-wa-next]").addEventListener("click", function () {
+      var row = group.querySelector('[data-wa-row][data-sent="0"]');
+      if (!row) return;
+      row.setAttribute("data-sent", "1");
+      row.classList.add("table-light");
+      left.textContent = group.querySelectorAll('[data-wa-row][data-sent="0"]').length;
+      var send = row.querySelector("form[data-wa-send]");
+      if (send.requestSubmit) send.requestSubmit(); else send.submit();
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Balance sheet" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-journal-check"></i> {% trans "Balance sheet" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1></div>
+{% include "reports/_period.html" %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-success">{{ income_total|money }}</div><div class="stat-label">{% trans "Income" %}</div></div></div></div>
+  <div class="col-6 col-lg-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-danger">{{ cost_total|money }}</div><div class="stat-label">{% trans "Costs" %}</div></div></div></div>
+  <div class="col-12 col-lg-4"><div class="card stat-card h-100 border-primary"><div class="card-body"><div class="stat-value {% if net_total < 0 %}text-danger{% else %}text-primary{% endif %}">{{ net_total|money }} {{ CLINIC.CURRENCY }}</div><div class="stat-label">{% trans "Net (income less costs)" %}</div></div></div></div>
+</div>
+<div class="card mb-3"><div class="table-responsive"><table class="table table-sm align-middle mb-0 balance-table">
+  <thead><tr><th></th>{% for b in columns %}<th class="text-end">{{ b }}</th>{% endfor %}<th class="text-end">{% trans "Total" %}</th></tr></thead>
+  <tbody>
+    <tr class="table-success"><th colspan="{{ columns|length|add:2 }}">{% trans "Income" %}</th></tr>
+    {% for r in income_rows %}<tr><td>{{ r.label }}</td>{% for v in r.values %}<td class="text-end">{{ v|money }}</td>{% endfor %}<td class="text-end fw-semibold">{{ r.total|money }}</td></tr>{% endfor %}
+    <tr class="fw-bold"><td>{% trans "Total income" %}</td>{% for v in income_totals %}<td class="text-end">{{ v|money }}</td>{% endfor %}<td class="text-end">{{ income_total|money }}</td></tr>
+    <tr class="table-danger"><th colspan="{{ columns|length|add:2 }}">{% trans "Costs" %}</th></tr>
+    {% for r in cost_rows %}<tr><td>{{ r.label }}</td>{% for v in r.values %}<td class="text-end">{{ v|money }}</td>{% endfor %}<td class="text-end fw-semibold">{{ r.total|money }}</td></tr>{% endfor %}
+    <tr class="fw-bold"><td>{% trans "Total costs" %}</td>{% for v in cost_totals %}<td class="text-end">{{ v|money }}</td>{% endfor %}<td class="text-end">{{ cost_total|money }}</td></tr>
+    <tr class="table-primary fw-bold fs-6"><td>{% trans "Net" %}</td>{% for v in net %}<td class="text-end {% if v < 0 %}text-danger{% endif %}">{{ v|money }}</td>{% endfor %}<td class="text-end {% if net_total < 0 %}text-danger{% endif %}">{{ net_total|money }}</td></tr>
+  </tbody>
+</table></div></div>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "How the money came in" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, amount in by_method %}<tr><td>{{ label }}</td><td class="text-end fw-bold">{{ amount|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
+  </tbody></table><div class="card-footer small text-muted">{% trans "Patient and course payments together." %}</div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><a href="{% url 'billing:fawry' %}?date_from={{ date_from|date:'d/m/Y' }}&date_to={{ date_to|date:'d/m/Y' }}">{% trans "Fawry machine" %}</a></div><table class="table table-sm mb-0"><tbody>
+    <tr><td>{% trans "Held at Fawry at the start" %}</td><td class="text-end">{{ fawry_held_start|money }}</td></tr>
+    <tr><td>{% trans "Card payments taken" %}</td><td class="text-end text-success">{{ fawry.collected|money }}</td></tr>
+    <tr><td>{% trans "Money put on the machine" %}</td><td class="text-end">{{ fawry.topped|money }}</td></tr>
+    <tr><td>{% trans "Transferred to the bank" %}</td><td class="text-end">{{ fawry.settled|money }}</td></tr>
+    <tr class="fw-bold"><td>{% trans "Held at Fawry at the end" %}</td><td class="text-end">{{ fawry_held_end|money }}</td></tr>
+  </tbody></table></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "Still owed (today)" %}</div><table class="table table-sm mb-0"><tbody>
+    <tr><td>{% trans "Patients owe us" %}</td><td class="text-end text-success">{{ patients_owe|money }}</td></tr>
+    <tr><td>{% trans "Course candidates owe us" %}</td><td class="text-end text-success">{{ candidates_owe|money }}</td></tr>
+    <tr><td>{% trans "We owe suppliers" %}</td><td class="text-end text-danger">{{ unpaid_purchases|money }}</td></tr>
+  </tbody></table></div></div>
+</div>
+<p class="small text-muted mt-3">{% trans "Income is money received in the period (payments, not prices). Purchases are counted on the invoice date. A purchase paid with Fawry is counted once, under purchases; Fawry's percentage on it is under Fawry." %}</p>
+{% endblock %}

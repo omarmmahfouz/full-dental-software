@@ -31,7 +31,7 @@
       {% for s in shifts %}
       <span class="shift-chip{% if s.day_type == 'surgery' %} shift-surgery{% endif %}">
         {% if s.day_type == "surgery" %}<span class="badge text-bg-danger mb-1"><i class="bi bi-scissors"></i> {% trans "Surgery day" %}</span><br>{% endif %}
-        {% if can_edit %}<a href="{% url 'scheduling:shift_update' s.pk %}" class="text-decoration-none">{% endif %}<strong>{{ s.dentist }}</strong>{% if can_edit %}</a>{% endif %}
+        {% if can_edit %}<a href="{% url 'scheduling:shift_update' s.pk %}" class="text-decoration-none">{% endif %}<strong>{{ s.dentist }}</strong>{% if can_edit %}</a>{% endif %}{% if s.second_dentist %}<div class="small">+ {{ s.second_dentist }}</div>{% endif %}
         <br><span>{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span>
         {% if s.supervisor %}<br><span class="text-muted">{% trans "Supervisor" %}: {{ s.supervisor }}</span>{% endif %}
         {% if s.notes %}<br><span class="text-muted">{{ s.notes }}</span>{% endif %}

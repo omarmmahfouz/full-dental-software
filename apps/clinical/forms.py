@@ -7,7 +7,7 @@ from apps.core.roles import FRONT_DESK, has_role
 from apps.dentists.forms import DentistChoiceField
 from apps.dentists.models import Dentist
 from apps.patients.access import visible_patients
-from apps.patients.forms import PatientLookupField
+from apps.patients.forms import PatientLookupField, lookup_value
 
 from .models import ChartEffect, Lab, LabRequest, LabWorkType, OutsideRequest, TreatmentStep, TreatmentStepType
 
@@ -18,7 +18,7 @@ class _PatientScopedForm(StyledModelForm):
     def __init__(self, *args, user=None, patient=None, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
-        self.fields["patient_lookup"].initial = patient.file_number if patient else None
+        self.fields["patient_lookup"].initial = lookup_value(patient) if patient else None
         if patient:
             self.fields["patient_lookup"].help_text = str(patient)
 
@@ -41,9 +41,16 @@ class TreatmentStepForm(_PatientScopedForm):
         help_text=_("The changes are listed below before you save."),
     )
 
+    bill_service = forms.ModelChoiceField(
+        label=_("Bill for this treatment (optional)"), required=False, queryset=None,
+        help_text=_("Choose the paid service: the reception sees it to collect, with the bill ready."))
+    bill_price = forms.DecimalField(label=_("price"), required=False, min_value=0, max_digits=10, decimal_places=2,
+                                    help_text=_("Leave empty for the price of the list."))
+
     fieldsets = [
         ("", ["patient_lookup", "performed_at", "step_type", "notes", "teeth", "surfaces", "material"]),
         ("", ["operator", "assistant", "supervisor", "next_visit", "update_chart"]),
+        (_("Bill"), ["bill_service", "bill_price"]),
     ]
 
     class Meta:
@@ -65,6 +72,17 @@ class TreatmentStepForm(_PatientScopedForm):
         self.fields["notes"].col = "col-12"
         self.fields["next_visit"].col = "col-md-8"
         self.fields["update_chart"].col = "col-12"
+        from apps.billing.forms import ServiceChoiceField
+        from apps.billing.models import Service
+
+        self.fields["bill_service"] = ServiceChoiceField(
+            label=self.fields["bill_service"].label, required=False, help_text=self.fields["bill_service"].help_text,
+            queryset=Service.objects.filter(is_active=True))
+        self.fields["bill_service"].widget.attrs["class"] = "form-select"
+        self.fields["bill_service"].col = "col-md-6"
+        self.fields["bill_price"].col = "col-md-3"
+        if self.instance.pk:  # the bill is added once, with the new treatment
+            del self.fields["bill_service"], self.fields["bill_price"]
 
     def clean_teeth(self):
         return format_teeth(parse_teeth(self.cleaned_data.get("teeth")))
@@ -82,6 +100,20 @@ class TreatmentStepForm(_PatientScopedForm):
         if step_type and not data.get("material") and step_type.default_material:
             data["material"] = step_type.default_material
         return data
+
+
+class StepOperatorForm(StyledModelForm):
+    operator = DentistChoiceField(label=_("operator"), required=False)
+    assistant = DentistChoiceField(label=_("assistant"), required=False)
+
+    class Meta:
+        model = TreatmentStep
+        fields = ["operator", "assistant"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.col = "col-md-6"
 
 
 class StepReviewForm(StyledModelForm):
@@ -102,16 +134,16 @@ class LabRequestForm(_PatientScopedForm):
     supervisor = DentistChoiceField(kinds=(Dentist.Kind.SUPERVISOR,), label=_("reviewed by supervisor"), required=False)
 
     fieldsets = [
-        ("", ["patient_lookup", "dentist", "supervisor", "lab", "work_type", "teeth", "units", "shade", "material",
-              "due_date"]),
+        ("", ["patient_lookup", "dentist", "supervisor", "lab", "work_type", "work_form", "teeth", "units",
+              "shade_guide", "shade", "material", "due_date"]),
         ("", ["instructions", "lab_cost"]),
     ]
 
     class Meta:
         model = LabRequest
         fields = [
-            "dentist", "supervisor", "lab", "work_type", "teeth", "units", "shade", "material",
-            "due_date", "instructions", "lab_cost",
+            "dentist", "supervisor", "lab", "work_type", "work_form", "teeth", "units", "shade_guide", "shade",
+            "material", "due_date", "instructions", "lab_cost",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -119,12 +151,39 @@ class LabRequestForm(_PatientScopedForm):
         self.fields["lab"].queryset = Lab.objects.filter(is_active=True)
         self.fields["work_type"].queryset = LabWorkType.objects.filter(is_active=True)
         self.fields["teeth"].widget.attrs["data-teeth-picker"] = "multi"
+        # The shade from the guide's own list (the page shows the list of the chosen guide).
+        guides = [(str(LabRequest.ShadeGuide.CLASSICAL.label), [(v, v) for v in LabRequest.CLASSICAL_SHADES]),
+                  (str(LabRequest.ShadeGuide.MASTER.label), [(v, v) for v in LabRequest.MASTER_SHADES])]
+        current = self.instance.shade if self.instance.pk else ""
+        known = set(LabRequest.CLASSICAL_SHADES) | set(LabRequest.MASTER_SHADES)
+        extra = [(current, current)] if current and current not in known else []
+        self.fields["shade"] = forms.ChoiceField(
+            label=_("shade"), required=False, choices=[("", "—")] + extra + guides,
+            widget=forms.Select(attrs={"class": "form-select", "data-shade": "1"}))
+        self.fields["shade_guide"].widget.attrs["data-shade-guide"] = "1"
+        self.fields["work_form"].required = False
+        self.fields["due_date"].help_text = _("Leave empty: set from the usual days of the work type when sent.")
         if not has_role(self.user, *FRONT_DESK):
             del self.fields["lab_cost"]
         self.fields["supervisor"].help_text = LabRequest._meta.get_field("supervisor").help_text
 
     def clean_teeth(self):
         return format_teeth(parse_teeth(self.cleaned_data.get("teeth")))
+
+    def clean(self):
+        data = super().clean()
+        shade, guide = data.get("shade"), data.get("shade_guide")
+        lists = {LabRequest.ShadeGuide.CLASSICAL: LabRequest.CLASSICAL_SHADES,
+                 LabRequest.ShadeGuide.MASTER: LabRequest.MASTER_SHADES}
+        if shade and guide and shade in set(LabRequest.CLASSICAL_SHADES) | set(LabRequest.MASTER_SHADES) \
+                and shade not in lists[guide]:
+            self.add_error("shade", _("This shade is not in the chosen shade guide."))
+        if shade and not guide:
+            data["shade_guide"] = next((g for g, values in lists.items() if shade in values), "")
+        if not data.get("work_form"):
+            data["work_form"] = LabRequest.WorkForm.PHYSICAL
+            self.instance.work_form = LabRequest.WorkForm.PHYSICAL
+        return data
 
 
 class LabActionForm(StyledForm):

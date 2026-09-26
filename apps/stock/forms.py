@@ -14,13 +14,28 @@ class StockItemForm(StyledModelForm):
 
     class Meta:
         model = StockItem
-        fields = ["name", "category", "unit", "min_quantity", "location", "code", "unit_cost", "is_active", "notes"]
+        fields = ["name", "category", "unit", "min_quantity", "location", "code", "unit_cost", "is_active", "notes",
+                  "implant_system", "implant_diameter", "implant_length"]
 
     def __init__(self, *args, **kwargs):
+        from apps.surgery.models import ImplantSystem
+
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = StockCategory.objects.filter(is_active=True)
+        self.fields["implant_system"].queryset = ImplantSystem.objects.filter(is_active=True)
+        for name in ("implant_system", "implant_diameter", "implant_length"):
+            self.fields[name].col = "col-md-4"
+        for name in ("implant_diameter", "implant_length"):
+            self.fields[name].widget.attrs.update({"step": "0.1", "min": "2", "max": "20"})
         if self.instance.pk:
             del self.fields["opening_quantity"]
+
+    def clean(self):
+        data = super().clean()
+        implant = [data.get(n) for n in ("implant_system", "implant_diameter", "implant_length")]
+        if any(implant) and not all(implant):
+            self.add_error("implant_system", _("For an implant, choose the company and write the diameter and the length."))
+        return data
 
 
 class StockFilterForm(StyledForm):

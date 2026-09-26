@@ -1,6 +1,8 @@
 """Lab request workflow: every status change goes through ``perform_lab_action``
 so permissions, timestamps, history and notifications stay consistent."""
 
+from datetime import timedelta
+
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -30,15 +32,16 @@ TRANSITIONS = {
     "submit": ((S.DRAFT,), S.PENDING_REVIEW, FRONT_DESK + DENTISTS, False, False),
     "approve": ((S.PENDING_REVIEW,), S.APPROVED, MANAGEMENT, False, False),
     "return": ((S.PENDING_REVIEW, S.APPROVED), S.DRAFT, MANAGEMENT, False, True),
-    "send": ((S.APPROVED,), S.SENT, FRONT_DESK, True, False),
+    "collect": ((S.APPROVED,), S.COLLECTED, FRONT_DESK, False, False),
+    "send": ((S.APPROVED, S.COLLECTED), S.SENT, FRONT_DESK, True, False),
     "receive": ((S.SENT,), S.RECEIVED, FRONT_DESK, True, False),
     "remake": ((S.RECEIVED,), S.SENT, FRONT_DESK + DENTISTS, False, True),
     "deliver": ((S.RECEIVED,), S.DELIVERED, FRONT_DESK + DENTISTS, False, False),
-    "cancel": ((S.DRAFT, S.PENDING_REVIEW, S.APPROVED), S.CANCELLED, MANAGEMENT + DENTISTS, False, True),
+    "cancel": ((S.DRAFT, S.PENDING_REVIEW, S.APPROVED, S.COLLECTED), S.CANCELLED, MANAGEMENT + DENTISTS, False, True),
 }
 
 EVENT_FOR_ACTION = {
-    "submit": A.SUBMITTED, "approve": A.APPROVED, "return": A.RETURNED, "send": A.SENT,
+    "submit": A.SUBMITTED, "approve": A.APPROVED, "return": A.RETURNED, "collect": A.COLLECTED, "send": A.SENT,
     "receive": A.RECEIVED, "remake": A.REMAKE, "deliver": A.DELIVERED, "cancel": A.CANCELLED,
 }
 
@@ -46,6 +49,7 @@ ACTION_LABELS = {
     "submit": _("Send for review"),
     "approve": _("Approve (reviewed)"),
     "return": _("Return to doctor for changes"),
+    "collect": _("Taken from the dentist"),
     "send": _("Mark as sent to lab"),
     "receive": _("Mark as received from lab"),
     "remake": _("Return to lab for remake"),
@@ -66,6 +70,11 @@ def available_actions(lab_request, user):
 def _may(user, lab_request, action, roles):
     if not has_role(user, *roles):
         return False
+    physical = lab_request.work_form == LabRequest.WorkForm.PHYSICAL
+    if action == "collect" and not physical:
+        return False  # a digital scan is not taken by hand
+    if action == "send" and physical and lab_request.status == S.APPROVED:
+        return False  # the reception first takes the impression / model from the dentist
     if is_only_dentist(user) and action == "cancel" and lab_request.status != S.DRAFT:
         return False  # CIA dentists may cancel only drafts
     return True
@@ -95,8 +104,13 @@ def perform_lab_action(lab_request, action, user, notes="", checked=False):
         lab_request.reviewed_by, lab_request.reviewed_at = user, now
     elif action == "return":
         lab_request.reviewed_by, lab_request.reviewed_at = None, None
+    elif action == "collect":
+        lab_request.collected_by, lab_request.collected_at = user, now
     elif action == "send":
         lab_request.sent_by, lab_request.sent_at = user, now
+        days = lab_request.work_type.default_days
+        if not lab_request.due_date and days:  # the usual time for this work (Settings → Lab work types)
+            lab_request.due_date = timezone.localdate() + timedelta(days=days)
     elif action == "receive":
         lab_request.received_by, lab_request.received_at = user, now
     elif action == "remake":
@@ -144,6 +158,8 @@ def _notify(lab_request, action, user, notes):
     elif action == "receive":
         notify_users(_requesters(lab_request), _("Lab work %(number)s arrived from the lab"),
                      _("Patient: %(patient)s"), url, Notification.Level.SUCCESS, exclude=user, params=params)
+        notify_roles((SECRETARY,), _("Lab work %(number)s is ready: book the patient for the fitting"),
+                     _("Patient: %(patient)s"), url, Notification.Level.INFO, exclude=user, params=params)
     elif action == "remake":
         notify_roles((HEAD_CIA, SUPERVISOR, OWNER), _("Lab work %(number)s returned to the lab for remake"),
                      "%(notes)s", url, Notification.Level.WARNING, exclude=user, params=params)

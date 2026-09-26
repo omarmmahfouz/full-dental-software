@@ -2,6 +2,7 @@
 
 - complaints whose follow-up date has passed  -> assigned supervisor (or all supervisors)
 - lab work late at the lab                    -> secretaries
+- visits left without notes in the file       -> the dentist, then the supervisors
 """
 
 from django.core.management.base import BaseCommand
@@ -44,4 +45,7 @@ class Command(BaseCommand):
                 lab_request.get_absolute_url(), Notification.Level.WARNING,
                 params={"number": lab_request.number, "lab": lab_request.lab.name, "patient": lab_request.patient.full_name},
             )
+        from apps.clinical.visit_notes import send_notes_alerts
+
+        sent += send_notes_alerts()
         self.stdout.write(self.style.SUCCESS(f"{sent} reminder notifications created."))

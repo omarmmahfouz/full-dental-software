@@ -138,7 +138,7 @@ def candidate_detail(request, pk):
     if dentist is not None:
         from apps.surgery.models import SurgerySite
 
-        placed = SurgerySite.objects.filter(surgery__operator_1=dentist).exclude(implant_status="").count()
+        placed = SurgerySite.objects.done_by(dentist).exclude(implant_status="").count()
     return render(request, "academy/candidate_detail.html", {
         "candidate": candidate, "enrollments": enrollments, "dentist": dentist, "implants_placed": placed,
     })

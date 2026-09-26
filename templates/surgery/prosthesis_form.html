@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+{% with active="chart" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="page-header"><h1><i class="bi bi-bricks"></i> {{ title }}</h1></div>
+<div class="row g-3">
+  <div class="col-xl-8"><div class="card"><div class="card-body">
+    <form method="post" novalidate id="prosthesis-form">{% csrf_token %}
+      {% include "includes/form_fields.html" %}
+      <div class="alert alert-light border small mt-3 mb-0" data-prosthesis-summary></div>
+      <div class="mt-4 d-flex flex-wrap gap-2">
+        <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+        <a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}">{% trans "Cancel" %}</a>
+      </div>
+    </form>
+    {% if prosthesis %}<form method="post" action="{% url 'surgery:prosthesis_delete' prosthesis.pk %}" class="mt-3 text-end">{% csrf_token %}
+      <button class="btn btn-sm btn-outline-danger" data-confirm="{% trans 'Delete this prosthesis?' %}"><i class="bi bi-trash"></i> {% trans "Delete" %}</button></form>{% endif %}
+  </div></div></div>
+  <div class="col-xl-4"><div class="card"><div class="card-body small">
+    <p class="fw-semibold mb-1">{% trans "How to write it" %}</p>
+    <ul class="mb-0 ps-3">
+      <li>{% trans "Single crown: tick its implant; the tooth is filled in." %}</li>
+      <li>{% trans "Bridge: write all its teeth (e.g. 34-37) and tick the implants under it; the other teeth are pontics." %}</li>
+      <li>{% trans "Full arch: choose the jaw and tick the implants (fixed All-on-X, or a removable overdenture on attachments / bar)." %}</li>
+      <li>{% trans "When it is delivered, the implants become loaded and the pontics show on the chart." %}</li>
+    </ul>
+  </div></div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  // Live summary: units, implants and pontics.
+  var form = document.getElementById("prosthesis-form");
+  var box = form.querySelector("[data-prosthesis-summary]");
+  var teethInput = form.querySelector("[name=teeth]");
+  var kind = form.querySelector("[name=kind]");
+  var jawRow = form.querySelector("[name=jaw]");
+  var texts = {
+    units: "{{ _('units')|escapejs }}", implants: "{{ _('implants')|escapejs }}", pontics: "{{ _('pontics')|escapejs }}"
+  };
+  var UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+  var LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+  function teeth() {  // "34-37" or "34, 35, 36"
+    var result = [];
+    (teethInput.value || "").split(/[\s,،]+/).forEach(function (token) {
+      var range = token.match(/^(\d{2})-(\d{2})$/);
+      if (range) {
+        var arch = UPPER.indexOf(+range[1]) >= 0 ? UPPER : LOWER;
+        var i = arch.indexOf(+range[1]), j = arch.indexOf(+range[2]);
+        if (i < 0 || j < 0) return;
+        arch.slice(Math.min(i, j), Math.max(i, j) + 1).forEach(function (t) { result.push(t); });
+      } else if (/^\d{2}$/.test(token)) {
+        result.push(+token);
+      }
+    });
+    return result.filter(function (t, k) { return result.indexOf(t) === k; });
+  }
+  function implantTeeth() {
+    return Array.prototype.filter.call(form.querySelectorAll("[name=implants]"), function (b) { return b.checked; })
+      .map(function (b) { return parseInt(b.closest("label, div").textContent, 10); });
+  }
+  function update() {
+    var fullArch = kind.value === "full_fixed" || kind.value === "overdenture";
+    if (jawRow) jawRow.closest(".col-md-4, .mb-3, div").style.opacity = fullArch ? 1 : 0.5;
+    var units = teeth(), implants = implantTeeth();
+    var pontics = units.filter(function (t) { return implants.indexOf(t) < 0; });
+    var parts = [];
+    if (units.length) parts.push(units.length + " " + texts.units);
+    parts.push(implants.length + " " + texts.implants + (implants.length ? " (" + implants.join(", ") + ")" : ""));
+    if (pontics.length) parts.push(pontics.length + " " + texts.pontics + " (" + pontics.join(", ") + ")");
+    box.textContent = parts.join(" · ");
+  }
+  form.addEventListener("change", update);
+  form.addEventListener("input", update);
+  update();
+})();
+</script>
+{% endblock %}

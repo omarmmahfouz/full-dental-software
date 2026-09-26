@@ -11,12 +11,14 @@
   <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value text-success">{{ account.paid|money }}</div><div class="stat-label">{% trans "Paid" %}</div></div></div></div>
   <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value {% if account.balance > 0 %}text-danger{% endif %}">{{ account.balance|money }}</div><div class="stat-label">{% if account.balance < 0 %}{% trans "Credit for the patient" %}{% else %}{% trans "Still to pay" %}{% endif %}</div></div></div></div>
 </div>
+<div class="d-flex flex-wrap gap-2 mb-3 no-print"><a class="btn btn-success" href="{% url 'billing:bill_create' %}?patient={{ patient.pk }}"><i class="bi bi-receipt"></i> {% trans "New bill" %}</a>
+  {% for b in patient.bills.all|slice:":10" %}<a class="btn btn-sm btn-outline-secondary align-self-center" href="{{ b.get_absolute_url }}">{{ b.number }} · {{ b.billed_on|date:"d/m" }}</a>{% endfor %}</div>
 <div class="card mb-3"><div class="card-header">{% trans "Services" %}</div><div class="table-responsive"><table class="table mb-0 align-middle">
   <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Service" %}</th><th>{% trans "Price" %}</th><th>{% trans "Discount" %}</th><th>{% trans "To pay" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Left" %}</th></tr></thead>
   <tbody>{% for row in account.rows %}{% with c=row.charge %}
   <tr class="{% if not row.left %}table-success{% endif %}">
     <td class="nowrap">{{ c.charged_on|date:"d/m/Y" }}</td>
-    <td><b>{{ c.service }}</b>{% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}</td>
+    <td><b>{{ c.service }}</b>{% if c.teeth %} <span class="text-muted">{{ c.teeth }}</span>{% endif %}{% if c.bill %} <a class="small" href="{{ c.bill.get_absolute_url }}">{{ c.bill.number }}</a>{% endif %}{% if c.notes %}<div class="small text-muted">{{ c.notes }}</div>{% endif %}</td>
     <td>{{ c.price|money }}</td>
     <td>{% if c.discount_percent %}{{ c.discount_percent|floatformat:"-2" }}% ({{ c.discount_amount|money }}){% if c.discount_reason %}<div class="small text-muted">{{ c.discount_reason }}</div>{% endif %}{% else %}—{% endif %}</td>
     <td class="fw-semibold">{{ c.net|money }}</td>

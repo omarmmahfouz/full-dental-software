@@ -15,7 +15,7 @@
   <meta name="theme-color" content="#9EC64F">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-body-tertiary">
+<body class="bg-body-tertiary"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}"{% endif %}>
 {% if user.is_authenticated %}
 <nav class="navbar navbar-expand-xl app-navbar no-print">
   <div class="container-fluid">
@@ -40,7 +40,10 @@
             <li><a class="dropdown-item" href="{% url 'patients:calllist_list' %}"><i class="bi bi-telephone-outbound"></i> {% trans "Patients to call" %}</a></li>
             {% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i> {% trans "Register new patient" %}</a></li>
-            {% if "billing" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'billing:payment_list' %}"><i class="bi bi-cash-stack"></i> {% trans "Patient payments" %}</a></li>{% endif %}
+            {% if "billing" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'billing:bill_create' %}"><i class="bi bi-receipt"></i> {% trans "New bill" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'billing:bill_list' %}"><i class="bi bi-receipt-cutoff"></i> {% trans "Bills" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'billing:payment_list' %}"><i class="bi bi-cash-stack"></i> {% trans "Patient payments" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'billing:fawry' %}"><i class="bi bi-credit-card-2-front"></i> {% trans "Fawry machine" %}</a></li>{% endif %}
             {% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% trans "All patients" %}</a></li>
             {% if my_dentist %}<li><a class="dropdown-item" href="{% url 'patients:list' %}?mine=on"><i class="bi bi-person-check"></i> {% trans "My patients" %}</a></li>{% endif %}
@@ -55,6 +58,7 @@
             <li><a class="dropdown-item" href="{% url 'scheduling:room_schedule' %}"><i class="bi bi-grid-3x3"></i> {% if only_dentist %}{% trans "My schedule" %}{% else %}{% trans "Room schedule" %}{% endif %}</a></li>
             <li><a class="dropdown-item" href="{% url 'scheduling:appointment_list' %}"><i class="bi bi-calendar-check"></i> {% if only_dentist %}{% trans "My appointments" %}{% else %}{% trans "Appointments" %}{% endif %}</a></li>
             {% if is_front_desk %}<li><a class="dropdown-item" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'scheduling:waiting_list' %}"><i class="bi bi-hourglass-split"></i> {% trans "Waiting list" %}{% if waiting_count %} <span class="badge rounded-pill text-bg-secondary">{{ waiting_count }}</span>{% endif %}</a></li>
             <li><a class="dropdown-item" href="{% url 'scheduling:requests_reception' %}"><i class="bi bi-telephone-forward"></i> {% trans "Patients the dentists asked for" %}{% if requests_to_call %} <span class="badge rounded-pill text-bg-primary">{{ requests_to_call }}</span>{% endif %}</a></li>
             <li><a class="dropdown-item" href="{% url 'scheduling:whatsapp' %}"><i class="bi bi-whatsapp"></i> {% trans "WhatsApp messages" %}</a></li>{% endif %}
             {% if my_dentist %}<li><hr class="dropdown-divider"></li><li><a class="dropdown-item" href="{% url 'scheduling:requests_mine' %}"><i class="bi bi-person-lines-fill"></i> {% trans "My patient list (for the reception)" %}</a></li>{% endif %}
@@ -154,6 +158,7 @@
             <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key"></i> {% trans "Change password" %}</a></li>
             {% if roles.owner or roles.head_cia %}<li><a class="dropdown-item" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i> {% trans "Settings" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'core:problems' %}"><i class="bi bi-bug"></i> {% trans "Problem reports" %}{% if new_problems %} <span class="badge rounded-pill text-bg-danger">{{ new_problems }}</span>{% endif %}</a></li>{% endif %}
+            <li><button type="button" class="dropdown-item" data-sound-toggle><i class="bi bi-volume-up"></i> <span data-sound-on>{% trans "Sound for alerts: on" %}</span><span data-sound-off hidden>{% trans "Sound for alerts: off" %}</span></button></li>
             <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#report-problem"><i class="bi bi-exclamation-diamond"></i> {% trans "Report a problem" %}</button></li>
             <li><hr class="dropdown-divider"></li>
             <li><form action="{% url 'logout' %}" method="post">{% csrf_token %}<button class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> {% trans "Log out" %}</button></form></li>
@@ -168,6 +173,7 @@
   {% if user.is_authenticated and request.resolver_match.url_name != "dashboard" %}
   <a class="back-link no-print" href="{% url 'core:dashboard' %}" data-back><i class="bi bi-arrow-{% if RTL %}right{% else %}left{% endif %}"></i> {% trans "Back" %}</a>
   {% endif %}
+  {% if missing_notes %}<div class="alert alert-warning py-2 small no-print d-flex flex-wrap align-items-center gap-2"><i class="bi bi-pencil-square"></i> {% blocktrans count n=missing_notes %}{{ n }} visit has nothing written in the patient's file.{% plural %}{{ n }} visits have nothing written in the patients' files.{% endblocktrans %} <a class="btn btn-sm btn-warning ms-auto" href="{% url 'clinical:visits_missing_notes' %}?mine=1">{% trans "Write them now" %}</a></div>{% endif %}
   {% if read_only_here %}<div class="alert alert-secondary py-2 small no-print"><i class="bi bi-eye"></i> {% trans "Read only: you can look here but not save changes." %}</div>{% endif %}
   {% for message in messages %}
   <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show no-print" role="alert">
@@ -177,6 +183,8 @@
   {% block content %}{% endblock %}
 </main>
 {% if user.is_authenticated %}{% include "includes/app_modals.html" %}{% endif %}
+<div class="app-toasts" data-toasts aria-live="polite"></div>
+<button type="button" class="to-top" data-to-top title="{% trans 'Up' %}" aria-label="{% trans 'Up' %}"><i class="bi bi-arrow-up"></i></button>
 <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
 <script src="{% static 'vendor/flatpickr/ar.js' %}"></script>

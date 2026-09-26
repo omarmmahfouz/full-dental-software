@@ -21,13 +21,16 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.academy.models import Candidate, Course, Enrollment, Installment, Payment, PaymentMethod
-from apps.charting.models import ClinicalPhoto, Examination, PhotoType, PlanItem, ToothChange, TreatmentPlan
+from apps.charting.models import (
+    ClinicalPhoto, Examination, PhotoStage, PhotoType, PlanItem, ToothChange, ToothState, TreatmentPlan,
+)
 from apps.charting.rules import apply_changes, exam_changes
+from apps.charting.teeth import format_teeth, parse_teeth
 from apps.clinical.models import ChartEffect, Lab, LabRequest, LabRequestEvent, LabWorkType, TreatmentStep, TreatmentStepType
 from apps.clinical.services import perform_lab_action
 from apps.clinical.views import record_treatment_on_chart
-from apps.complaints.models import Complaint
-from apps.billing.models import Charge, PatientPayment, Service
+from apps.complaints.models import Complaint, ComplaintFollowUp
+from apps.billing.models import Bill, Charge, FawryMove, PatientPayment, Service, create_bill
 from apps.charting.sync import sync_medical_history
 from apps.clinical.models import OutsideRequest
 from apps.core.approvals import request_change
@@ -40,12 +43,13 @@ from apps.patients.models import (
 from apps.prescriptions.models import Prescription, PrescriptionLine
 from apps.prescriptions.services import best_template, surgery_procedures
 from apps.purchasing.models import Purchase, PurchaseCategory, PurchaseItem, Supplier
-from apps.scheduling.models import Appointment, MessageTemplate, PatientRequest, Room, RoomShift
+from apps.scheduling.models import Appointment, MessageTemplate, PatientRequest, Room, RoomShift, WaitingEntry
 from apps.scheduling.whatsapp import record, record_installment
 from apps.stock.importer import import_items, parse
 from apps.stock.models import StockCategory, StockItem, StockMovement
 from apps.stock.services import record_movement, sync_purchase
-from apps.surgery.models import ImplantSystem, Surgery, SurgerySite
+from apps.surgery.models import ImplantSystem, Prosthesis, Surgery, SurgerySite
+from apps.surgery.prostheses import apply_stage
 from apps.surgery.views import complete_plan_for_surgery, update_chart_for_surgery
 
 STOCK_LIST = Path(__file__).resolve().parents[3] / "stock" / "data" / "cia_material_instrument_list.csv"
@@ -282,7 +286,7 @@ class Command(BaseCommand):
                 start = at(day, 10 + slot)
                 room = rooms[treating.index(patient.assigned_dentist) % len(rooms)]
                 appointment = Appointment(branch=branch, patient=patient, scheduled_at=start, room=room,
-                                          dentist=patient.assigned_dentist, purpose=rng.choice(visit_types).name_en,
+                                          dentist=patient.assigned_dentist, procedure=rng.choice(visit_types),
                                           created_by=secretary)
                 if start > now:
                     appointment.save()
@@ -335,7 +339,7 @@ class Command(BaseCommand):
                         branch=branch, patient=queue.pop() if queue else pick.choice(booked_patients),
                         scheduled_at=timezone.make_aware(datetime.combine(day, time(minute // 60, minute % 60))),
                         duration_minutes=30, room=shift.room, dentist=shift.dentist,
-                        purpose=pick.choice(visit_types).name_ar, created_by=secretary,
+                        procedure=pick.choice(visit_types), created_by=secretary,
                     ))
         Appointment.objects.bulk_create(upcoming)
         upcoming = list(Appointment.objects.filter(scheduled_at__gte=at(coming[0], 0)).order_by("pk"))
@@ -460,20 +464,28 @@ class Command(BaseCommand):
         # ---------------------------------------------------------- lab, complaints
         lab = Lab.objects.first()
         work_types = list(LabWorkType.objects.all())
-        for number, (patient, target) in enumerate(zip(patients[:6], ["submit", "approve", "send", "receive", "deliver", None])):
+        targets = ["submit", "approve", "send", "receive", "deliver", None, "collect"]
+        for number, (patient, target) in enumerate(zip(patients[:7], targets)):
             dentist = patient.assigned_dentist
             by = recorder(dentist)
             reviewed = number % 2 == 1  # the CIA dentist chose the reviewing supervisor's name
+            digital = number == 2  # a scan goes to the lab by itself; impressions are taken by the reception
             lab_request = LabRequest.objects.create(
                 branch=branch, patient=patient, lab=lab, work_type=rng.choice(work_types), teeth="36",
-                shade="A2", dentist=dentist, supervisor=supervisor if reviewed else None,
+                shade="A2", shade_guide=LabRequest.ShadeGuide.CLASSICAL, dentist=dentist,
+                supervisor=supervisor if reviewed else None,
+                work_form=LabRequest.WorkForm.DIGITAL if digital else LabRequest.WorkForm.PHYSICAL,
                 due_date=today + timedelta(days=rng.randint(-3, 7)), created_by=by,
             )
             LabRequestEvent.objects.create(request=lab_request, action=LabRequestEvent.Action.CREATED, by=by)
-            for action, actor in [("submit", by), ("approve", head), ("send", secretary),
+            for action, actor in [("submit", by), ("approve", head), ("collect", secretary), ("send", secretary),
                                   ("receive", secretary), ("deliver", secretary)]:
                 if action == "approve" and lab_request.status != LabRequest.Status.PENDING_REVIEW:
+                    if target == "approve":
+                        break  # reviewed by the named supervisor: waiting for the reception to take it
                     continue  # already reviewed by the named supervisor
+                if action == "collect" and digital:
+                    continue
                 perform_lab_action(lab_request, action, actor, checked=True)
                 if action == target:
                     break
@@ -630,9 +642,147 @@ class Command(BaseCommand):
                 decided_by=head if status == "approved" else None, decided_at=now if status == "approved" else None,
             )
 
+        self._round_three(branch, today, now, at, patients, booked_patients, rooms, cia_dentists, candidates,
+                          types, services, secretary, head, stock_user, owner)
+
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
             "CIA dentists team), dentist1 and dentist2 (CIA dentists), secretary, secretary2 (reception without the "
             "academy), stock (stock manager). "
             "Candidates, training dentists and supervisors have no login."
         ))
+
+    def _round_three(self, branch, today, now, at, patients, booked_patients, rooms, cia_dentists, candidates,
+                     types, services, secretary, head, stock_user, owner):
+        """Reception board, waiting list, bills, Fawry, stock implants, prostheses and the other round-3 examples."""
+        mona, sherif, rania = cia_dentists
+        # Two dentists in room 1 today, and a patient who came too late to be seen.
+        RoomShift.objects.filter(room=rooms[0], date=today).update(second_dentist=sherif)
+        late = Appointment.objects.create(branch=branch, patient=booked_patients[0], scheduled_at=at(today, 9),
+                                          room=rooms[1], dentist=mona, procedure=types["Follow-up"], created_by=secretary)
+        late.mark_late_not_seen(at(today, 9) + timedelta(minutes=50), "جاء متأخر ساعة إلا عشر دقائق")
+        late.save()
+        # A visit yesterday without any notes: Dr. Mona is reminded to write what she did.
+        yesterday = today - timedelta(days=1)
+        forgotten = Appointment.objects.create(branch=branch, patient=booked_patients[1], scheduled_at=at(yesterday, 16),
+                                               room=rooms[0], dentist=mona, procedure=types["Composite restoration"],
+                                               purpose="25", created_by=secretary)
+        forgotten.mark_arrived(at(yesterday, 16))
+        forgotten.mark_entered_room(at(yesterday, 16) + timedelta(minutes=5))
+        forgotten.mark_left(at(yesterday, 16) + timedelta(minutes=45))
+        forgotten.save()
+
+        # Waiting list: the week is full; the reception is told when a place is freed.
+        for number, (patient, minutes, note) in enumerate([
+                (booked_patients[2], 30, "أي يوم بعد الساعة 2"),
+                (booked_patients[3], 10, "كشف سريع: 10 دقائق فقط"),
+                (booked_patients[4], 60, "يفضل الخميس")]):
+            WaitingEntry.objects.create(patient=patient, dentist=mona if number != 1 else None,
+                                        procedure=types["Follow-up" if number == 1 else "Implant placement"],
+                                        minutes=minutes, wanted_from=today, wanted_to=today + timedelta(days=10),
+                                        notes=note, created_by=secretary)
+
+        # Bills: the reception's first-visit bill (consultation + CBCT) paid on the Fawry machine,
+        # and a dentist's bill for what he did in the visit.
+        options = ClinicSettings.get()
+        options.fawry_fee_percent = Decimal("1.5")
+        options.save()
+        first_visit = create_bill(booked_patients[5], [{"service": services["Consultation"]}, {"service": services["CBCT"]}],
+                                  secretary, billed_on=today)
+        PatientPayment.objects.create(patient=booked_patients[5], bill=first_visit, amount=Decimal("1400"), paid_on=today,
+                                      method=PaymentMethod.FAWRY, reference="FW-778812", created_by=secretary)
+        step_visit = Appointment.objects.filter(dentist=mona, status=Appointment.Status.COMPLETED).exclude(
+            pk=forgotten.pk).order_by("-scheduled_at").first()
+        if step_visit is not None:
+            create_bill(step_visit.patient, [{"service": services["Scaling"], "teeth": ""}], mona.user,
+                        billed_on=timezone.localdate(step_visit.scheduled_at), appointment=step_visit, dentist=mona,
+                        source=Bill.Source.DENTIST, notes="Full mouth scaling")
+        # A course installment on Fawry too, and what else went through the machine.
+        enrollment = Enrollment.objects.filter(candidate=candidates[0].candidate).first()
+        Payment.objects.create(enrollment=enrollment, amount=Decimal("5000"), paid_on=today - timedelta(days=2),
+                               method=PaymentMethod.FAWRY, reference="FW-771100", created_by=secretary)
+        clinic = Branch.objects.get(code="PVT")
+        cic = Branch.objects.get(code="CIC")
+        for kind, where, days_ago, amount, extra in [
+            (FawryMove.Kind.TOP_UP, branch, 12, "3000", {"description": "رصيد لدفع الفواتير"}),
+            (FawryMove.Kind.SERVICE, branch, 9, "1850", {"service": FawryMove.Service.ELECTRICITY, "description": "كهرباء الأكاديمية"}),
+            (FawryMove.Kind.SERVICE, clinic, 6, "650", {"service": FawryMove.Service.INTERNET, "description": "إنترنت العيادة الخاصة"}),
+            (FawryMove.Kind.SERVICE, clinic, 4, "100", {"service": FawryMove.Service.MOBILE, "cash_received": Decimal("105"),
+                                                        "description": "شحن رصيد لمريض"}),
+            (FawryMove.Kind.COLLECTION, cic, 3, "800", {"fee": Decimal("12"), "description": "كشف في CIC (تجربة)"}),
+            (FawryMove.Kind.SETTLEMENT, branch, 1, "4000", {"description": "تحويل فوري للبنك"}),
+            (FawryMove.Kind.CHARGE, branch, 1, "150", {"description": "إيجار الماكينة الشهري"}),
+        ]:
+            FawryMove.objects.create(branch=where, kind=kind, moved_on=today - timedelta(days=days_ago),
+                                     amount=Decimal(amount), created_by=secretary, **extra)
+
+        # Implants in stock by company, size and lot (the surgery chart takes them out).
+        implants = StockCategory.objects.get(name_en="Implants & components")
+        for system_name, diameter, length, lots in [
+                ("Osstem", "4.0", "10", [("OS-24A11", 6, 700), ("OS-25B02", 4, 900)]),
+                ("Osstem", "4.5", "10", [("OS-25C17", 5, 800)]),
+                ("MIS", "3.75", "11.5", [("MIS-7781", 3, 650)]),
+                ("Dentium", "4.5", "8", [("DT-3302", 1, 500)])]:
+            system = ImplantSystem.objects.filter(company=system_name).first()
+            item = StockItem.objects.create(
+                name=f"{system} {diameter} x {length}", category=implants, unit="piece", min_quantity=2,
+                implant_system=system, implant_diameter=Decimal(diameter), implant_length=Decimal(length),
+                created_by=stock_user)
+            for lot, quantity, days in lots:
+                record_movement(item, StockMovement.Kind.IN, quantity, stock_user, lot=lot,
+                                expiry_date=today + timedelta(days=days), notes="Opening stock")
+
+        # Prostheses on the implants: a bridge 45-47 style on two implants, single crowns, a planned overdenture.
+        for surgery in Surgery.objects.prefetch_related("sites").order_by("date"):
+            sites = [site for site in surgery.sites.all() if site.implant_status and site.implant_status != "failed"]
+            if not sites or Prosthesis.objects.filter(implants__in=sites).exists():
+                continue
+            loaded = all(site.implant_status == SurgerySite.ImplantStatus.LOADED for site in sites)
+            teeth = sorted(site.tooth for site in sites)
+            if len(sites) == 2 and teeth == [46, 47]:
+                kind, units = Prosthesis.Kind.BRIDGE, "45-47"
+            elif len(sites) == 1:
+                kind, units = Prosthesis.Kind.SINGLE, str(teeth[0])
+            else:
+                continue
+            prosthesis = Prosthesis.objects.create(
+                patient=surgery.patient, kind=kind, teeth=format_teeth(parse_teeth(units)), material=Prosthesis.Material.ZIRCONIA,
+                retention=Prosthesis.Retention.SCREW, dentist=surgery.patient.assigned_dentist or mona,
+                status=Prosthesis.Status.DELIVERED if loaded else Prosthesis.Status.PLANNED,
+                delivered_on=max(site.loaded_on for site in sites) if loaded else None, created_by=mona.user)
+            prosthesis.implants.set(sites)
+            if kind == Prosthesis.Kind.BRIDGE:  # 45 was lost too: the bridge carries it as a pontic
+                ToothState.objects.update_or_create(patient=surgery.patient, tooth=45,
+                                                    defaults={"status": ToothState.Status.MISSING})
+                apply_stage(prosthesis, mona.user)
+        upper = Surgery.objects.filter(sites__tooth__in=[12, 22]).distinct().first()
+        if upper is not None:
+            overdenture = Prosthesis.objects.create(
+                patient=upper.patient, kind=Prosthesis.Kind.OVERDENTURE, jaw=Prosthesis.Jaw.UPPER,
+                retention=Prosthesis.Retention.LOCATOR, material=Prosthesis.Material.ACRYLIC,
+                status=Prosthesis.Status.PLANNED, dentist=mona, notes="Planned: 2 more implants first", created_by=mona.user)
+            overdenture.implants.set(upper.sites.filter(tooth__in=[12, 22]))
+
+        # A surgery where the second operator placed the other tooth (not helping on the same tooth).
+        two = Surgery.objects.filter(operator_2__isnull=False, sites__tooth=15).distinct().first()
+        if two is not None:
+            two.sites.filter(tooth=15).update(operator=two.operator_2)
+
+        # Follow-up photos by session: right side one week after surgery, left side another day.
+        last_surgery = Surgery.objects.order_by("-date").first()
+        follow_up = PhotoType.objects.filter(stage=PhotoStage.FOLLOW_UP).order_by("sort_order").first()
+        for teeth, days, note in [("46", 7, "Right side"), ("36", 14, "Left side")]:
+            ClinicalPhoto.objects.create(patient=last_surgery.patient, stage=PhotoStage.FOLLOW_UP, photo_type=follow_up,
+                                         surgery=last_surgery, teeth=teeth, taken_on=last_surgery.date + timedelta(days=days),
+                                         notes=note, created_by=mona.user, file=demo_photo(f"Follow-up {teeth}", days))
+
+        # Complaints: what the reception did and where the case stands.
+        complaint = Complaint.objects.filter(concerned_dentist__isnull=False).first()
+        if complaint is not None:
+            ComplaintFollowUp.objects.create(complaint=complaint, action=ComplaintFollowUp.Action.CALLED_PATIENT,
+                                             note="كلمت المريض وحجزت له كشف مع الطبيب يوم السبت",
+                                             new_status=Complaint.Status.IN_PROGRESS,
+                                             next_follow_up=today + timedelta(days=2), created_by=secretary)
+            complaint.status = Complaint.Status.IN_PROGRESS
+            complaint.set_situation("المريض محجوز يوم السبت للكشف، والطبيب اطّلع على الشكوى", secretary)
+            complaint.save()

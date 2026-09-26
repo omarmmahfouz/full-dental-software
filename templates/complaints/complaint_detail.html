@@ -25,6 +25,16 @@
     {% if c.resolution %}<div class="fw-semibold mt-3 mb-1">{% trans "How it was solved" %}</div><div class="bg-light rounded p-2">{{ c.resolution|linebreaksbr }}</div>{% endif %}
   </div></div></div>
   <div class="col-lg-7">
+    <div class="card mb-3 border-info"><div class="card-header d-flex justify-content-between align-items-center"><span class="fw-semibold"><i class="bi bi-flag"></i> {% trans "Current situation" %}</span>
+      {% if c.situation_updated_at %}<span class="small text-muted">{{ c.situation_updated_by|default:"" }} — {{ c.situation_updated_at|date:"d/m/Y g:i A" }}</span>{% endif %}</div>
+      <div class="card-body">
+        {% if c.current_situation %}<div class="mb-2">{{ c.current_situation|linebreaksbr }}</div>{% else %}<div class="text-muted small mb-2">{% trans "Not written yet." %}</div>{% endif %}
+        {% if is_front_desk %}<details class="no-print"{% if not c.current_situation %} open{% endif %}><summary class="small text-primary">{% trans "Update the current situation" %}</summary>
+          <form method="post" action="{% url 'complaints:situation' c.pk %}" class="mt-2">{% csrf_token %}
+            {% with form=situation_form %}{% include "includes/form_fields.html" %}{% endwith %}
+            <button class="btn btn-sm btn-info mt-2"><i class="bi bi-check2"></i> {% trans "Save" %}</button>
+          </form></details>{% endif %}
+      </div></div>
     {% if c.waiting_for_dentist %}<div class="alert {% if c.answer_alert_sent_at %}alert-danger{% else %}alert-warning{% endif %} small"><i class="bi bi-hourglass-split"></i> {% blocktrans with dentist=c.concerned_dentist due=c.answer_due|date:"d/m/Y" %}Waiting for the answer of {{ dentist }} (by {{ due }}).{% endblocktrans %}{% if c.answer_alert_sent_at %} {% trans "Late: the dentist and the head of CIA were alerted." %}{% endif %}</div>{% endif %}
     {% if answer_form %}
     <div class="card mb-3 border-primary no-print"><div class="card-header"><i class="bi bi-reply"></i> {% trans "Your answer and the steps to solve it" %}</div><div class="card-body">
@@ -38,12 +48,12 @@
       <ul class="timeline">
         <li><strong>{% trans "Complaint recorded" %}</strong> — {{ c.created_by|default:"" }} <span class="small text-muted">{{ c.created_at|date:"d/m/Y g:i A" }}</span></li>
         {% for f in follow_ups %}
-        <li><strong>{{ f.get_action_display }}</strong> → {{ f.get_new_status_display }} — {{ f.created_by|default:"" }} <span class="small text-muted">{{ f.created_at|date:"d/m/Y g:i A" }}</span><div class="small">{{ f.note|linebreaksbr }}</div>{% if f.next_follow_up %}<div class="small text-muted">{% trans "Next follow-up" %}: {{ f.next_follow_up|date:"d/m/Y" }}</div>{% endif %}</li>
+        <li><strong>{{ f.get_action_display }}</strong> → {{ f.get_new_status_display }} — {{ f.created_by|default:"" }} <span class="small text-muted">{{ f.created_at|date:"d/m/Y g:i A" }}</span>{% if f.can_edit %} <a class="small no-print" href="{% url 'complaints:follow_up_edit' c.pk f.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}{% if f.edited_at %} <span class="small text-muted">({% trans "corrected" %} {{ f.edited_at|date:"d/m g:i A" }})</span>{% endif %}<div class="small">{{ f.note|linebreaksbr }}</div>{% if f.next_follow_up %}<div class="small text-muted">{% trans "Next follow-up" %}: {{ f.next_follow_up|date:"d/m/Y" }}</div>{% endif %}</li>
         {% endfor %}
       </ul>
     </div></div>
     {% if is_front_desk %}
-    <div class="card no-print"><div class="card-header">{% trans "Add follow-up" %}</div><div class="card-body">
+    <div class="card no-print"><div class="card-header">{% trans "What I did: add a follow-up" %}</div><div class="card-body">
       <form method="post" action="{% url 'complaints:follow_up' c.pk %}">{% csrf_token %}
         {% include "includes/form_fields.html" %}
         <button class="btn btn-primary mt-3">{% trans "Save follow-up" %}</button>

@@ -3,10 +3,11 @@ from datetime import datetime, time, timedelta
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
-from django.utils import timezone
+from django.utils import timezone, translation
 
 from apps.core.models import Branch, UserProfile
 from apps.core.testing import PASSWORD, make_dentist, make_patient, make_user, setup_clinic
+from apps.clinical.models import TreatmentStepType
 from apps.scheduling.models import Appointment, Room, RoomShift
 from apps.scheduling.views import week_start
 
@@ -99,6 +100,39 @@ class ReceptionBoardTests(TestCase):
         self.assertEqual(Appointment.objects.count(), 1)
         self.assertTrue(response.context["form"].non_field_errors())
 
+    def test_walk_in_with_a_booked_appointment_and_follow_up_after_leaving(self):
+        later = Appointment.objects.create(branch=self.branch, patient=self.patient,
+                                           scheduled_at=timezone.now() + timedelta(days=3))
+        response = self.client.post("/schedule/walk-in/", {"patient_lookup": self.patient.file_number})
+        walk_in = Appointment.objects.get(is_walk_in=True)
+        self.assertRedirects(response, f"/schedule/today/?check={walk_in.pk}", fetch_redirect_response=False)
+        page = self.client.get(f"/schedule/today/?check={walk_in.pk}")
+        self.assertEqual(page.context["checked"].others, [later])  # the secretary is asked: cancel or move it?
+        self.client.post(f"/schedule/appointments/{later.pk}/action/", {"action": "cancel", "reason": "walk-in"})
+        # the walk-in leaves with no other appointment: the reception is asked to book the next visit
+        url = f"/schedule/appointments/{walk_in.pk}/action/"
+        self.client.post(url, {"action": "enter", "room": self.room.pk})
+        response = self.client.post(url, {"action": "leave"})
+        self.assertRedirects(response, f"/schedule/today/?left={walk_in.pk}", fetch_redirect_response=False)
+        page = self.client.get(f"/schedule/today/?left={walk_in.pk}")
+        self.assertEqual(page.context["just_left"]["appointment"], walk_in)
+        self.assertIn(f"patient={self.patient.pk}", page.context["just_left"]["book_url"])
+        self.client.post(url, {"action": "no_follow_up"})
+        self.assertEqual(self.client.get("/schedule/today/").context["left_rows"], [])
+
+    def test_late_patient_not_seen_and_waiting_from_the_appointment_time(self):
+        start = timezone.now().replace(second=0, microsecond=0) - timedelta(minutes=40)
+        late = Appointment.objects.create(branch=self.branch, patient=self.patient, scheduled_at=start,
+                                          dentist=self.dentist)
+        response = self.client.post(f"/schedule/appointments/{late.pk}/action/", {"action": "late"})
+        late.refresh_from_db()
+        self.assertEqual(late.status, Appointment.Status.LATE_NOT_SEEN)
+        self.assertTrue(response["Location"].startswith("/schedule/appointments/new/?patient="))
+        early = Appointment(branch=self.branch, patient=self.patient, scheduled_at=start)
+        early.mark_arrived(start - timedelta(minutes=20))  # came 20 minutes early
+        early.mark_entered_room(start + timedelta(minutes=5))
+        self.assertEqual(early.waiting_minutes, 5)
+
     def test_dentist_cannot_use_board(self):
         self.client.login(username="dentist", password=PASSWORD)
         self.assertEqual(self.client.get("/schedule/today/").status_code, 403)
@@ -175,6 +209,15 @@ class WhatsAppTests(TestCase):
         self.appointment = Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist,
                                                       scheduled_at=at(tomorrow, 11, 30))
         self.client.login(username="sec", password=PASSWORD)
+
+    def test_mark_several_messages_as_sent(self):
+        from apps.scheduling.models import SentMessage
+
+        self.client.post("/schedule/whatsapp/mark/reminder/", {"appointment": [self.appointment.pk]})
+        sent = SentMessage.objects.get()
+        self.assertEqual((sent.kind, sent.appointment, sent.sent_by), ("reminder", self.appointment, self.secretary))
+        rows = self.client.get("/schedule/whatsapp/").context["reminders"]
+        self.assertEqual(rows[0][1], sent)  # ticked on the list
 
     def test_numbers_for_whatsapp(self):
         from apps.scheduling.whatsapp import whatsapp_number
@@ -414,3 +457,130 @@ class DentistPatientListTests(TestCase):
         item.refresh_from_db()
         self.assertEqual(item.status, "cancelled")
         self.assertIsNotNone(other)
+
+
+class SmartBookingTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.head = make_user("head", "head_cia")
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.dentist.phone = "01001112223"
+        self.dentist.save()
+        self.patient = make_patient(self.branch)
+        self.room = Room.objects.filter(branch=self.branch).first()
+        self.day = timezone.localdate() + timedelta(days=2)
+        RoomShift.objects.create(room=self.room, date=self.day, start_time=time(9), end_time=time(12),
+                                 dentist=self.dentist)
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_nearest_free_times_skip_booked_places(self):
+        taken = timezone.make_aware(datetime.combine(self.day, time(9)))
+        Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist, room=self.room,
+                                   scheduled_at=taken, duration_minutes=60)
+        rows = self.client.get(f"/schedule/free-times/?dentist={self.dentist.pk}&duration=30").json()["results"]
+        self.assertEqual((rows[0]["date"], rows[0]["time"], rows[0]["room"]),
+                         (self.day.strftime("%d/%m/%Y"), "10:00", self.room.pk))
+        self.assertTrue(self.client.get("/schedule/free-times/?duration=30").json()["results"])  # any dentist
+
+    def test_dentist_day_and_booking_outside_his_schedule(self):
+        from apps.core.models import Notification
+
+        info = self.client.get(f"/schedule/dentist-day/?dentist={self.dentist.pk}&day={self.day:%d/%m/%Y}").json()
+        self.assertEqual((info["working"], info["shifts"][0]["room_id"]), (True, self.room.pk))
+        other_day = self.day + timedelta(days=1)
+        info = self.client.get(f"/schedule/dentist-day/?dentist={self.dentist.pk}&day={other_day:%d/%m/%Y}").json()
+        self.assertFalse(info["working"])
+        step = TreatmentStepType.objects.get(name_en="Scaling")
+        response = self.client.post("/schedule/appointments/new/", {
+            "patient_lookup": self.patient.file_number, "scheduled_at_0": other_day.strftime("%d/%m/%Y"),
+            "scheduled_at_1": "10:00", "duration_minutes": 30, "dentist": self.dentist.pk, "procedure": step.pk})
+        appointment = Appointment.objects.get()
+        self.assertRedirects(response, appointment.get_absolute_url(), fetch_redirect_response=False)
+        self.assertTrue(Notification.objects.filter(recipient=self.head, url=appointment.get_absolute_url()).exists())
+        page = self.client.get(appointment.get_absolute_url())
+        self.assertTrue(page.context["off_schedule"])
+        self.assertIn("wa.me/201001112223", page.context["dentist_whatsapp"])
+        with translation.override("en"):
+            self.assertEqual(str(Appointment.objects.get().what), "Scaling")
+        with translation.override("ar"):
+            self.assertEqual(Appointment.objects.get().what, step.name_ar)  # the reception reads it in Arabic
+
+
+class WaitingListTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.secretary = make_user("sec", "secretary")
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient = make_patient(self.branch)
+        self.waiting_patient = make_patient(self.branch, name="Waiting", nid="29001011234568", phone="01001234568")
+        self.client.login(username="sec", password=PASSWORD)
+        self.day = timezone.localdate() + timedelta(days=1)
+
+    def test_a_cancelled_place_tells_the_reception_who_is_waiting(self):
+        from apps.core.models import Notification
+        from apps.scheduling.models import WaitingEntry
+
+        self.client.post("/schedule/waiting/", {"patient_lookup": self.waiting_patient.file_number,
+                                                "minutes": 10, "wanted_from": self.day.strftime("%d/%m/%Y"),
+                                                "notes": "can come within 30 minutes"})
+        entry = WaitingEntry.objects.get()
+        booked = Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist,
+                                            scheduled_at=at(self.day, 11))
+        self.client.post(f"/schedule/appointments/{booked.pk}/action/", {"action": "cancel"})
+        note = Notification.objects.get(recipient=self.secretary, level="warning")
+        self.assertIn(f"day={self.day:%Y-%m-%d}", note.url)
+        rows = self.client.get(note.url).context["rows"]
+        self.assertEqual([r["entry"] for r in rows], [entry])
+        # booking from the list takes the patient off it; a 10-minute visit can be squeezed in
+        response = self.client.post(f"{rows[0]['book_url']}", {
+            "patient_lookup": self.waiting_patient.file_number, "scheduled_at_0": self.day.strftime("%d/%m/%Y"),
+            "scheduled_at_1": "11:00", "duration_minutes": 10, "dentist": self.dentist.pk})
+        self.assertEqual(response.status_code, 302)
+        entry.refresh_from_db()
+        self.assertEqual((entry.status, entry.appointment.duration_minutes), ("booked", 10))
+
+
+class VisitFlowTests(TestCase):
+    def setUp(self):
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.head = make_user("head", "head_cia")
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+        self.appointment = Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist,
+                                                      scheduled_at=timezone.now())
+
+    def test_the_dentist_is_told_when_the_patient_arrives(self):
+        self.client.login(username="dentist", password=PASSWORD)
+        since = self.client.get("/notifications/poll/").json()["last"]
+        self.client.login(username="sec", password=PASSWORD)
+        self.client.post(f"/schedule/appointments/{self.appointment.pk}/action/", {"action": "arrive"})
+        self.client.login(username="dentist", password=PASSWORD)
+        data = self.client.get(f"/notifications/poll/?since={since}").json()
+        self.assertEqual(len(data["new"]), 1)
+        self.assertIn(self.patient.full_name, data["new"][0]["title"])
+        page = self.client.get(f"/schedule/visit/{self.appointment.pk}/")
+        self.assertEqual(page.status_code, 200)
+        self.assertFalse(page.context["has_notes"])
+        self.client.login(username="sec", password=PASSWORD)  # the visit page is for the clinical team
+        self.assertEqual(self.client.get(f"/schedule/visit/{self.appointment.pk}/").status_code, 403)
+
+    def test_visits_without_notes_remind_the_dentist_then_the_supervisor(self):
+        from apps.clinical.models import TreatmentStep
+        from apps.clinical.visit_notes import send_notes_alerts, visits_without_notes
+        from apps.core.models import Notification
+
+        self.appointment.mark_left(timezone.now() - timedelta(hours=2))
+        self.appointment.save()
+        self.assertEqual(visits_without_notes(self.dentist), [self.appointment])
+        self.assertEqual(send_notes_alerts(), 1)  # the dentist after one hour
+        self.assertTrue(Notification.objects.filter(recipient=self.dentist.user, level="warning").exists())
+        self.assertEqual(send_notes_alerts(timezone.now() + timedelta(days=1)), 1)  # the supervisors after a day
+        self.assertTrue(Notification.objects.filter(recipient=self.head, level="danger").exists())
+        self.assertEqual(send_notes_alerts(timezone.now() + timedelta(days=2)), 0)  # once only
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.client.get("/").context["missing_notes"], 1)
+        TreatmentStep.objects.create(patient=self.patient, appointment=self.appointment, operator=self.dentist,
+                                     step_type=TreatmentStepType.objects.get(name_en="Scaling"))
+        self.assertEqual(visits_without_notes(self.dentist), [])

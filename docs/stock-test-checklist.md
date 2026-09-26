@@ -46,3 +46,8 @@ When something is wrong or missing, note three things:
 
 ## G. Movements
 18. Open "حركات المخزن". Filter by date, type of movement, category, or by item or destination (e.g. *Kitchen*). Print it.
+
+## H. Implants by lot (new)
+19. Open an implant item, e.g. "Osstem TS III 4.0 x 10": "اللوطات في المخزن" shows each lot with its expiry and how many are left.
+20. Receive more with a new lot ("وارد للمخزن", write the lot and the expiry): a new line appears.
+21. Add a new implant item: fill "شركة / نوع الزرعة", the diameter and the length. The dentists then find it on the surgery chart, and each implant placed is taken out of its lot by itself.

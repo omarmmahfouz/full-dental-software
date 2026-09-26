@@ -61,7 +61,7 @@ STATUS_COLORS = {
     "not_interested": "secondary", "unreachable": "dark",
     # appointments
     "scheduled": "secondary", "confirmed": "primary", "arrived": "warning", "in_room": "info",
-    "completed": "success", "no_show": "danger", "cancelled": "dark",
+    "completed": "success", "no_show": "danger", "cancelled": "dark", "late_not_seen": "danger",
     # lab
     "draft": "secondary", "pending_review": "warning", "approved": "primary", "sent": "info",
     "received": "success", "delivered": "dark",

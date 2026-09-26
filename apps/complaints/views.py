@@ -11,10 +11,10 @@ from django.views.generic import ListView
 from apps.core.mixins import RoleRequiredMixin, role_required
 from apps.core.models import Notification, branch_for_user
 from apps.core.notify import notify_roles, notify_users
-from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, SUPERVISOR, has_role
+from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, SUPERVISOR, has_role, is_only_dentist
 from apps.patients.models import Patient
 
-from .forms import ComplaintFilterForm, ComplaintForm, DentistAnswerForm, FollowUpForm
+from .forms import ComplaintFilterForm, ComplaintForm, DentistAnswerForm, FollowUpEditForm, FollowUpForm, SituationForm
 from .models import Complaint, ComplaintFollowUp
 
 
@@ -25,7 +25,9 @@ class ComplaintListView(RoleRequiredMixin, ListView):
 
     def get_queryset(self):
         self.filter_form = ComplaintFilterForm(self.request.GET or {"status": "open"})
-        qs = Complaint.objects.select_related("patient", "assigned_to", "concerned_staff", "concerned_dentist")
+        qs = Complaint.objects.visible_to(self.request.user).select_related(
+            "patient", "assigned_to", "concerned_staff", "concerned_dentist"
+        )
         if self.filter_form.is_valid():
             data = self.filter_form.cleaned_data
             if data.get("status") == "open":
@@ -41,6 +43,7 @@ class ComplaintListView(RoleRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["filter_form"] = self.filter_form
+        context["only_mine"] = is_only_dentist(self.request.user)
         return context
 
 
@@ -57,34 +60,50 @@ def complaint_create(request):
             complaint.branch = branch_for_user(request.user)
             complaint.created_by = request.user
             complaint.save()
-        level = Notification.Level.DANGER if complaint.severity == Complaint.Severity.HIGH else Notification.Level.WARNING
-        params = {
-            "number": complaint.number,
-            "patient": complaint.patient.full_name,
-            "category": complaint.get_category_display(),
-            "text": complaint.description[:300],
-        }
         notify_roles(
             (HEAD_CIA, SUPERVISOR, OWNER), gettext_lazy("New patient complaint %(number)s: %(patient)s"),
-            "%(category)s — %(text)s", complaint.get_absolute_url(), level, exclude=request.user, params=params,
+            "%(category)s — %(text)s", complaint.get_absolute_url(), _level(complaint), exclude=request.user,
+            params=_params(complaint),
         )
-        dentist = complaint.concerned_dentist
-        if dentist is not None and dentist.user_id:
-            notify_users([dentist.user], gettext_lazy("Complaint %(number)s about your patient: please answer"),
-                         "%(category)s — %(text)s", complaint.get_absolute_url(), level, params=params)
+        _tell_dentist(complaint)
         messages.success(request, _("Complaint %(number)s recorded and the supervisors were notified.") % {"number": complaint.number})
         return redirect(complaint)
     return render(request, "includes/form_page.html", {"form": form, "title": _("Record patient complaint")})
 
 
+def _level(complaint):
+    return Notification.Level.DANGER if complaint.severity == Complaint.Severity.HIGH else Notification.Level.WARNING
+
+
+def _params(complaint):
+    return {
+        "number": complaint.number,
+        "patient": complaint.patient.full_name,
+        "category": complaint.get_category_display(),
+        "text": complaint.description[:300],
+    }
+
+
+def _tell_dentist(complaint):
+    """The concerned dentist is told at once and asked for his answer."""
+    dentist = complaint.concerned_dentist
+    if dentist is not None and dentist.user_id:
+        notify_users([dentist.user], gettext_lazy("Complaint %(number)s about your patient: please answer"),
+                     "%(category)s — %(text)s", complaint.get_absolute_url(), _level(complaint),
+                     params=_params(complaint))
+
+
 @role_required(*FRONT_DESK)
 def complaint_update(request, pk):
     complaint = get_object_or_404(Complaint, pk=pk)
+    dentist_before = complaint.concerned_dentist_id
     form = ComplaintForm(request.POST or None, instance=complaint)
     if request.method == "POST" and form.is_valid():
         complaint = form.save(commit=False)
         complaint.patient = form.cleaned_data["patient_lookup"]
         complaint.save()
+        if complaint.concerned_dentist_id != dentist_before:
+            _tell_dentist(complaint)
         messages.success(request, _("Complaint updated."))
         return redirect(complaint)
     return render(
@@ -96,18 +115,31 @@ def complaint_update(request, pk):
 @role_required(*PATIENT_VIEWERS)
 def complaint_detail(request, pk):
     complaint = get_object_or_404(
-        Complaint.objects.select_related("patient", "assigned_to", "concerned_staff", "concerned_dentist", "resolved_by"), pk=pk
+        Complaint.objects.visible_to(request.user).select_related(
+            "patient", "assigned_to", "concerned_staff", "concerned_dentist", "resolved_by", "situation_updated_by"
+        ), pk=pk,
     )
-    return render(
-        request,
-        "complaints/complaint_detail.html",
-        {
-            "complaint": complaint,
-            "follow_ups": complaint.follow_ups.select_related("created_by"),
-            "form": FollowUpForm(complaint=complaint),
-            "answer_form": DentistAnswerForm() if _can_answer(request.user, complaint) else None,
-        },
-    )
+    return render(request, "complaints/complaint_detail.html", _detail_context(request, complaint))
+
+
+def _detail_context(request, complaint, **extra):
+    follow_ups = list(complaint.follow_ups.select_related("created_by"))
+    for follow_up in follow_ups:
+        follow_up.can_edit = _can_edit_follow_up(request.user, follow_up)
+    context = {
+        "complaint": complaint,
+        "follow_ups": follow_ups,
+        "form": FollowUpForm(complaint=complaint),
+        "situation_form": SituationForm(instance=complaint),
+        "answer_form": DentistAnswerForm() if _can_answer(request.user, complaint) else None,
+    }
+    context.update(extra)
+    return context
+
+
+def _can_edit_follow_up(user, follow_up):
+    """The one who wrote it (the dentist's answer too) or the heads may correct a follow-up."""
+    return follow_up.created_by_id == user.pk or has_role(user, OWNER, HEAD_CIA)
 
 
 def _can_answer(user, complaint):
@@ -149,15 +181,13 @@ def complaint_follow_up(request, pk):
     complaint = get_object_or_404(Complaint, pk=pk)
     form = FollowUpForm(request.POST, complaint=complaint)
     if not form.is_valid():
-        return render(
-            request, "complaints/complaint_detail.html",
-            {"complaint": complaint, "follow_ups": complaint.follow_ups.select_related("created_by"), "form": form},
-        )
+        return render(request, "complaints/complaint_detail.html", _detail_context(request, complaint, form=form))
     with transaction.atomic():
         follow_up = form.save(commit=False)
         follow_up.complaint = complaint
         follow_up.created_by = request.user
         follow_up.save()
+        complaint.set_situation(form.cleaned_data["current_situation"], request.user)
         complaint.status = follow_up.new_status
         complaint.follow_up_due = follow_up.next_follow_up
         if complaint.assigned_to_id is None:
@@ -175,3 +205,40 @@ def complaint_follow_up(request, pk):
     )
     messages.success(request, _("Follow-up saved."))
     return redirect(complaint)
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def complaint_situation(request, pk):
+    """The reception writes where the case stands now, without adding a follow-up step."""
+    complaint = get_object_or_404(Complaint, pk=pk)
+    form = SituationForm(request.POST, instance=complaint)
+    if form.is_valid():
+        complaint.set_situation(form.cleaned_data["current_situation"], request.user)
+        complaint.save(update_fields=["current_situation", "situation_updated_at", "situation_updated_by", "updated_at"])
+        messages.success(request, _("Current situation saved."))
+    return redirect(complaint)
+
+
+@role_required(*PATIENT_VIEWERS)
+def complaint_follow_up_edit(request, pk, follow_up_pk):
+    complaint = get_object_or_404(Complaint.objects.visible_to(request.user), pk=pk)
+    follow_up = get_object_or_404(ComplaintFollowUp, pk=follow_up_pk, complaint=complaint)
+    if not _can_edit_follow_up(request.user, follow_up):
+        raise PermissionDenied
+    form = FollowUpEditForm(request.POST or None, instance=follow_up)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            follow_up = form.save(commit=False)
+            follow_up.edited_at = timezone.now()
+            follow_up.save()
+            last = complaint.follow_ups.order_by("-created_at").first()
+            if last is not None and last.pk == follow_up.pk and complaint.is_open:
+                complaint.follow_up_due = follow_up.next_follow_up or complaint.follow_up_due
+                complaint.save(update_fields=["follow_up_due", "updated_at"])
+        messages.success(request, _("Follow-up corrected."))
+        return redirect(complaint)
+    return render(request, "includes/form_page.html", {
+        "form": form, "title": _("Correct the follow-up of %(number)s") % {"number": complaint.number},
+        "cancel_url": complaint.get_absolute_url(),
+    })

@@ -112,6 +112,9 @@ class TreatmentStep(TimeStampedModel):
     def __str__(self):
         return f"{self.step_type} - {self.patient.full_name}"
 
+    def get_absolute_url(self):
+        return reverse("clinical:step_detail", args=[self.pk])
+
     @property
     def is_verified(self):
         return self.verified_at is not None
@@ -140,6 +143,10 @@ class Lab(models.Model):
 
 
 class LabWorkType(LookupModel):
+    default_days = models.PositiveSmallIntegerField(
+        _("usual days at the lab"), null=True, blank=True,
+        help_text=_("When sent, the date the work is needed back is set this many days later."))
+
     class Meta(LookupModel.Meta):
         verbose_name = _("lab work type")
         verbose_name_plural = _("lab work types")
@@ -152,12 +159,28 @@ class LabRequest(TimeStampedModel):
         DRAFT = "draft", _("Draft")
         PENDING_REVIEW = "pending_review", _("Waiting for supervisor review")
         APPROVED = "approved", _("Reviewed - ready to send")
+        COLLECTED = "collected", _("Taken from the dentist - at the reception")
         SENT = "sent", _("At the lab")
         RECEIVED = "received", _("Received from lab")
         DELIVERED = "delivered", _("Delivered to patient")
         CANCELLED = "cancelled", _("Cancelled")
 
-    OPEN_STATUSES = (Status.DRAFT, Status.PENDING_REVIEW, Status.APPROVED, Status.SENT, Status.RECEIVED)
+    OPEN_STATUSES = (Status.DRAFT, Status.PENDING_REVIEW, Status.APPROVED, Status.COLLECTED, Status.SENT,
+                     Status.RECEIVED)
+
+    class WorkForm(models.TextChoices):
+        PHYSICAL = "physical", _("Physical (impression / model): the secretary takes it and sends it")
+        DIGITAL = "digital", _("Digital scan: the file goes to the lab")
+
+    class ShadeGuide(models.TextChoices):
+        CLASSICAL = "classical", _("VITA classical")
+        MASTER = "3d_master", _("VITA 3D-Master")
+
+    CLASSICAL_SHADES = ["A1", "A2", "A3", "A3.5", "A4", "B1", "B2", "B3", "B4", "C1", "C2", "C3", "C4", "D2", "D3",
+                        "D4"]
+    MASTER_SHADES = ["0M1", "0M2", "0M3", "1M1", "1M2", "2L1.5", "2L2.5", "2M1", "2M2", "2M3", "2R1.5", "2R2.5",
+                     "3L1.5", "3L2.5", "3M1", "3M2", "3M3", "3R1.5", "3R2.5", "4L1.5", "4L2.5", "4M1", "4M2", "4M3",
+                     "4R1.5", "4R2.5", "5M1", "5M2", "5M3"]
 
     number = models.CharField(_("request number"), max_length=20, unique=True, blank=True, editable=False)
     branch = models.ForeignKey(Branch, verbose_name=_("branch"), on_delete=models.PROTECT, related_name="lab_requests")
@@ -172,6 +195,9 @@ class LabRequest(TimeStampedModel):
     work_type = models.ForeignKey(LabWorkType, verbose_name=_("work type"), on_delete=models.PROTECT)
     teeth = models.CharField(_("teeth (FDI numbers)"), max_length=100)
     units = models.PositiveSmallIntegerField(_("number of units"), default=1)
+    work_form = models.CharField(_("the work goes as"), max_length=10, choices=WorkForm.choices,
+                                 default=WorkForm.PHYSICAL)
+    shade_guide = models.CharField(_("shade guide"), max_length=10, choices=ShadeGuide.choices, blank=True)
     shade = models.CharField(_("shade"), max_length=30, blank=True)
     material = models.CharField(_("material"), max_length=100, blank=True)
     instructions = models.TextField(_("instructions to the lab"), blank=True)
@@ -191,6 +217,11 @@ class LabRequest(TimeStampedModel):
         on_delete=models.SET_NULL, related_name="+",
     )
     reviewed_at = models.DateTimeField(_("reviewed at"), null=True, blank=True)
+    collected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name=_("taken from the dentist by"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+",
+    )
+    collected_at = models.DateTimeField(_("taken from the dentist at"), null=True, blank=True)
     sent_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name=_("sent by"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="+",
@@ -242,6 +273,7 @@ class LabRequestEvent(models.Model):
     class Action(models.TextChoices):
         CREATED = "created", _("Created")
         SUBMITTED = "submitted", _("Sent for review")
+        COLLECTED = "collected", _("Taken from the dentist by the reception")
         APPROVED = "approved", _("Reviewed and approved")
         RETURNED = "returned", _("Returned to doctor for changes")
         SENT = "sent", _("Sent to lab")

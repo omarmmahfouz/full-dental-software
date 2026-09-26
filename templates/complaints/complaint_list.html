@@ -6,6 +6,7 @@
   <h1><i class="bi bi-chat-left-dots"></i> {% trans "Patient complaints" %}</h1>
   {% if is_front_desk %}<a class="btn btn-warning" href="{% url 'complaints:create' %}"><i class="bi bi-plus-lg"></i> {% trans "Record patient complaint" %}</a>{% endif %}
 </div>
+{% if only_mine %}<div class="alert alert-info small py-2"><i class="bi bi-person"></i> {% trans "You see the complaints about you only." %}</div>{% endif %}
 <form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
   <div class="col-md-3"><label class="form-label">{{ filter_form.status.label }}</label>{{ filter_form.status }}</div>
   <div class="col-md-3"><label class="form-label">{{ filter_form.category.label }}</label>{{ filter_form.category }}</div>
@@ -14,7 +15,7 @@
 </div></form>
 <div class="card"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <thead><tr><th>{% trans "No." %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Category" %}</th><th>{% trans "Severity" %}</th><th>{% trans "Followed up by" %}</th><th>{% trans "Next follow-up" %}</th><th>{% trans "Status" %}</th></tr></thead>
+  <thead><tr><th>{% trans "No." %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Category" %}</th><th>{% trans "Severity" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Current situation" %}</th><th>{% trans "Followed up by" %}</th><th>{% trans "Next follow-up" %}</th><th>{% trans "Status" %}</th></tr></thead>
   <tbody>
   {% for c in page_obj %}
   <tr>
@@ -23,11 +24,13 @@
     <td><a href="{{ c.patient.get_absolute_url }}">{{ c.patient.full_name }}</a></td>
     <td>{{ c.get_category_display }}</td>
     <td>{% status_badge c "severity" %}</td>
+    <td class="small">{{ c.concerned_dentist|default:"—" }}</td>
+    <td class="small">{{ c.current_situation|truncatechars:80|default:"—" }}</td>
     <td>{{ c.assigned_to|default:"—" }}</td>
     <td class="nowrap">{{ c.follow_up_due|date:"d/m/Y"|default:"—" }}{% if c.is_overdue %} <span class="badge text-bg-danger">{% trans "Overdue" %}</span>{% endif %}</td>
     <td>{% status_badge c %}</td>
   </tr>
-  {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No complaints." %}</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="10" class="text-center text-muted py-4">{% trans "No complaints." %}</td></tr>{% endfor %}
   </tbody>
 </table>
 </div></div>

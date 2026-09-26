@@ -9,6 +9,16 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.models import Branch, ClinicSettings, TimeStampedModel
 
 
+class ComplaintQuerySet(models.QuerySet):
+    def visible_to(self, user):
+        """Each dentist sees only the complaints about him; the heads and the reception see all."""
+        from apps.core.roles import is_only_dentist
+
+        if is_only_dentist(user):
+            return self.filter(concerned_dentist__user=user)
+        return self
+
+
 class Complaint(TimeStampedModel):
     class Category(models.TextChoices):
         WAITING = "waiting", _("Waiting time / delay")
@@ -64,6 +74,16 @@ class Complaint(TimeStampedModel):
         on_delete=models.SET_NULL, related_name="+",
     )
     answer_alert_sent_at = models.DateTimeField(_("no-answer alert sent at"), null=True, blank=True)
+    current_situation = models.TextField(
+        _("current situation"), blank=True, help_text=_("Where the case stands now, in a few words.")
+    )
+    situation_updated_at = models.DateTimeField(_("situation updated at"), null=True, blank=True)
+    situation_updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name=_("situation updated by"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+",
+    )
+
+    objects = ComplaintQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at"]
@@ -105,6 +125,13 @@ class Complaint(TimeStampedModel):
     def waiting_for_dentist(self):
         return self.is_open and self.concerned_dentist_id is not None and not self.dentist_answers().exists()
 
+    def set_situation(self, text, user):
+        text = (text or "").strip()
+        if text != self.current_situation:
+            self.current_situation = text
+            self.situation_updated_at = timezone.now()
+            self.situation_updated_by = user
+
 
 class ComplaintFollowUp(TimeStampedModel):
     class Action(models.TextChoices):
@@ -121,6 +148,7 @@ class ComplaintFollowUp(TimeStampedModel):
     note = models.TextField(_("details"))
     new_status = models.CharField(_("status after this step"), max_length=20, choices=Complaint.Status.choices)
     next_follow_up = models.DateField(_("next follow-up date"), null=True, blank=True)
+    edited_at = models.DateTimeField(_("corrected at"), null=True, blank=True)
 
     class Meta:
         ordering = ["created_at"]

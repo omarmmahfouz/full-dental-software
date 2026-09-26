@@ -6,10 +6,12 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone, translation
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from apps.charting.models import ToothChange
@@ -18,15 +20,19 @@ from apps.charting.rules import apply_changes, plan_changes
 from apps.charting.sync import missing_teeth
 from apps.charting.teeth import format_teeth
 from apps.clinical.models import ChartEffect, TreatmentStepType
+from apps.core.approvals import needs_approval, request_change
 from apps.core.mixins import role_required
-from apps.core.models import branch_for_user
+from apps.core.models import ChangeRequest, branch_for_user
 from apps.core.roles import CLINICAL, HEAD_CIA, MANAGEMENT, OWNER, has_role, is_only_dentist
 from apps.dentists.models import Dentist
 from apps.patients.access import get_clinical_patient_or_403, visible_patients
+from apps.scheduling.models import Appointment
+from apps.stock.implants import lot_choices, take_implants
 
-from .finder import FinderForm, SiteFacts, export_csv, filter_sites, statistics
-from .forms import ImplantUpdateForm, SurgeryForm, SurgerySiteFormSet
-from .models import SavedSearch, Surgery, SurgerySite
+from .finder import FinderForm, SiteFacts, export_csv, filter_sites, procedure_totals, prosthesis_totals, statistics
+from .forms import ImplantUpdateForm, ProsthesisForm, SurgeryForm, SurgerySiteFormSet
+from .models import Prosthesis, SavedSearch, Surgery, SurgerySite
+from .prostheses import apply_stage
 
 
 def _surgery_time(surgery):
@@ -68,6 +74,30 @@ def complete_plan_for_surgery(surgery):
             done += complete_plan_items(surgery.patient, step_type, [site.tooth], surgery=surgery,
                                         when=_surgery_time(surgery))
     return done
+
+
+def _operator_changes(surgery, form, formset, user):
+    """Once saved, the operators of a surgery change only with approval (unless an approver edits):
+    the new operators are kept aside for the head of CIA and the old ones stay for now."""
+    if surgery is None or not needs_approval(user):
+        return []
+    original = Surgery.objects.get(pk=surgery.pk)  # the form has already put the new values on the instance
+    changes = []
+    values = {name: form.cleaned_data.get(name) for name in ("operator_1", "operator_2")
+              if form.cleaned_data.get(name) != getattr(original, name)}
+    for name in values:
+        setattr(form.instance, name, getattr(original, name))
+    if values:
+        changes.append((original, values))
+    for site_form in formset.forms:
+        site, data = site_form.instance, getattr(site_form, "cleaned_data", {})
+        if not site.pk or not data or data.get("DELETE"):
+            continue
+        before = SurgerySite.objects.get(pk=site.pk).operator
+        if data.get("operator") != before:
+            changes.append((SurgerySite.objects.get(pk=site.pk), {"operator": data.get("operator")}))
+            site.operator = before
+    return changes
 
 
 def _can_edit_surgery(user, surgery):
@@ -115,16 +145,23 @@ def surgery_edit(request, pk=None):
                        patient=patient, initial=initial)
     formset = SurgerySiteFormSet(request.POST or None, request.FILES or None,
                                  instance=surgery or Surgery(), prefix="sites")
+    if request.method == "POST" and form.is_valid():
+        formset.team = tuple(d for d in (form.cleaned_data.get("operator_1"), form.cleaned_data.get("operator_2")) if d)
     if request.method == "POST" and form.is_valid() and formset.is_valid():
+        operator_requests = _operator_changes(surgery, form, formset, request.user)
         with transaction.atomic():
             obj = form.save(commit=False)
             obj.patient = form.cleaned_data["patient_lookup"]
+            visit_pk = request.GET.get("appointment", "")
+            if not obj.appointment_id and visit_pk.isdigit():  # started from the visit page
+                obj.appointment = Appointment.objects.filter(pk=visit_pk, patient=obj.patient).first()
             if not obj.pk:
                 obj.branch = branch_for_user(request.user)
                 obj.created_by = request.user
             obj.save()
             formset.instance = obj
             formset.save()
+            take_implants(obj, request.user)
             changed = update_chart_for_surgery(obj, request.user) if form.cleaned_data.get("update_chart") else 0
             done = complete_plan_for_surgery(obj)
         message = _("Surgery %(number)s saved.") % {"number": obj.number}
@@ -133,6 +170,14 @@ def surgery_edit(request, pk=None):
         if done:
             message += " " + _("%(n)s treatment plan items marked as done.") % {"n": len(done)}
         messages.success(request, message)
+        for target, values in operator_requests:
+            request_change(ChangeRequest.Kind.OPERATOR, target, values, request.user,
+                           _("Operator changed after the surgery chart was saved."))
+        if operator_requests:
+            messages.warning(request, _("Changing the operator after saving needs approval: it was sent to the head "
+                                        "of CIA. The rest is saved."))
+        if request.GET.get("flow") and surgery is None:  # the visit flow: surgery -> suggested prescription
+            return redirect(f"{reverse('prescriptions:create', args=[obj.patient_id])}?surgery={obj.pk}&flow=1")
         return redirect(obj)
     chart_patient = surgery.patient if surgery else patient
     return render(request, "surgery/surgery_form.html", {
@@ -141,6 +186,15 @@ def surgery_edit(request, pk=None):
         "procedures": SurgerySite.PROCEDURES,
         "missing": format_teeth(missing_teeth(chart_patient)) if chart_patient else "",
     })
+
+
+def implant_lots(request):
+    """Implants in stock for the chosen company (and size), for the surgery chart."""
+    if not has_role(request.user, *CLINICAL):
+        raise PermissionDenied
+    system = request.GET.get("system", "")
+    rows = lot_choices(system=system) if system.isdigit() else []
+    return JsonResponse({"lots": [{k: str(v) for k, v in row.items()} for row in rows]})
 
 
 def surgery_detail(request, pk):
@@ -178,16 +232,61 @@ def implant_detail(request, pk):
     return render(request, "surgery/implant_detail.html", {"site": site, "patient": patient, "form": form})
 
 
+# ------------------------------------------------------------ prostheses on implants
+def prosthesis_edit(request, patient_pk=None, pk=None):
+    """A single crown, a bridge or a full arch: on which implants, how many units, which teeth are pontics."""
+    if not has_role(request.user, *CLINICAL):
+        raise PermissionDenied
+    prosthesis = get_object_or_404(Prosthesis, pk=pk) if pk else None
+    patient = get_clinical_patient_or_403(request.user, prosthesis.patient_id if prosthesis else patient_pk)
+    initial = {}
+    me = Dentist.for_user(request.user)
+    if prosthesis is None:
+        initial["dentist"] = me
+        if request.GET.get("implant", "").isdigit():
+            initial["implants"] = [int(request.GET["implant"])]
+    form = ProsthesisForm(request.POST or None, instance=prosthesis, patient=patient, initial=initial)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            obj = form.save(commit=False)
+            obj.patient = patient
+            if not obj.pk:
+                obj.created_by = request.user
+            obj.save()
+            form.save_m2m()
+            changed = apply_stage(obj, request.user)
+        message = _("Saved: %(what)s.") % {"what": obj.label}
+        if changed:
+            message += " " + _("Implants and chart updated (%(n)s).") % {"n": changed}
+        messages.success(request, message)
+        return redirect("charting:chart", patient_pk=patient.pk)
+    return render(request, "surgery/prosthesis_form.html", {
+        "form": form, "patient": patient, "prosthesis": prosthesis,
+        "title": _("Edit prosthesis") if prosthesis else _("New prosthesis on implants"),
+    })
+
+
+@require_POST
+def prosthesis_delete(request, pk):
+    prosthesis = get_object_or_404(Prosthesis, pk=pk)
+    if not has_role(request.user, *CLINICAL):
+        raise PermissionDenied
+    patient = get_clinical_patient_or_403(request.user, prosthesis.patient_id)
+    prosthesis.delete()
+    messages.success(request, _("Prosthesis deleted. The implant stages stay as they are."))
+    return redirect("charting:chart", patient_pk=patient.pk)
+
+
 # ------------------------------------------------------------ case finder
 QUICK_SEARCHES = [
-    (_("Healing - waiting 2nd stage"), {"status": "placed"}),
-    (_("Uncovered - waiting impression / scan"), {"status": "uncovered"}),
-    (_("Impression taken - waiting delivery"), {"status": "impression"}),
-    (_("Loaded implants"), {"status": "loaded"}),
-    (_("Failed implants"), {"status": "failed"}),
-    (_("Sinus lift cases"), {"procedures_any": ["open_sinus", "closed_sinus"], "result": "sites"}),
-    (_("GBR / block graft cases"), {"procedures_any": "gbr", "result": "sites"}),
-    (_("Immediate implants"), {"procedures_any": "immediate_implant"}),
+    (gettext_lazy("Healing - waiting 2nd stage"), {"status": "placed"}),
+    (gettext_lazy("Uncovered - waiting impression / scan"), {"status": "uncovered"}),
+    (gettext_lazy("Impression taken - waiting delivery"), {"status": "impression"}),
+    (gettext_lazy("Loaded implants"), {"status": "loaded"}),
+    (gettext_lazy("Failed implants"), {"status": "failed"}),
+    (gettext_lazy("Sinus lift cases"), {"procedures_any": ["open_sinus", "closed_sinus"], "result": "sites"}),
+    (gettext_lazy("GBR / block graft cases"), {"procedures_any": "gbr", "result": "sites"}),
+    (gettext_lazy("Immediate implants"), {"procedures_any": "immediate_implant"}),
 ]
 
 
@@ -216,7 +315,23 @@ def finder(request):
         call_title = (_("Implant cases: %(what)s") % {"what": "، ".join(status_labels)}
                       if status_labels else str(_("Implant cases")))
     call_rows = [(patient, "; ".join(texts)) for patient, texts in reasons.items()]
+    chosen = set(data.get("procedures_any") or [])
+    totals = procedure_totals(facts.sites)
+    for row in totals:  # one click filters by that procedure, a second click removes it
+        query = params.copy()
+        query.setlist("procedures_any", sorted(chosen ^ {row["code"]}))
+        if row["code"] not in SurgerySite.IMPLANT_PROCEDURES:
+            query["result"] = "sites"  # e.g. extractions or sinus lifts without an implant count too
+        row["active"] = row["code"] in chosen
+        row["query"] = query.urlencode()
+    status_chips = []
+    chosen_status = set(data.get("status") or [])
+    for code, label in SurgerySite.ImplantStatus.choices:
+        query = params.copy()
+        query.setlist("status", sorted(chosen_status ^ {code}))
+        status_chips.append({"label": label, "active": code in chosen_status, "query": query.urlencode()})
     return render(request, "surgery/finder.html", {
+        "procedure_totals": totals, "status_chips": status_chips, "prosthesis_totals": prosthesis_totals(facts.sites),
         "call_rows": call_rows,
         "call_title": call_title,
         "form": form, "page_obj": page, "overall": overall, "groups": groups, "query": params.urlencode(),

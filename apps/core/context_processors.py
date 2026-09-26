@@ -30,6 +30,7 @@ def app_context(request):
                 "is_front_desk": bool(roles & set(FRONT_DESK)),
                 "is_management": bool(roles & set(MANAGEMENT)),
                 "unread_notifications": user.notifications.filter(read_at__isnull=True).count(),
+                "last_notification_id": user.notifications.order_by("-pk").values_list("pk", flat=True).first() or 0,
                 "current_branch": branch_for_user(user),
                 "is_clinical": bool(roles & set(CLINICAL)),
                 "sees_patients": bool(roles & set(PATIENT_VIEWERS)),
@@ -54,9 +55,16 @@ def app_context(request):
         if roles & {OWNER, HEAD_CIA, TEAM_HEAD, SUPERVISOR}:
             context["requests_to_approve"] = PatientRequest.objects.filter(status=PatientRequest.Status.PROPOSED).count()
         if context["is_front_desk"]:
+            from apps.scheduling.models import WaitingEntry
+
             context["requests_to_call"] = PatientRequest.objects.filter(status=PatientRequest.Status.APPROVED).count()
+            context["waiting_count"] = WaitingEntry.objects.filter(status=WaitingEntry.Status.WAITING).count()
         if roles & set(DENTISTS + (SUPERVISOR,)):
             from apps.dentists.models import Dentist
 
             context["my_dentist"] = Dentist.for_user(user)
+            if context["my_dentist"] is not None:
+                from apps.clinical.visit_notes import visits_without_notes
+
+                context["missing_notes"] = len(visits_without_notes(context["my_dentist"]))
     return context

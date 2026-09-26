@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Waiting list" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-hourglass-split"></i> {% trans "Waiting list" %}</h1></div>
+<p class="text-muted small">{% trans "Patients who want a place on a busy day. When an appointment is cancelled, missed or moved, the reception is told that a place is free and who is waiting for it." %}</p>
+<div class="row g-3">
+  <div class="col-xl-5">
+    <form method="post" class="card" novalidate>{% csrf_token %}
+      <div class="card-header"><i class="bi bi-plus-lg"></i> {% trans "Add a patient to the waiting list" %}</div>
+      <div class="card-body">{% include "includes/form_fields.html" %}</div>
+      <div class="card-footer"><button class="btn btn-primary">{% trans "Add" %}</button></div>
+    </form>
+  </div>
+  <div class="col-xl-7">
+    <div class="card"><div class="card-header d-flex justify-content-between"><span>{% if day %}{% trans "Waiting for this day" %}: {{ day }}{% else %}{% trans "Everyone waiting" %}{% endif %}</span>
+      {% if day %}<a class="small" href="{% url 'scheduling:waiting_list' %}">{% trans "Show all" %}</a>{% endif %}</div>
+      <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Procedure" %}</th><th>{% trans "Days" %}</th><th></th></tr></thead>
+        <tbody>{% for row in rows %}{% with e=row.entry %}<tr>
+          <td><a href="{{ e.patient.get_absolute_url }}">{{ e.patient.full_name }}</a> <div class="small ltr text-muted">{{ e.patient.preferred_number }}</div></td>
+          <td class="small">{{ e.dentist|default:_("any dentist") }}</td>
+          <td class="small">{{ e.procedure|default:"" }} · {{ e.minutes }} {% trans "min" %}{% if e.notes %}<div class="text-muted">{{ e.notes }}</div>{% endif %}</td>
+          <td class="small nowrap">{{ e.wanted_from|date:"d/m" }}{% if e.wanted_to %} – {{ e.wanted_to|date:"d/m" }}{% else %} →{% endif %}</td>
+          <td class="nowrap"><a class="btn btn-sm btn-primary" href="{{ row.book_url }}"><i class="bi bi-calendar-plus"></i> {% trans "Book" %}</a>
+            <form method="post" action="{% url 'scheduling:waiting_remove' e.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-link text-danger" title="{% trans 'Remove' %}" data-confirm="{% trans 'Remove from the waiting list?' %}"><i class="bi bi-x-lg"></i></button></form></td>
+        </tr>{% endwith %}{% empty %}<tr><td colspan="5" class="text-muted">{% trans "Nobody is waiting." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

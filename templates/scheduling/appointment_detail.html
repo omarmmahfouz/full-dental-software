@@ -2,14 +2,18 @@
 {% load i18n clinic %}
 {% block title %}{% trans "Appointment" %}{% endblock %}
 {% block content %}
+{% if off_schedule %}<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2"><i class="bi bi-exclamation-triangle"></i> {% blocktrans with dentist=appointment.dentist %}{{ dentist }} is not on the room schedule at this time (not his day or hours). The supervisor was told.{% endblocktrans %}
+  {% if dentist_whatsapp %}<a class="btn btn-sm btn-success ms-auto" href="{{ dentist_whatsapp }}" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> {% trans "Tell the dentist on WhatsApp" %}</a>{% endif %}</div>{% endif %}
 {% with a=appointment %}
 <div class="page-header">
   <h1>{% trans "Appointment" %}: <a href="{{ a.patient.get_absolute_url }}">{{ a.patient.full_name }}</a> {% status_badge a %}</h1>
   <div class="d-flex gap-2 flex-wrap no-print">
     {% if is_front_desk %}<a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_update' a.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
     {% if a.status == "scheduled" or a.status == "confirmed" or a.status == "no_show" or a.status == "cancelled" %}<a class="btn btn-outline-primary" href="{% url 'scheduling:appointment_reschedule' a.pk %}"><i class="bi bi-arrow-left-right"></i> {% trans "Move to another time" %}</a>{% endif %}{% endif %}
+    {% if is_clinical %}<a class="btn btn-primary" href="{% url 'scheduling:visit' a.pk %}"><i class="bi bi-person-video2"></i> {% trans "Visit page" %}</a>{% endif %}
     {% if is_clinical %}<a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>{% endif %}
     <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-box-seam"></i> {% trans "New lab request" %}</a>
+    {% if is_front_desk and "billing" not in hidden_areas %}<a class="btn btn-outline-success" href="{% url 'billing:bill_create' %}?appointment={{ a.pk }}"><i class="bi bi-receipt"></i> {% trans "New bill" %}</a>{% endif %}
   </div>
 </div>
 {% include "includes/pending_changes.html" %}
@@ -20,7 +24,9 @@
       <dt>{% trans "Expected duration" %}</dt><dd>{{ a.duration_minutes|minutes }}</dd>
       <dt>{% trans "Dentist" %}</dt><dd>{{ a.dentist|default:"—" }}</dd>
       <dt>{% trans "Room" %}</dt><dd>{{ a.room|default:"—" }}</dd>
-      <dt>{% trans "Procedure" %}</dt><dd>{{ a.purpose|default:"—" }}</dd>
+      <dt>{% trans "Procedure" %}</dt><dd>{{ a.what|default:"—" }}</dd>
+      {% if a.requested_by %}<dt>{% trans "Asked by" %}</dt><dd>{{ a.requested_by }}</dd>{% endif %}
+      {% if a.second_dentist %}<dt>{% trans "Second dentist in the room" %}</dt><dd>{{ a.second_dentist }}</dd>{% endif %}
       <dt>{% trans "Notes" %}</dt><dd>{{ a.notes|linebreaksbr|default:"—" }}</dd>
       {% if a.cancel_reason %}<dt>{% trans "Reason" %}</dt><dd>{{ a.cancel_reason }}</dd>{% endif %}
       {% if a.rescheduled_from %}<dt>{% trans "Moved from" %}</dt><dd>{{ a.rescheduled_from|date:"l d/m/Y g:i A" }}{% if a.reschedule_reason %} — {{ a.reschedule_reason }}{% endif %} <span class="small text-muted">({{ a.rescheduled_at|date:"d/m g:i A" }})</span></dd>{% endif %}
@@ -44,6 +50,7 @@
       {% elif a.status == "arrived" %}
         <select name="room" class="form-select w-auto">{% for r in rooms %}<option value="{{ r.pk }}" {% if r.pk == a.room_id %}selected{% endif %}>{{ r }}</option>{% endfor %}</select>
         <button name="action" value="enter" class="btn btn-info">{% trans "Entered room" %}</button>
+        <button name="action" value="late" class="btn btn-outline-danger" data-confirm="{% trans 'The patient came late and will not be seen today? You will then book another time.' %}"><i class="bi bi-clock-history"></i> {% trans "Late, not seen" %}</button>
       {% elif a.status == "in_room" %}
         <button name="action" value="leave" class="btn btn-success">{% trans "Left" %}</button>
       {% endif %}

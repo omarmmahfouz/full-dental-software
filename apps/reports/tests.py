@@ -43,7 +43,8 @@ class ReportTests(TestCase):
         self.assertEqual(summary["late"], 1)
         self.assertEqual(summary["late_pct"], 50)
         self.assertEqual(summary["avg_late"], 30)
-        self.assertEqual(summary["avg_wait"], 15)   # (20 + 10) / 2
+        # (20 + 5) / 2: the early patient (12:55 for 13:00) waits from the appointment time, not from arrival
+        self.assertEqual(summary["avg_wait"], 12)
         self.assertEqual(summary["avg_chair"], 50)  # (60 + 40) / 2
         self.assertEqual(summary["no_show"], 1)
 

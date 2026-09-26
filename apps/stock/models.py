@@ -29,6 +29,12 @@ class StockItem(TimeStampedModel):
     unit_cost = models.DecimalField(_("last unit price"), max_digits=12, decimal_places=2, null=True, blank=True)
     is_active = models.BooleanField(_("in use"), default=True)
     notes = models.CharField(_("notes"), max_length=255, blank=True)
+    implant_system = models.ForeignKey(
+        "surgery.ImplantSystem", verbose_name=_("implant company / type"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="stock_items",
+        help_text=_("For implants only: the surgery chart then takes them out of stock by lot."))
+    implant_diameter = models.DecimalField(_("implant diameter (mm)"), max_digits=3, decimal_places=1, null=True, blank=True)
+    implant_length = models.DecimalField(_("implant length (mm)"), max_digits=3, decimal_places=1, null=True, blank=True)
 
     class Meta:
         ordering = ["category__sort_order", "name"]
@@ -44,6 +50,24 @@ class StockItem(TimeStampedModel):
     @property
     def is_low(self):
         return self.quantity <= 0 or (self.min_quantity > 0 and self.quantity <= self.min_quantity)
+
+    @property
+    def is_implant(self):
+        return bool(self.implant_system_id and self.implant_diameter and self.implant_length)
+
+    def lots(self):
+        """What is left of each lot (from the movements that name a lot); '' = received without a lot number."""
+        from django.db.models import Max, Sum
+
+        rows = {row["lot"]: row for row in self.movements.exclude(lot="").values("lot").annotate(
+            left=Sum("change"), expiry=Max("expiry_date"))}
+        result = [{"lot": lot, "left": row["left"], "expiry": row["expiry"]}
+                  for lot, row in sorted(rows.items(), key=lambda r: (r[1]["expiry"] is None, r[1]["expiry"], r[0]))
+                  if row["left"] > 0]
+        without = self.quantity - sum((row["left"] for row in rows.values()), 0)
+        if without > 0:
+            result.append({"lot": "", "left": without, "expiry": None})
+        return result
 
     @property
     def value(self):

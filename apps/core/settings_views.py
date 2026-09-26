@@ -71,14 +71,17 @@ LISTS = {
     "medical_conditions": (gettext_lazy("Medical conditions"), MedicalCondition,
                            ["name_ar", "name_en", "is_alert", "sort_order", "is_active"], ["name_ar", "name_en"], None,
                            gettext_lazy("Reception")),
-    "services": (gettext_lazy("Paid services and prices"), Service, ["name_ar", "name_en", "price", "sort_order",
-                                                                   "is_active"], ["name_ar", "name_en", "price"], None,
+    "services": (gettext_lazy("Paid services and prices"), Service, ["name_ar", "name_en", "price", "quick_button",
+                                                                   "sort_order", "is_active"],
+                 ["name_ar", "name_en", "price", "quick_button"], None,
                  gettext_lazy("Reception")),
     "out_reasons": (gettext_lazy("Reasons for a patient being out"), OutReason, LOOKUP, ["name_ar", "name_en"], None,
                     gettext_lazy("Reception")),
     "labs": (gettext_lazy("Labs"), Lab, ["name", "name_en", "branch", "phone", "contact_person", "is_active"],
              ["name", "name_en", "phone"], None, gettext_lazy("Lab")),
-    "lab_work_types": (gettext_lazy("Lab work types"), LabWorkType, LOOKUP, ["name_ar", "name_en"], None,
+    "lab_work_types": (gettext_lazy("Lab work types"), LabWorkType,
+                       ["name_ar", "name_en", "default_days", "sort_order", "is_active"],
+                       ["name_ar", "name_en", "default_days"], None,
                        gettext_lazy("Lab")),
     "purchase_categories": (gettext_lazy("Purchase categories"), PurchaseCategory,
                             ["name_ar", "name_en", "kind", "sort_order", "is_active"], ["name_ar", "name_en", "kind"],
@@ -162,7 +165,7 @@ class OptionsForm(StyledModelForm):
         model = ClinicSettings
         fields = ["day_start", "day_end", "default_appointment_minutes", "surgery_days", "late_threshold_minutes",
                   "complaint_follow_up_days", "stock_expiry_days", "reminder_days_before", "whatsapp_country_code",
-                  "dicom_email"]
+                  "dicom_email", "fawry_fee_percent"]
         widgets = {"surgery_days": WeekdaysWidget}
 
 

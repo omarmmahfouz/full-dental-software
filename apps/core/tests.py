@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -199,10 +200,12 @@ class AccessAndSettingsTests(TestCase):
             "o-day_start": "09:00", "o-day_end": "17:00", "o-surgery_days": ["3", "4"], "o-dicom_email": "ciapts@gmail.com",
             "o-late_threshold_minutes": 15, "o-default_appointment_minutes": 45, "o-complaint_follow_up_days": 3,
             "o-stock_expiry_days": 30, "o-reminder_days_before": 2, "o-whatsapp_country_code": "20",
+            "o-fawry_fee_percent": "1.5",
             "b-name_ar": "أكاديمية القاهرة لزراعة الأسنان", "b-name_en": "Cairo Implant Academy", "b-phone": "0223456789",
             "b-address": "Cairo",
         })
         self.assertEqual(ClinicSettings.get().late_threshold_minutes, 15)
+        self.assertEqual(ClinicSettings.get().fawry_fee_percent, Decimal("1.5"))
         make_user("head", "head_cia")
         self.client.login(username="head", password=PASSWORD)
         self.assertEqual(self.client.get("/settings/users/").status_code, 403)

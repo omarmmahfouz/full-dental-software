@@ -1,13 +1,23 @@
-{% load i18n %}<div class="table-responsive"><table class="table table-sm align-middle mb-0">
-  <tbody>{% for a, sent in rows %}<tr class="{% if sent %}table-light{% endif %}">
+{% load i18n %}<div class="wa-group" data-wa-group>
+<form method="post" action="{% url 'scheduling:whatsapp_mark' kind %}" class="d-flex flex-wrap align-items-center gap-2 px-2 pt-2 no-print" data-no-leave-warning>{% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <div class="form-check mb-0"><input class="form-check-input" type="checkbox" data-wa-all id="wa-all-{{ kind }}"><label class="form-check-label small" for="wa-all-{{ kind }}">{% trans "Select all not sent" %}</label></div>
+  <button class="btn btn-sm btn-outline-secondary" data-wa-mark disabled{% if read_only_here %} data-read-only{% endif %}><i class="bi bi-check2-square"></i> {% trans "Mark selected as sent" %}</button>
+  <button type="button" class="btn btn-sm btn-success" data-wa-next{% if read_only_here %} disabled{% endif %}><i class="bi bi-whatsapp"></i> {% trans "Send the next one" %} <span class="badge text-bg-light" data-wa-left></span></button>
+  <span class="small text-muted">{% trans "Sends the messages one after another: press again after each one." %}</span>
+</form>
+<div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <tbody>{% for a, sent in rows %}<tr class="{% if sent %}table-light{% endif %}" data-wa-row data-sent="{% if sent %}1{% else %}0{% endif %}">
+    <td class="no-print" style="width: 2rem">{% if not sent %}<input class="form-check-input" type="checkbox" value="{{ a.pk }}" data-wa-pick aria-label="{% trans 'select' %}">{% endif %}</td>
     <td class="nowrap">{{ a.scheduled_at|date:"D d/m g:i A" }}</td>
     <td><a class="fw-semibold" href="{{ a.get_absolute_url }}">{{ a.patient.full_name }}</a> <span class="small text-muted ltr">{{ a.patient.preferred_number }}</span></td>
     <td class="small">{{ a.dentist|default:"" }}</td>
     <td class="text-end nowrap">
       {% if sent %}<span class="small text-success me-2"><i class="bi bi-check2-all"></i> {{ sent.sent_at|date:"d/m g:i A" }}</span>{% endif %}
-      <form class="d-inline" method="post" action="{% url 'scheduling:whatsapp_send' a.pk kind %}" target="_blank" onsubmit="setTimeout(function(){location.reload()}, 1500)">{% csrf_token %}
+      <form class="d-inline" method="post" action="{% url 'scheduling:whatsapp_send' a.pk kind %}" target="_blank" data-wa-send onsubmit="setTimeout(function(){location.reload()}, 1500)">{% csrf_token %}
         <button class="btn btn-sm {% if sent %}btn-outline-success{% else %}btn-success{% endif %}"{% if read_only_here %} disabled{% endif %}><i class="bi bi-whatsapp"></i> {% if sent %}{% trans "Send again" %}{% else %}{% trans "Send" %}{% endif %}</button>
       </form>
     </td>
   </tr>{% empty %}<tr><td class="text-muted">{% trans "Nothing to send." %}</td></tr>{% endfor %}</tbody>
 </table></div>
+</div>

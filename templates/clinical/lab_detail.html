@@ -18,7 +18,8 @@
       <dt>{% trans "Lab" %}</dt><dd>{{ lr.lab }}</dd>
       <dt>{% trans "Work" %}</dt><dd>{{ lr.work_type }} — {% blocktrans with n=lr.units %}{{ n }} unit(s){% endblocktrans %}</dd>
       <dt>{% trans "Teeth" %}</dt><dd>{{ lr.teeth }}</dd>
-      <dt>{% trans "Shade" %}</dt><dd>{{ lr.shade|default:"—" }}</dd>
+      <dt>{% trans "The work goes as" %}</dt><dd>{{ lr.get_work_form_display }}</dd>
+      <dt>{% trans "Shade" %}</dt><dd>{{ lr.shade|default:"—" }}{% if lr.shade_guide %} <span class="text-muted">({{ lr.get_shade_guide_display }})</span>{% endif %}</dd>
       <dt>{% trans "Material" %}</dt><dd>{{ lr.material|default:"—" }}</dd>
       <dt>{% trans "Needed by" %}</dt><dd>{{ lr.due_date|date:"l d/m/Y"|default:"—" }}</dd>
       <dt>{% trans "Instructions" %}</dt><dd>{{ lr.instructions|linebreaksbr|default:"—" }}</dd>
@@ -30,11 +31,19 @@
     <div class="card mb-3"><div class="card-header">{% trans "Journey" %}</div><div class="card-body">
       <dl class="dl-grid">
         <dt>{% trans "Reviewed by" %}</dt><dd>{% if lr.reviewed_by %}{{ lr.reviewed_by }} — {{ lr.reviewed_at|date:"d/m/Y g:i A" }}{% else %}—{% endif %}</dd>
+        {% if lr.work_form == "physical" %}<dt>{% trans "Taken from the dentist by" %}</dt><dd>{% if lr.collected_by %}{{ lr.collected_by }} — {{ lr.collected_at|date:"d/m/Y g:i A" }}{% else %}—{% endif %}</dd>{% endif %}
         <dt>{% trans "Sent by" %}</dt><dd>{% if lr.sent_by %}{{ lr.sent_by }} — {{ lr.sent_at|date:"d/m/Y g:i A" }}{% else %}—{% endif %}</dd>
         <dt>{% trans "Received by" %}</dt><dd>{% if lr.received_by %}{{ lr.received_by }} — {{ lr.received_at|date:"d/m/Y g:i A" }}{% else %}—{% endif %}</dd>
         <dt>{% trans "Delivered to patient" %}</dt><dd>{{ lr.delivered_at|date:"d/m/Y g:i A"|default:"—" }}</dd>
       </dl>
     </div></div>
+    {% if fitting_url %}
+    <div class="card mb-3 border-success no-print"><div class="card-body">
+      <div class="fw-semibold"><i class="bi bi-calendar-check"></i> {% trans "The work is back from the lab: the patient needs an appointment to fit it." %}</div>
+      {% if next_appointment %}<div class="small mt-1">{% trans "Next appointment" %}: <a href="{{ next_appointment.get_absolute_url }}">{{ next_appointment.scheduled_at|date:"l d/m/Y g:i A" }}</a></div>{% endif %}
+      <a class="btn btn-success mt-2" href="{{ fitting_url }}"><i class="bi bi-calendar-plus"></i> {% trans "Book the fitting" %}</a>
+    </div></div>
+    {% endif %}
     {% if actions %}
     <div class="card mb-3 no-print"><div class="card-header">{% trans "Next step" %}</div><div class="card-body">
       {% for a in actions %}

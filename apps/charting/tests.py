@@ -382,6 +382,30 @@ class PhotoFolderAndLogBookTests(TestCase):
         self.assertTrue(os.path.exists(photo.file.path))
         self.assertFalse(os.path.exists(os.path.join(self.media, old)))
 
+    def test_follow_up_photos_are_kept_by_session(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from apps.charting.models import ClinicalPhoto, PhotoType
+
+        shot = PhotoType.objects.filter(stage="follow_up").first()
+        self.client.login(username="dentist", password=PASSWORD)
+        url = f"/chart/patient/{self.patient.pk}/photos/"
+        for teeth in ("16", "26"):  # the right side, then the left side, the same day
+            response = self.client.post(url, {"stage": "follow_up", "taken_on": "20/09/2026", "teeth": teeth,
+                                              f"type_{shot.pk}": SimpleUploadedFile("a.jpg", b"jpeg", "image/jpeg")})
+            self.assertIn(f"teeth={teeth}", response["Location"])
+        self.client.post(url, {"stage": "follow_up", "taken_on": "27/09/2026", "teeth": "16", "extra_name": "Suture removed",
+                               "extra": SimpleUploadedFile("b.jpg", b"jpeg", "image/jpeg")})
+        page = self.client.get(f"{url}?stage=follow_up&on=2026-09-20&teeth=26")
+        stage = next(s for s in page.context["stages"] if s["code"] == "follow_up")
+        shown = [p for item in stage["items"] for p in item["photos"]] + stage["extra"]
+        self.assertEqual([p.teeth for p in shown], ["26"])  # only that session
+        self.assertEqual(len(page.context["sessions"]), 3)
+        page = self.client.get(f"{url}?stage=follow_up&all=1")
+        stage = next(s for s in page.context["stages"] if s["code"] == "follow_up")
+        self.assertEqual(len([p for item in stage["items"] for p in item["photos"]] + stage["extra"]), 3)
+        self.assertEqual(ClinicalPhoto.objects.get(photo_type=None).notes, "Suture removed")
+
     def test_log_book_pages_have_fixed_frames_and_the_procedure(self):
         surgery = Surgery.objects.create(branch=self.branch, patient=self.patient, operator_1=self.dentist)
         SurgerySite.objects.create(surgery=surgery, tooth=36, simple_implant=True, gbr=True,

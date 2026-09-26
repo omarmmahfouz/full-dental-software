@@ -314,6 +314,126 @@
     }, true);
   }
 
+  // Day planner of today: a red line at the current time (by this computer's clock), moved every minute.
+  function drawNowLines() {
+    document.querySelectorAll(".daygrid[data-now-first]").forEach(function (grid) {
+      var now = new Date();
+      var minutes = now.getHours() * 60 + now.getMinutes() - parseInt(grid.getAttribute("data-now-first"), 10);
+      var top = minutes / parseInt(grid.getAttribute("data-now-slot"), 10) * parseInt(grid.getAttribute("data-now-row"), 10);
+      var inside = top >= 0 && top <= parseInt(grid.getAttribute("data-now-height"), 10);
+      grid.querySelectorAll(".daygrid-body").forEach(function (column) {
+        var line = column.querySelector(".daygrid-now");
+        if (!line) {
+          line = document.createElement("div");
+          line.className = "daygrid-now";
+          column.appendChild(line);
+        }
+        line.hidden = !inside;
+        line.style.top = top + "px";
+      });
+      if (inside && !grid._scrolled && !grid.closest("form")) {
+        grid._scrolled = true;
+        var first = grid.querySelector(".daygrid-now");
+        if (first) window.scrollTo({ top: Math.max(first.getBoundingClientRect().top + window.scrollY - 200, 0) });
+      }
+    });
+  }
+  drawNowLines();
+  setInterval(drawNowLines, 60000);
+  document.addEventListener("daygrid:loaded", drawNowLines);
+
+  // Up button: appears once the page is scrolled down.
+  var toTop = document.querySelector("[data-to-top]");
+  if (toTop) {
+    var showTop = function () { toTop.classList.toggle("is-visible", window.scrollY > 400); };
+    window.addEventListener("scroll", showTop, { passive: true });
+    toTop.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
+    showTop();
+  }
+
+  // New notifications (e.g. "your patient arrived"): a pop-up and a short sound, checked every 30 seconds.
+  var pollUrl = document.body.getAttribute("data-poll-url");
+  if (pollUrl) {
+    var lastSeen = parseInt(document.body.getAttribute("data-last-notification") || "0", 10);
+    var audio = null;
+    var soundOff = function () { try { return localStorage.getItem("alert-sound") === "off"; } catch (e) { return false; } };
+    var unlock = function () {
+      if (audio) return;
+      try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audio = null; }
+    };
+    document.addEventListener("click", unlock, { once: true });
+    document.addEventListener("keydown", unlock, { once: true });
+    var chime = function () {
+      if (!audio || soundOff()) return;
+      if (audio.state === "suspended") audio.resume();
+      [[880, 0], [1320, 0.18]].forEach(function (note) {
+        var osc = audio.createOscillator(), gain = audio.createGain(), start = audio.currentTime + note[1];
+        osc.frequency.value = note[0];
+        osc.type = "sine";
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.3, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
+        osc.connect(gain).connect(audio.destination);
+        osc.start(start);
+        osc.stop(start + 0.4);
+      });
+    };
+    var toasts = document.querySelector("[data-toasts]");
+    var showToast = function (item) {
+      var box = document.createElement("a");
+      box.className = "app-toast level-" + item.level;
+      box.href = item.url;
+      box.innerHTML = "<b></b><span></span>";
+      box.querySelector("b").textContent = item.title;
+      box.querySelector("span").textContent = item.message;
+      var close = document.createElement("button");
+      close.type = "button";
+      close.className = "btn-close btn-close-sm";
+      close.addEventListener("click", function (event) { event.preventDefault(); box.remove(); });
+      box.appendChild(close);
+      toasts.appendChild(box);
+      setTimeout(function () { box.remove(); }, 20000);
+    };
+    var setBadge = function (count) {
+      var bell = document.querySelector('a[href$="/notifications/"] .bi-bell');
+      if (!bell) return;
+      var badge = bell.parentNode.querySelector(".notif-badge");
+      if (!badge && count) {
+        badge = document.createElement("span");
+        badge.className = "badge rounded-pill bg-danger notif-badge";
+        bell.parentNode.appendChild(badge);
+      }
+      if (badge) { badge.textContent = count; badge.hidden = !count; }
+    };
+    var check = function () {
+      fetch(pollUrl + "?since=" + lastSeen, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          setBadge(data.unread);
+          data["new"].forEach(showToast);
+          if (data["new"].length) chime();
+          lastSeen = Math.max(lastSeen, data.last || 0);
+        }).catch(function () {});
+    };
+    setInterval(check, 30000);
+    var soundButton = document.querySelector("[data-sound-toggle]");
+    if (soundButton) {
+      var showSound = function () {
+        soundButton.querySelector("[data-sound-on]").hidden = soundOff();
+        soundButton.querySelector("[data-sound-off]").hidden = !soundOff();
+      };
+      soundButton.addEventListener("click", function (event) {
+        event.stopPropagation();
+        try { localStorage.setItem("alert-sound", soundOff() ? "on" : "off"); } catch (e) {}
+        showSound();
+        unlock();
+        chime();
+      });
+      showSound();
+    }
+  }
+
   // Dynamic formsets: <div data-formset="prefix"> with a <template> row and "add" buttons.
   // A page can have several row lists (e.g. the plan's implant and restorative parts):
   // <button data-formset-add="implant"> adds to <tbody data-formset-rows="implant">.

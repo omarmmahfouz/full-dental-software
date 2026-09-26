@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Visit" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="mb-0"><i class="bi bi-person-video2"></i> <a href="{{ patient.get_absolute_url }}">{{ patient.full_name }}</a> <small class="text-muted fs-6">{{ patient.file_number }}</small></h1>
+    <div class="text-muted small">{% if patient.age %}{{ patient.age }} {% trans "years" %} · {% endif %}{{ patient.get_gender_display }} · {{ a.scheduled_at|date:"l d/m/Y g:i A" }} · {{ a.dentist|default:"" }}{% if a.room %} · {{ a.room }}{% endif %} {% status_badge a %}</div>
+    {% if a.what %}<div class="fw-semibold mt-1">{{ a.what }}{% if a.requested_by %} <span class="small text-muted fw-normal">({% trans "asked by" %} {{ a.requested_by }})</span>{% endif %}</div>{% endif %}
+  </div>
+  <a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a>
+</div>
+
+{% if alerts %}<div class="alert alert-danger py-2"><b><i class="bi bi-heart-pulse"></i> {% trans "Medical alerts" %}:</b> {% for item in alerts %}<span class="medical-alert py-0">{{ item }}</span>{% endfor %}</div>
+{% elif not exam %}<div class="alert alert-warning py-2"><i class="bi bi-exclamation-triangle"></i> {% trans "No examination or medical history yet." %} <a href="{% url 'charting:exam_create' patient.pk %}">{% trans "Examination & history" %}</a></div>{% endif %}
+
+{% if not has_notes and a.status != "scheduled" and a.status != "confirmed" %}
+<div class="alert alert-warning"><i class="bi bi-pencil-square"></i> {% trans "Nothing is written for this visit yet. Record what was done: a treatment, an examination or the surgery chart." %}</div>
+{% endif %}
+
+<div class="visit-flow mb-3">
+  <a class="visit-step tile-blue" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}&appointment={{ a.pk }}">
+    <span class="visit-num">1</span><i class="bi bi-brush"></i><b>{% trans "Restorative or other treatment" %}</b><small>{% trans "with or without a bill" %}</small></a>
+  <a class="visit-step tile-amber" href="{% url 'surgery:create' %}?patient={{ patient.pk }}&appointment={{ a.pk }}&flow=1">
+    <span class="visit-num">1</span><i class="bi bi-nut"></i><b>{% trans "Surgery chart" %}</b><small>{% trans "then the suggested prescription and the post-op instructions" %}</small></a>
+  {% if surgery %}
+  <a class="visit-step tile-green" href="{% url 'prescriptions:create' patient.pk %}?surgery={{ surgery.pk }}&flow=1">
+    <span class="visit-num">2</span><i class="bi bi-capsule"></i><b>{% trans "Prescription" %}</b><small>{% trans "suggested from the surgery" %}</small></a>
+  <a class="visit-step tile-teal" href="{% url 'prescriptions:instructions' patient.pk %}?surgery={{ surgery.pk }}">
+    <span class="visit-num">3</span><i class="bi bi-card-checklist"></i><b>{% trans "Post-op instructions" %}</b><small>{{ surgery.number }}</small></a>
+  {% else %}
+  <a class="visit-step tile-green" href="{% url 'prescriptions:create' patient.pk %}"><i class="bi bi-capsule"></i><b>{% trans "Prescription" %}</b></a>
+  {% endif %}
+  <a class="visit-step tile-purple" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}&appointment={{ a.pk }}"><i class="bi bi-box-seam"></i><b>{% trans "Lab request" %}</b></a>
+  <a class="visit-step tile-gray" href="{% url 'scheduling:requests_mine' %}"><i class="bi bi-calendar-plus"></i><b>{% trans "Next visit" %}</b><small>{% trans "write it in the treatment, or add the patient to your list" %}</small></a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-journal-check"></i> {% trans "Written for this visit" %}</div>
+      <ul class="list-group list-group-flush">
+        {% for s in steps %}<li class="list-group-item"><i class="bi bi-check2-circle text-success"></i> <a href="{{ s.get_absolute_url }}">{{ s.step_type }}</a> {{ s.teeth }} <span class="small text-muted">{{ s.operator|default:"" }}{% if s.next_visit %} · {% trans "next visit" %}: {{ s.next_visit }}{% endif %}</span></li>{% endfor %}
+        {% for s in surgeries %}<li class="list-group-item"><i class="bi bi-check2-circle text-success"></i> <a href="{{ s.get_absolute_url }}">{{ s.number }}</a> {% trans "Surgery chart" %}</li>{% endfor %}
+        {% for p in prescriptions %}<li class="list-group-item"><i class="bi bi-capsule"></i> <a href="{{ p.get_absolute_url }}">{% trans "Prescription" %}</a></li>{% endfor %}
+        {% for l in labs %}<li class="list-group-item"><i class="bi bi-box-seam"></i> <a href="{{ l.get_absolute_url }}">{{ l.number }}</a> {{ l.work_type }}</li>{% endfor %}
+        {% for b in bills %}<li class="list-group-item"><i class="bi bi-receipt"></i> <a href="{{ b.get_absolute_url }}">{{ b.number }}</a> {{ b.notes }}</li>{% endfor %}
+        {% if not steps and not surgeries and not prescriptions and not labs and not bills %}<li class="list-group-item text-muted">{% trans "Nothing yet." %}</li>{% endif %}
+      </ul>
+    </div>
+    {% if planned %}<div class="card"><div class="card-header"><i class="bi bi-list-ol"></i> {% trans "Still planned" %}</div>
+      <ul class="list-group list-group-flush small">{% for i in planned %}<li class="list-group-item">{{ i.step_type }} <b>{{ i.teeth }}</b> <span class="text-muted">{{ i.details }}</span></li>{% endfor %}</ul></div>{% endif %}
+  </div>
+  <div class="col-lg-5"><div class="card"><div class="card-body p-2"><div class="odontogram-wrap">{{ svg }}</div></div></div></div>
+</div>
+{% endblock %}

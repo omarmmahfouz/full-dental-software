@@ -7,6 +7,7 @@ from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext
 
 from apps.charting.teeth import TOOTH_CHOICES
 from apps.core.models import Branch, TimeStampedModel
@@ -96,8 +97,8 @@ class Surgery(TimeStampedModel):
     operator_1 = models.ForeignKey(
         "dentists.Dentist", verbose_name=_("operator 1"), on_delete=models.PROTECT, related_name="surgeries_as_op1"
     )
-    operator_2 = models.ForeignKey(
-        "dentists.Dentist", verbose_name=_("operator 2"), null=True, blank=True, on_delete=models.SET_NULL,
+    operator_2 = models.ForeignKey(  # works on other teeth (the operator of each tooth is on the site)
+        "dentists.Dentist", verbose_name=_("operator 2 (other teeth)"), null=True, blank=True, on_delete=models.SET_NULL,
         related_name="surgeries_as_op2",
     )
     assistant = models.ForeignKey(
@@ -208,9 +209,17 @@ def sticker_path(instance, filename):
     return f"patients/{instance.surgery.patient_id}/stickers/{uuid.uuid4().hex}{ext}"
 
 
+class SiteQuerySet(models.QuerySet):
+    def done_by(self, dentist):
+        """The teeth this dentist operated: his own teeth, or those of his surgeries with no other operator."""
+        return self.filter(models.Q(operator=dentist) | models.Q(operator__isnull=True, surgery__operator_1=dentist))
+
+
 class SurgerySite(models.Model):
     """One tooth position in a surgery (one column of the paper chart), with the
     implant placed there and its life afterwards (uncovered → loaded / failed)."""
+
+    objects = SiteQuerySet.as_manager()
 
     class ImplantStatus(models.TextChoices):
         PLACED = "placed", _("Placed - healing")
@@ -236,6 +245,10 @@ class SurgerySite(models.Model):
 
     surgery = models.ForeignKey(Surgery, on_delete=models.CASCADE, related_name="sites")
     tooth = models.PositiveSmallIntegerField(_("tooth"), choices=TOOTH_CHOICES)
+    operator = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("operator of this tooth"), null=True, blank=True, on_delete=models.PROTECT,
+        related_name="operated_sites",
+        help_text=_("Operator 2 works on other teeth than operator 1. Empty: operator 1."))
     extraction = models.BooleanField(_("extraction"), default=False)
     flap = models.BooleanField(_("flap"), default=False)
     simple_implant = models.BooleanField(_("simple implant"), default=False)
@@ -253,6 +266,12 @@ class SurgerySite(models.Model):
     implant_diameter = models.DecimalField(_("implant diameter (mm)"), max_digits=3, decimal_places=1, null=True, blank=True)
     implant_length = models.DecimalField(_("implant length (mm)"), max_digits=3, decimal_places=1, null=True, blank=True)
     lot_number = models.CharField(_("lot / ref number"), max_length=60, blank=True)
+    implant_stock_item = models.ForeignKey(
+        "stock.StockItem", verbose_name=_("implant from stock"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="+", editable=False)
+    stock_movement = models.OneToOneField(
+        "stock.StockMovement", null=True, blank=True, on_delete=models.SET_NULL, related_name="surgery_site",
+        editable=False, help_text=_("The implant taken out of stock for this tooth."))
     sticker = models.FileField(_("implant sticker (photo)"), upload_to=sticker_path, blank=True)
     insertion_torque = models.PositiveSmallIntegerField(_("insertion torque (Ncm)"), null=True, blank=True)
     isq = models.PositiveSmallIntegerField(_("ISQ"), null=True, blank=True, validators=[MaxValueValidator(100)])
@@ -276,6 +295,10 @@ class SurgerySite(models.Model):
         if self.has_implant:
             return f"{self.tooth} - {self.implant_label}"
         return str(self.tooth)
+
+    @property
+    def done_by(self):
+        return self.operator if self.operator_id else self.surgery.operator_1
 
     @property
     def has_implant(self):
@@ -346,3 +369,109 @@ class SavedSearch(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Prosthesis(TimeStampedModel):
+    """What sits on the implants: a single crown, a bridge (how many units, on which implants,
+    which teeth are pontics), or a full arch (fixed or overdenture)."""
+
+    class Kind(models.TextChoices):
+        SINGLE = "single", _("Single crown on implant")
+        BRIDGE = "bridge", _("Bridge on implants")
+        FULL_FIXED = "full_fixed", _("Full arch - fixed (All-on-X / hybrid)")
+        OVERDENTURE = "overdenture", _("Full arch - overdenture (removable)")
+
+    class Retention(models.TextChoices):
+        SCREW = "screw", _("Screw-retained")
+        CEMENT = "cement", _("Cement-retained")
+        LOCATOR = "locator", _("Locators / attachments")
+        BAR = "bar", _("Bar")
+        BALL = "ball", _("Ball attachments")
+
+    class Material(models.TextChoices):
+        ZIRCONIA = "zirconia", _("Zirconia")
+        PFM = "pfm", _("Porcelain fused to metal")
+        EMAX = "emax", _("Lithium disilicate (e.max)")
+        PMMA = "pmma", _("PMMA")
+        ACRYLIC_BAR = "acrylic_bar", _("Acrylic teeth on a titanium bar")
+        ACRYLIC = "acrylic", _("Acrylic denture")
+        OTHER = "other", _("Other")
+
+    class Status(models.TextChoices):
+        PLANNED = "planned", _("Planned")
+        IMPRESSION = "impression", _("Impression / scan taken")
+        TRY_IN = "try_in", _("Try-in")
+        DELIVERED = "delivered", _("Delivered")
+
+    class Jaw(models.TextChoices):
+        UPPER = "upper", _("Upper")
+        LOWER = "lower", _("Lower")
+
+    FULL_ARCH = (Kind.FULL_FIXED, Kind.OVERDENTURE)
+
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="prostheses")
+    kind = models.CharField(_("prosthesis"), max_length=20, choices=Kind.choices, default=Kind.SINGLE)
+    jaw = models.CharField(_("jaw"), max_length=10, choices=Jaw.choices, blank=True)
+    teeth = models.CharField(_("teeth it replaces (units)"), max_length=120, blank=True,
+                             help_text=_("Every tooth of the bridge, e.g. 34-37. Teeth without an implant are pontics."))
+    implants = models.ManyToManyField(SurgerySite, verbose_name=_("on the implants"), related_name="prostheses")
+    retention = models.CharField(_("retention"), max_length=20, choices=Retention.choices, blank=True)
+    material = models.CharField(_("material"), max_length=20, choices=Material.choices, blank=True)
+    is_temporary = models.BooleanField(_("temporary"), default=False,
+                                       help_text=_("A temporary does not mark the implants as loaded."))
+    status = models.CharField(_("stage"), max_length=20, choices=Status.choices, default=Status.PLANNED)
+    delivered_on = models.DateField(_("delivered on"), null=True, blank=True)
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="prostheses")
+    lab_request = models.ForeignKey("clinical.LabRequest", verbose_name=_("lab request"), null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="prostheses")
+    notes = models.CharField(_("notes"), max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("implant prosthesis")
+        verbose_name_plural = _("implant prostheses")
+
+    def __str__(self):
+        return self.label
+
+    def get_absolute_url(self):
+        return reverse("surgery:prosthesis_update", args=[self.pk])
+
+    @property
+    def unit_teeth(self):
+        from apps.charting.teeth import parse_teeth
+
+        try:
+            return parse_teeth(self.teeth)
+        except Exception:  # noqa: BLE001 - an old value that no longer reads is shown as it is
+            return []
+
+    @property
+    def implant_teeth(self):
+        return sorted(site.tooth for site in self.implants.all())
+
+    @property
+    def pontics(self):
+        on_implants = set(self.implant_teeth)
+        return [tooth for tooth in self.unit_teeth if tooth not in on_implants]
+
+    @property
+    def units(self):
+        return len(self.unit_teeth)
+
+    @property
+    def label(self):
+        from apps.charting.teeth import format_teeth
+
+        where = self.get_jaw_display() if self.kind in self.FULL_ARCH and self.jaw else format_teeth(self.unit_teeth)
+        text = f"{self.get_kind_display()} {where}".strip()
+        count = len(self.implant_teeth)
+        details = [ngettext("%(n)s implant", "%(n)s implants", count) % {"n": count}] if self.kind != self.Kind.SINGLE else []
+        if self.units > 1:
+            details.append(ngettext("%(n)s unit", "%(n)s units", self.units) % {"n": self.units})
+        if self.pontics:
+            details.append(ngettext("%(n)s pontic", "%(n)s pontics", len(self.pontics)) % {"n": len(self.pontics)})
+        details = [d for d in details if d]
+        return f"{text} ({', '.join(details)})" if details else text

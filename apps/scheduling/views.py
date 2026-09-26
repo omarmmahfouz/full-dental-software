@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
+from django.utils.formats import date_format
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -19,10 +21,22 @@ from apps.clinical.models import LabRequest
 from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import SearchMixin, role_required
 from apps.core.notify import notify_users
-from apps.core.models import ChangeRequest, ClinicSettings, branch_for_user
+from apps.core.models import ChangeRequest, ClinicSettings, Notification, branch_for_user
 from apps.core.access import area_levels
-from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, SECRETARY, has_role, is_only_dentist
+from apps.core.notify import notify_roles
+from apps.core.roles import (
+    FRONT_DESK,
+    HEAD_CIA,
+    OWNER,
+    PATIENT_VIEWERS,
+    SECRETARY,
+    SUPERVISOR,
+    TEAM_HEAD,
+    has_role,
+    is_only_dentist,
+)
 from apps.core.utils import normalize_digits
+from apps.core.widgets import time_label
 from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403
 from apps.patients.models import Patient
@@ -33,7 +47,9 @@ from .forms import (
 )
 from .models import Appointment, MessageTemplate, Room, RoomShift, day_bounds
 from .patient_requests import link_booking
-from .whatsapp import record, whatsapp_number
+from .waiting import link_waiting, place_freed
+from .free_times import dentist_day, free_times
+from .whatsapp import record, whatsapp_number, whatsapp_url
 
 
 def _parse_day(value, default=None):
@@ -63,6 +79,78 @@ def tell_dentists(appointment, title, request, *others):
                  params={"patient": appointment.patient.full_name, "when": when})
 
 
+def tell_arrival(appointment, request):
+    """The patient is at the reception: the dentist (and the second dentist) get a pop-up with a sound."""
+    dentists = {d for d in (appointment.dentist, appointment.second_dentist) if d is not None and d.user_id}
+    notify_users([d.user for d in dentists], gettext_lazy("Your patient arrived: %(patient)s"),
+                 gettext_lazy("%(what)s — please fill the visit notes after the treatment."),
+                 reverse("scheduling:visit", args=[appointment.pk]), Notification.Level.SUCCESS, exclude=request.user,
+                 params={"patient": appointment.patient.full_name, "what": appointment.what or ""})
+
+
+def off_schedule(appointment):
+    """A booked dentist with no room shift at that time (not his day or not his hours)."""
+    return bool(appointment.dentist_id) and appointment.status in Appointment.WAITING_STATUSES and \
+        appointment.find_shift() is None
+
+
+def check_schedule(appointment, request):
+    """Booking a dentist outside his shifts is allowed, but the supervisors are told."""
+    if not off_schedule(appointment):
+        return
+    when = timezone.localtime(appointment.scheduled_at).strftime("%d/%m/%Y %I:%M %p")
+    notify_roles((HEAD_CIA, TEAM_HEAD, SUPERVISOR),
+                 gettext_lazy("Booked outside the dentist's schedule: %(dentist)s"),
+                 gettext_lazy("%(patient)s — %(when)s"), appointment.get_absolute_url(), exclude=request.user,
+                 params={"dentist": appointment.dentist, "patient": appointment.patient.full_name, "when": when})
+    messages.warning(request, _("%(dentist)s is not on the room schedule at this time. The supervisor was told; "
+                                "send the dentist a WhatsApp message from the appointment page.")
+                     % {"dentist": appointment.dentist})
+
+
+def dentist_whatsapp(appointment):
+    """A WhatsApp message to the dentist about a patient booked outside his days."""
+    dentist = appointment.dentist
+    if dentist is None or not dentist.phone:
+        return ""
+    local = timezone.localtime(appointment.scheduled_at)
+    text = (f"{dentist.name_ar or dentist.full_name}، لديك مريض ({appointment.patient.full_name}) يوم "
+            f"{local:%d/%m/%Y} الساعة {local:%I:%M} {'ص' if local.hour < 12 else 'م'}، وهو ليس من أيام جدولك. "
+            f"{appointment.what}".strip())
+    return whatsapp_url(dentist.phone, text)
+
+
+@role_required(*FRONT_DESK)
+def free_times_json(request):
+    """The nearest free times, for the chosen dentist or any dentist."""
+    dentist = Dentist.objects.filter(pk=request.GET.get("dentist")).first() if request.GET.get("dentist", "").isdigit() \
+        else None
+    duration = int(request.GET["duration"]) if request.GET.get("duration", "").isdigit() else 30
+    start = None
+    day = request.GET.get("from", "")
+    if day:
+        parsed = _parse_day(day, None)
+        start = timezone.make_aware(datetime.combine(parsed, datetime.min.time())) if parsed > timezone.localdate() \
+            else None
+    rows = []
+    for item in free_times(branch_for_user(request.user), duration, dentist, start):
+        local, shift = timezone.localtime(item["at"]), item["shift"]
+        rows.append({"date": local.strftime("%d/%m/%Y"), "time": local.strftime("%H:%M"), "room": shift.room_id,
+                     "dentist": shift.dentist_id,
+                     "label": f"{date_format(local, 'D d/m')} {time_label(local.time())}",
+                     "who": f"{shift.dentist} · {shift.room}"})
+    return JsonResponse({"results": rows})
+
+
+@role_required(*FRONT_DESK)
+def dentist_day_json(request):
+    dentist = Dentist.objects.filter(pk=request.GET.get("dentist")).first() if request.GET.get("dentist", "").isdigit() \
+        else None
+    if dentist is None:
+        return JsonResponse({"working": None, "text": "", "shifts": []})
+    return JsonResponse(dentist_day(dentist, _parse_day(request.GET.get("day"))))
+
+
 def week_start(day):
     """Weeks start on Saturday (Egyptian working week)."""
     return day - timedelta(days=(day.weekday() - 5) % 7)
@@ -76,7 +164,7 @@ def today_board(request):
     branch = branch_for_user(request.user)
     appointments = (
         Appointment.objects.filter(branch=branch, scheduled_at__gte=start, scheduled_at__lt=end)
-        .select_related("patient", "room", "dentist")
+        .select_related("patient", "room", "dentist", "procedure", "requested_by", "second_dentist")
         .prefetch_related("patient__medical_conditions")
         .annotate(
             open_labs=Count(
@@ -91,10 +179,29 @@ def today_board(request):
         Prefetch("shifts", queryset=RoomShift.objects.filter(date=day).select_related("dentist", "supervisor"),
                  to_attr="day_shifts")
     )
+    checked = None
+    if request.GET.get("check", "").isdigit():  # a walk-in who also has a booked appointment
+        checked = Appointment.objects.filter(pk=request.GET["check"]).select_related("patient").first()
+        if checked is not None:
+            checked.others = list(checked.other_upcoming())
+    appointments = list(appointments.prefetch_related("treatment_steps"))
+    left_rows = _left_without_next(appointments) if day == timezone.localdate() else []
+    just_left = next((row for row in left_rows if str(row["appointment"].pk) == request.GET.get("left")), None)
+    from apps.billing.models import Bill, account
+
+    to_collect = []
+    for bill in Bill.objects.filter(billed_on=day, source=Bill.Source.DENTIST).select_related("patient", "dentist"):
+        totals = bill.totals(account(bill.patient))
+        if totals["left"] > 0:
+            to_collect.append({"bill": bill, "left": totals["left"]})
     return render(
         request,
         "scheduling/today.html",
         {
+            "bills_to_collect": to_collect,
+            "checked": checked,
+            "left_rows": left_rows,
+            "just_left": just_left,
             "day": day,
             "is_today": day == timezone.localdate(),
             "prev_day": day - timedelta(days=1),
@@ -124,6 +231,7 @@ def walk_in(request):
         scheduled_at=now,
         duration_minutes=ClinicSettings.get().default_appointment_minutes,
         dentist=form.cleaned_data.get("dentist") or patient.assigned_dentist,
+        procedure=form.cleaned_data.get("procedure"),
         purpose=form.cleaned_data.get("purpose", ""),
         is_walk_in=True,
         created_by=request.user,
@@ -132,11 +240,16 @@ def walk_in(request):
     appointment.room = shift.room if shift else None
     appointment.mark_arrived(now)
     appointment.save()
+    tell_arrival(appointment, request)
     messages.success(request, _("%(name)s registered as arrived (walk-in).") % {"name": patient.full_name})
+    if appointment.other_upcoming().exists():  # ask whether the booked appointment is still needed
+        return redirect(f"{reverse('scheduling:today')}?check={appointment.pk}")
     return redirect("scheduling:today")
 
 
 APPOINTMENT_ACTIONS = {
+    "late": gettext_lazy("came late, not seen: book another time"),
+    "no_follow_up": gettext_lazy("no next visit needed"),
     "confirm": gettext_lazy("confirmed"),
     "arrive": gettext_lazy("arrived"),
     "enter": gettext_lazy("entered the room"),
@@ -169,6 +282,12 @@ def appointment_action(request, pk):
         form.is_valid()
         appointment.status = Appointment.Status.NO_SHOW if action == "no_show" else Appointment.Status.CANCELLED
         appointment.cancel_reason = form.cleaned_data.get("reason", "")
+    elif action == "late":
+        form = CancelForm(request.POST)
+        form.is_valid()
+        appointment.mark_late_not_seen(now, form.cleaned_data.get("reason", ""))
+    elif action == "no_follow_up":
+        appointment.no_follow_up = True
     elif action == "undo":
         appointment.undo_last_step()
     else:
@@ -179,10 +298,47 @@ def appointment_action(request, pk):
         tell_dentists(appointment, gettext_lazy("Appointment cancelled"), request)
     elif action == "no_show":
         tell_dentists(appointment, gettext_lazy("Your patient did not come"), request)
+    elif action == "late":
+        tell_dentists(appointment, gettext_lazy("Your patient came late and was not seen"), request)
+    elif action == "arrive":
+        tell_arrival(appointment, request)
+    if action in ("cancel", "no_show", "late"):
+        place_freed(appointment, request)
     messages.success(
         request, _("%(name)s: %(action)s.") % {"name": appointment.patient.full_name, "action": APPOINTMENT_ACTIONS[action]}
     )
+    if action == "late":  # book the patient another time straight away
+        return redirect(_booking_url(appointment))
+    if action == "leave" and not appointment.other_upcoming().exists():
+        return redirect(f"{reverse('scheduling:today')}?left={appointment.pk}")
     return redirect(_safe_next(request, reverse("scheduling:today")))
+
+
+def _booking_url(appointment, purpose=None):
+    """The booking form filled with this patient, dentist and procedure."""
+    params = {"patient": appointment.patient_id, "purpose": purpose if purpose is not None else appointment.purpose}
+    if appointment.dentist_id:
+        params["dentist"] = appointment.dentist_id
+    if appointment.procedure_id and purpose is None:
+        params["procedure"] = appointment.procedure_id
+    return f"{reverse('scheduling:appointment_create')}?{urlencode(params)}"
+
+
+def _left_without_next(day_appointments):
+    """Patients who left today with no other appointment booked, and no 'no next visit needed'."""
+    left = [a for a in day_appointments if a.status == Appointment.Status.COMPLETED and not a.no_follow_up]
+    if not left:
+        return []
+    booked = set(Appointment.objects.filter(
+        patient_id__in=[a.patient_id for a in left], status__in=Appointment.WAITING_STATUSES,
+        scheduled_at__gte=timezone.now()).values_list("patient_id", flat=True))
+    rows = []
+    for a in left:
+        if a.patient_id in booked:
+            continue
+        next_visit = next((s.next_visit for s in a.treatment_steps.all() if s.next_visit), "")
+        rows.append({"appointment": a, "next_visit": next_visit, "book_url": _booking_url(a, next_visit or a.purpose)})
+    return rows
 
 
 # ------------------------------------------------------------ appointments
@@ -192,7 +348,7 @@ class AppointmentListView(SearchMixin, ListView):
 
     def get_queryset(self):
         self.filter_form = AppointmentFilterForm(self.request.GET or None)
-        qs = Appointment.objects.select_related("patient", "room", "dentist")
+        qs = Appointment.objects.select_related("patient", "room", "dentist", "procedure", "requested_by")
         if not has_role(self.request.user, *PATIENT_VIEWERS):
             raise PermissionDenied
         if is_only_dentist(self.request.user):
@@ -238,6 +394,8 @@ def appointment_create(request):
         initial["duration_minutes"] = int(request.GET["duration"])
     if request.GET.get("purpose"):
         initial["purpose"] = request.GET["purpose"][:200]
+    if request.GET.get("procedure", "").isdigit():
+        initial["procedure"] = int(request.GET["procedure"])
     form = AppointmentForm(request.POST or None, branch=branch, patient=patient, initial=initial)
     if request.method == "POST" and form.is_valid():
         appointment = form.save(commit=False)
@@ -245,7 +403,9 @@ def appointment_create(request):
         appointment.created_by = request.user
         appointment.save()
         link_booking(request, appointment)
+        link_waiting(request, appointment)
         tell_dentists(appointment, gettext_lazy("New appointment with you"), request)
+        check_schedule(appointment, request)
         messages.success(request, _("Appointment booked. Send the confirmation on WhatsApp."))
         return redirect(appointment)
     return render(
@@ -263,6 +423,7 @@ def appointment_update(request, pk):
         form.save()
         if {"scheduled_at", "dentist", "room", "duration_minutes"} & set(form.changed_data):
             tell_dentists(appointment, gettext_lazy("Your appointment was changed"), request, before.dentist)
+            check_schedule(appointment, request)
         messages.success(request, _("Appointment updated."))
         return redirect(appointment)
     return render(
@@ -272,7 +433,7 @@ def appointment_update(request, pk):
 
 
 def appointment_detail(request, pk):
-    appointment = get_object_or_404(Appointment.objects.select_related("patient", "room", "dentist"), pk=pk)
+    appointment = get_object_or_404(Appointment.objects.select_related("patient", "room", "dentist", "procedure", "requested_by", "second_dentist"), pk=pk)
     get_visible_patient_or_403(request.user, appointment.patient_id)
     return render(
         request,
@@ -286,6 +447,8 @@ def appointment_detail(request, pk):
             "lab_requests": appointment.lab_requests.select_related("work_type"),
             "rooms": Room.objects.filter(branch=appointment.branch, is_active=True),
             "sent_messages": appointment.messages.select_related("sent_by"),
+            "off_schedule": off_schedule(appointment),
+            "dentist_whatsapp": dentist_whatsapp(appointment) if has_role(request.user, *FRONT_DESK) else "",
         },
     )
 
@@ -305,6 +468,8 @@ def appointment_reschedule(request, pk):
             moved.status, moved.cancel_reason = Appointment.Status.SCHEDULED, ""
         moved.save()
         tell_dentists(moved, gettext_lazy("Your appointment was moved"), request, before.dentist)
+        place_freed(before, request)  # the old time is free now
+        check_schedule(moved, request)
         messages.success(request, _("Appointment moved. Send the new time on WhatsApp."))
         return redirect(moved)
     return render(request, "scheduling/appointment_form.html", {
@@ -449,6 +614,7 @@ def copy_previous_week(request):
             new = RoomShift(
                 room=shift.room, date=shift.date + timedelta(days=7), start_time=shift.start_time,
                 end_time=shift.end_time, dentist=shift.dentist, supervisor=shift.supervisor, day_type=shift.day_type,
+                second_dentist=shift.second_dentist,
                 notes=shift.notes, created_by=request.user,
             )
             try:
@@ -477,6 +643,21 @@ def whatsapp_send(request, pk, kind):
         messages.error(request, _("This patient has no mobile number for WhatsApp."))
         return redirect(appointment)
     return redirect(record(kind, appointment, request.user))
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def whatsapp_mark(request, kind):
+    """The messages were sent from the phone: tick them here without opening WhatsApp."""
+    if kind not in MessageTemplate.Kind.values:
+        raise Http404
+    ids = [pk for pk in request.POST.getlist("appointment") if pk.isdigit()]
+    marked = 0
+    for appointment in Appointment.objects.filter(pk__in=ids).select_related("patient", "dentist", "branch"):
+        record(kind, appointment, request.user)
+        marked += 1
+    messages.success(request, _("%(n)s messages marked as sent.") % {"n": marked})
+    return redirect(_safe_next(request, reverse("scheduling:whatsapp")))
 
 
 @role_required(*FRONT_DESK)
@@ -514,4 +695,42 @@ def whatsapp_list(request):
         "missed": with_sent(missed, MessageTemplate.Kind.NO_SHOW),
         "moved": with_sent(moved, MessageTemplate.Kind.RESCHEDULED),
         "installments": installments,
+    })
+
+
+# ------------------------------------------------------------ the dentist's visit page
+def visit(request, pk):
+    """One visit, for the dentist: who the patient is (alerts, chart, plan), what is written so
+    far, and the next steps in order: treatment (with or without a bill) or surgery → suggested
+    prescription → post-op instructions, lab request, next visit."""
+    from apps.billing.models import Bill
+    from apps.charting.models import PlanItem, TreatmentPlan
+    from apps.charting.views import chart_svg
+    from apps.clinical.models import TreatmentStep
+    from apps.patients.access import get_clinical_patient_or_403
+    from apps.prescriptions.models import Prescription
+    from apps.surgery.models import Surgery
+
+    appointment = get_object_or_404(
+        Appointment.objects.select_related("patient", "dentist", "room", "procedure", "requested_by"), pk=pk)
+    patient = get_clinical_patient_or_403(request.user, appointment.patient_id)
+    day = timezone.localtime(appointment.scheduled_at).date()
+    start, end = day_bounds(day)
+    exam = patient.examinations.prefetch_related("conditions").first()
+    steps = TreatmentStep.objects.filter(Q(appointment=appointment) | Q(patient=patient, performed_at__gte=start,
+                                                                          performed_at__lt=end))
+    surgeries = Surgery.objects.filter(Q(appointment=appointment) | Q(patient=patient, date=day)).distinct()
+    surgery = surgeries.first()
+    return render(request, "scheduling/visit.html", {
+        "a": appointment, "patient": patient, "exam": exam,
+        "alerts": exam.alerts() if exam else [str(c) for c in patient.medical_conditions.all() if c.is_alert],
+        "svg": chart_svg(patient, clickable=False),
+        "planned": PlanItem.objects.filter(plan__patient=patient, plan__status__in=TreatmentPlan.OPEN_STATUSES,
+                                           status=PlanItem.Status.PLANNED).select_related("step_type")[:12],
+        "steps": steps.select_related("step_type", "operator").distinct(),
+        "surgeries": surgeries, "surgery": surgery,
+        "prescriptions": Prescription.objects.filter(patient=patient, prescribed_on=day),
+        "bills": Bill.objects.filter(Q(appointment=appointment) | Q(patient=patient, billed_on=day)).distinct(),
+        "labs": appointment.lab_requests.select_related("work_type"),
+        "has_notes": steps.exists() or surgeries.exists() or (exam is not None and exam.exam_date == day),
     })

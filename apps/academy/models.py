@@ -20,6 +20,7 @@ class PaymentMethod(models.TextChoices):
     BANK = "bank", _("Bank transfer")
     BANK_DEPOSIT = "bank_deposit", _("Bank deposit")
     CHEQUE = "cheque", _("Cheque")
+    FAWRY = "fawry", _("Fawry POS machine")
 
 
 class Course(TimeStampedModel):

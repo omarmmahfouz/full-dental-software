@@ -146,7 +146,7 @@ def reception_requests(request):
         for item in group["main"] + group["backup"]:
             item.book_url = reverse("scheduling:appointment_create") + "?" + urlencode({
                 "patient": item.patient_id, "dentist": item.dentist_id, "duration": item.time_given,
-                "purpose": f"{item.step_type} {item.teeth}".strip(), "request": item.pk,
+                "procedure": item.step_type_id, "purpose": item.teeth, "request": item.pk,
             })
     return render(request, "scheduling/requests_reception.html", {"groups": groups.items()})
 
@@ -178,4 +178,6 @@ def link_booking(request, appointment):
     if item is not None:
         item.status, item.appointment = PatientRequest.Status.BOOKED, appointment
         item.save(update_fields=["status", "appointment", "updated_at"])
+        type(appointment).objects.filter(pk=appointment.pk).update(requested_by=item.dentist)
+        appointment.requested_by = item.dentist
     return item

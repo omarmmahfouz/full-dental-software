@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -8,6 +9,7 @@ from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -55,6 +57,7 @@ def chart(request, patient_pk):
         "exam": patient.examinations.prefetch_related("conditions").first(),
         "plans": patient.treatment_plans.filter(status__in=TreatmentPlan.OPEN_STATUSES).prefetch_related("items__step_type"),
         "changes": patient.tooth_changes.select_related("changed_by")[:25],
+        "prostheses": patient.prostheses.prefetch_related("implants"),
         "steps": patient.treatment_steps.select_related("step_type", "operator", "supervisor")[:30],
         "prescriptions": patient.prescriptions.prefetch_related("lines__drug")[:5],
         "can_edit": has_role(request.user, *CLINICAL),
@@ -266,19 +269,37 @@ def plan_action(request, pk):
 
 
 # ------------------------------------------------------------ photo checklist
+def _session_url(patient, stage, taken_on, teeth):
+    return f"{reverse('charting:photos', args=[patient.pk])}?{urlencode({'stage': stage, 'on': taken_on.isoformat(), 'teeth': teeth})}"
+
+
 def photos(request, patient_pk):
+    """The photo checklist of one stage, for one session (a date and the teeth, e.g. the right side
+    at the one-week follow-up): each session's photos are kept apart; "show all" shows every one."""
     patient = get_clinical_patient_or_403(request.user, patient_pk)
     can_upload = has_role(request.user, *CLINICAL)
     stage = request.POST.get("stage") or request.GET.get("stage") or PhotoStage.DIAGNOSTIC
     if stage not in PhotoStage.values:
         stage = PhotoStage.DIAGNOSTIC
-    form = PhotoUploadForm(request.POST or None, patient=patient, initial={"taken_on": timezone.localdate()})
+    all_photos = list(patient.clinical_photos.select_related("photo_type"))
+    sessions = sorted({(p.taken_on, p.teeth) for p in all_photos if p.stage == stage}, key=lambda s: (s[0], s[1]),
+                      reverse=True)
+    show_all = request.GET.get("all") == "1"
+    session = None
+    if request.GET.get("on"):
+        chosen = parse_date(request.GET["on"])
+        session = (chosen, request.GET.get("teeth", "")) if chosen else None
+    elif sessions and request.GET.get("new") != "1":
+        session = sessions[0]  # the latest session of this stage
+    initial = {"taken_on": session[0] if session else timezone.localdate(), "teeth": session[1] if session else ""}
+    form = PhotoUploadForm(request.POST or None, patient=patient, initial=initial)
     if request.method == "POST":
         if not can_upload:
             raise PermissionDenied
         if form.is_valid():
             saved, errors = 0, []
             types = {str(t.pk): t for t in PhotoType.objects.filter(stage=stage)}
+            extra_name = request.POST.get("extra_name", "").strip()[:255]
             for key in request.FILES:
                 type_id = key.removeprefix("type_") if key.startswith("type_") else None
                 if key != "extra" and type_id not in types:
@@ -295,7 +316,8 @@ def photos(request, patient_pk):
                     ClinicalPhoto.objects.create(
                         patient=patient, stage=stage, photo_type=types.get(type_id), file=upload,
                         surgery=form.cleaned_data.get("surgery"), teeth=form.cleaned_data.get("teeth", ""),
-                        taken_on=form.cleaned_data["taken_on"], notes=form.cleaned_data.get("notes", ""),
+                        taken_on=form.cleaned_data["taken_on"],
+                        notes=(extra_name if key == "extra" and extra_name else form.cleaned_data.get("notes", "")),
                         created_by=request.user,
                     )
                     saved += 1
@@ -303,15 +325,19 @@ def photos(request, patient_pk):
                 messages.error(request, error)
             if saved:
                 messages.success(request, _("%(n)s files uploaded.") % {"n": saved})
-            return redirect(f"{reverse('charting:photos', args=[patient.pk])}?stage={stage}")
+            return redirect(_session_url(patient, stage, form.cleaned_data["taken_on"],
+                                         form.cleaned_data.get("teeth", "")))
+
+    def in_session(photo):
+        return show_all or session is None or (photo.taken_on, photo.teeth) == session
+
     stages = []
-    all_photos = list(patient.clinical_photos.select_related("photo_type"))
     for code, label in PhotoStage.choices:
         items = []
         for photo_type in PhotoType.objects.filter(stage=code, is_active=True):
-            taken = [p for p in all_photos if p.photo_type_id == photo_type.pk]
+            taken = [p for p in all_photos if p.photo_type_id == photo_type.pk and (code != stage or in_session(p))]
             items.append({"type": photo_type, "photos": taken})
-        extra = [p for p in all_photos if p.stage == code and p.photo_type_id is None]
+        extra = [p for p in all_photos if p.stage == code and p.photo_type_id is None and (code != stage or in_session(p))]
         required = [i for i in items if not i["type"].optional]
         done = sum(1 for i in required if i["photos"])
         stages.append({"code": code, "label": label, "items": items, "extra": extra,
@@ -319,6 +345,11 @@ def photos(request, patient_pk):
     return render(request, "charting/photos.html", {
         "patient": patient, "stages": stages, "stage": stage, "form": form, "can_upload": can_upload,
         "missing": format_teeth(missing_teeth(patient)), "patient_folder": photo_files.patient_folder(patient),
+        "sessions": [{"on": on, "teeth": teeth, "count": sum(1 for p in all_photos if p.stage == stage
+                                                             and (p.taken_on, p.teeth) == (on, teeth)),
+                      "url": _session_url(patient, stage, on, teeth), "current": (on, teeth) == session and not show_all}
+                     for on, teeth in sessions],
+        "session": session, "show_all": show_all,
     })
 
 

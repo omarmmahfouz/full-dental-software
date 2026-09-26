@@ -1,10 +1,10 @@
 {% load i18n %}<div class="daygrid-wrap">
-<div class="daygrid" style="--cols: {{ columns|length }}">
+<div class="daygrid" style="--cols: {{ columns|length }}"{% if is_today %} data-now-first="{{ first_minute }}" data-now-slot="{{ slot }}" data-now-row="{{ row_px }}" data-now-height="{{ height }}"{% endif %}>
   <div class="daygrid-head daygrid-axis"></div>
   {% for col in columns %}
   <div class="daygrid-head{% if col.surgery %} is-surgery{% endif %}">
     <div class="fw-bold">{% if col.room %}{{ col.room }}{% else %}{% trans "No room yet" %}{% endif %}</div>
-    {% for s in col.shifts %}<div class="small text-truncate">{% if s.day_type == "surgery" %}<i class="bi bi-scissors text-danger" title="{% trans 'Surgery day' %}"></i> {% endif %}{{ s.dentist|default:"—" }} <span class="text-muted">{{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</span></div>
+    {% for s in col.shifts %}<div class="small text-truncate">{% if s.day_type == "surgery" %}<i class="bi bi-scissors text-danger" title="{% trans 'Surgery day' %}"></i> {% endif %}{{ s.dentist|default:"—" }}{% if s.second_dentist %} + {{ s.second_dentist }}{% endif %} <span class="text-muted">{{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</span></div>
     {% empty %}{% if col.room %}<div class="small text-muted">{% trans "no dentist on the schedule" %}</div>{% endif %}{% endfor %}
   </div>
   {% endfor %}
@@ -12,7 +12,7 @@
   {% for col in columns %}
   <div class="daygrid-col daygrid-body" style="height: {{ height }}px">
     {% if col.room %}{% for slot in col.slots %}<a class="daygrid-slot{% if slot.shift %} is-open{% endif %}" style="top: {{ slot.top }}px; height: {{ row_px }}px" href="{% url 'scheduling:appointment_create' %}?at={{ day|date:'Y-m-d' }}T{{ slot.time }}&amp;room={{ col.room.pk }}{% if slot.dentist_id %}&amp;dentist={{ slot.dentist_id }}{% endif %}" data-time="{{ slot.time }}" data-room="{{ col.room.pk }}" data-dentist="{{ slot.dentist_id }}" title="{% trans 'Book' %} {{ slot.time }}"></a>{% endfor %}{% endif %}
-    {% for b in col.blocks %}{% with a=b.appointment %}<a class="daygrid-block status-{{ a.status }}" style="top: {{ b.top }}px; height: {{ b.height }}px; inset-inline-start: {{ b.left }}%; width: {{ b.width }}%" href="{{ a.get_absolute_url }}"{% if in_form %} target="_blank"{% endif %} title="{{ a.scheduled_at|time:'g:i A' }} {{ a.patient.full_name }} — {{ a.dentist|default:'' }} — {{ a.get_status_display }}"><strong>{{ a.scheduled_at|time:"g:i" }}</strong> {{ a.patient.full_name }}{% if a.purpose %}<span class="d-block text-truncate opacity-75">{{ a.purpose }}</span>{% endif %}</a>{% endwith %}{% endfor %}
+    {% for b in col.blocks %}{% with a=b.appointment %}<a class="daygrid-block status-{{ a.status }}" style="top: {{ b.top }}px; height: {{ b.height }}px; inset-inline-start: {{ b.left }}%; width: {{ b.width }}%" href="{{ a.get_absolute_url }}"{% if in_form %} target="_blank"{% endif %} title="{{ a.scheduled_at|time:'g:i A' }} {{ a.patient.full_name }} — {{ a.dentist|default:'' }}{% if a.second_dentist %} + {{ a.second_dentist }}{% endif %} — {{ a.what }} — {{ a.get_status_display }}"><strong>{{ a.scheduled_at|time:"g:i" }}</strong> {{ a.patient.full_name }}{% if a.what %}<span class="d-block text-truncate opacity-75">{{ a.what }}</span>{% endif %}</a>{% endwith %}{% endfor %}
   </div>
   {% endfor %}
 </div>

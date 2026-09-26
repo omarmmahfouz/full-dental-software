@@ -35,10 +35,13 @@ def _dentists_for(user):
 def dentist_list(request):
     form = DentistFilterForm(request.GET or None)
     qs = _dentists_for(request.user).select_related("candidate", "user").annotate(
-        implants=Count("surgeries_as_op1__sites", filter=~Q(surgeries_as_op1__sites__implant_status=""), distinct=True),
+        # the teeth he operated: his own teeth, and those of his surgeries left to operator 1
+        implants=Count("operated_sites", filter=~Q(operated_sites__implant_status=""), distinct=True)
+        + Count("surgeries_as_op1__sites", filter=~Q(surgeries_as_op1__sites__implant_status="")
+                & Q(surgeries_as_op1__sites__operator__isnull=True), distinct=True),
         surgeries=Count("surgeries_as_op1", distinct=True),
         treatments=Count("treatments_operated", distinct=True),
-    )
+    ).order_by("kind", "full_name")
     active = "1"
     if form.is_valid():
         data = form.cleaned_data
@@ -59,8 +62,9 @@ def dentist_detail(request, pk):
     if not (own or _dentists_for(request.user).filter(pk=dentist.pk).exists()
             and has_role(request.user, *FRONT_DESK, TEAM_HEAD)):
         raise PermissionDenied
-    implants_op1 = SurgerySite.objects.filter(surgery__operator_1=dentist).exclude(implant_status="")
-    implants_op2 = SurgerySite.objects.filter(surgery__operator_2=dentist).exclude(implant_status="")
+    implants_op1 = SurgerySite.objects.done_by(dentist).exclude(implant_status="")  # the teeth he operated
+    implants_op2 = SurgerySite.objects.filter(surgery__operator_2=dentist).exclude(implant_status="").exclude(
+        pk__in=implants_op1)  # his surgeries as operator 2 where the other operator did the tooth
     status_counts = Counter(implants_op1.values_list("implant_status", flat=True))
     placed = implants_op1.count()
     failed = status_counts.get(SurgerySite.ImplantStatus.FAILED, 0)
@@ -88,7 +92,7 @@ def dentist_detail(request, pk):
     for patient in Patient.objects.filter(pk__in=patient_ids).order_by("full_name"):
         cases.append({
             "patient": patient,
-            "implants": SurgerySite.objects.filter(surgery__patient=patient, surgery__operator_1=dentist)
+            "implants": SurgerySite.objects.done_by(dentist).filter(surgery__patient=patient)
             .exclude(implant_status="").count(),
             "roles": sorted({
                 str(label) for field, label in (

@@ -23,7 +23,13 @@
       <dt>{% trans "Last unit price" %}</dt><dd>{% if item.unit_cost is not None %}{{ item.unit_cost|money }}{% else %}—{% endif %}</dd>
       <dt>{% trans "Stock value" %}</dt><dd>{% if item.value is not None %}{{ item.value|money }}{% else %}—{% endif %}</dd>
       <dt>{% trans "Notes" %}</dt><dd>{{ item.notes|default:"—" }}</dd>
+      {% if item.is_implant %}<dt>{% trans "Implant" %}</dt><dd>{{ item.implant_system }} {{ item.implant_diameter|floatformat:"-1" }} x {{ item.implant_length|floatformat:"-1" }}</dd>{% endif %}
     </dl></div></div>
+    {% with lots=item.lots %}{% if lots %}
+    <div class="card mt-3"><div class="card-header">{% trans "Lots in stock" %}</div><table class="table table-sm mb-0"><tbody>
+      {% for l in lots %}<tr><td class="ltr">{{ l.lot|default:_("without lot number") }}</td><td class="small">{% if l.expiry %}<span class="{% if l.expiry <= today %}text-danger{% endif %}">{{ l.expiry|date:"m/Y" }}</span>{% endif %}</td><td class="text-end fw-semibold">{{ l.left|floatformat:"-2" }}</td></tr>{% endfor %}
+    </tbody></table>{% if item.is_implant %}<div class="card-footer small text-muted">{% trans "The surgery chart takes implants out of stock by lot." %}</div>{% endif %}</div>
+    {% endif %}{% endwith %}
   </div>
   <div class="col-lg-8">
     <div class="card mb-3 no-print"><div class="card-header">{% trans "Record a stock movement" %}</div><div class="card-body">
