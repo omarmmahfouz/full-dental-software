@@ -158,3 +158,14 @@ For WhatsApp to open on the reception PC, install **WhatsApp Desktop** or open *
 82. **Complaints**: open a complaint: "الوضع الحالي" is at the top; "تحديث الوضع الحالي" changes it. "ما قمت به: إضافة متابعة" adds what you did; the pencil corrects your own note. The list shows the current situation of each complaint.
 83. **Fawry**: "المرضى" → "ماكينة فوري". The card payments of patients and candidates are there by themselves with Fawry's percentage. Add "فاتورة مدفوعة من الماكينة" (e.g. electricity for the academy), "تحويل للبنك", and "حركة أخرى" (money put on the machine). "عند فوري الآن" changes each time.
 84. On a long page, the round arrow at the bottom corner goes back to the top.
+
+## O. New in this version (4): the new look
+85. **Log in** as **secretary**: the CIA panel is beside the form, and the eye button in "كلمة المرور" shows the password while you type. The home page greets you by the time of day ("صباح الخير، …"), the boxes come in one after another, and the numbers count up.
+86. **Colours**: open "المرضى" (teal), "الجدول" (blue) and "الأكاديمية" (amber). The menu entry, the icon of the page title and the line under the title share the colour, and the menu entry of the open page is marked.
+87. **Hints**: at the top of the main pages a "تلميح" box says what to do there. Press ✕ on the home page hint: it does not come back on that page. In the menu under your name, "التلميحات: تعمل" turns all hints off. Press it again ("التلميحات: متوقفة"): they all come back, the one you closed too.
+88. **Tablet**: open the system on a tablet, or make the browser window narrow (under 1200 px). A bar at the bottom has "الرئيسية", "الاستقبال", "المرضى", "احجز" and "القائمة", and the page you are on is marked. "القائمة" slides the whole menu in from the side, in big rows: tap "الجدول" to open its list. The bell stays at the top.
+89. **Touch**: on the tablet the buttons and boxes are bigger. Open "تسجيل مريض جديد" and scroll down: "حفظ" and "إلغاء" stay at the bottom of the screen, above the bar.
+90. **Loading line**: tap any link. A thin green line runs at the top until the next page opens, so you know the tap was taken.
+91. **Messages**: save something. The green "saved" message fades by itself after about 7 seconds (it waits while the mouse is on it). Red and yellow messages stay until you close them.
+92. **Rows**: on "كل المرضى" tap anywhere on a patient's row, not only the name: the file opens.
+93. **Form parts**: long forms such as "تسجيل مريض جديد" have numbered parts (1, 2, 3…) with a line after each title, and the small line under a field starts with ⓘ.

@@ -180,3 +180,12 @@ A screenshot helps a lot.
 73. **Case finder** (headcia / owner): the cards show patients, surgeries and cases; *By procedure* counts cases, surgeries and patients per procedure. Click *Open sinus*, then click it again. *Prostheses on these implants*, and the *Prosthesis on it* filter in *Implant*.
 74. **Balance sheet** (owner): *Reports → Balance sheet*: income and costs per place (academy, private clinic, CIC), Fawry's percentage, bills paid through Fawry, purchases and the net; how the money came in; what Fawry still holds; what is still owed. Set the Fawry percentage in *Settings → Clinic options*.
 75. **Tablet**: open the system on a tablet on the same Wi-Fi (the address the trial window prints) in landscape: the visit page, the chart and the surgery chart fit the screen.
+
+## N. New in this version (4): the new look
+76. **Home** (dentist1): "Good morning / Good afternoon / Good evening, Dr. …". The boxes appear one after another and the numbers count up. The **Hint** box says what to do on the page: close it with ✕, or turn all hints off from the user menu (*Hints: on* → *Hints: off*; pressing it again brings them all back).
+77. **Colours**: Patients teal, Schedule blue, Clinical purple, Complaints rose, Academy amber, Stock and purchases orange, Reports indigo, Settings grey. The menu, the icon of the page title and the line under it share the colour; the menu entry of the open page is marked.
+78. **Tablet** (a real tablet, or a browser window under 1200 px): the bar at the bottom has *Home*, *My visits*, *My patients*, *Treatments* and *Menu*. *Menu* slides the full menu in from the side. As **owner** or **headcia** the bar has *Home*, *Reception*, *Patients*, *Reports*.
+79. **Forms on a tablet**: *Record treatment* and the surgery chart have bigger boxes and tick boxes; on long forms *Save* stays at the bottom of the screen. The tooth picker buttons are taller.
+80. **Tooltips**: with a mouse, rest on an icon button (the bell, print, approvals): a short label says what it does. On touch screens they do not appear.
+81. **Links that open**: as **dentist1**, open one of your surgery charts: your name is a link to your file, the other operator's name is plain text (his file is closed to you). As **owner** both are links. As **secretary**, a dentist's file lists the cases with links to the patient file, not to the chart.
+82. **Log-in page**: the CIA panel beside the form, and the eye button to show the password.

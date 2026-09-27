@@ -34,6 +34,21 @@ The language follows the person, not the PC:
 
 ## What it does
 
+### The look, for everyone (new)
+- **A colour for each part**: patients teal, schedule blue, clinical purple, complaints rose, academy amber, stock and purchases orange, reports indigo, settings grey. The menu entry, the icon of the page title and the line under the title share the colour, and the menu entry of the open page is marked.
+- **Clear separators**: page titles have a line under them, long forms are split into numbered parts (1, 2, 3…) with a line after each title, and cards, tables and lists have soft borders and headers.
+- **Motion**: the page slides in, the boxes and tiles appear one after another, the numbers on the home page count up, menus and pop-ups open smoothly, and buttons react when pressed. A thin green line at the top shows that the next page is loading. People whose device asks for less motion get none.
+- **Hints**: a short tip at the top of each main page says what to do there, in the person's language (for example on *Reception today*: tap *Arrived*, then *In the room*, then *Left*). ✕ closes it on that page; the user menu → *Hints: on / off* switches all of them, per person. With a mouse, resting on an icon button shows what it does.
+- **Tablets and touch** (a browser window under 1200 px wide):
+  - A **bar at the bottom** with each person's four main places and *Menu*: the reception gets *Home, Reception, Patients, Book*; the dentists *Home, My visits, My patients, Treatments*; the stock manager *Home, Stock, Take out, Purchases*; the owner and the head of CIA *Home, Reception, Patients, Reports*.
+  - *Menu* slides the whole menu in from the side, in big rows, with the person's name and roles at the top. The bell and the approvals stay at the top of the screen.
+  - Bigger buttons, boxes and tick boxes. On long forms *Save* and *Cancel* stay at the bottom of the screen.
+  - A table row with one destination opens from anywhere on the row.
+- **Messages**: "saved" messages fade away by themselves after a few seconds; errors and warnings stay until closed.
+- **Home page**: *Good morning / afternoon / evening* with the person's name, and an icon on each number box.
+- **Log-in page**: the CIA panel beside the form, icons in the boxes, and an eye button to show the password.
+- **No dead links**: a link shows only when the person can open it. For example, dentists see other dentists' names as plain text, and the reception sees a dentist's cases with links to the patient file rather than the chart.
+
 ### Secretary (Arabic interface)
 - **Call list (expected patients)**: people who call to become patients. The call records:
   - the full name
@@ -104,24 +119,24 @@ The language follows the person, not the PC:
 - **Medical and dental history at the reception**: the same questions as the paper chart (blood pressure, sugar, allergies, smoking…), from the patient file. The dentist sees them at the next examination.
 - **Save before leaving?**: leaving a page with data not saved yet asks *Save*, *Leave without saving* or *Stay*.
 - **Report a problem**: user menu → *Report a problem*, with a screenshot if wanted. The owner reads them, answers, and the person is told.
-- **Reception now** (new): the home page and *Reception today* sort the day's patients by the time on the PC, updated every minute: *late — not here yet*, *expected now*, *next 2 hours*, *waiting*, *here now*. Filters (all / still to come / here / finished), a search box and a short list make a busy day easy to read.
-- **Walk-ins and the next visit** (new):
+- **Reception now**: the home page and *Reception today* sort the day's patients by the time on the PC, updated every minute: *late — not here yet*, *expected now*, *next 2 hours*, *waiting*, *here now*. Filters (all / still to come / here / finished), a search box and a short list make a busy day easy to read.
+- **Walk-ins and the next visit**:
   - A patient who comes without an appointment but has other bookings: the reception is asked to cancel or move them.
   - A patient who leaves without a next appointment: *Book the next visit* (with what the dentist wrote), or *No next visit needed*.
-- **Came late, not seen** (new): a status of its own (not a no-show), and the page to book another time opens at once. The dentist is told.
-- **Waiting time** (new): a patient who comes early waits from the appointment time, not from the arrival.
-- **Smarter booking** (new):
+- **Came late, not seen**: a status of its own (not a no-show), and the page to book another time opens at once. The dentist is told.
+- **Waiting time**: a patient who comes early waits from the appointment time, not from the arrival.
+- **Smarter booking**:
   - Choose the dentist: the screen says if he works that day and in which room (the room is filled in, and can be changed).
   - *Nearest free times*: for the chosen dentist, or for any dentist when none is chosen. Click one to fill the date, time, room and dentist.
   - Booking a dentist on a day or hour that is not on the room schedule is allowed, but the supervisor is told, and a button sends the dentist a WhatsApp message.
   - The procedure is chosen from a list (Arabic names for the secretary), with a box for the teeth and notes. The dentist who asked for the visit and a **second dentist in the room** are shown on the board.
-- **WhatsApp: send all / mark as sent** (new): tick the messages already sent, or *Send the next one* to go down the list one message after another.
-- **Bills** (new): *Patients → New bill*, with one-click buttons for the first-visit examination and the CBCT, several services with teeth and discounts, *pay now*, and a printed bill. Bills made by the dentists after a treatment appear on the reception board to collect.
-- **Waiting list** (new): patients who want a place on a busy day (also short 5–10 minute visits). When an appointment is cancelled, missed or moved, the reception is told that a place is free and who is waiting.
-- **Lab cycle** (new): the dentist makes the request → the reception **takes the impression / model from the dentist** (a digital scan goes by itself) → sends it → receives the work → the patient is booked for the fitting (the reception is told when the work is back).
-- **Complaints** (new): the concerned dentist is told at once; the reception writes **what she did** and the **current situation** of the case (shown in the list), and can correct her notes.
-- **Fawry machine** (new): *Patients → Fawry machine*. Card payments taken on the machine for patients and course candidates appear by themselves with Fawry's percentage; the reception adds bills paid through the machine (mobile, electricity, internet…), money put on it and Fawry's transfers to the bank, for the academy, the private clinic or CIC. The page shows what Fawry still holds.
-- **Up button** (new): a round arrow at the bottom corner of long pages goes back to the top.
+- **WhatsApp: send all / mark as sent**: tick the messages already sent, or *Send the next one* to go down the list one message after another.
+- **Bills**: *Patients → New bill*, with one-click buttons for the first-visit examination and the CBCT, several services with teeth and discounts, *pay now*, and a printed bill. Bills made by the dentists after a treatment appear on the reception board to collect.
+- **Waiting list**: patients who want a place on a busy day (also short 5–10 minute visits). When an appointment is cancelled, missed or moved, the reception is told that a place is free and who is waiting.
+- **Lab cycle**: the dentist makes the request → the reception **takes the impression / model from the dentist** (a digital scan goes by itself) → sends it → receives the work → the patient is booked for the fitting (the reception is told when the work is back).
+- **Complaints**: the concerned dentist is told at once; the reception writes **what she did** and the **current situation** of the case (shown in the list), and can correct her notes.
+- **Fawry machine**: *Patients → Fawry machine*. Card payments taken on the machine for patients and course candidates appear by themselves with Fawry's percentage; the reception adds bills paid through the machine (mobile, electricity, internet…), money put on it and Fawry's transfers to the bank, for the academy, the private clinic or CIC. The page shows what Fawry still holds.
+- **Up button**: a round arrow at the bottom corner of long pages goes back to the top.
 - **Purchases**:
   - Dental and non-dental purchases from different suppliers.
   - Each item goes under a category (tea/coffee, stationery, food/candies, cleaning, implants, consumables…).
@@ -172,22 +187,22 @@ What dentists do:
 - **Complaints**: the dentist of the patient writes the answer and what will be done. If there is no answer in time, the dentist and the head of CIA are alerted.
 - **Moving an appointment**: *Move to another time* keeps the old time and the reason, tells the dentist, and the reception sends the new time on WhatsApp.
 - **Post-op instructions, printed with the patient's name and surgery**: the sheets that fit the surgery are chosen by themselves (general, sinus lift, bone graft, soft tissue graft), in Arabic or English.
-- **Prescriptions with interchangeable drugs** (new: **injections IM / IV** — ceftriaxone, clindamycin, dexamethasone, diclofenac, ketorolac; the doctor reviews the doses in Settings): ready prescriptions (after implant, after sinus lift, after extraction, and versions for penicillin allergy) are chosen from the surgery. Each drug can be swapped for any brand of the same group, e.g. Augmentin ↔ Megamox ↔ Hibiotic. The patient's penicillin allergy is flagged. It prints with the patient's name, age and date.
+- **Prescriptions with interchangeable drugs** (with **injections IM / IV** — ceftriaxone, clindamycin, dexamethasone, diclofenac, ketorolac; the doctor reviews the doses in Settings): ready prescriptions (after implant, after sinus lift, after extraction, and versions for penicillin allergy) are chosen from the surgery. Each drug can be swapped for any brand of the same group, e.g. Augmentin ↔ Megamox ↔ Hibiotic. The patient's penicillin allergy is flagged. It prints with the patient's name, age and date.
 - **Lab requests**: the dentist chooses the name of the supervisor who checked the request, and it goes straight to the secretary to send.
 - **Case report**: the whole case on one printable page (chart, plan, surgeries, treatments), with a switch to **hide the patient's identity** for teaching or publication.
 - **Word file**: the patient's whole file (data, history, chart, plans, treatments, surgeries, appointments, payments) as a Word document.
 - **Dentist file**: every surgery and treatment they did, and for candidates **implants placed / required / remaining** for their course.
   - Also their batch, their payments, and all their cases, even ones they were not present for.
 
-- **Visit page** (new): when the patient arrives the dentist gets a notification **with a sound**. The visit page leads step by step: restorative / other treatment (with or without a bill), or surgery → the suggested prescription → the post-op instructions.
-- **Visits without notes** (new): a visit with nothing written in the patient's file reminds the dentist after one hour, and the supervisors after one day. A banner shows how many are waiting.
-- **Bill for the procedure** (new): on the treatment form, choose the paid service; the reception sees the bill to collect.
-- **Photos by session** (new): each follow-up is a session (date + teeth). A new date or other teeth start a new session, so the photos of the right side, the left side and a later follow-up do not mix; *Show all* shows everything. Steps that are not on the checklist can be added with their own name.
-- **Operators** (new): any dentist can be chosen as operator while writing; after saving, changing the operator needs the head of CIA's approval. **Operator 2 works on other teeth**, not the same tooth: each tooth has its operator, and it counts for that dentist.
-- **Lab requests** (new): the patient is filled in, the shade list follows the guide (**VITA classical** or **3D-Master**), and the date needed back comes from the usual days of the work type (set in Settings).
-- **Implants from stock** (new): on the surgery chart choose the company, then the implant in stock: its size and **lot** are filled in and saving takes it out of stock (put back if the tooth is changed or removed).
-- **Prostheses on implants** (new): single crown, **bridge** (which teeth, on which implants; the others are pontics), **full arch fixed** (All-on-X) and **overdenture**, with retention, material and stage. When delivered, the implants become loaded and the pontics show on the chart. Shown on the chart, the patient file, the implant page and the case finder.
-- **Complaints** (new): each dentist sees only the complaints about him; the heads see all.
+- **Visit page**: when the patient arrives the dentist gets a notification **with a sound**. The visit page leads step by step: restorative / other treatment (with or without a bill), or surgery → the suggested prescription → the post-op instructions.
+- **Visits without notes**: a visit with nothing written in the patient's file reminds the dentist after one hour, and the supervisors after one day. A banner shows how many are waiting.
+- **Bill for the procedure**: on the treatment form, choose the paid service; the reception sees the bill to collect.
+- **Photos by session**: each follow-up is a session (date + teeth). A new date or other teeth start a new session, so the photos of the right side, the left side and a later follow-up do not mix; *Show all* shows everything. Steps that are not on the checklist can be added with their own name.
+- **Operators**: any dentist can be chosen as operator while writing; after saving, changing the operator needs the head of CIA's approval. **Operator 2 works on other teeth**, not the same tooth: each tooth has its operator, and it counts for that dentist.
+- **Lab requests**: the patient is filled in, the shade list follows the guide (**VITA classical** or **3D-Master**), and the date needed back comes from the usual days of the work type (set in Settings).
+- **Implants from stock**: on the surgery chart choose the company, then the implant in stock: its size and **lot** are filled in and saving takes it out of stock (put back if the tooth is changed or removed).
+- **Prostheses on implants**: single crown, **bridge** (which teeth, on which implants; the others are pontics), **full arch fixed** (All-on-X) and **overdenture**, with retention, material and stage. When delivered, the implants become loaded and the pontics show on the chart. Shown on the chart, the patient file, the implant page and the case finder.
+- **Complaints**: each dentist sees only the complaints about him; the heads see all.
 
 ### Head of CIA
 - Approves lab requests that were sent without a supervisor's name.
@@ -223,8 +238,8 @@ What dentists do:
   - mean torque
 - **Export to Excel (CSV)**, one row per implant with every detail, for publications.
 - Quick searches, e.g. *healing – waiting 2nd stage* or *impression taken – waiting delivery*. You can also save your own searches.
-- **Totals** (new): patients, surgeries and cases (sites), and a table **by procedure** with the cases, surgeries and patients of each one (one patient can have an open sinus and a simple implant, or two simple sites). Click a procedure or an implant status to filter by it.
-- **Prostheses** (new): filter by prosthesis (single crown, bridge, full arch, none yet), group by it, and see how many units sit on the implants found.
+- **Totals**: patients, surgeries and cases (sites), and a table **by procedure** with the cases, surgeries and patients of each one (one patient can have an open sinus and a simple implant, or two simple sites). Click a procedure or an implant status to filter by it.
+- **Prostheses**: filter by prosthesis (single crown, bridge, full arch, none yet), group by it, and see how many units sit on the implants found.
 
 ### Owner: reports
 - **Visits and timing**: who came late and by how much, waiting time, time in the chair, total stay, and no-shows, per dentist and per room.
@@ -237,7 +252,7 @@ What dentists do:
 - **Lab**: turnaround days per lab, remakes, and late work.
 - **Patients**: call list conversion, referral sources, the patients who referred others most, and complaint categories.
 - **Money** (owner only): installments collected and outstanding, and purchases by category, supplier, and dental vs non-dental.
-- **Balance sheet** (new, owner only): income and costs of the academy, the private clinic and CIC side by side: patient and course payments, cash taken for bills paid on the Fawry machine, Fawry's percentage and charges, bills paid through the machine, purchases, and the net. Also how the money came in (cash, Fawry, InstaPay…), what Fawry still holds, and what patients, candidates and suppliers still owe.
+- **Balance sheet** (owner only): income and costs of the academy, the private clinic and CIC side by side: patient and course payments, cash taken for bills paid on the Fawry machine, Fawry's percentage and charges, bills paid through the machine, purchases, and the net. Also how the money came in (cash, Fawry, InstaPay…), what Fawry still holds, and what patients, candidates and suppliers still owe.
 - The head of the CIA dentists team sees only the **dentist follow-up** of the CIA dentists.
 
 ### Settings: change the system without changing the program (owner)
@@ -264,9 +279,9 @@ User menu → **Settings**.
   Outside these times the login is refused. Anyone already logged in is logged out on their next click.
 - **Parts of the system for one person**: on a person's page, choose for each part "as the role", normal, read only or no access, e.g. only some secretaries work with the academy.
 - **Clinic options**: appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, the e-mail for CBCT files, and **Fawry's percentage** on card payments.
-- **Lists** (new): the **usual days at the lab** for each lab work type, which paid services get a **quick button** on a new bill, and implants in stock (company, diameter and length on the stock item).
-- **Backup and export** (new, owner): one button makes a **full backup** (a ZIP with all records to put back into the system, the same data as **Excel** and **CSV** to open in any other program, and all uploaded files). *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
-- **Problem reports** (new, owner and head of CIA): what the staff reported, and pages that stopped with an error (recorded automatically), with a download to send to whoever maintains the system.
+- **Lists**: the **usual days at the lab** for each lab work type, which paid services get a **quick button** on a new bill, and implants in stock (company, diameter and length on the stock item).
+- **Backup and export** (owner): one button makes a **full backup** (a ZIP with all records to put back into the system, the same data as **Excel** and **CSV** to open in any other program, and all uploaded files). *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
+- **Problem reports** (owner and head of CIA): what the staff reported, and pages that stopped with an error (recorded automatically), with a download to send to whoever maintains the system.
 - **Access by role**: make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for a role.
   - It can only take access away, never give more than the role normally has.
   - When a person has two roles and either is limited in a part, the person is limited there.
@@ -279,7 +294,7 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (now also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
+This makes a **practice copy on your PC** with sample data (hints are on for every sample login, so each main page shows its tip; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
 
 **Windows**
 1. Install **Python 3.12 or newer** from https://www.python.org/downloads/. On the first installer screen, tick **"Add python.exe to PATH"**.
@@ -318,6 +333,7 @@ To start over with fresh sample data, delete the `data` folder and run it again.
 ## Tablets in the clinic
 
 The system works in the browser of a tablet on the clinic Wi-Fi, with nothing to install: open the server's address (e.g. `http://192.168.1.20:8000`) and add it to the home screen. It was checked at tablet sizes (1024 and 768 pixels wide): nothing needs sideways scrolling, and wide tables scroll inside their box.
+On a tablet (new) each person gets a bar at the bottom with their main places and *Menu*, the full menu slides in from the side, buttons and boxes are bigger for fingers, and *Save* stays in view on long forms (see *The look, for everyone* above).
 
 Suggestion, when you decide to buy:
 - An **11-inch tablet used in landscape**: e.g. Samsung Galaxy Tab S9 FE / A9+ (Android) or an iPad 10th generation / iPad Air 11". Landscape gives the full-width forms and the tooth chart.
@@ -352,7 +368,18 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   - `prescriptions`: drug groups, ready prescriptions, post-op instruction sheets
   - `stock`: stock items, movements, low stock, import
   - `complaints`, `academy`, `purchasing`, `reports`
-- Run the tests: `DJANGO_DEBUG=1 python manage.py test apps`
+- The look (no build step):
+  - `static/css/app.css` starts with the colours, lines, shadows and motion as CSS variables. Each part of the system
+    has an accent colour (`.sec-patients`, `.sec-scheduling`…), set on `<body>` from the page's address and on each menu entry.
+  - `static/js/app.js` adds the motion, the loading line, the tooltips, the rows that open from anywhere, and the sticky *Save*.
+  - Page hints are in `apps/core/hints.py`, keyed by the page's address name, with a text per role where needed.
+    The bottom bar of each role is in `apps/core/navigation.py`.
+- Run the tests (the bare label `apps` finds none, so list the modules):
+  ```bash
+  DJANGO_DEBUG=1 python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests apps.clinical.tests \
+    apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests apps.prescriptions.tests \
+    apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests apps.surgery.tests
+  ```
 - Backups: `python manage.py backup` (full ZIP into `BACKUP_DIR`, default `data/backups`), `python manage.py restore_backup <zip>`,
   and `python manage.py organize_photos` (moves photos saved by older versions into the readable folders).
 - Translations: write English in the code and templates, then run:

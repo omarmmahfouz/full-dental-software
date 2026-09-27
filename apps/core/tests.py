@@ -513,3 +513,115 @@ class BackupAndExportTests(TestCase):
         self.assertIn(".docx", response["Content-Disposition"])
         self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/word/").status_code, 403)
+
+
+class LookAndHintsTests(TestCase):
+    """The new look: the bar at the bottom on tablets, the page hints, the colour of each part."""
+
+    def setUp(self):
+        setup_clinic()
+        self.secretary = make_user("sec", "secretary")
+        self.dentist = make_user("dent", "dentist")
+        make_user("store", "stock")
+        make_user("boss", "owner")
+
+    def labels(self, username, path="/"):
+        self.client.login(username=username, password=PASSWORD)
+        return [(str(item["label"]), item["url"], item["active"]) for item in self.client.get(path).context["bottom_nav"]]
+
+    def test_bottom_bar_holds_each_persons_main_places(self):
+        def urls(username, path="/"):
+            return [url for _label, url, _active in self.labels(username, path)]
+
+        self.assertEqual(urls("sec"), ["/", "/schedule/today/", "/patients/", "/schedule/appointments/new/"])
+        self.assertEqual(urls("dent"), ["/", "/schedule/appointments/", "/patients/?mine=on", "/clinical/steps/"])
+        self.assertEqual(urls("store"), ["/", "/stock/", "/stock/take-out/", "/purchases/"])
+        marked = [url for _label, url, active in self.labels("store", "/stock/take-out/") if active]
+        self.assertEqual(marked, ["/stock/take-out/"])
+        self.assertEqual(urls("boss"), ["/", "/schedule/today/", "/patients/", "/reports/"])
+        # The place of the page shown is marked, the longest address first; "Home" only on the home page.
+        marked = [url for _label, url, active in self.labels("sec", "/schedule/appointments/new/") if active]
+        self.assertEqual(marked, ["/schedule/appointments/new/"])
+        marked = [url for _label, url, active in self.labels("sec", "/schedule/day/") if active]
+        self.assertEqual(marked, ["/schedule/today/"])
+        marked = [url for _label, url, active in self.labels("sec") if active]
+        self.assertEqual(marked, ["/"])
+        page = self.client.get("/").content.decode()
+        self.assertIn('class="bottom-bar', page)
+        self.assertIn('data-bs-target="#mainNav"', page)  # "Menu" opens the side menu
+
+    def test_bottom_bar_follows_closed_parts(self):
+        from apps.core.models import AreaAccess, PersonAreaAccess
+
+        PersonAreaAccess.objects.create(user=self.secretary, area="patients", level=AreaAccess.Level.HIDDEN)
+        urls = [url for _label, url, _active in self.labels("sec")]
+        self.assertNotIn("/patients/", urls)
+
+    def test_each_part_of_the_system_has_its_colour(self):
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertIn('class="sec-patients', self.client.get("/patients/").content.decode())
+        self.assertIn('class="sec-scheduling', self.client.get("/schedule/today/").content.decode())
+        self.assertIn('class="sec-core', self.client.get("/").content.decode())
+
+    def test_hints_by_page_and_role_and_switched_off_per_person(self):
+        from apps.core.hints import HINTS
+
+        self.client.login(username="sec", password=PASSWORD)
+        with translation.override("en"):
+            hint = self.client.get("/").context["page_hint"]
+            self.assertEqual(hint["key"], "core:dashboard")
+            self.assertEqual(hint["text"], HINTS["core:dashboard"]["front_desk"])
+        self.assertContains(self.client.get("/patients/"), 'data-hint-key="patients:list"')
+        self.client.login(username="dent", password=PASSWORD)
+        self.assertEqual(self.client.get("/").context["page_hint"]["text"], HINTS["core:dashboard"]["dentist"])
+        # Switching hints off is kept on the person's profile; switching them on brings back the closed ones.
+        self.client.post("/hints/", {"next": "/patients/"})
+        self.assertIsNone(self.client.get("/patients/").context["page_hint"])
+        self.assertFalse(self.dentist.profile.__class__.objects.get(user=self.dentist).show_hints)
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertIsNotNone(self.client.get("/patients/").context["page_hint"])  # others keep theirs
+        self.client.login(username="dent", password=PASSWORD)
+        self.client.post("/hints/", {"next": "/"})
+        page = self.client.get("/")
+        self.assertTrue(page.context["hints_reset"])
+        self.assertIn("data-hints-reset", page.content.decode())
+        self.assertFalse(self.client.get("/").context["hints_reset"])  # only once
+        # An address outside the system is not followed.
+        self.assertEqual(self.client.post("/hints/", {"next": "https://example.com/"})["Location"], "/")
+
+    def test_a_read_only_person_can_still_switch_hints(self):
+        from apps.core.models import UserProfile
+
+        UserProfile.objects.update_or_create(user=self.secretary, defaults={"read_only": True})
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.post("/hints/").status_code, 302)
+        self.assertFalse(UserProfile.objects.get(user=self.secretary).show_hints)
+
+    def test_every_hint_is_for_a_real_page_and_is_in_arabic(self):
+        from django.urls import get_resolver
+
+        from apps.core.hints import HINTS
+
+        names = set()
+
+        def collect(resolver, prefix=""):
+            for pattern in resolver.url_patterns:
+                if hasattr(pattern, "url_patterns"):
+                    collect(pattern, prefix + (pattern.namespace + ":" if pattern.namespace else ""))
+                elif pattern.name:
+                    names.add(prefix + pattern.name)
+
+        collect(get_resolver())
+        for key, hint in HINTS.items():
+            self.assertIn(key, names)
+            for text in (hint.values() if isinstance(hint, dict) else [hint]):
+                with translation.override("ar"):
+                    arabic = str(text)
+                with translation.override("en"):
+                    self.assertNotEqual(arabic, str(text), key)
+
+    def test_home_greets_by_the_time_of_day(self):
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/")
+        self.assertIn(page.context["greeting_icon"], ("bi-sunrise", "bi-sun", "bi-moon-stars"))
+        self.assertIn(self.secretary.get_full_name() or "sec", page.context["greeting"])

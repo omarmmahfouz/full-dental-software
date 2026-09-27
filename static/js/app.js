@@ -396,15 +396,22 @@
       setTimeout(function () { box.remove(); }, 20000);
     };
     var setBadge = function (count) {
-      var bell = document.querySelector('a[href$="/notifications/"] .bi-bell');
-      if (!bell) return;
-      var badge = bell.parentNode.querySelector(".notif-badge");
-      if (!badge && count) {
-        badge = document.createElement("span");
-        badge.className = "badge rounded-pill bg-danger notif-badge";
-        bell.parentNode.appendChild(badge);
-      }
-      if (badge) { badge.textContent = count; badge.hidden = !count; }
+      document.querySelectorAll("[data-bell]").forEach(function (bell) {
+        var badge = bell.querySelector(".notif-badge");
+        if (!badge && count) {
+          badge = document.createElement("span");
+          badge.className = "badge rounded-pill bg-danger notif-badge";
+          bell.appendChild(badge);
+        }
+        if (!badge) return;
+        if (count > (parseInt(badge.textContent, 10) || 0)) {
+          badge.classList.remove("is-bumped");
+          void badge.offsetWidth;
+          badge.classList.add("is-bumped");
+        }
+        badge.textContent = count;
+        badge.hidden = !count;
+      });
     };
     var check = function () {
       fetch(pollUrl + "?since=" + lastSeen, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
@@ -434,6 +441,164 @@
       showSound();
     }
   }
+
+  // ------------------------------------------------------------------ the look: motion and touch
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var canHover = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  // The page slides in once; the class is taken off afterwards so it never gets in the way.
+  var main = document.querySelector("main.page-enter");
+  if (main) main.addEventListener("animationend", function () { main.classList.remove("page-enter"); }, { once: true });
+
+  // Cards and tiles appear one after the other, top to bottom (only those on the first screen).
+  if (!reduceMotion) {
+    var order = 0;
+    document.querySelectorAll("main .quick-tile, main .visit-step, main .stat-card, main .card, main .my-week-day, main .now-col").forEach(function (el) {
+      if (order >= 14 || el.closest(".reveal") || el.querySelector(".modal") || el.closest(".modal")) return;
+      var box = el.getBoundingClientRect();
+      if (box.top > window.innerHeight || box.height === 0) return;
+      el.style.setProperty("--i", order++);
+      el.classList.add("reveal");
+      el.addEventListener("animationend", function () { el.classList.remove("reveal"); el.style.removeProperty("--i"); }, { once: true });
+    });
+  }
+
+  // Numbers on the home page count up to their value.
+  document.querySelectorAll(".stat-value").forEach(function (el) {
+    if (reduceMotion || el.children.length || !/^\d{1,6}$/.test(el.textContent.trim())) return;
+    var target = parseInt(el.textContent.trim(), 10);
+    if (target < 2) return;
+    var start = null, duration = Math.min(900, 350 + target * 8);
+    el.textContent = "0";
+    var step = function (now) {
+      if (start === null) start = now;
+      var t = Math.min((now - start) / duration, 1);
+      el.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) window.requestAnimationFrame(step);
+    };
+    window.requestAnimationFrame(step);
+  });
+
+  // The menu entry of the page being shown is marked (the longest address that matches wins).
+  (function markActive() {
+    var path = window.location.pathname, best = null, bestLength = 0;
+    document.querySelectorAll(".app-navbar .navbar-nav > .nav-item").forEach(function (item) {
+      item.querySelectorAll("a[href]").forEach(function (link) {
+        var href = link.getAttribute("href");
+        if (!href || href === "#" || href.charAt(0) !== "/") return;
+        href = href.split("?")[0];
+        var matches = href === "/" ? path === "/" : path.indexOf(href) === 0;
+        if (matches && href.length > bestLength) { best = item; bestLength = href.length; }
+      });
+    });
+    var top = best && best.querySelector(":scope > .nav-link");
+    if (top) { top.classList.add("is-active"); top.setAttribute("aria-current", "page"); }
+  })();
+
+  // A thin bar at the top while the next page loads, so a tap always shows it was taken.
+  var progress = document.querySelector("[data-nav-progress]");
+  var progressTimer = null;
+  function stopProgress() { clearTimeout(progressTimer); if (progress) progress.classList.remove("is-loading"); }
+  function startProgress() {
+    if (!progress) return;
+    progress.classList.add("is-loading");
+    clearTimeout(progressTimer);
+    progressTimer = setTimeout(stopProgress, 10000);  // e.g. a file download, where the page stays
+  }
+  var DOWNLOADS = /(\/media\/|export|download|backup|\.zip|\.csv|\.xlsx|\.docx|\/word\/)/i;
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest && event.target.closest("a[href]");
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    var href = link.getAttribute("href");
+    if (!href || href.charAt(0) === "#" || href.indexOf("javascript:") === 0 || link.target === "_blank" ||
+        link.hasAttribute("download") || link.hasAttribute("data-bs-toggle") || /^(mailto|tel|whatsapp):/.test(href) ||
+        link.host !== window.location.host || DOWNLOADS.test(href)) return;
+    setTimeout(function () { if (!event.defaultPrevented) startProgress(); }, 0);
+  });
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (form.target === "_blank" || DOWNLOADS.test(form.getAttribute("action") || "")) return;
+    setTimeout(function () { if (!event.defaultPrevented && !form.hasAttribute("data-no-progress")) startProgress(); }, 0);
+  });
+  window.addEventListener("pageshow", stopProgress);
+
+  // Hints: closing one hides it on this page from now on (in this browser); switching hints on brings them all back.
+  var userId = document.body.getAttribute("data-user");
+  if (document.body.hasAttribute("data-hints-reset")) {
+    try {
+      Object.keys(localStorage).forEach(function (key) {
+        if (key.indexOf("hint-hidden:" + userId + ":") === 0) localStorage.removeItem(key);
+      });
+    } catch (e) {}
+  }
+  document.addEventListener("click", function (event) {
+    var close = event.target.closest && event.target.closest("[data-hint-close]");
+    if (!close) return;
+    var box = close.closest(".page-hint");
+    try { localStorage.setItem("hint-hidden:" + userId + ":" + box.getAttribute("data-hint-key"), "1"); } catch (e) {}
+    var tip = window.bootstrap && window.bootstrap.Tooltip.getInstance(close);
+    if (tip) tip.dispose();
+    box.classList.add("is-leaving");
+    setTimeout(function () { box.remove(); }, 320);
+  });
+
+  // "Saved" messages fade away by themselves after a few seconds; errors and warnings stay until closed.
+  document.querySelectorAll(".app-message[data-auto-hide]").forEach(function (box) {
+    var timer = setTimeout(function hide() {
+      if (box.matches(":hover")) { timer = setTimeout(hide, 2000); return; }
+      box.classList.add("is-leaving");
+      setTimeout(function () { box.remove(); }, 380);
+    }, 7000);
+    box.addEventListener("close.bs.alert", function () { clearTimeout(timer); });
+  });
+
+  // Short explanations on icon buttons when the mouse rests on them (not on touch screens, where they get in the way).
+  if (canHover && window.bootstrap) {
+    var tips = [];
+    document.querySelectorAll(".btn[title], .nav-link[title]:not([data-bs-toggle]), [data-hint-close][title], [data-tip]").forEach(function (el) {
+      if (el.hasAttribute("data-tip") && !el.getAttribute("title")) el.setAttribute("title", el.getAttribute("data-tip"));
+      tips.push(window.bootstrap.Tooltip.getOrCreateInstance(el, { trigger: "hover", delay: { show: 350, hide: 50 } }));
+    });
+    document.addEventListener("click", function () { tips.forEach(function (tip) { tip.hide(); }); }, true);
+  }
+
+  // A table row with one destination opens it from anywhere in the row: easier to hit with a finger.
+  document.querySelectorAll("table.table > tbody > tr").forEach(function (row) {
+    if (row.querySelector("form, button, input, select, textarea, [data-bs-toggle]")) return;
+    var links = row.querySelectorAll("a[href]");
+    if (!links.length) return;
+    var href = links[0].getAttribute("href");
+    for (var i = 1; i < links.length; i++) { if (links[i].getAttribute("href") !== href) return; }
+    if (!href || href.charAt(0) === "#" || links[0].target === "_blank" || links[0].host !== window.location.host ||
+        links[0].hasAttribute("data-confirm") || links[0].hasAttribute("download")) return;
+    row.classList.add("row-link");
+    row.addEventListener("click", function (event) {
+      if (event.target.closest("a") || (window.getSelection && String(window.getSelection()))) return;
+      links[0].click();
+    });
+  });
+
+  // Long forms: Save and Cancel stay at the bottom of the screen while scrolling.
+  document.querySelectorAll("form[method=post], form[method=POST]").forEach(function (form) {
+    if (form.closest(".modal") || form.offsetHeight < window.innerHeight * 1.15) return;
+    var last = form.lastElementChild;
+    while (last && (last.matches("script, template, .modal, input[type=hidden]") || last.offsetHeight === 0)) last = last.previousElementSibling;
+    if (!last || !last.querySelector("button.btn-primary, button[type=submit]")) return;
+    if (last.querySelector("input:not([type=hidden]), select, textarea, table")) return;
+    last.classList.add("form-actions", "is-sticky");
+  });
+
+  // Log-in page: the eye shows the password while typing it.
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest && event.target.closest("[data-show-password]");
+    if (!button) return;
+    var input = document.querySelector(button.getAttribute("data-show-password"));
+    if (!input) return;
+    var show = input.type === "password";
+    input.type = show ? "text" : "password";
+    button.querySelector(".bi").className = "bi " + (show ? "bi-eye-slash" : "bi-eye");
+    input.focus();
+  });
 
   // Dynamic formsets: <div data-formset="prefix"> with a <template> row and "add" buttons.
   // A page can have several row lists (e.g. the plan's implant and restorative parts):

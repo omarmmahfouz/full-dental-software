@@ -11,6 +11,7 @@ from .roles import (
     OWNER,
     PATIENT_VIEWERS,
     PURCHASE_ROLES,
+    ROLE_CHOICES,
     STOCK_ROLES,
     SUPERVISOR,
     TEAM_HEAD,
@@ -20,7 +21,9 @@ from .roles import (
 
 
 def app_context(request):
-    context = {"CLINIC": settings.CLINIC}
+    match = getattr(request, "resolver_match", None)
+    # The part of the system the page belongs to gives the page its accent colour (see app.css).
+    context = {"CLINIC": settings.CLINIC, "section": (match.namespace if match and match.namespace else "home")}
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:
         roles = user_roles(user)
@@ -44,6 +47,15 @@ def app_context(request):
 
         levels = area_levels(user)
         context["hidden_areas"] = {area for area, level in levels.items() if level == "hidden"}
+        from .hints import hint_for
+        from .navigation import bottom_nav
+
+        profile = getattr(user, "profile", None)
+        context["hints_on"] = profile is None or profile.show_hints
+        context["page_hint"] = hint_for(request) if context["hints_on"] else None
+        context["hints_reset"] = request.session.pop("hints_reset", False)
+        context["bottom_nav"] = bottom_nav(user, request.path, context["hidden_areas"])
+        context["role_labels"] = [label for code, label in ROLE_CHOICES if code in roles]
         context["read_only_here"] = (levels.get(area_of(request.path)) or levels.get("*")) == "read"
         context["can_stock"] = context["can_stock"] and "stock" not in context["hidden_areas"]
         context["can_purchase"] = context["can_purchase"] and "purchases" not in context["hidden_areas"]

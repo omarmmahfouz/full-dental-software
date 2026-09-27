@@ -47,7 +47,13 @@ When something is wrong or missing, note three things:
 ## G. Movements
 18. Open "حركات المخزن". Filter by date, type of movement, category, or by item or destination (e.g. *Kitchen*). Print it.
 
-## H. Implants by lot (new)
+## H. Implants by lot
 19. Open an implant item, e.g. "Osstem TS III 4.0 x 10": "اللوطات في المخزن" shows each lot with its expiry and how many are left.
 20. Receive more with a new lot ("وارد للمخزن", write the lot and the expiry): a new line appears.
 21. Add a new implant item: fill "شركة / نوع الزرعة", the diameter and the length. The dentists then find it on the surgery chart, and each implant placed is taken out of its lot by itself.
+
+## I. New in this version: the new look
+22. Log in as **stock**. A "تلميح" box at the top of the home page and of "أصناف المخزن" says what to do there. Close it with ✕, or turn all hints off from the menu under your name ("التلميحات: تعمل").
+23. **Tablet** (or a browser window under 1200 px): the bar at the bottom has "الرئيسية", "المخزن", "صرف", "المشتريات" and "القائمة". "القائمة" slides the whole menu in from the side.
+24. In "صرف من المخزن" the rows and buttons are bigger for touch, and on a long list "حفظ" stays at the bottom of the screen.
+25. Stock and purchases pages have their own orange colour on the title and the menu; low-stock rows are easy to spot.

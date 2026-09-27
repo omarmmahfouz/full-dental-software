@@ -49,6 +49,14 @@ def dashboard(request):
     start, end = day_bounds(today)
     branch = branch_for_user(user)
     context = {"today": today}
+    hour = timezone.localtime().hour
+    name = user.get_full_name() or user.username
+    if hour < 12:
+        context["greeting"], context["greeting_icon"] = _("Good morning, %(name)s") % {"name": name}, "bi-sunrise"
+    elif hour < 17:
+        context["greeting"], context["greeting_icon"] = _("Good afternoon, %(name)s") % {"name": name}, "bi-sun"
+    else:
+        context["greeting"], context["greeting_icon"] = _("Good evening, %(name)s") % {"name": name}, "bi-moon-stars"
     send_answer_alerts(today)  # complaints a dentist has not answered in time
     send_notes_alerts()  # visits left without notes in the patient's file
     if has_role(user, *PATIENT_VIEWERS):
@@ -171,6 +179,23 @@ def switch_language(request):
             profile.save(update_fields=["language"])
         response.set_cookie(settings.LANGUAGE_COOKIE_NAME, language, max_age=365 * 24 * 3600, samesite="Lax")
     return response
+
+
+@require_POST
+def toggle_hints(request):
+    """User menu: switch the page hints off, or on again (hints closed one by one come back too)."""
+    profile, _created = UserProfile.objects.get_or_create(user=request.user)
+    profile.show_hints = not profile.show_hints
+    profile.save(update_fields=["show_hints"])
+    if profile.show_hints:
+        request.session["hints_reset"] = True
+        messages.success(request, _("Hints are on: a short tip shows at the top of the main pages."))
+    else:
+        messages.info(request, _("Hints are off. Switch them on again from the menu under your name."))
+    target = request.POST.get("next") or "/"
+    if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
+        target = "/"
+    return redirect(target)
 
 
 def notification_list(request):

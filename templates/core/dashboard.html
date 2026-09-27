@@ -3,8 +3,8 @@
 {% block title %}{% trans "Home" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1>{% blocktrans with name=user %}Welcome, {{ name }}{% endblocktrans %}</h1>
-  <span class="text-muted">{{ today|date:"l d/m/Y" }}</span>
+  <h1><i class="bi {{ greeting_icon }}"></i> {{ greeting }}</h1>
+  <span class="today-chip"><i class="bi bi-calendar3"></i> {{ today|date:"l d/m/Y" }}</span>
 </div>
 
 {% if is_front_desk %}
@@ -45,22 +45,22 @@
 {% if patient_totals %}
 <div class="row g-3 mb-3">
   {% url 'patients:list' as patients_url %}
-  <div class="col-6 col-md-3"><a href="{{ patients_url }}" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value">{{ patient_totals.total }}</div><div class="stat-label">{% trans "Patients (total)" %}</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="{{ patients_url }}?status=active" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-success">{{ patient_totals.active }}</div><div class="stat-label">{% trans "Under treatment" %}</div></div></a></div>
-  <div class="col-6 col-md-3"><a href="{{ patients_url }}?status=finished" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-secondary">{{ patient_totals.finished }}</div><div class="stat-label">{% trans "Treatment finished" %}</div></div></a></div>
-  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><div class="stat-value text-primary">{{ patient_totals.new_this_month }}</div><div class="stat-label">{% trans "New files this month" %}{% if patient_totals.out %} · <a href="{{ patients_url }}?status=out" class="text-danger">{% blocktrans with n=patient_totals.out %}{{ n }} out{% endblocktrans %}</a>{% endif %}</div></div></div></div>
+  <div class="col-6 col-md-3"><a href="{{ patients_url }}" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-people"></i></span><div class="stat-value">{{ patient_totals.total }}</div><div class="stat-label">{% trans "Patients (total)" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><a href="{{ patients_url }}?status=active" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-heart-pulse"></i></span><div class="stat-value text-success">{{ patient_totals.active }}</div><div class="stat-label">{% trans "Under treatment" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><a href="{{ patients_url }}?status=finished" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-check2-all"></i></span><div class="stat-value text-secondary">{{ patient_totals.finished }}</div><div class="stat-label">{% trans "Treatment finished" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><div class="card stat-card"><div class="card-body"><span class="stat-icon"><i class="bi bi-person-plus"></i></span><div class="stat-value text-primary">{{ patient_totals.new_this_month }}</div><div class="stat-label">{% trans "New files this month" %}{% if patient_totals.out %} · <a href="{{ patients_url }}?status=out" class="text-danger">{% blocktrans with n=patient_totals.out %}{{ n }} out{% endblocktrans %}</a>{% endif %}</div></div></div></div>
 </div>
 {% endif %}
 
 {% if appointment_counts %}
 <div class="row g-3 mb-3">
   {% url 'scheduling:today' as today_url %}
-  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value">{{ appointment_counts.total }}</div><div class="stat-label">{% trans "Appointments today" %}</div></div></a></div>
-  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-secondary">{{ appointment_counts.waiting }}</div><div class="stat-label">{% trans "Not arrived yet" %}</div></div></a></div>
-  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-warning">{{ appointment_counts.arrived }}</div><div class="stat-label">{% trans "Waiting in reception" %}</div></div></a></div>
-  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-info">{{ appointment_counts.in_room }}</div><div class="stat-label">{% trans "In the rooms now" %}</div></div></a></div>
-  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-success">{{ appointment_counts.completed }}</div><div class="stat-label">{% trans "Finished" %}</div></div></a></div>
-  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><div class="stat-value text-danger">{{ appointment_counts.no_show }}</div><div class="stat-label">{% trans "Did not come" %}</div></div></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-calendar-check"></i></span><div class="stat-value">{{ appointment_counts.total }}</div><div class="stat-label">{% trans "Appointments today" %}</div></div></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-hourglass"></i></span><div class="stat-value text-secondary">{{ appointment_counts.waiting }}</div><div class="stat-label">{% trans "Not arrived yet" %}</div></div></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-person-lines-fill"></i></span><div class="stat-value text-warning">{{ appointment_counts.arrived }}</div><div class="stat-label">{% trans "Waiting in reception" %}</div></div></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-door-open"></i></span><div class="stat-value text-info">{{ appointment_counts.in_room }}</div><div class="stat-label">{% trans "In the rooms now" %}</div></div></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-check-circle"></i></span><div class="stat-value text-success">{{ appointment_counts.completed }}</div><div class="stat-label">{% trans "Finished" %}</div></div></a></div>
+  <div class="col-6 col-md-4 col-xl-2"><a href="{{ today_url }}" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-x-circle"></i></span><div class="stat-value text-danger">{{ appointment_counts.no_show }}</div><div class="stat-label">{% trans "Did not come" %}</div></div></a></div>
 </div>
 {% endif %}
 

@@ -21,7 +21,8 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - The owner writes quick English with typos. Answer in plain English, and ask only when truly blocked.
 - Decisions already taken:
   - Supervisors, course candidates and training dentists **do not log in**; they are chosen by name.
-  - Tablets: no changes for now, but keep pages usable by touch at 768–1024 px.
+  - Tablets: under 1200 px each role gets a bottom bar (`apps/core/navigation.py`) and the menu slides in from the side.
+    Keep pages usable by touch at 768–1024 px, with no sideways scrolling.
 
 ## Where to work
 - Branch **`claude/cairo-implant-academy-system-jqrd1f`** has all the work. Develop, commit and push there.
@@ -80,10 +81,20 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - Use `StyledForm` / `StyledModelForm`, with `fieldsets` and `field.col`.
   - Dates are **dd/mm/yyyy** (flatpickr), and times are in 15-minute steps.
   - Patients are chosen with `PatientLookupField`; `lookup_value(patient)` gives `"FILE — name"`.
+- The look: `static/css/app.css` opens with CSS variables (colours, lines, shadows, motion). Each app has an accent
+  colour through `.sec-<namespace>` on `<body>` and on the menu entries. Page titles use `<h1><i class="bi …"></i> …</h1>`
+  (the icon becomes a coloured chip). Motion must respect `prefers-reduced-motion`.
+  - Do not put `transform`, `filter` or `backdrop-filter` on an element that holds pop-ups or the side menu:
+    it traps `position: fixed` children (the top bar's blur sits on its `::before` for this reason).
+- Page hints: `apps/core/hints.py` (keyed by `namespace:url_name`, a text per role where needed). Add one for each new
+  main page, in plain words, and translate it. Each person can switch hints off (user menu, `UserProfile.show_hints`).
+- Links: show a link only when the reader can open it (e.g. `user|opens_dentist:dentist`, `hidden_areas`, `is_clinical`).
 - The JavaScript is in `static/js/app.js`, with no build step. Its hooks:
   - `data-formset` / `data-formset-add`
   - `data-teeth-picker="multi|single"`
   - `data-confirm`
+  - `data-tip="…"` (a tooltip with a mouse), `data-show-password="#id"`, `data-no-progress` (a form that opens a download)
+  - Automatic: table rows with one link open from anywhere; the last row of buttons of a long POST form stays in view.
 - The **unsaved-changes warning** watches POST forms:
   - Opt a form out with `data-no-leave-warning`.
   - Wrap links that the page handles itself (e.g. the booking day grid) in `data-in-page-links`.

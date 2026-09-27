@@ -87,6 +87,8 @@ class UserProfile(models.Model):
         choices=[("", _("Automatic (Arabic for secretaries, English for dentists)")), ("ar", _("Arabic")), ("en", _("English"))],
     )
     notes = models.TextField(_("notes"), blank=True)
+    show_hints = models.BooleanField(
+        _("show hints"), default=True, help_text=_("A short tip at the top of each page on what to do there."))
     read_only = models.BooleanField(
         _("read only"), default=False, help_text=_("Can open the pages of their role but cannot save or change anything.")
     )

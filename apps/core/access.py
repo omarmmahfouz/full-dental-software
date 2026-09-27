@@ -36,8 +36,8 @@ AREA_LABELS = {code: label for code, label, _prefixes in AREAS}
 _PREFIXES = sorted(((prefix, code) for code, _label, prefixes in AREAS for prefix in prefixes), key=lambda p: -len(p[0]))
 
 # Always allowed, whatever the limits: logging out, the language, changing one's own password,
-# reporting a problem with the software.
-FREE_PATHS = ("/login/", "/logout/", "/i18n/", "/password/", "/static/", "/favicon", "/problems/report/")
+# reporting a problem with the software, switching the page hints.
+FREE_PATHS = ("/login/", "/logout/", "/i18n/", "/password/", "/static/", "/favicon", "/problems/report/", "/hints/")
 RANK = {AreaAccess.Level.FULL: 2, AreaAccess.Level.READ: 1, AreaAccess.Level.HIDDEN: 0}
 
 

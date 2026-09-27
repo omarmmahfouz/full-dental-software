@@ -15,7 +15,8 @@
   <meta name="theme-color" content="#9EC64F">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-body-tertiary"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}"{% endif %}>
+<body class="sec-{{ section }}{% if user.is_authenticated and bottom_nav %} has-bottom-bar{% endif %} {% block body_class %}{% endblock %}"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}" data-user="{{ user.pk }}"{% if hints_reset %} data-hints-reset{% endif %}{% endif %}>
+<div class="nav-progress no-print" data-nav-progress aria-hidden="true"></div>
 {% if user.is_authenticated %}
 <nav class="navbar navbar-expand-xl app-navbar no-print">
   <div class="container-fluid">
@@ -23,15 +24,25 @@
       <img src="{% static 'img/cia-mark.png' %}" alt="CIA">
       <span class="brand-name">{% if current_branch %}{{ current_branch.name }}{% else %}{% trans "Cairo Implant Academy" %}{% endif %}</span>
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="{% trans 'Menu' %}"><span class="navbar-toggler-icon"></span></button>
-    <div class="collapse navbar-collapse" id="mainNav">
-      <ul class="navbar-nav me-auto mb-2 mb-xl-0">
+    <div class="nav-icons d-xl-none ms-auto">{% include "includes/nav_icons.html" %}</div>
+    <button class="navbar-toggler ms-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mainNav" aria-controls="mainNav" aria-label="{% trans 'Menu' %}"><span class="navbar-toggler-icon"></span></button>
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="mainNav" aria-labelledby="mainNavLabel">
+      <div class="offcanvas-header">
+        <div class="d-flex align-items-center gap-2" id="mainNavLabel">
+          <span class="menu-avatar">{{ user.get_full_name|default:user.username|slice:":1"|upper }}</span>
+          <div class="lh-sm"><div class="fw-bold">{{ user }}</div><div class="small text-muted">{{ role_labels|join:" · " }}</div></div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{% trans 'Close' %}"></button>
+      </div>
+      <div class="offcanvas-body flex-grow-1 align-items-xl-center">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item d-xl-none sec-home"><a class="nav-link" href="{% url 'core:dashboard' %}"><i class="bi bi-house-door"></i> {% trans "Home" %}</a></li>
         {% if is_front_desk and "schedule" not in hidden_areas %}
-        <li class="nav-item"><a class="nav-link" href="{% url 'scheduling:today' %}"><i class="bi bi-display"></i> {% trans "Reception today" %}</a></li>
+        <li class="nav-item sec-scheduling"><a class="nav-link" href="{% url 'scheduling:today' %}"><i class="bi bi-display"></i> {% trans "Reception today" %}</a></li>
         {% endif %}
         {% if sees_patients %}
         {% if "patients" not in hidden_areas %}
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown sec-patients">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-people"></i> {% trans "Patients" %}</a>
           <ul class="dropdown-menu">
             {% if is_front_desk %}
@@ -51,7 +62,7 @@
         </li>
         {% endif %}
         {% if "schedule" not in hidden_areas %}
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown sec-scheduling">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-calendar3"></i> {% trans "Schedule" %}</a>
           <ul class="dropdown-menu">
             {% if is_front_desk %}<li><a class="dropdown-item" href="{% url 'scheduling:day_planner' %}"><i class="bi bi-calendar3-week"></i> {% trans "Day planner" %}</a></li>{% endif %}
@@ -66,7 +77,7 @@
           </ul>
         </li>
         {% endif %}
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown sec-clinical">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-clipboard2-pulse"></i> {% trans "Clinical" %}</a>
           <ul class="dropdown-menu">
             {% if is_clinical %}
@@ -88,10 +99,10 @@
             {% endif %}
           </ul>
         </li>
-        {% if "complaints" not in hidden_areas %}<li class="nav-item"><a class="nav-link" href="{% url 'complaints:list' %}"><i class="bi bi-chat-left-dots"></i> {% trans "Complaints" %}</a></li>{% endif %}
+        {% if "complaints" not in hidden_areas %}<li class="nav-item sec-complaints"><a class="nav-link" href="{% url 'complaints:list' %}"><i class="bi bi-chat-left-dots"></i> {% trans "Complaints" %}</a></li>{% endif %}
         {% endif %}
         {% if is_front_desk and "academy" not in hidden_areas %}
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown sec-academy">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-mortarboard"></i> {% trans "Academy" %}</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{% url 'academy:candidate_list' %}"><i class="bi bi-mortarboard"></i> {% trans "Candidates" %}</a></li>
@@ -103,10 +114,10 @@
           </ul>
         </li>
         {% elif roles.team_head and "dentists" not in hidden_areas %}
-        <li class="nav-item"><a class="nav-link" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i> {% trans "CIA dentists" %}</a></li>
+        <li class="nav-item sec-dentists"><a class="nav-link" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i> {% trans "CIA dentists" %}</a></li>
         {% endif %}
         {% if can_stock or can_purchase %}
-        <li class="nav-item dropdown">
+        <li class="nav-item dropdown sec-stock">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-boxes"></i> {% if can_stock %}{% trans "Stock & purchases" %}{% else %}{% trans "Purchases" %}{% endif %}</a>
           <ul class="dropdown-menu">
             {% if can_stock %}
@@ -126,7 +137,7 @@
         </li>
         {% endif %}
         {% if sees_reports and "reports" not in hidden_areas %}
-        <li class="nav-item"><a class="nav-link" href="{% url 'reports:index' %}"><i class="bi bi-bar-chart-line"></i> {% trans "Reports" %}</a></li>
+        <li class="nav-item sec-reports"><a class="nav-link" href="{% url 'reports:index' %}"><i class="bi bi-bar-chart-line"></i> {% trans "Reports" %}</a></li>
         {% endif %}
       </ul>
       {% if sees_patients %}
@@ -134,20 +145,9 @@
         <input class="form-control form-control-sm" type="search" name="q" placeholder="{% trans 'Search patient: name, mobile, file, ID' %}" aria-label="{% trans 'Search' %}">
       </form>
       {% endif %}
-      <ul class="navbar-nav">
-        {% if pending_approvals is not None %}
-        <li class="nav-item">
-          <a class="nav-link position-relative" href="{% url 'core:approvals' %}" title="{% trans 'Changes waiting for approval' %}">
-            <i class="bi bi-check2-square fs-5"></i>{% if pending_approvals %}<span class="badge rounded-pill bg-warning text-dark notif-badge">{{ pending_approvals }}</span>{% endif %}
-          </a>
-        </li>
-        {% endif %}
-        <li class="nav-item">
-          <a class="nav-link position-relative" href="{% url 'core:notifications' %}" title="{% trans 'Notifications' %}">
-            <i class="bi bi-bell fs-5"></i>{% if unread_notifications %}<span class="badge rounded-pill bg-danger notif-badge">{{ unread_notifications }}</span>{% endif %}
-          </a>
-        </li>
-        <li class="nav-item dropdown">
+      <ul class="navbar-nav user-menu">
+        <li class="nav-item d-none d-xl-flex nav-icons">{% include "includes/nav_icons.html" %}</li>
+        <li class="nav-item dropdown sec-settings">
           <a class="nav-link dropdown-toggle user-name" href="#" data-bs-toggle="dropdown" title="{{ user }}"><i class="bi bi-person-circle"></i> {{ user }}</a>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><form action="{% url 'set_language' %}" method="post" class="px-3 py-1">{% csrf_token %}
@@ -158,6 +158,8 @@
             <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key"></i> {% trans "Change password" %}</a></li>
             {% if roles.owner or roles.head_cia %}<li><a class="dropdown-item" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i> {% trans "Settings" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'core:problems' %}"><i class="bi bi-bug"></i> {% trans "Problem reports" %}{% if new_problems %} <span class="badge rounded-pill text-bg-danger">{{ new_problems }}</span>{% endif %}</a></li>{% endif %}
+            <li><form action="{% url 'core:hints_toggle' %}" method="post" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button class="dropdown-item" data-hints-toggle><i class="bi bi-lightbulb"></i> {% if hints_on %}{% trans "Hints: on" %}{% else %}{% trans "Hints: off" %}{% endif %}</button></form></li>
             <li><button type="button" class="dropdown-item" data-sound-toggle><i class="bi bi-volume-up"></i> <span data-sound-on>{% trans "Sound for alerts: on" %}</span><span data-sound-off hidden>{% trans "Sound for alerts: off" %}</span></button></li>
             <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#report-problem"><i class="bi bi-exclamation-diamond"></i> {% trans "Report a problem" %}</button></li>
             <li><hr class="dropdown-divider"></li>
@@ -165,23 +167,39 @@
           </ul>
         </li>
       </ul>
+      </div>
     </div>
   </div>
 </nav>
 {% endif %}
-<main class="container-fluid py-3 px-3 px-lg-4">
+<main class="container-fluid py-3 px-3 px-lg-4 page-enter">
   {% if user.is_authenticated and request.resolver_match.url_name != "dashboard" %}
   <a class="back-link no-print" href="{% url 'core:dashboard' %}" data-back><i class="bi bi-arrow-{% if RTL %}right{% else %}left{% endif %}"></i> {% trans "Back" %}</a>
   {% endif %}
   {% if missing_notes %}<div class="alert alert-warning py-2 small no-print d-flex flex-wrap align-items-center gap-2"><i class="bi bi-pencil-square"></i> {% blocktrans count n=missing_notes %}{{ n }} visit has nothing written in the patient's file.{% plural %}{{ n }} visits have nothing written in the patients' files.{% endblocktrans %} <a class="btn btn-sm btn-warning ms-auto" href="{% url 'clinical:visits_missing_notes' %}?mine=1">{% trans "Write them now" %}</a></div>{% endif %}
   {% if read_only_here %}<div class="alert alert-secondary py-2 small no-print"><i class="bi bi-eye"></i> {% trans "Read only: you can look here but not save changes." %}</div>{% endif %}
   {% for message in messages %}
-  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show no-print" role="alert">
-    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  <div class="alert app-message alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show no-print" role="alert"{% if message.tags == "success" %} data-auto-hide{% endif %}>
+    <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-x-octagon-fill{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+    <div class="msg-text">{{ message }}</div><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% trans 'Close' %}"></button>
   </div>
   {% endfor %}
+  {% if page_hint %}
+  <div class="page-hint no-print" role="note" data-hint-key="{{ page_hint.key }}">
+    <span class="hint-icon"><i class="bi bi-lightbulb"></i></span>
+    <div class="hint-text"><b>{% trans "Hint" %}:</b> {{ page_hint.text }}</div>
+    <button type="button" class="btn-close" data-hint-close aria-label="{% trans 'Hide this hint' %}" title="{% trans 'Hide this hint' %}"></button>
+  </div>
+  <script>(function () { try { var box = document.currentScript.previousElementSibling; if (localStorage.getItem("hint-hidden:" + document.body.getAttribute("data-user") + ":" + box.getAttribute("data-hint-key"))) box.remove(); } catch (e) {} })();</script>
+  {% endif %}
   {% block content %}{% endblock %}
 </main>
+{% if user.is_authenticated and bottom_nav %}
+<nav class="bottom-bar no-print" aria-label="{% trans 'Main places' %}">
+  {% for item in bottom_nav %}<a href="{{ item.url }}"{% if item.active %} class="is-active" aria-current="page"{% endif %}><i class="bi {{ item.icon }}"></i><span class="label">{{ item.label }}</span></a>{% endfor %}
+  <button type="button" data-bs-toggle="offcanvas" data-bs-target="#mainNav" aria-controls="mainNav"><i class="bi bi-list"></i><span class="label">{% trans "Menu" %}</span></button>
+</nav>
+{% endif %}
 {% if user.is_authenticated %}{% include "includes/app_modals.html" %}{% endif %}
 <div class="app-toasts" data-toasts aria-live="polite"></div>
 <button type="button" class="to-top" data-to-top title="{% trans 'Up' %}" aria-label="{% trans 'Up' %}"><i class="bi bi-arrow-up"></i></button>
