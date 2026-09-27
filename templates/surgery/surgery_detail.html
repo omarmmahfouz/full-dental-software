@@ -18,7 +18,7 @@
   <table class="table table-bordered table-sm small">
     <tbody>
       <tr><th style="width:18%">{% trans "Name & code" %}</th><td>{{ surgery.patient.full_name }} — {{ surgery.patient.file_number }}</td><th style="width:18%">{% trans "Instructor" %}</th><td>{{ surgery.instructor|default:"—" }}</td></tr>
-      <tr><th>{% trans "Operator 1" %}</th><td>{% if surgery.operator_1 %}<a href="{{ surgery.operator_1.get_absolute_url }}">{{ surgery.operator_1.label }}</a>{% endif %}</td><th>{% trans "Operator 2" %}</th><td>{% if surgery.operator_2 %}<a href="{{ surgery.operator_2.get_absolute_url }}">{{ surgery.operator_2.label }}</a>{% else %}—{% endif %}</td></tr>
+      <tr><th>{% trans "Operator 1" %}</th><td>{% if surgery.operator_1 and user|opens_dentist:surgery.operator_1 %}<a href="{{ surgery.operator_1.get_absolute_url }}">{{ surgery.operator_1.label }}</a>{% else %}{{ surgery.operator_1.label|default:"" }}{% endif %}</td><th>{% trans "Operator 2" %}</th><td>{% if surgery.operator_2 and user|opens_dentist:surgery.operator_2 %}<a href="{{ surgery.operator_2.get_absolute_url }}">{{ surgery.operator_2.label }}</a>{% else %}{{ surgery.operator_2.label|default:"—" }}{% endif %}</td></tr>
       <tr><th>{% trans "Date" %}</th><td>{{ surgery.date|date:"d/m/Y" }}</td><th>{% trans "Assistant" %}</th><td>{{ surgery.assistant.label|default:"—" }}</td></tr>
     </tbody>
   </table>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n clinic %}
 {% block title %}{{ step.step_type }}{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -11,7 +11,7 @@
       <dt>{% trans "Date" %}</dt><dd>{{ step.performed_at|date:"l d/m/Y g:i A" }}</dd>
       <dt>{% trans "Teeth" %}</dt><dd>{{ step.teeth|default:"—" }}{% if step.surfaces %} ({{ step.surfaces }}){% endif %}</dd>
       {% if step.material %}<dt>{% trans "Material" %}</dt><dd>{{ step.material }}</dd>{% endif %}
-      <dt>{% trans "Operator" %}</dt><dd class="fw-bold">{% if step.operator %}<a href="{{ step.operator.get_absolute_url }}">{{ step.operator }}</a>{% else %}—{% endif %}</dd>
+      <dt>{% trans "Operator" %}</dt><dd class="fw-bold">{% if step.operator and user|opens_dentist:step.operator %}<a href="{{ step.operator.get_absolute_url }}">{{ step.operator }}</a>{% else %}{{ step.operator|default:"—" }}{% endif %}</dd>
       <dt>{% trans "Assistant" %}</dt><dd>{{ step.assistant|default:"—" }}</dd>
       <dt>{% trans "Supervisor" %}</dt><dd>{{ step.supervisor|default:"—" }}</dd>
       <dt>{% trans "Details" %}</dt><dd>{{ step.notes|linebreaksbr|default:"—" }}</dd>

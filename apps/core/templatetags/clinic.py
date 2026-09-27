@@ -98,6 +98,14 @@ def get_item(mapping, key):
 
 
 @register.filter
+def opens_dentist(user, dentist):
+    """{% if user|opens_dentist:step.operator %} — show the name as a link only if the file opens for them."""
+    from apps.dentists.access import can_open_dentist_file
+
+    return can_open_dentist_file(user, dentist)
+
+
+@register.filter
 def attr(obj, name):
     """{{ site|attr:"extraction" }} — read an attribute whose name is in a variable."""
     return getattr(obj, str(name), None)

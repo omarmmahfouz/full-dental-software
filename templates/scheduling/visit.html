@@ -32,7 +32,7 @@
   <a class="visit-step tile-green" href="{% url 'prescriptions:create' patient.pk %}"><i class="bi bi-capsule"></i><b>{% trans "Prescription" %}</b></a>
   {% endif %}
   <a class="visit-step tile-purple" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}&appointment={{ a.pk }}"><i class="bi bi-box-seam"></i><b>{% trans "Lab request" %}</b></a>
-  <a class="visit-step tile-gray" href="{% url 'scheduling:requests_mine' %}"><i class="bi bi-calendar-plus"></i><b>{% trans "Next visit" %}</b><small>{% trans "write it in the treatment, or add the patient to your list" %}</small></a>
+  {% if my_dentist %}<a class="visit-step tile-gray" href="{% url 'scheduling:requests_mine' %}"><i class="bi bi-calendar-plus"></i><b>{% trans "Next visit" %}</b><small>{% trans "write it in the treatment, or add the patient to your list" %}</small></a>{% endif %}
 </div>
 
 <div class="row g-3">

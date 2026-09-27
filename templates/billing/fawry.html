@@ -33,7 +33,7 @@
     <td class="nowrap">{{ m.moved_on|date:"d/m/Y" }}</td>
     <td class="small">{{ m.branch }}</td>
     <td>{{ m.get_kind_display }}{% if m.service %} <span class="small text-muted">— {{ m.get_service_display }}</span>{% endif %}</td>
-    <td class="small">{% if m.source %}<a href="{{ m.source.get_absolute_url }}">{% if m.purchase_id %}{{ m.description }}{% else %}{{ m.source.receipt_number }} — {{ m.description }}{% endif %}</a>{% else %}{{ m.description|default:"" }}{% endif %}{% if m.reference %} <span class="text-muted ltr">#{{ m.reference }}</span>{% endif %}{% if m.cash_received %}<div class="text-success">{% trans "cash taken" %}: {{ m.cash_received|money }}</div>{% endif %}</td>
+    <td class="small">{% if m.source and not m.academy_payment_id and not m.purchase_id or m.academy_payment_id and "academy" not in hidden_areas or m.purchase_id and can_purchase %}<a href="{{ m.source.get_absolute_url }}">{{ m.source_label }}</a>{% else %}{{ m.source_label|default:"" }}{% endif %}{% if m.reference %} <span class="text-muted ltr">#{{ m.reference }}</span>{% endif %}{% if m.cash_received %}<div class="text-success">{% trans "cash taken" %}: {{ m.cash_received|money }}</div>{% endif %}</td>
     <td class="text-end fw-semibold">{{ m.amount|money }}</td>
     <td class="text-end small">{% if m.fee %}{{ m.fee|money }}{% else %}—{% endif %}</td>
     <td class="text-end {% if m.balance_change < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.balance_change|money }}</td>

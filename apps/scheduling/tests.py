@@ -566,6 +566,13 @@ class VisitFlowTests(TestCase):
         self.client.login(username="sec", password=PASSWORD)  # the visit page is for the clinical team
         self.assertEqual(self.client.get(f"/schedule/visit/{self.appointment.pk}/").status_code, 403)
 
+    def test_the_patient_list_tile_is_for_dentists_only(self):
+        """The head of CIA opens the visit page too, but has no patient list of his own."""
+        for username, shown in (("dentist", True), ("head", False)):
+            self.client.login(username=username, password=PASSWORD)
+            page = self.client.get(f"/schedule/visit/{self.appointment.pk}/").content.decode()
+            self.assertEqual('href="/schedule/my-patient-list/"' in page, shown)
+
     def test_visits_without_notes_remind_the_dentist_then_the_supervisor(self):
         from apps.clinical.models import TreatmentStep
         from apps.clinical.visit_notes import send_notes_alerts, visits_without_notes

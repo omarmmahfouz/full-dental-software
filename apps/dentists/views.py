@@ -13,13 +13,15 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from apps.clinical.models import TreatmentStep
+from apps.core.access import area_levels
 from apps.core.mixins import role_required
-from apps.core.models import UserProfile, branch_for_user
-from apps.core.roles import DENTIST, FRONT_DESK, HEAD_CIA, OWNER, TEAM_HEAD, has_role
+from apps.core.models import AreaAccess, UserProfile, branch_for_user
+from apps.core.roles import CLINICAL, DENTIST, FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, TEAM_HEAD, has_role
 from apps.core.utils import normalize_phone
 from apps.patients.models import Patient
 from apps.surgery.models import Surgery, SurgerySite
 
+from .access import can_open_dentist_file
 from .forms import DentistFilterForm, DentistForm
 from .models import Dentist
 
@@ -56,11 +58,22 @@ def dentist_list(request):
     return render(request, "dentists/dentist_list.html", {"page_obj": page, "filter_form": form})
 
 
+def _opens(user):
+    """Which linked pages this person can open from a dentist's file: the reception sees the file,
+    but not the charts and surgeries; some secretaries do not work with the academy."""
+    hidden = {area for area, level in area_levels(user).items() if level == AreaAccess.Level.HIDDEN}
+    clinical = has_role(user, *CLINICAL)
+    return {
+        "chart": clinical and "charts" not in hidden,
+        "surgery": clinical and "surgery" not in hidden,
+        "patient": has_role(user, *PATIENT_VIEWERS) and "patients" not in hidden,
+        "academy": has_role(user, *FRONT_DESK) and "academy" not in hidden,
+    }
+
+
 def dentist_detail(request, pk):
     dentist = get_object_or_404(Dentist.objects.select_related("candidate", "user"), pk=pk)
-    own = dentist.user_id == request.user.pk
-    if not (own or _dentists_for(request.user).filter(pk=dentist.pk).exists()
-            and has_role(request.user, *FRONT_DESK, TEAM_HEAD)):
+    if not can_open_dentist_file(request.user, dentist):
         raise PermissionDenied
     implants_op1 = SurgerySite.objects.done_by(dentist).exclude(implant_status="")  # the teeth he operated
     implants_op2 = SurgerySite.objects.filter(surgery__operator_2=dentist).exclude(implant_status="").exclude(
@@ -119,6 +132,7 @@ def dentist_detail(request, pk):
         "by_type": by_type, "grade": round(grade, 1) if grade else None,
         "surgeries": surgeries[:30], "implants": implants_op1.select_related("surgery__patient", "implant_system")[:60],
         "cases": cases, "can_manage": has_role(request.user, OWNER),
+        "opens": _opens(request.user),
         "lang_en": (request.LANGUAGE_CODE or "").startswith("en"),
     })
 

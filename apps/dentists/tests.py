@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.utils import timezone
@@ -66,6 +67,47 @@ class DentistTests(TestCase):
         self.assertEqual(self.client.get("/dentists/").status_code, 403)
         self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.get("/dentists/").status_code, 200)
+
+    def test_links_on_a_dentist_file_open_for_the_reader(self):
+        """The reception opens a dentist's file but not the charts and surgeries it lists, and a
+        secretary without the academy does not get academy links: no link leads to a closed page."""
+        from apps.core.models import AreaAccess, PersonAreaAccess
+
+        Enrollment.objects.create(candidate=self.candidate, course=self.course,
+                                  enrolled_on=timezone.localdate(), agreed_fee=self.course.fee)
+        dentist = self.candidate.dentist
+        patient = self.place_implants(dentist, 1)
+        surgery = Surgery.objects.get(patient=patient)
+        chart, report = f"/chart/patient/{patient.pk}/", f"/chart/patient/{patient.pk}/case-report/"
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get(f"/dentists/{dentist.pk}/").content.decode()
+        for link in (chart, report, surgery.get_absolute_url(), self.course.get_absolute_url()):
+            self.assertIn(f'href="{link}', page)
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get(f"/dentists/{dentist.pk}/").content.decode()
+        for link in (chart, report, surgery.get_absolute_url()):
+            self.assertNotIn(f'href="{link}', page)
+        self.assertIn(f'href="{patient.get_absolute_url()}"', page)  # the patient file instead of the chart
+        self.assertIn(f'href="{self.course.get_absolute_url()}"', page)
+        PersonAreaAccess.objects.create(user=get_user_model().objects.get(username="sec"), area="academy",
+                                        level=AreaAccess.Level.HIDDEN)
+        page = self.client.get(f"/dentists/{dentist.pk}/").content.decode()
+        self.assertNotIn(f'href="{self.course.get_absolute_url()}"', page)
+        self.assertNotIn(f'href="{self.candidate.get_absolute_url()}"', page)
+        self.assertIn(self.course.name, page)  # the batch is still named
+
+    def test_dentist_names_link_only_to_files_that_open(self):
+        mine = make_dentist("dentist", kind="fulltime")
+        other = make_dentist("dentist2", kind="fulltime")
+        patient = make_patient(self.branch)
+        own = Surgery.objects.create(branch=self.branch, patient=patient, operator_1=mine, operator_2=other)
+        self.client.login(username="dentist", password=PASSWORD)
+        page = self.client.get(own.get_absolute_url()).content.decode()
+        self.assertIn(f'href="{mine.get_absolute_url()}"', page)
+        self.assertNotIn(f'href="{other.get_absolute_url()}"', page)  # another dentist's file is closed to him
+        self.assertIn(other.label, page)
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertIn(f'href="{other.get_absolute_url()}"', self.client.get(own.get_absolute_url()).content.decode())
 
     def test_only_cia_dentists_get_a_login(self):
         self.client.login(username="sec", password=PASSWORD)

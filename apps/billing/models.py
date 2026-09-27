@@ -272,6 +272,14 @@ class FawryMove(TimeStampedModel):
         return self.patient_payment or self.academy_payment or self.purchase
 
     @property
+    def source_label(self):
+        """The receipt number and the description, as shown in the Fawry ledger."""
+        source = self.source
+        if source is None or self.purchase_id:
+            return self.description
+        return f"{source.receipt_number} — {self.description}"
+
+    @property
     def is_automatic(self):
         return bool(self.patient_payment_id or self.academy_payment_id or self.purchase_id)
 
