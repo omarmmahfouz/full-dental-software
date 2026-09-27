@@ -5,15 +5,14 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.billing.models import Bill, FawryMachine, PatientPayment, Service, create_bill
+from apps.clinics.models import DoctorPayout, FeeRule
+from apps.clinics.shares import owed, statement
 from apps.core.models import Branch, UserProfile
 from apps.core.testing import PASSWORD, make_dentist, make_patient, make_user, setup_clinic
 from apps.dentists.models import Dentist
 from apps.scheduling.models import Appointment, Room, RoomShift
 from apps.stock.models import StockCategory, StockItem, StockMovement
 from apps.stock.services import record_movement
-
-from .models import DoctorPayout, FeeRule
-from .shares import owed, statement
 
 
 def at(day, hour, minute=0):

@@ -116,7 +116,10 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - `setup_clinic` (lists, rooms, branches) can be run many times. `load_demo_data` works on an **empty** database only.
 
 ## Commands
-- Tests (about 4 minutes; the bare label `apps` does not find the tests, so list the modules):
+- Tests (about 4 minutes). GitHub runs `manage.py test apps` on every push (`.github/workflows/tests.yml`); that finds
+  every `apps/*/tests.py` but loads them as top-level modules (`apps/` has no `__init__.py`), so **test files must
+  import with `apps.…`, never relative (`from .models`)**, or GitHub fails with "isn't in INSTALLED_APPS".
+  Run `DJANGO_DEBUG=1 .venv/bin/python manage.py test apps --parallel 4` before pushing, or list the modules:
   ```bash
   DJANGO_DEBUG=1 .venv/bin/python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests \
     apps.clinical.tests apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests \

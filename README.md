@@ -396,7 +396,8 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   - `static/js/app.js` adds the motion, the loading line, the tooltips, the rows that open from anywhere, and the sticky *Save*.
   - Page hints are in `apps/core/hints.py`, keyed by the page's address name, with a text per role where needed.
     The bottom bar of each role is in `apps/core/navigation.py`.
-- Run the tests (the bare label `apps` finds none, so list the modules):
+- Run the tests: `DJANGO_DEBUG=1 python manage.py test apps` (as GitHub does on every push; test files import with
+  `apps.…`, not relative imports), or list the modules:
   ```bash
   DJANGO_DEBUG=1 python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests apps.clinical.tests \
     apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests apps.prescriptions.tests \
