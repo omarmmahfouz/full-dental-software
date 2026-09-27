@@ -85,11 +85,11 @@ def clean_digits_value(value):
     return normalize_digits(value or "").strip()
 
 
-def validate_upload(file):
-    """Accept images and PDFs up to MAX_UPLOAD_SIZE_MB."""
+def validate_upload(file, limit=None):
+    """Accept images and PDFs up to MAX_UPLOAD_SIZE_MB (or ``limit`` MB)."""
     if not file:
         return file
-    limit = settings.MAX_UPLOAD_SIZE_MB
+    limit = limit or settings.MAX_UPLOAD_SIZE_MB
     if file.size > limit * 1024 * 1024:
         raise ValidationError(_("The file is too large (maximum %(size)s MB).") % {"size": limit})
     name = file.name.lower()

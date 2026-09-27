@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import time
 
 from django.conf import settings
@@ -139,6 +141,21 @@ class UserProfile(models.Model):
         return ""
 
 
+# While a page is being made, the clinic options are read from the database once and kept here
+# (a report of thousands of visits asks "is this visit late?" for each one).
+_page_cache = ContextVar("clinic_page_cache", default=None)
+
+
+@contextmanager
+def page_cache():
+    """Keep the clinic options for one page (see ``PageCacheMiddleware``)."""
+    token = _page_cache.set({})
+    try:
+        yield
+    finally:
+        _page_cache.reset(token)
+
+
 class ClinicSettings(models.Model):
     """Options the owner changes from Settings, without touching the code. One row."""
 
@@ -182,7 +199,19 @@ class ClinicSettings(models.Model):
             "default_appointment_minutes": settings.CLINIC.get("DEFAULT_APPOINTMENT_MINUTES", 30),
             "complaint_follow_up_days": settings.CLINIC.get("COMPLAINT_FOLLOW_UP_DAYS", 2),
         }
-        return cls.objects.get_or_create(pk=1, defaults=defaults)[0]
+        cache = _page_cache.get()
+        if cache is not None and "options" in cache:
+            return cache["options"]
+        options = cls.objects.get_or_create(pk=1, defaults=defaults)[0]
+        if cache is not None:
+            cache["options"] = options
+        return options
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        cache = _page_cache.get()
+        if cache is not None:
+            cache.pop("options", None)
 
 
 class AreaAccess(models.Model):
@@ -334,6 +363,33 @@ class Notification(models.Model):
     @property
     def is_read(self):
         return self.read_at is not None
+
+
+class BackupRun(models.Model):
+    """One run of the backup: the data (a ZIP of all records) or the photo copy (only the new files).
+    The owner's home page warns when the last good one is too old or the last one failed."""
+
+    class Kind(models.TextChoices):
+        DATABASE = "database", _("All the data (ZIP)")
+        FILES = "files", _("Copy of the photos and files")
+
+    kind = models.CharField(_("backup of"), max_length=10, choices=Kind.choices)
+    started_at = models.DateTimeField(_("started at"), default=timezone.now)
+    finished_at = models.DateTimeField(_("finished at"), null=True, blank=True)
+    ok = models.BooleanField(_("done without errors"), default=False)
+    where = models.CharField(_("saved in"), max_length=500, blank=True)
+    size = models.BigIntegerField(_("size (bytes)"), default=0)
+    files_copied = models.PositiveIntegerField(_("files copied"), default=0)
+    files_checked = models.PositiveIntegerField(_("files checked"), default=0)
+    error = models.TextField(_("error"), blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+        verbose_name = _("backup run")
+        verbose_name_plural = _("backup runs")
+
+    def __str__(self):
+        return f"{self.get_kind_display()} {timezone.localtime(self.started_at):%d/%m/%Y %H:%M}"
 
 
 def branch_for_user(user):

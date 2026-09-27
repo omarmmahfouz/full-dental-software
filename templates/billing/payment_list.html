@@ -11,10 +11,11 @@
 {% if by_method %}<div class="mb-3 d-flex flex-wrap gap-2">{% for method, amount in by_method %}<span class="badge text-bg-light border fs-6">{{ method }}: {{ amount|money }}</span>{% endfor %}</div>{% endif %}
 <div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
   <thead><tr><th>{% trans "Receipt" %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "For" %}</th><th>{% trans "Amount" %}</th><th>{% trans "Method" %}</th><th>{% trans "Received by" %}</th></tr></thead>
-  <tbody>{% for p in payments %}<tr>
+  <tbody>{% for p in page_obj %}<tr>
     <td><a href="{{ p.get_absolute_url }}">{{ p.receipt_number }}</a></td><td>{{ p.paid_on|date:"d/m/Y" }}</td>
     <td><a href="{% url 'billing:account' p.patient_id %}">{{ p.patient.full_name }}</a> <span class="small text-muted">{{ p.patient.file_number }}</span></td>
     <td>{{ p.charge.service|default:"—" }}</td><td class="fw-semibold">{{ p.amount|money }}</td><td>{{ p.get_method_display }}{% if p.fawry_machine %} <span class="small text-muted">({{ p.fawry_machine }})</span>{% endif %}{% if places_shown|length > 1 %} <span class="place-badge place-{{ p.branch.code }}">{{ p.branch.code }}</span>{% endif %}</td><td>{{ p.created_by|default:"—" }}</td>
   </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No payments in this period." %}</td></tr>{% endfor %}</tbody>
 </table></div></div>
+{% include "includes/pagination.html" %}
 {% endblock %}

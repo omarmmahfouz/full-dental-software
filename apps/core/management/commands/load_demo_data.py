@@ -647,6 +647,7 @@ class Command(BaseCommand):
         self._round_three(branch, today, now, at, patients, booked_patients, rooms, cia_dentists, candidates,
                           types, services, secretary, head, stock_user, owner)
         self._round_cic(today, at, user, patients, booked_patients, cia_dentists, types, secretary, stock_user)
+        self._round_speed(today, at, patients, secretary)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
@@ -944,3 +945,44 @@ class Command(BaseCommand):
             for place, quantity, days_ago, where in [(cic, 2, 10 - n, "CIC room 2"), (academy, 3, 8 - n, "Room 3")]:
                 record_movement(item, StockMovement.Kind.OUT, quantity, stock_user, branch=place, destination=where,
                                 unit_cost=item.unit_cost, moved_at=at(today - timedelta(days=days_ago), 11))
+
+    def _round_speed(self, today, at, patients, secretary):
+        """Speed and safety: X-rays and CBCTs kept where they are (a folder on the server, the centre's viewer),
+        and a backup history (a good night, and an older night when the backup disk was full)."""
+        from PIL import Image, ImageDraw, ImageFont
+
+        from apps.core.models import BackupRun
+        from apps.patients.models import PatientDocument
+
+        patient = patients[4]  # CIA-00005, a patient of dentist1
+        image = Image.new("L", (1400, 700), 30)
+        draw = ImageDraw.Draw(image)
+        draw.ellipse([120, 120, 1280, 640], outline=170, width=40)  # a panoramic X-ray's arch
+        for number in range(14):
+            left = 230 + number * 68
+            draw.rounded_rectangle([left, 250, left + 48, 470], radius=18, fill=205)
+        draw.text((40, 30), "OPG (demo)", fill=230, font=ImageFont.load_default(size=40))
+        output = io.BytesIO()
+        image.save(output, "JPEG", quality=80)
+        documents = [
+            {"file": ContentFile(output.getvalue(), name="opg.jpg"), "notes": "Panoramic (OPG)"},
+            {"location": f"\\\\CIA-SERVER\\CBCT\\{patient.file_number}", "notes": "CBCT lower jaw: DICOM on the server"},
+            {"location": "https://cbct-centre.example/viewer/48213", "notes": "CBCT upper jaw: the centre's online viewer"},
+        ]
+        for values in documents:
+            PatientDocument.objects.create(patient=patient, kind=PatientDocument.Kind.XRAY, created_by=secretary,
+                                           **values)
+
+        last_night, older = timezone.now() - timedelta(hours=6), at(today - timedelta(days=4), 2)
+        runs = [
+            (BackupRun.Kind.DATABASE, older, True, {"size": 41_200_000}),
+            (BackupRun.Kind.FILES, older, False,
+             {"error": "OSError: [Errno 28] No space left on device", "files_checked": 11_870, "files_copied": 212}),
+            (BackupRun.Kind.DATABASE, last_night, True, {"size": 43_100_000}),
+            (BackupRun.Kind.FILES, last_night + timedelta(minutes=3), True,
+             {"files_checked": 12_450, "files_copied": 386, "size": 1_540_000_000}),
+        ]
+        for kind, started, ok, extra in runs:
+            BackupRun.objects.create(kind=kind, started_at=started, finished_at=started + timedelta(minutes=4), ok=ok,
+                                     where="data/backups" if kind == BackupRun.Kind.DATABASE else "E:/CIA backup/files",
+                                     **extra)

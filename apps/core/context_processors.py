@@ -24,7 +24,8 @@ from .roles import (
 def app_context(request):
     match = getattr(request, "resolver_match", None)
     # The part of the system the page belongs to gives the page its accent colour (see app.css).
-    context = {"CLINIC": settings.CLINIC, "section": (match.namespace if match and match.namespace else "home")}
+    context = {"CLINIC": settings.CLINIC, "section": (match.namespace if match and match.namespace else "home"),
+               "test_copy": settings.TEST_COPY}
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:
         roles = user_roles(user)

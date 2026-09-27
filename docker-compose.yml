@@ -27,13 +27,30 @@ services:
       DB_ENGINE: postgres
       DB_HOST: db
       MEDIA_ROOT: /app/data/media
+      MEDIA_SENDFILE: nginx
+      BACKUP_DIR: /app/backups
+      FILES_BACKUP_DIR: /files-backup
     volumes:
       - ./data/media:/app/data/media
-    ports:
-      - "80:8000"
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    expose:
+      - "8000"
     depends_on:
       db:
         condition: service_healthy
+
+  # The front door: sends the photos and files itself and passes the pages to "web".
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./data/media:/media:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - web
 
   # Daily reminders (overdue complaints, late lab work) at 07:00 Cairo time.
   reminders:
@@ -49,8 +66,31 @@ services:
       db:
         condition: service_healthy
 
-  # Nightly database backup, kept for 30 days in ./backups (copy that folder
-  # and ./data/media to an external disk regularly).
+  # Every night at 2 am: the ZIP of all the data (kept in ./backups, the newest 10) and the copy of the new
+  # and changed photos and files to FILES_BACKUP_HOST_DIR (set it in .env to a folder on another disk,
+  # e.g. /mnt/backup-disk/cia-files). Then the previews of any photo that has none. See docs/deployment.md.
+  nightly:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_ENGINE: postgres
+      DB_HOST: db
+      MEDIA_ROOT: /app/data/media
+      BACKUP_DIR: /app/backups
+      FILES_BACKUP_DIR: /files-backup
+      TZ: Africa/Cairo
+    volumes:
+      - ./data/media:/app/data/media
+      - ./backups:/app/backups
+      - ${FILES_BACKUP_HOST_DIR:-./backups/files}:/files-backup
+      - ./logs:/app/logs
+    entrypoint: ["sh", "-c", "while true; do if [ \"$$(date +%H)\" = \"02\" ]; then python manage.py backup; python manage.py make_previews > /dev/null; sleep 3600; fi; sleep 600; done"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Also every night: PostgreSQL's own copy of the database (quick to put back), kept for 30 days in ./backups.
   backup:
     image: postgres:16
     restart: unless-stopped

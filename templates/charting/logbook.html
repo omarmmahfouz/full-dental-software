@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n static %}
+{% load i18n static clinic %}
 {% block title %}{% trans "Log book" %} — {% if anonymous %}{{ initials }}{% else %}{{ patient.full_name }}{% endif %}{% endblock %}
 {% block content %}
 <form class="card mb-3 no-print" method="get" data-no-leave-warning>
@@ -40,7 +40,7 @@
   <div class="logbook-grid per-row-{{ per_row }}">
     {% for photo in page.photos %}
     <figure class="logbook-photo">
-      <div class="logbook-frame"><img src="{{ photo.file.url }}" alt="{{ photo.photo_type|default:'' }}"></div>
+      <div class="logbook-frame"><img src="{{ photo.file|preview:'medium' }}" alt="{{ photo.photo_type|default:'' }}"></div>
       <figcaption><b>{% if photo.photo_type %}{{ photo.photo_type.name_en }}{% else %}{{ photo.notes|default:_("Other photo") }}{% endif %}</b>{% if photo.teeth %} · {{ photo.teeth }}{% endif %} · {{ photo.taken_on|date:"d/m/Y" }}</figcaption>
     </figure>
     {% endfor %}

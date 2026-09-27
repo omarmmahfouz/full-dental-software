@@ -1,3 +1,6 @@
+import logging
+import time
+
 from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
 from django.utils import translation
@@ -74,3 +77,37 @@ class WorkingPlaceMiddleware:
             else:
                 user._working_branch = place
         return self.get_response(request)
+
+
+class PageCacheMiddleware:
+    """Settings read many times while one page is made are read from the database once (see ``page_cache``)."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from .models import page_cache
+
+        with page_cache():
+            return self.get_response(request)
+
+
+slow_log = logging.getLogger("clinic.slow")
+
+
+class SlowPageMiddleware:
+    """Writes down every page that took longer than SLOW_PAGE_SECONDS (data/logs/slow-pages.log), with who
+    opened it, so a page that becomes slow as the data grows is seen before the staff complain."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        started = time.monotonic()
+        response = self.get_response(request)
+        seconds = time.monotonic() - started
+        if seconds >= settings.SLOW_PAGE_SECONDS:
+            user = getattr(request, "user", None)
+            slow_log.warning("%.1f s  %s %s  (%s)", seconds, request.method, request.get_full_path()[:300],
+                             user.get_username() if user is not None and user.is_authenticated else "-")
+        return response

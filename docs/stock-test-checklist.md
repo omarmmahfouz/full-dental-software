@@ -63,3 +63,6 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
 26. An item can be **shared** by all the places or **belong to CIC** ("يخص" on the item). The list has a CIC badge on CIC's items and a filter by place.
 27. "صرف من المخزن" asks **for which place**; CIC's own material cannot be taken out for CIA.
 28. "حركات المخزن" shows **what each place used** in the period and its value, with a place badge on each movement.
+
+## K. New in this version (6): speed and safety
+29. Nothing changes in the stock pages. The lists stay quick with many movements: "حركات المخزن" for a whole year still opens at once, 100 movements a page.

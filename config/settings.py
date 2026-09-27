@@ -87,8 +87,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.core.middleware.SlowPageMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "apps.core.middleware.PageCacheMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -191,12 +193,23 @@ if DEBUG or "test" in sys.argv[1:2]:
 # every download goes through a login-protected view (apps.core.views.protected_media).
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(env("MEDIA_ROOT", str(BASE_DIR / "data" / "media")))
+# Who sends the file once the view has checked who may open it: "" = Python itself (Windows, trial);
+# "nginx" = the nginx in front of it (docker-compose), much lighter with many photos; "x-sendfile" = Apache.
+MEDIA_SENDFILE = env("MEDIA_SENDFILE", "")
+MEDIA_SENDFILE_PREFIX = env("MEDIA_SENDFILE_PREFIX", "/protected-media/")
 # Full backups (Settings → Backup and export, or "python manage.py backup"): the newest BACKUP_KEEP are kept.
 BACKUP_DIR = Path(env("BACKUP_DIR", str(BASE_DIR / "data" / "backups")))
 BACKUP_KEEP = int(env("BACKUP_KEEP", "10"))
+# The nightly copy of the photos and uploaded files (only new and changed files; best on another disk,
+# e.g. E:\CIA backup\files). Empty = the "files" folder inside BACKUP_DIR.
+FILES_BACKUP_DIR = env("FILES_BACKUP_DIR", "")
+# "Make a backup now" works in the background when it takes long (not while the tests run).
+BACKUP_IN_BACKGROUND = "test" not in sys.argv[1:2]
 FILE_UPLOAD_PERMISSIONS = 0o640
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 MAX_UPLOAD_SIZE_MB = int(env("MAX_UPLOAD_SIZE_MB", "15"))
+# X-rays and CBCT reports (patient documents of that type) may be larger.
+MAX_XRAY_UPLOAD_MB = int(env("MAX_XRAY_UPLOAD_MB", "60"))
 
 # LAN-only by default. Enable when the server is put behind HTTPS.
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -209,9 +222,34 @@ if env_bool("DJANGO_HTTPS", False):
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {"plain": {"format": "{asctime} {levelname} {name}: {message}", "style": "{"}},
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", "INFO")},
+    "loggers": {},
 }
+# Kept on the server's disk (the console window of the server is lost when it closes):
+#   errors.log      every page that stopped with an error, with the technical details (also in Problems);
+#   slow-pages.log  every page that took more than SLOW_PAGE_SECONDS, to see what to speed up.
+# Each file is kept to 5 MB, with the 5 before it. LOG_DIR empty = no files.
+LOG_DIR = env("LOG_DIR", str(BASE_DIR / "data" / "logs"))
+SLOW_PAGE_SECONDS = float(env("SLOW_PAGE_SECONDS", "3"))
+if LOG_DIR and "test" not in sys.argv[1:2]:
+    try:
+        Path(LOG_DIR).mkdir(parents=True, exist_ok=True)
+    except OSError:
+        LOG_DIR = ""
+if LOG_DIR and "test" not in sys.argv[1:2]:
+    for _name, _file, _level in (("errors_file", "errors.log", "ERROR"), ("slow_file", "slow-pages.log", "INFO")):
+        LOGGING["handlers"][_name] = {
+            "class": "logging.handlers.RotatingFileHandler", "filename": str(Path(LOG_DIR) / _file),
+            "maxBytes": 5 * 1024 * 1024, "backupCount": 5, "encoding": "utf-8", "delay": True,
+            "level": _level, "formatter": "plain",
+        }
+    LOGGING["root"]["handlers"].append("errors_file")
+    LOGGING["loggers"]["clinic.slow"] = {"handlers": ["slow_file", "console"], "level": "INFO", "propagate": False}
+
+# A test copy of the system (manage.py make_test_copy): every page shows a banner so nobody works in it by mistake.
+TEST_COPY = env_bool("TEST_COPY")
 
 # ---- Business rules (can be tuned per clinic from .env) --------------------
 CLINIC = {

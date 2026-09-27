@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n clinic %}
 {% block title %}{% trans "Photos" %} — {{ patient.full_name }}{% endblock %}
 {% block content %}
 {% with active="photos" %}{% include "includes/patient_nav.html" %}{% endwith %}
@@ -40,7 +40,7 @@
         <div class="row g-1 mt-1">
           {% for photo in item.photos %}
           <div class="col-6 position-relative">
-            <a href="{{ photo.file.url }}" target="_blank">{% if photo.is_video %}<div class="photo-thumb d-flex align-items-center justify-content-center"><i class="bi bi-play-circle fs-2"></i></div>{% else %}<img class="photo-thumb" src="{{ photo.file.url }}" alt="{{ item.type }}">{% endif %}</a>
+            <a href="{{ photo.file.url }}" target="_blank">{% if photo.is_video %}<div class="photo-thumb d-flex align-items-center justify-content-center"><i class="bi bi-play-circle fs-2"></i></div>{% else %}<img class="photo-thumb" src="{{ photo.file|preview }}" alt="{{ item.type }}" loading="lazy" decoding="async">{% endif %}</a>
             <div class="small text-muted">{{ photo.taken_on|date:"d/m/Y" }} {{ photo.teeth }}{% if can_upload %} <button form="del-{{ photo.pk }}" class="btn btn-link btn-sm p-0 text-danger" data-confirm="{% trans 'Delete this file?' %}"><i class="bi bi-trash"></i></button>{% endif %}</div>
           </div>
           {% endfor %}
@@ -53,7 +53,7 @@
       <div class="card h-100"><div class="card-body p-2">
         <div class="small fw-semibold">{% trans "Other photos / videos" %}</div>
         <div class="small text-muted">{% trans "Steps that are not on the checklist: write the name, then choose the photo." %}</div>
-        <div class="row g-1 mt-1">{% for photo in s.extra %}<div class="col-6"><a href="{{ photo.file.url }}" target="_blank">{% if photo.is_video %}<div class="photo-thumb d-flex align-items-center justify-content-center"><i class="bi bi-play-circle fs-2"></i></div>{% else %}<img class="photo-thumb" src="{{ photo.file.url }}" alt="">{% endif %}</a><div class="small text-muted">{{ photo.notes|truncatechars:30 }} {{ photo.teeth }}</div></div>{% endfor %}</div>
+        <div class="row g-1 mt-1">{% for photo in s.extra %}<div class="col-6"><a href="{{ photo.file.url }}" target="_blank">{% if photo.is_video %}<div class="photo-thumb d-flex align-items-center justify-content-center"><i class="bi bi-play-circle fs-2"></i></div>{% else %}<img class="photo-thumb" src="{{ photo.file|preview }}" alt="" loading="lazy" decoding="async">{% endif %}</a><div class="small text-muted">{{ photo.notes|truncatechars:30 }} {{ photo.teeth }}</div></div>{% endfor %}</div>
         {% if can_upload %}<input type="text" class="form-control form-control-sm mt-2" name="extra_name" maxlength="255" placeholder="{% trans 'Name of this photo (a step not on the list)' %}">
         <input type="file" class="form-control form-control-sm mt-1" name="extra" accept="image/*,video/*,application/pdf" multiple>{% endif %}
       </div></div>

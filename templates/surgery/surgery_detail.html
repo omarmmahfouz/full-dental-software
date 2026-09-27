@@ -71,7 +71,7 @@
       {% if surgery.complications %}<div class="text-danger"><b>{% trans "Complications" %}:</b> {{ surgery.complications|linebreaksbr }}</div>{% endif %}
     </div></div>
   </div>
-  {% if photos %}<div class="row g-2 mt-3">{% for photo in photos %}{% if not photo.is_video %}<div class="col-3 col-md-2"><a href="{{ photo.file.url }}" target="_blank"><img class="photo-thumb" src="{{ photo.file.url }}" alt=""></a><div class="small text-muted">{{ photo.photo_type|default:"" }}</div></div>{% endif %}{% endfor %}</div>{% endif %}
+  {% if photos %}<div class="row g-2 mt-3">{% for photo in photos %}{% if not photo.is_video %}<div class="col-3 col-md-2"><a href="{{ photo.file.url }}" target="_blank"><img class="photo-thumb" src="{{ photo.file|preview }}" alt="" loading="lazy" decoding="async"></a><div class="small text-muted">{{ photo.photo_type|default:"" }}</div></div>{% endif %}{% endfor %}</div>{% endif %}
   <div class="small text-muted mt-3">{% trans "Recorded by" %} {{ surgery.created_by|default:"—" }} — {{ surgery.created_at|date:"d/m/Y g:i A" }}{% if surgery.chart_updated %} · <i class="bi bi-diagram-3"></i> {% trans "Dental chart updated" %}{% endif %}</div>
 </div></div>
 {% endblock %}

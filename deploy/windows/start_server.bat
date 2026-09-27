@@ -4,4 +4,6 @@ REM To start automatically: Task Scheduler -> Create Task -> "At startup" -> run
 REM ("Run whether user is logged on or not", "Run with highest privileges").
 cd /d "%~dp0\..\.."
 call .venv\Scripts\activate.bat
-waitress-serve --listen=*:80 --threads=8 config.wsgi:application
+REM Up to 16 pages are made at the same time. For a busy clinic, set a higher WEB_THREADS (e.g. 24) here.
+if "%WEB_THREADS%"=="" set WEB_THREADS=16
+waitress-serve --listen=*:80 --threads=%WEB_THREADS% --connection-limit=500 config.wsgi:application

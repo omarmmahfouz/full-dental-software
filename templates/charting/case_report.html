@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n static %}
+{% load i18n static clinic %}
 {% block title %}{% trans "Case report" %} — {% if anonymous %}{{ initials }}{% else %}{{ patient.full_name }}{% endif %}{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap gap-2 mb-3 no-print">
@@ -82,7 +82,7 @@
   {% for label, items in photos_by_stage %}
   <section class="report-section mb-4">
     <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Photos" %} — {{ label }}</h2>
-    <div class="row g-2">{% for photo in items %}{% if not photo.is_video %}<div class="col-4 col-md-3"><img class="photo-thumb" style="height:150px" src="{{ photo.file.url }}" alt=""><div class="small text-muted">{{ photo.photo_type|default:"" }} {{ photo.taken_on|date:"d/m/Y" }}</div></div>{% endif %}{% endfor %}</div>
+    <div class="row g-2">{% for photo in items %}{% if not photo.is_video %}<div class="col-4 col-md-3"><img class="photo-thumb" style="height:150px" src="{{ photo.file|preview:'medium' }}" alt=""><div class="small text-muted">{{ photo.photo_type|default:"" }} {{ photo.taken_on|date:"d/m/Y" }}</div></div>{% endif %}{% endfor %}</div>
   </section>
   {% endfor %}
 </div></div>

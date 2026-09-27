@@ -1,19 +1,23 @@
 import mimetypes
+import os
+import posixpath
 from datetime import timedelta
+from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_not_required
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, SuspiciousFileOperation
 from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotModified, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.http import http_date, url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -26,6 +30,7 @@ from apps.complaints.models import Complaint
 from apps.patients.models import CallList, CallListEntry, Lead, Patient
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
+from . import previews
 from .access import area_levels
 from .models import AreaAccess, ClinicSettings, Notification, UserProfile, branch_for_user, working_places
 from .roles import (
@@ -44,6 +49,9 @@ from .roles import (
 )
 
 
+ALERTS_EVERY_SECONDS = 180
+
+
 def dashboard(request):
     user = request.user
     today = timezone.localdate()
@@ -58,8 +66,13 @@ def dashboard(request):
         context["greeting"], context["greeting_icon"] = _("Good afternoon, %(name)s") % {"name": name}, "bi-sun"
     else:
         context["greeting"], context["greeting_icon"] = _("Good evening, %(name)s") % {"name": name}, "bi-moon-stars"
-    send_answer_alerts(today)  # complaints a dentist has not answered in time
-    send_notes_alerts()  # visits left without notes in the patient's file
+    if cache.add("dashboard-alerts", True, ALERTS_EVERY_SECONDS):  # at most every few minutes, not on each page
+        send_answer_alerts(today)  # complaints a dentist has not answered in time
+        send_notes_alerts()  # visits left without notes in the patient's file
+    if has_role(user, OWNER):
+        from .backup import backup_status
+
+        context["backup"] = backup_status()
     if has_role(user, *PATIENT_VIEWERS):
         counts = dict(Patient.objects.values_list("status").annotate(n=Count("id")))
         context["patient_totals"] = {
@@ -277,29 +290,66 @@ MEDIA_FOLDER_ROLES = {
 }
 
 
-def protected_media(request, path):
-    """Serve uploaded files only to logged-in staff allowed to see them."""
+def check_media_access(user, path):
+    """Raise PermissionDenied unless ``user`` may open the uploaded file at ``path``."""
     folder = path.split("/", 1)[0]
     allowed = MEDIA_FOLDER_ROLES.get(folder)
-    if allowed is None or not has_role(request.user, *allowed):
+    if allowed is None or not has_role(user, *allowed):
         raise PermissionDenied
-    if folder in ("patients", "Patient photos") and not has_role(request.user, *FRONT_DESK):
+    if folder in ("patients", "Patient photos") and not has_role(user, *FRONT_DESK):
         # Only files of patients this user may see ("patients/<id>/…" or "Patient photos/<file number> <name>/…").
         part = path.split("/")[1] if path.count("/") >= 2 else ""
         from apps.patients.access import visible_patients
 
-        patients = visible_patients(request.user)
+        patients = visible_patients(user)
         if folder == "patients":
             patients = patients.filter(pk=part if part.isdigit() else 0)
         else:
             patients = patients.filter(file_number=part.split(" ", 1)[0])
         if not patients.exists():
             raise PermissionDenied
+
+
+def protected_media(request, path):
+    """Serve uploaded files only to logged-in staff allowed to see them. A preview (a small copy of a
+    picture, see ``apps.core.previews``) is allowed to whoever may open the picture, and made when missing."""
+    if posixpath.normpath(path) != path or path.startswith(("/", "..")) or "\\" in path:
+        raise Http404  # "a/../b" would be checked as "a" and then open "b"
+    preview = previews.split(path)
+    check_media_access(request.user, preview[1] if preview else path)
     try:
-        full_path = default_storage.path(path)
+        default_storage.path(path)
     except SuspiciousFileOperation:
         raise Http404
-    if not default_storage.exists(path):
+    if preview:
+        size, original = preview
+        if not default_storage.exists(original):
+            raise Http404
+        path = previews.make_preview(original, size) or original  # a picture that cannot be read: the original
+    elif not default_storage.exists(path):
         raise Http404
-    content_type, _encoding = mimetypes.guess_type(full_path)
-    return FileResponse(open(full_path, "rb"), content_type=content_type or "application/octet-stream")
+    return send_file(request, path)
+
+
+def send_file(request, path):
+    """Send a stored file. The browser keeps it and asks again only whether it changed (no download when it
+    did not). Behind nginx (MEDIA_SENDFILE=nginx) the file itself is sent by nginx, not by Python."""
+    full_path = default_storage.path(path)
+    info = os.stat(full_path)
+    etag = f'"{info.st_mtime_ns:x}-{info.st_size:x}"'
+    headers = {"ETag": etag, "Last-Modified": http_date(info.st_mtime), "Cache-Control": "private, no-cache"}
+    if etag in request.headers.get("If-None-Match", ""):
+        response = HttpResponseNotModified()
+    else:
+        content_type = mimetypes.guess_type(full_path)[0] or "application/octet-stream"
+        if settings.MEDIA_SENDFILE == "nginx":
+            response = HttpResponse(content_type=content_type)
+            response["X-Accel-Redirect"] = settings.MEDIA_SENDFILE_PREFIX + quote(path)
+        elif settings.MEDIA_SENDFILE == "x-sendfile":
+            response = HttpResponse(content_type=content_type)
+            response["X-Sendfile"] = full_path
+        else:
+            response = FileResponse(open(full_path, "rb"), content_type=content_type)
+    for key, value in headers.items():
+        response[key] = value
+    return response

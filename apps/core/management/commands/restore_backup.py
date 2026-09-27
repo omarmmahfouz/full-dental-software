@@ -6,8 +6,9 @@ from apps.core.backup import restore_backup
 
 
 class Command(BaseCommand):
-    help = ("Replace ALL data and uploaded files with those of a backup ZIP made by this system. "
-            "The current data is saved as a new backup first. Run 'migrate' before, on a new PC.")
+    help = ("Replace ALL data with that of a backup ZIP made by this system (and the uploaded files, when the ZIP "
+            "has them). The current data is saved as a new backup first. Run 'migrate' before, on a new PC; "
+            "then 'restore_files' to put the photos back from the photo backup folder.")
 
     def add_arguments(self, parser):
         parser.add_argument("backup", help="the backup_….zip file")

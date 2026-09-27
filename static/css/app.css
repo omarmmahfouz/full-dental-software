@@ -308,6 +308,7 @@ tr.row-link { cursor: pointer; }
 .dl-grid dt { color: var(--ink-3); font-weight: 600; }
 .dl-grid dd { margin: 0; }
 .doc-thumb { width: 100%; max-height: 180px; object-fit: contain; background: #f8f9fa; border-radius: .5rem; }
+.scan-location code { word-break: break-all; white-space: normal; }
 .schedule-grid td { min-width: 150px; vertical-align: top; }
 .shift-chip { display: block; background: var(--brand-green-soft); border-inline-start: 3px solid var(--app-primary); border-radius: .35rem; padding: .25rem .4rem; margin-bottom: .3rem; font-size: .82rem; transition: transform var(--fast), box-shadow var(--fast); }
 .shift-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-1); }
@@ -615,6 +616,11 @@ tr.row-link { cursor: pointer; }
    Motion: page entry, cards one after another, loading bar
    Switched off for people who ask their device for less motion.
    ========================================================================== */
+.test-copy-banner {
+  padding: .45rem 1rem; text-align: center; font-weight: 700; color: #3b2a00;
+  background: repeating-linear-gradient(-45deg, #ffd24d 0 14px, #ffe38a 14px 28px);
+  border-bottom: 2px solid #c79a00;
+}
 .nav-progress { position: fixed; inset: 0 0 auto 0; height: 3px; z-index: 2000; pointer-events: none; opacity: 0; }
 .nav-progress::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #9EC64F, #5C8020); box-shadow: 0 0 10px rgba(158, 198, 79, .8); border-radius: 0 3px 3px 0; }
 [dir=rtl] .nav-progress::before { inset: 0 0 0 auto; border-radius: 3px 0 0 3px; }

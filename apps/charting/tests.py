@@ -419,3 +419,117 @@ class PhotoFolderAndLogBookTests(TestCase):
         self.assertContains(page, "--frame-w: 56mm")
         self.assertIn("36: Simple implant, GBR", page.context["pages"][0]["description"])
         self.assertContains(page, "Implant placed with cover screw")
+
+
+class PhotoPreviewTests(TestCase):
+    """Small copies of the photos, so pages with many photos open quickly."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+
+        from django.test import override_settings
+
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, ignore_errors=True)
+        settings_override = override_settings(MEDIA_ROOT=self.media)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="candidate")
+        make_user("sec", "secretary")
+        self.patient = make_patient(self.branch, name="Test Patient", assigned_dentist=self.dentist)
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def jpeg(self, width=2000, height=1500):
+        from PIL import Image
+
+        out = io.BytesIO()
+        Image.new("RGB", (width, height), (200, 120, 90)).save(out, "JPEG", quality=95)
+        return out.getvalue()
+
+    def upload(self, content):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from apps.charting.models import ClinicalPhoto, PhotoType
+
+        shot = PhotoType.objects.filter(stage="surgery").first()
+        self.client.post(f"/chart/patient/{self.patient.pk}/photos/", {
+            "stage": "surgery", "taken_on": "20/09/2026", "teeth": "36",
+            f"type_{shot.pk}": SimpleUploadedFile("IMG_1.JPG", content, "image/jpeg")})
+        return ClinicalPhoto.objects.get()
+
+    def test_a_small_copy_is_made_on_upload_and_shown_in_the_grid(self):
+        import os
+
+        from PIL import Image
+
+        from apps.core import previews
+
+        photo = self.upload(self.jpeg())
+        small = os.path.join(self.media, previews.preview_name(photo.file.name, "small"))
+        with Image.open(small) as image:
+            self.assertEqual(max(image.size), 480)
+        page = self.client.get(f"/chart/patient/{self.patient.pk}/photos/?stage=surgery")
+        self.assertContains(page, "/media/previews/small/Patient%20photos/")
+        self.assertContains(page, 'loading="lazy"')
+
+    def test_previews_are_served_to_who_may_open_the_photo_and_kept_by_the_browser(self):
+        from django.core.files.storage import default_storage
+
+        from apps.core import previews
+
+        photo = self.upload(self.jpeg())
+        url = default_storage.url(previews.preview_name(photo.file.name, "medium"))
+        response = self.client.get(url)  # the large copy is made the first time it is asked for
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/jpeg")
+        self.assertIn("no-cache", response["Cache-Control"])
+        again = self.client.get(url, HTTP_IF_NONE_MATCH=response["ETag"])
+        self.assertEqual(again.status_code, 304)  # nothing is downloaded again
+        self.assertEqual(self.client.get(photo.file.url, HTTP_IF_NONE_MATCH=response["ETag"]).status_code, 200)
+        self.client.login(username="sec", password=PASSWORD)  # clinical photos are for the dentists only
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.get("/media/previews/small/..%2F..%2Fsecret.jpg.jpg").status_code, 404)
+        # A path that climbs out of the folder it was checked for is refused, even to a dentist of that patient.
+        self.client.login(username="dentist", password=PASSWORD)
+        folder = photo.file.name.rsplit("/", 2)[0]
+        self.assertEqual(self.client.get(f"/media/{folder}/..%2F..%2Fpatients/1/x.pdf").status_code, 404)
+
+    def test_a_picture_that_cannot_be_read_falls_back_to_the_original(self):
+        import os
+
+        from django.core.files.storage import default_storage
+
+        from apps.core import previews
+
+        photo = self.upload(b"not really a jpeg")
+        self.assertFalse(os.path.exists(os.path.join(self.media, previews.preview_name(photo.file.name))))
+        response = self.client.get(default_storage.url(previews.preview_name(photo.file.name)))
+        self.assertEqual(b"".join(response.streaming_content), b"not really a jpeg")
+
+    def test_behind_nginx_the_file_is_sent_by_nginx(self):
+        from django.test import override_settings
+
+        photo = self.upload(self.jpeg(300, 200))
+        with override_settings(MEDIA_SENDFILE="nginx"):
+            response = self.client.get(photo.file.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response["X-Accel-Redirect"].startswith("/protected-media/Patient%20photos/"))
+        self.assertEqual(response.content, b"")
+
+    def test_previews_go_with_the_photo_and_can_be_made_for_old_photos(self):
+        import os
+
+        from django.core.management import call_command
+
+        from apps.core import previews
+
+        photo = self.upload(self.jpeg())
+        small = os.path.join(self.media, previews.preview_name(photo.file.name, "small"))
+        os.remove(small)  # a photo from before this version
+        call_command("make_previews", stdout=io.StringIO())
+        self.assertTrue(os.path.exists(small))
+        self.assertTrue(os.path.exists(os.path.join(self.media, previews.preview_name(photo.file.name, "medium"))))
+        self.client.post(f"/chart/photo/{photo.pk}/delete/")
+        self.assertFalse(os.path.exists(small))

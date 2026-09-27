@@ -13,10 +13,11 @@ from collections import defaultdict
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
-from django.db.models import Min, Q, Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
-from apps.billing.models import Charge, account
+from apps.billing.models import Charge, paid_by_charge
+from apps.core.utils import minutes_between
 from apps.scheduling.models import Appointment
 
 from .models import DoctorPayout, FeeRule
@@ -34,10 +35,28 @@ def pick_rule(rules, service_id, day):
     return max(pool, key=lambda rule: (rule.starts_on, rule.pk), default=None)
 
 
-def units(charge):
+def teeth_count(teeth):
     from apps.charting.teeth import parse_teeth
 
-    return max(len(parse_teeth(charge.teeth)), 1)
+    return max(len(parse_teeth(teeth)), 1)
+
+
+def units(charge):
+    return teeth_count(charge.teeth)
+
+
+def line_share(rule, paid, teeth):
+    """The doctor's share of one service under ``rule``."""
+    if rule is not None and rule.method == M.PERCENT:
+        return (paid * rule.value / 100).quantize(CENT)
+    if rule is not None and rule.method == M.PER_UNIT:
+        return rule.value * teeth_count(teeth)
+    return ZERO
+
+
+def visit_share(rules, day):
+    rule = pick_rule([r for r in rules if r.service_id is None], None, day)
+    return rule.value if rule is not None and rule.method == M.PER_VISIT else ZERO
 
 
 def _bounds(date_from, date_to):
@@ -51,26 +70,23 @@ def doctor_charges(dentist, branch):
         Q(dentist=dentist) | Q(dentist__isnull=True, bill__dentist=dentist))
 
 
+def _rules(dentist, branch):
+    return list(FeeRule.objects.filter(dentist=dentist, branch=branch).select_related("service"))
+
+
 def statement(dentist, branch, date_from, date_to, accounts=None):
-    """The doctor's services, visits, share and payments at ``branch`` between the two dates."""
-    rules = list(FeeRule.objects.filter(dentist=dentist, branch=branch).select_related("service"))
+    """The doctor's services, visits, share and payments at ``branch`` between the two dates, line by line."""
+    rules = _rules(dentist, branch)
     accounts = {} if accounts is None else accounts
     lines = []
-    charges = (doctor_charges(dentist, branch).filter(charged_on__range=(date_from, date_to))
-               .select_related("service", "patient", "bill").order_by("charged_on", "pk"))
+    charges = list(doctor_charges(dentist, branch).filter(charged_on__range=(date_from, date_to))
+                   .select_related("service", "patient", "bill").order_by("charged_on", "pk"))
+    accounts.update(paid_by_charge({charge.patient_id for charge in charges} - set(accounts)))
     for charge in charges:
-        if charge.patient_id not in accounts:
-            current = account(charge.patient)
-            accounts[charge.patient_id] = {row["charge"].pk: row["paid"] for row in current["rows"]}
         paid = accounts[charge.patient_id].get(charge.pk, ZERO)
         rule = pick_rule(rules, charge.service_id, charge.charged_on)
-        share = ZERO
-        if rule is not None and rule.method == M.PERCENT:
-            share = (paid * rule.value / 100).quantize(CENT)
-        elif rule is not None and rule.method == M.PER_UNIT:
-            share = rule.value * units(charge)
-        lines.append({"charge": charge, "net": charge.net, "paid": paid, "rule": rule, "share": share,
-                      "units": units(charge)})
+        lines.append({"charge": charge, "net": charge.net, "paid": paid, "rule": rule,
+                      "share": line_share(rule, paid, charge.teeth), "units": units(charge)})
 
     start, end = _bounds(date_from, date_to)
     visits = []
@@ -79,9 +95,7 @@ def statement(dentist, branch, date_from, date_to, accounts=None):
                     .select_related("patient").order_by("scheduled_at"))
     for visit in appointments:
         day = timezone.localtime(visit.scheduled_at).date()
-        rule = pick_rule([r for r in rules if r.service_id is None], None, day)
-        amount = rule.value if rule is not None and rule.method == M.PER_VISIT else ZERO
-        visits.append({"visit": visit, "minutes": visit.chair_minutes or 0, "share": amount})
+        visits.append({"visit": visit, "minutes": visit.chair_minutes or 0, "share": visit_share(rules, day)})
 
     payouts = list(DoctorPayout.objects.filter(dentist=dentist, branch=branch, paid_on__range=(date_from, date_to)))
     services_share = sum((line["share"] for line in lines), ZERO)
@@ -99,12 +113,45 @@ def statement(dentist, branch, date_from, date_to, accounts=None):
     }
 
 
-def owed(dentist, branch, until, accounts=None):
+def totals(dentist, branch, date_from, date_to, accounts=None, rules=None):
+    """The numbers of ``statement`` without its lines, read lightly so that years of work stay quick.
+    ``date_from`` None counts from the first day."""
+    rules = _rules(dentist, branch) if rules is None else rules
+    accounts = {} if accounts is None else accounts
+    charges = doctor_charges(dentist, branch).filter(charged_on__lte=date_to)
+    appointments = Appointment.objects.filter(branch=branch, dentist=dentist, status=Appointment.Status.COMPLETED,
+                                              scheduled_at__lt=_bounds(date_to, date_to)[1])
+    if date_from is not None:
+        charges = charges.filter(charged_on__gte=date_from)
+        appointments = appointments.filter(scheduled_at__gte=_bounds(date_from, date_from)[0])
+    charges = list(charges.order_by().values_list("pk", "patient_id", "service_id", "charged_on", "teeth", "price",
+                                                  "discount_percent"))
+    accounts.update(paid_by_charge({row[1] for row in charges} - set(accounts)))
+    billed = collected = services_share = visits_share = ZERO
+    patients = set()
+    for pk, patient_id, service_id, day, teeth, price, percent in charges:
+        paid = accounts[patient_id].get(pk, ZERO)
+        billed += price - (price * percent / 100).quantize(CENT)
+        collected += paid
+        services_share += line_share(pick_rule(rules, service_id, day), paid, teeth)
+        patients.add(patient_id)
+    visit_count = chair_minutes = 0
+    per_visit = any(rule.method == M.PER_VISIT for rule in rules)
+    for patient_id, scheduled_at, entered, left in appointments.order_by().values_list(
+            "patient_id", "scheduled_at", "entered_room_at", "left_at"):
+        visit_count += 1
+        chair_minutes += minutes_between(entered, left) or 0
+        patients.add(patient_id)
+        if per_visit:
+            visits_share += visit_share(rules, timezone.localtime(scheduled_at).date())
+    return {"dentist": dentist, "branch": branch, "rules": rules, "billed": billed, "collected": collected,
+            "services_share": services_share, "visits_share": visits_share, "share": services_share + visits_share,
+            "visit_count": visit_count, "chair_minutes": chair_minutes, "patient_count": len(patients)}
+
+
+def owed(dentist, branch, until, accounts=None, rules=None):
     """What the doctor earned at the place up to ``until``, less what they were paid up to then."""
-    first_charge = doctor_charges(dentist, branch).aggregate(first=Min("charged_on"))["first"]
-    first_visit = Appointment.objects.filter(branch=branch, dentist=dentist).aggregate(first=Min("scheduled_at"))["first"]
-    starts = [day for day in (first_charge, timezone.localtime(first_visit).date() if first_visit else None) if day]
-    earned = statement(dentist, branch, min(starts), until, accounts)["share"] if starts else ZERO
+    earned = totals(dentist, branch, None, until, accounts, rules)["share"]
     paid = DoctorPayout.objects.filter(dentist=dentist, branch=branch, paid_on__lte=until).aggregate(
         total=Sum("amount"))["total"] or ZERO
     return earned - paid
@@ -126,15 +173,20 @@ def doctors_at(branch, date_from, date_to):
 
 def summary(branch, date_from, date_to):
     """One row per doctor at the place, with the place's totals."""
-    accounts = {}
+    # What is paid on every service ever given at the place, read once for all the doctors.
+    accounts = paid_by_charge(Charge.objects.filter(branch=branch, charged_on__lte=date_to).values("patient_id"))
     rows = []
     for dentist in doctors_at(branch, date_from, date_to):
-        data = statement(dentist, branch, date_from, date_to, accounts)
-        data["owed"] = owed(dentist, branch, date_to, accounts)
+        rules = _rules(dentist, branch)
+        data = totals(dentist, branch, date_from, date_to, accounts, rules)
+        data["paid_out"] = DoctorPayout.objects.filter(dentist=dentist, branch=branch,
+                                                       paid_on__range=(date_from, date_to)).aggregate(
+            total=Sum("amount"))["total"] or ZERO
+        data["owed"] = owed(dentist, branch, date_to, accounts, rules)
         rows.append(data)
-    totals = defaultdict(lambda: ZERO)
-    totals.update(visit_count=0, chair_minutes=0)
+    sums = defaultdict(lambda: ZERO)
+    sums.update(visit_count=0, chair_minutes=0)
     for row in rows:
         for key in ("billed", "collected", "share", "paid_out", "owed", "visit_count", "chair_minutes"):
-            totals[key] += row[key]
-    return rows, dict(totals)
+            sums[key] += row[key]
+    return rows, dict(sums)

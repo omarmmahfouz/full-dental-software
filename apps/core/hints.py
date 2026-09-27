@@ -84,6 +84,10 @@ HINTS = {
     "purchasing:purchase_create": _("Add one line per item with its category. Link a line to a stock item to fill the stock."),
     "reports:index": _("Choose a report. Each one can be filtered by dates, and most can be exported."),
     "settings:home": _("Lists, clinic options and logins. Nothing is deleted: untick active to stop using an item."),
+    "settings:backup": _("Green means the last backup worked. Every night the data is saved as a ZIP and the new "
+                         "photos are copied to the backup disk. Make a backup now before any big change."),
+    "core:problems": _("Problems told by the staff, and pages that stopped with an error (written down by "
+                       "themselves). Mark each one when it is being looked at or solved."),
     "clinics:doctors": _("Each doctor of the place: visits, time in the chair, what the patients paid and the "
                          "doctor's share. Tap a doctor for the details and to record a payment to them."),
     "clinics:statement": {

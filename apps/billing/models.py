@@ -1,6 +1,7 @@
 """What a patient pays the academy for: services from a price list (CBCT, consultation...),
 with a discount of up to 100%, paid at once or in parts."""
 
+from collections import namedtuple
 from decimal import Decimal
 
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -104,7 +105,10 @@ class Bill(TimeStampedModel):
     def totals(self, current=None):
         """Price, discount, net, paid and left of this bill's services (paid as the account shares it)."""
         current = current or account(self.patient)
-        rows = [row for row in current["rows"] if row["charge"].bill_id == self.pk]
+        return self.totals_of([row for row in current["rows"] if row["charge"].bill_id == self.pk])
+
+    @staticmethod
+    def totals_of(rows):
         return {
             "rows": rows,
             "price": sum((r["charge"].price for r in rows), Decimal("0")),
@@ -210,20 +214,21 @@ class PatientPayment(TimeStampedModel):
                 type(self).objects.filter(pk=self.pk).update(receipt_number=self.receipt_number)
 
 
-def account(patient):
-    """The patient's services with what is paid and left on each, and the totals. A payment made
-    for a service pays that service, one made for a bill pays that bill's services; other
-    payments pay the oldest unpaid services first."""
-    charges = list(patient.charges.select_related("service").order_by("charged_on", "pk"))
-    payments = list(patient.patient_payments.order_by("paid_on", "pk"))
+def _share_payments(charges, payments):
+    """What is paid on each service ({charge pk: paid}): a payment made for a service pays that service,
+    one made for a bill pays that bill's services; other payments pay the oldest unpaid services first.
+    ``charges`` and ``payments`` are one patient's, oldest first."""
     paid = {charge.pk: Decimal("0") for charge in charges}
     nets = {charge.pk: charge.net for charge in charges}
+    by_bill = {}
+    for charge in charges:
+        by_bill.setdefault(charge.bill_id, []).append(charge.pk)
     free = Decimal("0")
     for payment in payments:
         if payment.charge_id in paid:
             targets = [payment.charge_id]
         elif payment.bill_id:
-            targets = [c.pk for c in charges if c.bill_id == payment.bill_id]
+            targets = by_bill.get(payment.bill_id, [])
         else:
             targets = []
         left = payment.amount
@@ -236,8 +241,16 @@ def account(patient):
         take = min(free, nets[charge.pk] - paid[charge.pk])
         paid[charge.pk] += take
         free -= take
-    rows = [{"charge": c, "paid": paid[c.pk], "left": nets[c.pk] - paid[c.pk]} for c in charges]
-    total_net = sum(nets.values(), Decimal("0"))
+    return paid
+
+
+def account(patient):
+    """The patient's services with what is paid and left on each, and the totals (see ``_share_payments``)."""
+    charges = list(patient.charges.select_related("service").order_by("charged_on", "pk"))
+    payments = list(patient.patient_payments.order_by("paid_on", "pk"))
+    paid = _share_payments(charges, payments)
+    rows = [{"charge": c, "paid": paid[c.pk], "left": c.net - paid[c.pk]} for c in charges]
+    total_net = sum((c.net for c in charges), Decimal("0"))
     total_paid = sum((p.amount for p in payments), Decimal("0"))
     return {
         "rows": rows, "payments": payments,
@@ -245,6 +258,77 @@ def account(patient):
         "discount": sum((c.discount_amount for c in charges), Decimal("0")),
         "net": total_net, "paid": total_paid, "balance": total_net - total_paid,
     }
+
+
+# A service or a payment read in bulk: only what the sharing needs.
+_ChargeLine = namedtuple("_ChargeLine", "pk bill_id net")
+_PaymentLine = namedtuple("_PaymentLine", "bill_id charge_id amount")
+
+
+def _in_chunks(ids, size=500):
+    ids = sorted(set(ids))
+    for start in range(0, len(ids), size):
+        yield ids[start:start + size]
+
+
+def _net(price, discount_percent):
+    return price - (price * discount_percent / Decimal("100")).quantize(Decimal("0.01"))
+
+
+def paid_by_charge(patient_ids):
+    """What is paid on each service for many patients at once, shared as ``account`` does:
+    {patient pk: {charge pk: paid}}. ``patient_ids`` is a list (two database look-ups for every 500 patients)
+    or a query of patient ids (two look-ups in all)."""
+    result = {}
+    if isinstance(patient_ids, models.QuerySet):
+        groups = [patient_ids]
+    else:
+        groups = _in_chunks(patient_ids)
+    for chunk in groups:
+        charges, payments = {}, {}
+        for pk, patient_id, bill_id, price, percent in (
+                Charge.objects.filter(patient_id__in=chunk).order_by("charged_on", "pk")
+                .values_list("pk", "patient_id", "bill_id", "price", "discount_percent")):
+            charges.setdefault(patient_id, []).append(_ChargeLine(pk, bill_id, _net(price, percent)))
+        for patient_id, bill_id, charge_id, amount in (
+                PatientPayment.objects.filter(patient_id__in=chunk).order_by("paid_on", "pk")
+                .values_list("patient_id", "bill_id", "charge_id", "amount")):
+            payments.setdefault(patient_id, []).append(_PaymentLine(bill_id, charge_id, amount))
+        for patient_id in charges.keys() | payments.keys() | (set() if isinstance(chunk, models.QuerySet) else set(chunk)):
+            result[patient_id] = _share_payments(charges.get(patient_id, []), payments.get(patient_id, []))
+    return result
+
+
+def balances():
+    """What each patient with services still owes (services less discounts, less payments; below zero when
+    they paid ahead): {patient pk: balance}. Reads every service and adds the payments up in the database."""
+    owe = {}
+    for patient_id, price, percent in Charge.objects.order_by().values_list("patient_id", "price", "discount_percent"):
+        owe[patient_id] = owe.get(patient_id, Decimal("0")) + _net(price, percent)
+    for row in PatientPayment.objects.order_by().values("patient_id").annotate(total=models.Sum("amount")):
+        if row["patient_id"] in owe:
+            owe[row["patient_id"]] -= row["total"]
+    return owe
+
+
+def patients_owe():
+    """What all patients still owe together (patients who paid ahead do not lower it)."""
+    return sum((max(balance, Decimal("0")) for balance in balances().values()), Decimal("0"))
+
+
+def bill_totals(bills):
+    """``Bill.totals`` for many bills at once: {bill pk: totals}."""
+    paid = paid_by_charge(bill.patient_id for bill in bills)
+    lines = {}
+    for chunk in _in_chunks(bill.pk for bill in bills):
+        for charge in Charge.objects.filter(bill_id__in=chunk).select_related("service").order_by("charged_on", "pk"):
+            lines.setdefault(charge.bill_id, []).append(charge)
+    result = {}
+    for bill in bills:
+        rows = [{"charge": c, "paid": paid[bill.patient_id].get(c.pk, Decimal("0")),
+                 "left": c.net - paid[bill.patient_id].get(c.pk, Decimal("0"))} for c in lines.get(bill.pk, [])]
+        result[bill.pk] = Bill.totals_of(rows)
+    return result
 
 
 def create_bill(patient, lines, user, billed_on=None, appointment=None, dentist=None,

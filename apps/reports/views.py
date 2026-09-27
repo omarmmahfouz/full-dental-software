@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.academy.models import Course, Enrollment, Payment, PaymentMethod
-from apps.billing.models import Charge, PatientPayment, account
+from apps.billing.models import Charge, PatientPayment, patients_owe
 from apps.clinical.models import LabRequest, TreatmentStep
 from apps.complaints.models import Complaint
 from apps.core.forms import DateRangeForm
@@ -303,8 +303,6 @@ def money_report(request):
         row["count"] += 1
         row["price"] += charge.price
         row["discount"] += charge.discount_amount
-    patients_owe = sum((max(account(p)["balance"], Decimal("0"))
-                        for p in Patient.objects.filter(charges__isnull=False).distinct()), Decimal("0"))
     return render(
         request,
         "reports/money.html",
@@ -322,7 +320,7 @@ def money_report(request):
             "patient_by_method": [(method_labels[row["method"]], row["total"]) for row in
                                   patient_payments.values("method").annotate(total=Sum("amount")).order_by("-total")],
             "services": sorted(by_service.values(), key=lambda row: -row["price"]),
-            "patients_owe": patients_owe,
+            "patients_owe": patients_owe(),
         },
     )
 
@@ -406,8 +404,6 @@ def balance_sheet(request):
     unpaid_purchases = sum((p.unpaid for p in Purchase.objects.exclude(payment_status=Purchase.PaymentStatus.PAID)
                             .prefetch_related("items")), zero)
     candidates_owe = sum((e.balance for e in Enrollment.objects.filter(status=Enrollment.Status.ACTIVE)), zero)
-    patients_owe = sum((max(account(p)["balance"], zero)
-                        for p in Patient.objects.filter(charges__isnull=False).distinct()), zero)
     return render(request, "reports/balance.html", {
         "form": form, "date_from": date_from, "date_to": date_to, "columns": columns,
         "income_rows": income_rows, "income_totals": income_totals, "income_total": income_total,
@@ -417,7 +413,7 @@ def balance_sheet(request):
         "fawry": {k: v or zero for k, v in fawry_in_period.items()},
         "fawry_held_start": held_at_fawry(until=date_from - timedelta(days=1)),
         "fawry_held_end": held_at_fawry(until=date_to),
-        "patients_owe": patients_owe, "candidates_owe": candidates_owe, "unpaid_purchases": unpaid_purchases,
+        "patients_owe": patients_owe(), "candidates_owe": candidates_owe, "unpaid_purchases": unpaid_purchases,
     })
 
 

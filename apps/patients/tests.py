@@ -382,3 +382,44 @@ class IdCardTests(TestCase):
         document.refresh_from_db()
         with Image.open(document.file.path) as card:
             self.assertGreater(card.height, card.width)
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class XrayAndCbctTests(TestCase):
+    """X-rays may be bigger than other documents, and a CBCT (too big to upload) is kept as where it is."""
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(MEDIA, ignore_errors=True)
+
+    def setUp(self):
+        branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="candidate")
+        self.patient = make_patient(branch, assigned_dentist=self.dentist)
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.url = f"/patients/{self.patient.pk}/documents/"
+
+    def test_a_cbct_folder_or_link_is_kept_and_shown_to_the_dentist(self):
+        self.client.post(self.url, {"kind": "xray", "location": r"\\CIA-SERVER\CBCT\CIA-00001", "notes": "CBCT lower"})
+        self.client.post(self.url, {"kind": "xray", "location": "https://viewer.example.com/study/42"})
+        self.client.post(self.url, {"kind": "xray", "location": "javascript:alert(1)"})
+        self.assertEqual(PatientDocument.objects.filter(kind="xray").count(), 3)
+        self.client.post(self.url, {"kind": "other"})  # nothing to keep
+        self.assertEqual(PatientDocument.objects.count(), 3)
+        self.client.login(username="dentist", password=PASSWORD)
+        page = self.client.get(f"/patients/{self.patient.pk}/")
+        self.assertContains(page, r"\\CIA-SERVER\CBCT\CIA-00001")
+        self.assertContains(page, 'data-copy="\\\\CIA-SERVER\\CBCT\\CIA-00001"')
+        self.assertContains(page, 'href="https://viewer.example.com/study/42"')
+        self.assertNotContains(page, 'href="javascript:')  # only web links become links
+        self.assertEqual(len(page.context["xrays"]), 3)
+
+    @override_settings(MAX_UPLOAD_SIZE_MB=1, MAX_XRAY_UPLOAD_MB=3)
+    def test_xrays_may_be_bigger_than_other_documents(self):
+        big = b"%PDF-1.4" + b"0" * (2 * 1024 * 1024)
+        self.client.post(self.url, {"kind": "other", "file": SimpleUploadedFile("scan.pdf", big, "application/pdf")})
+        self.assertFalse(PatientDocument.objects.exists())
+        self.client.post(self.url, {"kind": "xray", "file": SimpleUploadedFile("opg.pdf", big, "application/pdf")})
+        self.assertTrue(PatientDocument.objects.filter(kind="xray").exists())

@@ -600,6 +600,33 @@
     input.focus();
   });
 
+  // data-copy="text": puts the text on the clipboard (e.g. the folder of a CBCT), and shows a tick for a moment.
+  // navigator.clipboard needs https; on the clinic's http network the older way is used.
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest && event.target.closest("[data-copy]");
+    if (!button) return;
+    var text = button.getAttribute("data-copy");
+    var done = function () {
+      var icon = button.querySelector(".bi");
+      if (!icon) return;
+      icon.className = "bi bi-check2 text-success";
+      setTimeout(function () { icon.className = "bi bi-clipboard"; }, 1500);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done);
+      return;
+    }
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    try { if (document.execCommand("copy")) done(); } catch (error) { /* the text stays visible to copy by hand */ }
+    document.body.removeChild(area);
+  });
+
   // Dynamic formsets: <div data-formset="prefix"> with a <template> row and "add" buttons.
   // A page can have several row lists (e.g. the plan's implant and restorative parts):
   // <button data-formset-add="implant"> adds to <tbody data-formset-rows="implant">.

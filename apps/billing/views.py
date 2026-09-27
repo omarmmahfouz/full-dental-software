@@ -1,16 +1,18 @@
-from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
+from apps.academy.models import PaymentMethod
 from apps.core.mixins import role_required
 from apps.core.models import ClinicSettings, branch_for_user, working_places
 from apps.core.roles import CLINICAL, FRONT_DESK, HEAD_CIA, OWNER, has_role
@@ -31,7 +33,10 @@ from .forms import (
     PayNowForm,
     chosen_places,
 )
-from .models import Bill, FawryMachine, FawryMove, PatientPayment, Service, account, create_bill
+from .models import Bill, FawryMachine, FawryMove, PatientPayment, Service, account, bill_totals, create_bill
+
+
+PER_PAGE = 200  # rows on one page of a long list; the totals are for the whole period
 
 
 @role_required(*FRONT_DESK)
@@ -85,11 +90,12 @@ def payment_list(request):
         "patient", "charge__service", "created_by", "branch", "fawry_machine")
     if data.get("method"):
         payments = payments.filter(method=data["method"])
-    by_method = defaultdict(lambda: Decimal("0"))
-    for payment in payments:
-        by_method[payment.get_method_display()] += payment.amount
+    labels = dict(PaymentMethod.choices)
+    by_method = {labels.get(row["method"], row["method"]): row["total"]
+                 for row in payments.order_by().values("method").annotate(total=Sum("amount"))}
     return render(request, "billing/payment_list.html", {
-        "form": form, "payments": payments, "date_from": date_from, "date_to": date_to, "places_shown": shown,
+        "form": form, "page_obj": Paginator(payments, PER_PAGE).get_page(request.GET.get("page")),
+        "date_from": date_from, "date_to": date_to, "places_shown": shown,
         "total": sum(by_method.values(), Decimal("0")), "by_method": sorted(by_method.items()),
     })
 
@@ -176,16 +182,15 @@ def bill_list(request):
     shown = chosen_places(form, places, here)
     bills = list(Bill.objects.filter(billed_on__range=(date_from, date_to), branch__in=shown)
                  .select_related("patient", "dentist", "branch"))
-    accounts, rows = {}, []
+    rows, all_totals = [], bill_totals(bills)
     for bill in bills:
-        if bill.patient_id not in accounts:
-            accounts[bill.patient_id] = account(bill.patient)
-        totals = bill.totals(accounts[bill.patient_id])
+        totals = all_totals[bill.pk]
         if data.get("unpaid") and totals["left"] <= 0:
             continue
         rows.append({"bill": bill, **totals})
     return render(request, "billing/bill_list.html", {
-        "form": form, "rows": rows, "date_from": date_from, "date_to": date_to, "places_shown": shown,
+        "form": form, "rows": rows, "page_obj": Paginator(rows, PER_PAGE).get_page(request.GET.get("page")),
+        "date_from": date_from, "date_to": date_to, "places_shown": shown,
         "total_net": sum((r["net"] for r in rows), Decimal("0")),
         "total_left": sum((r["left"] for r in rows), Decimal("0")),
     })

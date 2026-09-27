@@ -3,21 +3,47 @@
 {% block title %}{% trans "Backup and export" %}{% endblock %}
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-safe"></i> {% trans "Backup and export" %}</h1></div>
+
+<div class="row g-3 mb-3">
+  {% for part in status.parts %}
+  <div class="col-md-6">
+    <div class="card h-100 backup-part {% if part.failed or part.overdue %}border-danger{% else %}border-success{% endif %}"><div class="card-body">
+      <h2 class="h6 fw-bold mb-2">{% if part.kind == "database" %}<i class="bi bi-database"></i>{% else %}<i class="bi bi-images"></i>{% endif %} {{ part.label }}</h2>
+      {% if part.last_ok %}
+        <div class="{% if part.overdue %}text-danger{% else %}text-success{% endif %} fw-semibold"><i class="bi {% if part.overdue %}bi-exclamation-triangle{% else %}bi-check-circle{% endif %}"></i> {% blocktrans with when=part.last_ok.started_at|date:"d/m/Y g:i A" %}Last good one: {{ when }}{% endblocktrans %}</div>
+        <div class="small text-muted">{% if part.kind == "files" %}{% blocktrans with copied=part.last_ok.files_copied checked=part.last_ok.files_checked %}{{ copied }} new or changed files copied, {{ checked }} checked.{% endblocktrans %}{% else %}{{ part.last_ok.size|filesizeformat }}{% endif %}</div>
+      {% else %}
+        <div class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle"></i> {% trans "Never done yet." %}</div>
+      {% endif %}
+      {% if part.failed %}<div class="alert alert-danger small py-2 mt-2 mb-0"><i class="bi bi-x-octagon"></i> {% blocktrans with when=part.last.started_at|date:"d/m/Y g:i A" %}The last try ({{ when }}) failed:{% endblocktrans %} <span dir="ltr">{{ part.last.error|truncatechars:200 }}</span></div>
+      {% elif part.overdue and part.last_ok %}<div class="small text-danger mt-1">{% trans "Nothing for more than a day and a half: check that the nightly backup is still running." %}</div>{% endif %}
+      <div class="small mt-2"><i class="bi bi-folder2-open"></i> <b dir="ltr">{% if part.kind == "files" %}{{ files_folder }}{% else %}{{ folder }}{% endif %}</b></div>
+    </div></div>
+  </div>
+  {% endfor %}
+</div>
+
 <div class="row g-3">
   <div class="col-lg-6">
     <div class="card h-100"><div class="card-body">
-      <h2 class="h5"><i class="bi bi-archive"></i> {% trans "Full backup" %}</h2>
-      <p class="small text-muted">{% trans "One ZIP file with everything: all records (to put back into this system), the same data as Excel and CSV (to open or move into any other program), and all uploaded files (ID scans, photos, stickers, invoices)." %}</p>
-      <form method="post">{% csrf_token %}<button class="btn btn-primary" data-confirm="{% trans 'Make a full backup now? It can take a few minutes when there are many photos.' %}"><i class="bi bi-archive"></i> {% trans "Make a full backup now" %}</button></form>
-      <p class="small mt-3 mb-0"><i class="bi bi-folder2-open"></i> {% trans "Backups are saved on this PC in" %} <b dir="ltr">{{ folder }}</b>. {% trans "The last 10 are kept. Copy them to an external disk or USB regularly, and always before a big change to the system." %}</p>
+      <h2 class="h5"><i class="bi bi-archive"></i> {% trans "Backup of all the data" %}</h2>
+      <p class="small text-muted">{% trans "One ZIP file with all the records (to put back into this system) and the same data as Excel and CSV (to open or move into any other program). It takes a few minutes at most, even with thousands of patients." %}</p>
+      <form method="post">{% csrf_token %}<button class="btn btn-primary" data-confirm="{% trans 'Make a backup of all the data now?' %}"><i class="bi bi-archive"></i> {% trans "Make a backup now" %}</button></form>
+      <p class="small mt-3 mb-0"><i class="bi bi-folder2-open"></i> {% trans "Saved on this PC in" %} <b dir="ltr">{{ folder }}</b>. {% trans "The last 10 are kept. Copy them to an external disk or USB regularly, and always before a big change to the system." %}</p>
     </div></div>
   </div>
   <div class="col-lg-6">
     <div class="card h-100"><div class="card-body">
-      <h2 class="h5"><i class="bi bi-file-earmark-excel"></i> {% trans "Excel file of all data" %}</h2>
-      <p class="small text-muted">{% trans "Every table on its own sheet, with readable column names: patients, appointments, treatments, surgeries and implants, plans, payments, academy, stock and more." %}</p>
-      <a class="btn btn-outline-success" href="{% url 'settings:export_excel' %}"><i class="bi bi-download"></i> {% trans "Download the Excel file" %}</a>
-      <p class="small text-muted mt-3 mb-0"><i class="bi bi-file-earmark-word"></i> {% trans "A patient's whole file as a Word document: open the patient and press “Word file”." %}</p>
+      <h2 class="h5"><i class="bi bi-images"></i> {% trans "Photos, X-rays and scans" %}</h2>
+      <p class="small text-muted">{% trans "They are too big for a ZIP (hundreds of gigabytes in time). Every night they are copied as they are to the photo backup folder: only the new and changed files, so it takes minutes. Nothing is deleted there, so a photo deleted by mistake is still in the copy." %}</p>
+      <p class="small mb-0"><i class="bi bi-hdd"></i> {% trans "Best on another disk than the system's (an external disk or a NAS). The person who installs the system sets it (FILES_BACKUP_DIR)." %}</p>
+    </div></div>
+  </div>
+  <div class="col-12">
+    <div class="card"><div class="card-body d-flex flex-wrap gap-3 align-items-center">
+      <div class="flex-grow-1"><h2 class="h6 fw-bold mb-1"><i class="bi bi-file-earmark-excel"></i> {% trans "Excel file of all data" %}</h2>
+        <p class="small text-muted mb-0">{% trans "Every table on its own sheet, with readable column names: patients, appointments, treatments, surgeries and implants, plans, payments, academy, stock and more." %} {% trans "A patient's whole file as a Word document: open the patient and press “Word file”." %}</p></div>
+      <a class="btn btn-outline-success" href="{% url 'settings:export_excel' %}" data-no-progress><i class="bi bi-download"></i> {% trans "Download the Excel file" %}</a>
     </div></div>
   </div>
 </div>
@@ -27,18 +53,32 @@
   <thead><tr><th>{% trans "File" %}</th><th>{% trans "Made at" %}</th><th>{% trans "Size" %}</th><th></th></tr></thead>
   <tbody>{% for b in backups %}
     <tr><td dir="ltr">{{ b.name }}</td><td>{{ b.made_at|date:"d/m/Y g:i A" }}</td><td>{{ b.size_mb }} MB</td>
-      <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'settings:backup_download' b.name %}"><i class="bi bi-download"></i> {% trans "Download" %}</a></td></tr>
+      <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'settings:backup_download' b.name %}" data-no-progress><i class="bi bi-download"></i> {% trans "Download" %}</a></td></tr>
   {% empty %}<tr><td colspan="4" class="text-muted">{% trans "No backup yet." %}</td></tr>{% endfor %}</tbody>
 </table></div></div>
 
+{% if runs %}
+<h2 class="h6 fw-bold mt-4">{% trans "Last backup runs" %}</h2>
+<div class="card"><div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+  <thead><tr><th>{% trans "Started" %}</th><th>{% trans "Backup of" %}</th><th>{% trans "Result" %}</th><th>{% trans "Details" %}</th></tr></thead>
+  <tbody>{% for run in runs %}
+    <tr><td>{{ run.started_at|date:"d/m/Y g:i A" }}</td><td>{{ run.get_kind_display }}</td>
+      <td>{% if run.ok %}<span class="badge text-bg-success">{% trans "Done" %}</span>{% elif run.finished_at %}<span class="badge text-bg-danger">{% trans "Failed" %}</span>{% else %}<span class="badge text-bg-secondary">{% trans "Running or stopped" %}</span>{% endif %}</td>
+      <td class="small">{% if run.error %}<span dir="ltr">{{ run.error|truncatechars:120 }}</span>{% elif run.kind == "files" %}{% blocktrans with copied=run.files_copied checked=run.files_checked %}{{ copied }} of {{ checked }} files copied{% endblocktrans %}{% else %}{{ run.size|filesizeformat }}{% endif %}</td></tr>
+  {% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+
 <details class="card mt-3"><summary class="card-header">{% trans "Putting a backup back, and automatic backups (for the person who installs the system)" %}</summary>
   <div class="card-body small" dir="ltr">
+    <p class="mb-1"><b>Every night</b> (Windows: <code>deploy\windows\backup.bat</code> in the Task Scheduler; docker compose: the "nightly" service does it at 2 am):</p>
+    <pre class="bg-body-tertiary p-2">python manage.py backup</pre>
+    <p class="mb-1">It makes the ZIP of the data, then copies the new photos to <code>FILES_BACKUP_DIR</code> (set it in <code>.env</code>, e.g. <code>FILES_BACKUP_DIR=E:\CIA backup\files</code>).</p>
     <p class="mb-1"><b>Restore</b> (new PC, or after a big change went wrong): install the system, then in its folder run</p>
-    <pre class="bg-body-tertiary p-2">python manage.py migrate
-python manage.py restore_backup "backup_2026-01-31_22-00-00.zip"</pre>
-    <p class="mb-1">The data there before restoring is saved as a new backup first.</p>
-    <p class="mb-1"><b>Every night</b>: in the Windows Task Scheduler add a daily task that runs</p>
-    <pre class="bg-body-tertiary p-2 mb-0">python manage.py backup</pre>
+    <pre class="bg-body-tertiary p-2 mb-1">python manage.py migrate
+python manage.py restore_backup "backup_2026-01-31_22-00-00.zip"
+python manage.py restore_files --from "E:\CIA backup\files"</pre>
+    <p class="mb-0">The data there before restoring is saved as a new backup first. Nothing is deleted when the files are put back.</p>
   </div>
 </details>
 {% endblock %}

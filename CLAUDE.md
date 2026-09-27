@@ -114,6 +114,21 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - Implant stages move forward only, through `SurgerySite.advance`.
   - `SurgerySite.objects.done_by(dentist)` counts the per-tooth operator.
 - `setup_clinic` (lists, rooms, branches) can be run many times. `load_demo_data` works on an **empty** database only.
+- **Speed with a lot of data** (10,000 patients must stay quick):
+  - Never call `account(patient)` in a loop: use `paid_by_charge`, `balances`, `patients_owe`, `bill_totals`
+    (`billing/models.py`) and `clinics.shares.totals` (the quick `statement`). Read lists with `values_list` when
+    only numbers are needed.
+  - `ClinicSettings.get()` is kept for one page (`PageCacheMiddleware`); the home page's alert checks run at most
+    every 3 minutes.
+  - `SpeedTests` (`apps/core/tests.py`) fills 1,500 patients (`apps/core/bigdata.py`) and gives each page a budget of
+    database look-ups: add new main pages to it. `fill_big_data` adds 10,000 patients to a test copy.
+  - Pictures: show `{{ file|preview }}` (small, 480 px) or `|preview:"medium"` (1600 px) with `loading="lazy"`, never
+    the original in a grid (`apps/core/previews.py`). Files are sent by `core.views.send_file` (ETag; X-Accel-Redirect
+    with `MEDIA_SENDFILE=nginx`).
+  - Long lists get pages (`Paginator`, `includes/pagination.html`); keep totals for the whole period.
+- **Backups**: `backup` = the data ZIP (no photos) + `copy_files` (new files only, to `FILES_BACKUP_DIR`, never deletes);
+  each run is a `BackupRun`, shown in Settings → Backup and on the owner's home page. Logs are in `LOG_DIR`
+  (`errors.log`, `slow-pages.log`). `make_test_copy` makes a test copy (`TEST_COPY=1` banner).
 
 ## Commands
 - Tests (about 4 minutes). GitHub runs `manage.py test apps` on every push (`.github/workflows/tests.yml`); that finds
@@ -154,3 +169,6 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - A doctor's percentage is taken of what the patient has paid so far, counted on the date the service was given;
     nothing is taken off first (e.g. lab or implant cost) unless the owner asks for it.
   - CIC has no logo of its own yet: its bills print its name, phone and address.
+  - Speeds were measured on a test copy with made-up data on an ordinary PC, with SQLite; the real server with
+    PostgreSQL should be similar or faster. Photo download times depend on the Wi-Fi.
+  - A CBCT is kept as a folder or link: the system does not open DICOM files. The test copy has no photos.

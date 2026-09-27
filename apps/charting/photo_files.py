@@ -12,6 +12,8 @@ import zipfile
 
 from django.core.files.storage import default_storage
 
+from apps.core import previews
+
 ROOT = "Patient photos"
 
 # Numbered so they sort in the order of the case. Not translated: folder names stay the same.
@@ -68,6 +70,7 @@ def organize(photo):
     type(photo).objects.filter(pk=photo.pk).update(file=new)
     photo.file.name = new
     default_storage.delete(old)
+    previews.delete_previews(old)
     return True
 
 

@@ -21,6 +21,7 @@ from apps.charting.models import Examination, PlanItem
 from apps.charting.sync import sync_medical_history
 from apps.clinical.models import LabRequest
 from apps.complaints.models import Complaint
+from apps.core import previews
 from apps.core.forms import clean_digits_value
 from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_required
@@ -328,6 +329,7 @@ def patient_detail(request, pk):
     context = {
         "patient": patient,
         "documents": patient.documents.all(),
+        "xrays": patient.documents.filter(kind=PatientDocument.Kind.XRAY),
         "relations": patient.relations(),
         "referred_patients": patient.referred_patients.all(),
         "appointments": patient.appointments.select_related("room", "dentist", "branch").order_by("-scheduled_at")[:50],
@@ -401,6 +403,8 @@ def document_rotate(request, pk, doc_pk):
         old = document.file.name
         document.file.save(os.path.basename(old).rsplit(".", 1)[0] + ".jpg", ContentFile(output.getvalue()), save=True)
         document.file.storage.delete(old)
+        previews.delete_previews(old)
+        previews.make_previews(document.file.name)
     return redirect(reverse("patients:detail", args=[pk]))
 
 
@@ -414,6 +418,7 @@ def document_upload(request, pk):
         document.patient = patient
         document.created_by = request.user
         document.save()
+        previews.make_previews(document.file.name)
         messages.success(request, _("Document uploaded."))
     else:
         for errors in form.errors.values():
@@ -426,6 +431,7 @@ def document_upload(request, pk):
 @require_POST
 def document_delete(request, pk, doc_pk):
     document = get_object_or_404(PatientDocument, pk=doc_pk, patient_id=pk)
+    previews.delete_previews(document.file.name)
     document.file.delete(save=False)
     if document.original:
         document.original.delete(save=False)

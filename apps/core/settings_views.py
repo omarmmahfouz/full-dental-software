@@ -361,18 +361,33 @@ def role_access(request):
 # ------------------------------------------------------------ backup and export
 @role_required(OWNER)
 def backup_home(request):
-    from .backup import backup_dir, create_backup, list_backups
+    from datetime import timedelta
+
+    from .backup import backup_dir, backup_now, backup_status, files_backup_dir, list_backups
+    from .models import BackupRun
 
     if request.method == "POST":
+        running = BackupRun.objects.filter(kind=BackupRun.Kind.DATABASE, finished_at=None,
+                                           started_at__gte=timezone.now() - timedelta(minutes=30)).exists()
+        if running:
+            messages.info(request, _("A backup is being made now. It will appear below when it is ready."))
+            return redirect("settings:backup")
         try:
-            path = create_backup()
+            path = backup_now()
         except Exception as error:  # disk full, folder not writable…: say it, the data is untouched
             messages.error(request, _("The backup could not be made: %(error)s") % {"error": error})
         else:
-            messages.success(request, _("Backup made: %(name)s. Download it and keep a copy outside this PC.")
-                             % {"name": path.name})
+            if path is None:
+                messages.info(request, _("The backup is being made (there is a lot of data). It will appear below "
+                                         "in a few minutes: open this page again then."))
+            else:
+                messages.success(request, _("Backup made: %(name)s. Download it and keep a copy outside this PC.")
+                                 % {"name": path.name})
         return redirect("settings:backup")
-    return render(request, "settings/backup.html", {"backups": list_backups(), "folder": backup_dir()})
+    return render(request, "settings/backup.html", {
+        "backups": list_backups(), "folder": backup_dir(), "files_folder": files_backup_dir(),
+        "status": backup_status(), "runs": BackupRun.objects.all()[:12],
+    })
 
 
 @role_required(OWNER)

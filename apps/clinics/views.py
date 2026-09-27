@@ -15,6 +15,7 @@ from apps.academy.models import PaymentMethod
 from apps.billing.models import Charge, PatientPayment
 from apps.core.mixins import role_required
 from apps.core.models import Branch, branch_for_user, working_places
+from apps.core.utils import minutes_between
 from apps.core.roles import CLINIC_MANAGERS, has_role
 from apps.dentists.models import Dentist
 from apps.patients.models import Patient
@@ -174,13 +175,16 @@ def report(request):
     by_machine = [(r["fawry_machine__name"] or "—", r["total"]) for r in
                   payments.filter(method=PaymentMethod.FAWRY).values("fawry_machine__name").annotate(total=Sum("amount"))
                   .order_by("fawry_machine__name")]
-    billed = sum((c.net for c in Charge.objects.filter(branch=place, charged_on__range=(date_from, date_to))), ZERO)
+    billed = sum((price - (price * percent / 100).quantize(Decimal("0.01")) for price, percent in
+                  Charge.objects.filter(branch=place, charged_on__range=(date_from, date_to)).order_by()
+                  .values_list("price", "discount_percent")), ZERO)
     appointments = Appointment.objects.filter(branch=place, scheduled_at__gte=start, scheduled_at__lt=end)
-    done = list(appointments.filter(status=Appointment.Status.COMPLETED))
+    done = list(appointments.filter(status=Appointment.Status.COMPLETED).order_by()
+                .values_list("patient_id", "scheduled_at", "entered_room_at", "left_at"))
     status_labels = dict(Appointment.Status.choices)
     by_status = [(status_labels[r["status"]], r["n"]) for r in
                  appointments.values("status").annotate(n=Count("id")).order_by("status")]
-    chair_minutes = sum(a.chair_minutes or 0 for a in done)
+    chair_minutes = sum(minutes_between(row[2], row[3]) or 0 for row in done)
     rows, totals = summary(place, date_from, date_to)
     used = StockMovement.objects.filter(branch=place, kind__in=(StockMovement.Kind.OUT, StockMovement.Kind.WASTE),
                                         moved_at__gte=start, moved_at__lt=end).select_related("item")
@@ -190,8 +194,8 @@ def report(request):
     days = []
     if (date_to - date_from).days <= 62:
         visits_by_day = defaultdict(int)
-        for a in done:
-            visits_by_day[timezone.localtime(a.scheduled_at).date()] += 1
+        for row in done:
+            visits_by_day[timezone.localtime(row[1]).date()] += 1
         money_by_day = {r["paid_on"]: r["total"] for r in payments.values("paid_on").annotate(total=Sum("amount"))}
         top_money = max(money_by_day.values(), default=ZERO) or Decimal("1")
         top_visits = max(visits_by_day.values(), default=0) or 1
@@ -206,7 +210,7 @@ def report(request):
         "form": form, "place": place, "date_from": date_from, "date_to": date_to, "query": _query(place, date_from, date_to),
         "collected": collected, "billed": billed, "by_method": by_method, "by_machine": by_machine,
         "visit_count": len(done), "by_status": by_status, "chair_minutes": chair_minutes,
-        "patients_seen": len({a.patient_id for a in done}),
+        "patients_seen": len({row[0] for row in done}),
         "new_files": Patient.objects.filter(branch=place, created_at__gte=start, created_at__lt=end).count(),
         "rows": rows, "totals": totals, "stock_used": stock_used, "left": collected - share - stock_used,
         "days": days,

@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.db.models import Q
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -281,14 +282,28 @@ class PatientForm(StyledModelForm):
 class PatientDocumentForm(StyledModelForm):
     class Meta:
         model = PatientDocument
-        fields = ["kind", "file", "notes"]
+        fields = ["kind", "file", "location", "notes"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["file"].validators.append(validate_upload)
         self.fields["file"].widget.attrs["accept"] = "image/*,application/pdf"
+        self.fields["location"].widget.attrs.update(dir="ltr", placeholder="\\\\CIA-SERVER\\CBCT\\…")
         for field in self.fields.values():
-            field.col = "col-md-4"
+            field.col = "col-md-6 col-lg-3"
+
+    def clean(self):
+        data = super().clean()
+        file, kind = data.get("file"), data.get("kind")
+        if not file and not data.get("location"):
+            raise forms.ValidationError(_("Choose a file, or write where the scan is kept."))
+        if file:
+            # X-rays and CBCT reports can be big pictures: they may be larger than the other documents.
+            limit = settings.MAX_XRAY_UPLOAD_MB if kind == PatientDocument.Kind.XRAY else None
+            try:
+                validate_upload(file, limit)
+            except forms.ValidationError as error:
+                self.add_error("file", error)
+        return data
 
 
 class PatientRelationForm(StyledModelForm):

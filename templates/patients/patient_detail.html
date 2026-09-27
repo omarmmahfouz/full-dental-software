@@ -54,6 +54,7 @@
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#plan" type="button">{% trans "Treatment plan" %} <span class="badge text-bg-light">{{ plans|length }}</span></button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#steps" type="button">{% trans "Treatment steps" %} <span class="badge text-bg-light">{{ steps|length }}</span></button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#lab" type="button">{% trans "Lab" %} <span class="badge text-bg-light">{{ lab_requests|length }}</span></button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#xrays" type="button">{% trans "X-rays & CBCT" %} <span class="badge text-bg-light">{{ xrays|length }}</span></button></li>
   {% if can_edit %}
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#documents" type="button">{% trans "ID & documents" %} <span class="badge text-bg-light">{{ documents|length }}</span></button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#relations" type="button">{% trans "Referral & relations" %}</button></li>
@@ -63,7 +64,7 @@
 
 <div class="tab-content">
   <div class="tab-pane fade show active" id="info">
-    {% if id_cards and can_edit %}<div class="d-flex flex-wrap gap-3 mb-3">{% for d in id_cards %}<a href="{{ d.file.url }}" target="_blank" class="id-card-view"><img src="{{ d.file.url }}" alt="{{ d.get_kind_display }}"><span>{{ d.get_kind_display }}</span></a>{% endfor %}</div>{% endif %}
+    {% if id_cards and can_edit %}<div class="d-flex flex-wrap gap-3 mb-3">{% for d in id_cards %}<a href="{{ d.file.url }}" target="_blank" class="id-card-view"><img src="{{ d.file|preview }}" alt="{{ d.get_kind_display }}" loading="lazy"><span>{{ d.get_kind_display }}</span></a>{% endfor %}</div>{% endif %}
     <div class="card"><div class="card-body">
       <div class="row">
         <div class="col-md-6"><dl class="dl-grid">
@@ -175,14 +176,27 @@
     {% endif %}
   </div>
 
+  <div class="tab-pane fade" id="xrays">
+    <div class="row g-3">
+      {% for d in xrays %}
+      <div class="col-6 col-md-4 col-xl-3"><div class="card h-100"><div class="card-body p-2 text-center">
+        {% if d.file %}<a href="{{ d.file.url }}" target="_blank">{% if d.is_image %}<img src="{{ d.file|preview }}" class="doc-thumb" alt="{{ d.get_kind_display }}" loading="lazy" decoding="async">{% else %}<i class="bi bi-file-earmark-pdf display-4 text-danger"></i>{% endif %}</a>{% else %}<i class="bi bi-hdd-network display-4 text-warning"></i>{% endif %}
+        <div class="small text-muted mt-1">{{ d.created_at|date:"d/m/Y" }} {{ d.notes }}</div>
+        {% include "patients/_scan_location.html" %}
+      </div></div></div>
+      {% empty %}<div class="col-12"><div class="text-muted">{% trans "No X-ray or CBCT yet." %}{% if can_edit %} {% trans "Add one under “ID & documents”: the picture or report, and where the full CBCT is kept." %}{% endif %}</div></div>{% endfor %}
+    </div>
+  </div>
+
   {% if can_edit %}
   <div class="tab-pane fade" id="documents">
     <div class="row g-3 mb-3">
       {% for d in documents %}
       <div class="col-6 col-md-4 col-xl-3"><div class="card h-100"><div class="card-body p-2 text-center">
-        <a href="{{ d.file.url }}" target="_blank">{% if d.is_image %}<img src="{{ d.file.url }}" class="doc-thumb" alt="{{ d.get_kind_display }}">{% else %}<i class="bi bi-file-earmark-pdf display-4 text-danger"></i>{% endif %}</a>
+        {% if d.file %}<a href="{{ d.file.url }}" target="_blank">{% if d.is_image %}<img src="{{ d.file|preview }}" class="doc-thumb" alt="{{ d.get_kind_display }}" loading="lazy" decoding="async">{% else %}<i class="bi bi-file-earmark-pdf display-4 text-danger"></i>{% endif %}</a>{% else %}<i class="bi bi-hdd-network display-4 text-warning"></i>{% endif %}
         <div class="fw-semibold small mt-1">{{ d.get_kind_display }}</div>
         <div class="small text-muted">{{ d.created_at|date:"d/m/Y" }} {{ d.notes }}</div>
+        {% include "patients/_scan_location.html" %}
         {% if d.original %}<a class="small" href="{{ d.original.url }}" target="_blank">{% trans "original scan" %}</a>{% endif %}
         <div class="d-flex justify-content-center mt-1">
           {% if d.is_image %}<form method="post" action="{% url 'patients:document_rotate' patient.pk d.pk %}">{% csrf_token %}<button class="btn btn-sm btn-link" name="way" value="left" title="{% trans 'Turn left' %}"><i class="bi bi-arrow-counterclockwise"></i></button><button class="btn btn-sm btn-link" name="way" value="right" title="{% trans 'Turn right' %}"><i class="bi bi-arrow-clockwise"></i></button></form>{% endif %}

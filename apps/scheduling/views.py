@@ -189,13 +189,14 @@ def today_board(request):
     appointments = list(appointments.prefetch_related("treatment_steps"))
     left_rows = _left_without_next(appointments) if day == timezone.localdate() else []
     just_left = next((row for row in left_rows if str(row["appointment"].pk) == request.GET.get("left")), None)
-    from apps.billing.models import Bill, account
+    from apps.billing.models import Bill, bill_totals
 
     to_collect = []
-    for bill in Bill.objects.filter(billed_on=day, source=Bill.Source.DENTIST).select_related("patient", "dentist"):
-        totals = bill.totals(account(bill.patient))
-        if totals["left"] > 0:
-            to_collect.append({"bill": bill, "left": totals["left"]})
+    dentist_bills = list(Bill.objects.filter(billed_on=day, source=Bill.Source.DENTIST).select_related("patient", "dentist"))
+    all_totals = bill_totals(dentist_bills)
+    for bill in dentist_bills:
+        if all_totals[bill.pk]["left"] > 0:
+            to_collect.append({"bill": bill, "left": all_totals[bill.pk]["left"]})
     return render(
         request,
         "scheduling/today.html",

@@ -5,7 +5,7 @@ One system for the owner's connected places:
 | Place | Code | Status |
 |---|---|---|
 | **Cairo Implant Academy** — teaching institute, economic dental service, course candidates, dentists | `CIA` | **In use: secretary + dentists** |
-| **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use (new)**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report |
+| **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report |
 | Private clinic (El Khadem dental clinic) — specialists and freelance doctors | `PVT` | next (the places, doctors' shares and stock already work for it) |
 | Dental lab — serves the clinics and outside clinics | `LAB` | next (lab requests already flow to it) |
 
@@ -28,15 +28,37 @@ The language follows the person, not the PC:
 | CIA dentists (full or part time) | `dentist` | every patient, the complaints about them, **only their own schedule**, and their cases. They record the clinical work: their own, and the course candidates' work, choosing the candidate's and the supervisor's names. In surgery they are usually the **assistant** |
 | Secretary (reception) | `secretary` | reception, patients, the **day planner**, WhatsApp messages, **patient payments**, lab send / receive, CBCT and blood test requests, complaints, academy (if allowed in Settings), purchases, and the **patients to call** lists. Not the dental chart, treatment log or surgeries: the patient file shows her the plan and the treatments done, in plain Arabic. Her edits of patient data and visit times wait for the head of CIA's approval |
 | Stock manager | `stock` | the stock of materials, instruments, food and beverage, and purchases |
-| Clinic manager (moderator) (new) | `moderator` | the **Clinics** menu: how each doctor of CIC (and later the other clinics) is paid, the doctors' shares, payments to the doctors, and the clinic report |
-| CIC doctors (new) | `dentist`, or no login | booked at CIC; the ones with a login see **My shares**. A doctor can work at CIA and CIC |
+| Clinic manager (moderator) | `moderator` | the **Clinics** menu: how each doctor of CIC (and later the other clinics) is paid, the doctors' shares, payments to the doctors, and the clinic report |
+| CIC doctors | `dentist`, or no login | booked at CIC; the ones with a login see **My shares**. A doctor can work at CIA and CIC |
 | Supervisors | no login for now | chosen by name: on treatments, surgeries, plans and lab requests |
 | Course candidates | **no login** | followed through their dentist file: batch, payments, implants done and remaining, every case |
 | Training dentists | no login | chosen by name |
 
 ## What it does
 
-### CIC — the Cairo Implant Center (new)
+### Speed and safety with a lot of data (new)
+Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**: the reception and dentist pages open in
+0.03–0.15 s, the owner's money pages in 0.2–1.2 s (before: 15–25 s). Details and the server to buy: [docs/deployment.md](docs/deployment.md#many-photos-and-many-users-new).
+- **Quick money pages**: the home page, balance sheet, money report, doctors' shares, clinic report and bills add up all the
+  balances in a few database look-ups instead of one per patient; the visits report reads the clinic options once.
+- **Photo previews**: each photo gets a small copy when it is uploaded. Photo pages, the patient's documents and the
+  surgery chart load the small copies, and only as they scroll into view; tapping a photo opens the original. The log
+  book and case report use a larger copy. The browser keeps photos it has already shown.
+- **Long lists in pages**: bills and payments show 200 rows a page; the totals stay for the whole period.
+- **Backups for a big photo folder**: every night a ZIP of all the data, and a copy of the **new** photos only to a backup
+  disk (nothing is deleted there). *Settings → Backup and export* shows how each part went; the owner's home page shows a
+  red **Check the backup** box, and the owner is notified, when a backup failed or has not run for a day and a half.
+- **X-rays & CBCT**: X-rays may be up to 60 MB. A CBCT (too big to upload) is kept as **where it is**: a folder on the server
+  or the centre's viewer link, next to its report or screenshots. A new tab on the patient file, **X-rays & CBCT**, shows
+  them to the dentists too, with a button to copy the folder.
+- **Error and slow-page logs** on the server's disk (`data/logs`), besides the *Problems* list.
+- **Test copy**: `test_copy.bat` starts a copy with today's data on port 8001, with a yellow **TEST COPY** banner, to try
+  a new version or a big change first. **Safe updates**: `update.bat` (Windows) and `deploy/update-docker.sh` make a backup
+  first, and stop if it fails.
+- **Speed tests**: the automatic tests fill the database with 1,500 patients and fail when a page becomes slow with more
+  patients, so this cannot come back unnoticed.
+
+### CIC — the Cairo Implant Center
 - **Places**: CIA and CIC share one system. People who work in both (e.g. the secretary) tick both in *Settings → People and logins*, and a coloured switch in the top bar (**CIA** green, **CIC** blue) chooses where they work now. The line under the top bar takes the place's colour, so nobody books or bills in the wrong place. Everything then works for that place: the reception board, the day planner, rooms and room schedule, bookings, free times, bills and payments, stock use.
 - **Shared patients**: one file per patient. A CIA patient can be booked and billed at CIC (the patient file has *Book at CIC*), and the visits list shows where each visit was. New files opened at CIC are numbered `CIC-…`.
 - **Doctors**: many doctors, some at CIA and CIC. Each dentist's *works at* places are set in *Academy → Dentists*; bookings and the room schedule of a place offer its own doctors only. CIC has 3 rooms to start (renamed or added in *Settings → Rooms*).
@@ -295,7 +317,7 @@ User menu → **Settings**.
 - **Parts of the system for one person**: on a person's page, choose for each part "as the role", normal, read only or no access, e.g. only some secretaries work with the academy.
 - **Clinic options**: appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, the e-mail for CBCT files, and **Fawry's percentage** on card payments.
 - **Lists**: the **usual days at the lab** for each lab work type, which paid services get a **quick button** on a new bill, and implants in stock (company, diameter and length on the stock item).
-- **Backup and export** (owner): one button makes a **full backup** (a ZIP with all records to put back into the system, the same data as **Excel** and **CSV** to open in any other program, and all uploaded files). *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
+- **Backup and export** (owner): one button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones (new). The page shows the last good backup of each part and any error (new). *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
 - **Problem reports** (owner and head of CIA): what the staff reported, and pages that stopped with an error (recorded automatically), with a download to send to whoever maintains the system.
 - **Access by role**: make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for a role.
   - It can only take access away, never give more than the role normally has.
@@ -309,7 +331,7 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (now also **CIC**: three doctors paid in three ways, a month of CIC visits with bills and payments, some on the second Fawry machine, a payment to a doctor, CIC's own implants and drapes in stock, and each place's use of the shared stock; hints are on for every sample login; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
+This makes a **practice copy on your PC** with sample data (now also **X-rays and two CBCTs kept on the server and on a centre's viewer** for one patient, and a **backup history** with one failed night; **CIC**: three doctors paid in three ways, a month of CIC visits with bills and payments, some on the second Fawry machine, a payment to a doctor, CIC's own implants and drapes in stock, and each place's use of the shared stock; hints are on for every sample login; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
 
 **Windows**
 1. Install **Python 3.12 or newer** from https://www.python.org/downloads/. On the first installer screen, tick **"Add python.exe to PATH"**.
@@ -330,13 +352,13 @@ This makes a **practice copy on your PC** with sample data (now also **CIC**: th
    | `secretary` | secretary, at **CIA and CIC** (the switch in the top bar) | Arabic |
    | `secretary2` | a second secretary who does not work with the academy | Arabic |
    | `stock` | stock manager | Arabic |
-   | `moderator` (new) | CIC clinic manager: doctors' fee rules, shares, payments to doctors, clinic report | English |
-   | `cicdoctor` (new) | Dr. Walid Hamdy, a CIC doctor paid 1,500 per implant and 25% of the rest | English |
+   | `moderator` | CIC clinic manager: doctors' fee rules, shares, payments to doctors, clinic report | English |
+   | `cicdoctor` | Dr. Walid Hamdy, a CIC doctor paid 1,500 per implant and 25% of the rest | English |
 
    The 4 course candidates (batch IMP-2026-A), the training dentist and the supervisors have no login, as agreed.
 
 5. Follow the checklists step by step:
-   - **[docs/cic-test-checklist.md](docs/cic-test-checklist.md)** (new) for CIC: the secretary, the moderator, the owner and a CIC doctor
+   - **[docs/cic-test-checklist.md](docs/cic-test-checklist.md)** for CIC: the secretary, the moderator, the owner and a CIC doctor
    - **[docs/secretary-test-checklist.md](docs/secretary-test-checklist.md)** for the secretary
    - **[docs/dentist-test-checklist.md](docs/dentist-test-checklist.md)** for the CIA dentists, the heads and the owner, including the settings
    - **[docs/stock-test-checklist.md](docs/stock-test-checklist.md)** for the stock manager
@@ -361,9 +383,12 @@ Suggestion, when you decide to buy:
 ## Installing on the clinic server
 
 See **[docs/deployment.md](docs/deployment.md)** for these topics:
-- Docker (recommended)
+- The server to buy for 10,000 patients and 1–3 TB of photos (new)
+- Docker (recommended), with nginx sending the photos (new)
 - Windows without Docker
-- Backups and restore
+- Backups and restore: the data every night, the new photos to a backup disk (new)
+- The test copy, and safe updates (new)
+- Many photos and many users: measured speeds, previews, logs, X-rays and CBCT (new)
 - The first setup: users, roles, rooms and lists
 
 ## Daily use guide for the secretaries (Arabic)
@@ -403,8 +428,16 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
     apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests apps.prescriptions.tests \
     apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests apps.surgery.tests apps.clinics.tests
   ```
-- Backups: `python manage.py backup` (full ZIP into `BACKUP_DIR`, default `data/backups`), `python manage.py restore_backup <zip>`,
+- Backups: `python manage.py backup` (the data ZIP into `BACKUP_DIR`, default `data/backups`, then the new files to
+  `FILES_BACKUP_DIR`; each run is a `BackupRun`), `python manage.py restore_backup <zip>`, `python manage.py restore_files`,
   and `python manage.py organize_photos` (moves photos saved by older versions into the readable folders).
+- Speed: `apps/billing/models.py` has `paid_by_charge`, `balances` and `bill_totals` (many patients or bills in a few
+  look-ups); `apps/clinics/shares.totals` is the quick form of `statement`. Previews are in `apps/core/previews.py`
+  (`{{ photo.file|preview }}`, `make_previews`); files are sent by `apps.core.views.send_file` (ETag, and
+  `MEDIA_SENDFILE=nginx` for X-Accel-Redirect). `SpeedTests` in `apps/core/tests.py` gives each page a budget of
+  database look-ups with 1,500 patients (`apps/core/bigdata.py`; `python manage.py fill_big_data` on a test copy).
+- Logs: `LOG_DIR` (default `data/logs`) holds `errors.log` and `slow-pages.log` (`SLOW_PAGE_SECONDS`, default 3).
+  `python manage.py make_test_copy [--serve 8001]` makes a test copy (`TEST_COPY=1` shows the banner).
 - Translations: write English in the code and templates, then run:
   ```bash
   python manage.py makemessages -l ar --ignore=.venv --no-location

@@ -1,3 +1,4 @@
+import io
 from datetime import date
 from decimal import Decimal
 
@@ -443,9 +444,10 @@ class BackupAndExportTests(TestCase):
 
         from django.test import override_settings
 
-        folder = tempfile.mkdtemp()
+        self.folder = folder = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
-        override = override_settings(MEDIA_ROOT=f"{folder}/media", BACKUP_DIR=f"{folder}/backups")
+        override = override_settings(MEDIA_ROOT=f"{folder}/media", BACKUP_DIR=f"{folder}/backups",
+                                     FILES_BACKUP_DIR=f"{folder}/other-disk/files")
         override.enable()
         self.addCleanup(override.disable)
         from apps.core.testing import make_dentist, make_patient
@@ -469,10 +471,13 @@ class BackupAndExportTests(TestCase):
 
         PatientDocument.objects.create(patient=self.patient, kind="other",
                                        file=ContentFile(b"%PDF-1.4", name="scan.pdf"))
-        with zipfile.ZipFile(create_backup()) as bundle:
+        with zipfile.ZipFile(create_backup(with_files=True)) as bundle:
+            self.assertTrue(any(n.startswith("media/") and n.endswith(".pdf") for n in bundle.namelist()))
+        with zipfile.ZipFile(create_backup()) as bundle:  # the nightly ZIP: the data only, the photos are copied apart
             names = bundle.namelist()
             self.assertTrue({"database.json", "excel/all-data.xlsx", "README.txt", "csv/patients.patient.csv"} <= set(names))
-            self.assertTrue(any(n.startswith("media/") and n.endswith(".pdf") for n in names))
+            self.assertFalse(any(n.startswith("media/") for n in names))
+            self.assertIn("other-disk", bundle.read("README.txt").decode())
             self.assertIn("مريض النسخة", bundle.read("csv/patients.patient.csv").decode("utf-8-sig"))
             self.assertNotIn("pbkdf2", bundle.read("csv/auth.user.csv").decode("utf-8-sig"))  # no passwords
             workbook = load_workbook(io.BytesIO(bundle.read("excel/all-data.xlsx")), read_only=True)
@@ -492,6 +497,67 @@ class BackupAndExportTests(TestCase):
         self.assertEqual(list(Patient.objects.values_list("full_name", flat=True)), ["مريض النسخة"])
         self.assertTrue(self.client.login(username="owner", password=PASSWORD))  # logins come back too
         self.assertEqual(len(list_backups()), 2)  # the state before restoring was saved first
+
+    def document(self, name, content=b"%PDF-1.4"):
+        from django.core.files.base import ContentFile
+
+        from apps.patients.models import PatientDocument
+
+        return PatientDocument.objects.create(patient=self.patient, kind="other", file=ContentFile(content, name=name))
+
+    def test_the_nightly_backup_copies_only_new_photos_and_never_deletes(self):
+        import os
+
+        from django.core.management import call_command
+
+        from apps.core.models import BackupRun
+
+        first = self.document("first.pdf")
+        os.makedirs(f"{self.folder}/media/previews/small")
+        open(f"{self.folder}/media/previews/small/x.jpg.jpg", "wb").close()  # previews are made again, not copied
+        call_command("backup", stdout=io.StringIO())
+        copy = f"{self.folder}/other-disk/files"
+        self.assertTrue(os.path.exists(os.path.join(copy, first.file.name)))
+        self.assertFalse(os.path.exists(f"{copy}/previews"))
+        run = BackupRun.objects.filter(kind="files").get()
+        self.assertEqual((run.ok, run.files_copied), (True, 1))
+        self.assertTrue(BackupRun.objects.get(kind="database").ok)
+        second = self.document("second.pdf")
+        call_command("backup", stdout=io.StringIO())
+        self.assertEqual(BackupRun.objects.filter(kind="files").first().files_copied, 1)  # only the new one
+        os.remove(first.file.path)  # deleted by mistake: still in the copy, and it can be put back
+        call_command("backup", stdout=io.StringIO())
+        self.assertTrue(os.path.exists(os.path.join(copy, first.file.name)))
+        call_command("restore_files", stdout=io.StringIO())
+        self.assertTrue(os.path.exists(first.file.path))
+        self.assertTrue(os.path.exists(second.file.path))
+
+    def test_the_owner_is_warned_when_the_backup_fails_or_is_old(self):
+        from datetime import timedelta
+        from unittest import mock
+
+        from django.core.management import call_command
+        from django.utils import timezone
+
+        from apps.core.models import BackupRun, Notification
+
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertContains(self.client.get("/"), "Check the backup")  # never done yet
+        call_command("backup", stdout=io.StringIO())
+        home = self.client.get("/")
+        self.assertNotContains(home, "Check the backup")
+        self.assertContains(home, "Backup OK")
+        with mock.patch("apps.core.backup.copy_new_files", side_effect=OSError("No space left on device")):
+            with self.assertRaises(OSError):
+                call_command("backup", stdout=io.StringIO())
+        self.assertTrue(Notification.objects.filter(recipient=self.owner, level="danger").exists())
+        self.assertContains(self.client.get("/"), "the last try failed")
+        self.assertContains(self.client.get("/settings/backup/"), "No space left on device")
+        call_command("backup", stdout=io.StringIO())
+        BackupRun.objects.update(started_at=timezone.now() - timedelta(days=3))  # the nightly task stopped
+        self.assertContains(self.client.get("/"), "Check the backup")
+        self.client.login(username="head", password=PASSWORD)
+        self.assertNotContains(self.client.get("/"), "backup")
 
     def test_backup_page_is_for_the_owner(self):
         self.client.login(username="head", password=PASSWORD)
@@ -625,3 +691,150 @@ class LookAndHintsTests(TestCase):
         page = self.client.get("/")
         self.assertIn(page.context["greeting_icon"], ("bi-sunrise", "bi-sun", "bi-moon-stars"))
         self.assertIn(self.secretary.get_full_name() or "sec", page.context["greeting"])
+
+
+class SpeedTests(TestCase):
+    """With clinic-sized data a page must read the database a few times, not once per patient, visit or bill:
+    a page that does would take seconds, then minutes, as the clinic grows. Each page has a budget of
+    look-ups that does not depend on the number of patients."""
+
+    PERIOD = "date_from=01/01/2020&date_to=31/12/2030"
+    PAGES = [
+        ("secretary", "/", 60),
+        ("secretary", "/patients/", 40),
+        ("secretary", "/patients/?q=محمد", 40),
+        ("secretary", "/schedule/today/", 60),
+        ("secretary", "/schedule/day/", 40),
+        ("secretary", "/schedule/appointments/", 40),
+        ("secretary", f"/billing/bills/?{PERIOD}", 40),
+        ("secretary", f"/billing/payments/?{PERIOD}", 40),
+        ("dentist", "/", 60),
+        ("dentist", "/clinical/steps/", 40),
+        ("owner", "/", 130),  # grows with the number of doctors at CIC, not of patients
+        ("owner", f"/reports/visits/?{PERIOD}", 40),
+        ("owner", f"/reports/dentists/?{PERIOD}", 60),
+        ("owner", f"/reports/money/?{PERIOD}", 60),
+        ("owner", f"/reports/balance/?{PERIOD}", 60),
+        ("owner", f"/clinics/?place=CIC&{PERIOD}", 120),
+        ("owner", f"/clinics/report/?place=CIC&{PERIOD}", 120),
+        ("owner", "/surgery/finder/", 60),
+    ]
+
+    @classmethod
+    def setUpTestData(cls):
+        from decimal import Decimal
+
+        from apps.clinics.models import FeeRule
+        from apps.core.bigdata import fill
+        from apps.core.models import Branch
+        from apps.core.testing import make_dentist
+
+        setup_clinic()
+        cic = Branch.objects.get(code="CIC")
+        make_user("owner", "owner")
+        make_user("secretary", "secretary")
+        doctors = [make_dentist("dentist", kind="training")] + [make_dentist(f"doc{n}", login=False) for n in range(5)]
+        for doctor in doctors[:3]:
+            FeeRule.objects.create(dentist=doctor, branch=cic, method=FeeRule.Method.PERCENT, value=Decimal("30"),
+                                   starts_on=date(2020, 1, 1))
+        FeeRule.objects.create(dentist=doctors[3], branch=cic, method=FeeRule.Method.PER_VISIT, value=Decimal("150"),
+                               starts_on=date(2020, 1, 1))
+        cls.added = fill(patients=1500, visits_per_patient=4, bills_per_patient=2, photos_per_patient=1)
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.set("dashboard-alerts", True, 600)  # the visit-notes alerts have their own tests
+
+    def test_pages_stay_quick_with_many_patients(self):
+        import time
+
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from apps.patients.models import Patient
+
+        self.assertEqual(self.added["patients"], 1500)
+        patient = Patient.objects.order_by("-pk").first()
+        pages = self.PAGES + [("secretary", f"/patients/{patient.pk}/", 60),
+                              ("secretary", f"/billing/patient/{patient.pk}/", 60),
+                              ("dentist", f"/chart/patient/{patient.pk}/photos/", 60)]
+        for username, url, budget in pages:
+            with self.subTest(user=username, page=url):
+                self.client.login(username=username, password=PASSWORD)
+                with CaptureQueriesContext(connection) as queries:
+                    started = time.perf_counter()
+                    response = self.client.get(url)
+                    seconds = time.perf_counter() - started
+                self.assertEqual(response.status_code, 200)
+                self.assertLessEqual(len(queries), budget, f"{url} read the database {len(queries)} times")
+                self.assertLess(seconds, 10, f"{url} took {seconds:.1f} s")  # generous: GitHub's machines are slow
+
+    def test_bulk_balances_agree_with_each_patient_account(self):
+        from apps.billing.models import Bill, account, balances, bill_totals, paid_by_charge
+        from apps.patients.models import Patient
+
+        some = list(Patient.objects.filter(charges__isnull=False).distinct().order_by("pk")[:40])
+        paid, owe = paid_by_charge([p.pk for p in some]), balances()
+        for patient in some:
+            current = account(patient)
+            self.assertEqual(owe[patient.pk], current["balance"])
+            self.assertEqual(paid[patient.pk], {row["charge"].pk: row["paid"] for row in current["rows"]})
+        bills = list(Bill.objects.filter(patient__in=some))
+        together = bill_totals(bills)
+        for bill in bills:
+            alone = bill.totals()
+            self.assertEqual({k: v for k, v in together[bill.pk].items() if k != "rows"},
+                             {k: v for k, v in alone.items() if k != "rows"})
+
+    def test_the_quick_doctor_totals_agree_with_the_statement(self):
+        from apps.clinics.models import FeeRule
+        from apps.clinics.shares import statement, totals
+        from apps.core.models import Branch
+
+        cic = Branch.objects.get(code="CIC")
+        for rule in FeeRule.objects.filter(branch=cic).select_related("dentist"):
+            full = statement(rule.dentist, cic, date(2020, 1, 1), date(2030, 12, 31))
+            quick = totals(rule.dentist, cic, date(2020, 1, 1), date(2030, 12, 31))
+            for key in ("billed", "collected", "share", "visit_count", "chair_minutes", "patient_count"):
+                self.assertEqual(quick[key], full[key], key)
+            self.assertGreater(full["share"], 0)
+
+
+class SafetyTests(TestCase):
+    """The slow-page log, the test copy and its banner."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+
+    def test_slow_pages_are_written_down(self):
+        from django.test import override_settings
+
+        with override_settings(SLOW_PAGE_SECONDS=0), self.assertLogs("clinic.slow", level="WARNING") as logs:
+            self.client.get("/reports/")
+        self.assertIn("GET /reports/", logs.output[0])
+        self.assertIn("(owner)", logs.output[0])
+
+    def test_a_test_copy_has_todays_data_and_shows_a_banner(self):
+        import shutil
+        import sqlite3
+        import tempfile
+
+        from django.core.management import call_command
+        from django.test import override_settings
+
+        from apps.core.testing import make_patient
+
+        make_patient(self.branch, name="مريض النسخة التجريبية")
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
+        with override_settings(BACKUP_DIR=f"{folder}/backups", MEDIA_ROOT=f"{folder}/media"):
+            call_command("make_test_copy", folder=f"{folder}/copy", stdout=io.StringIO())
+        with sqlite3.connect(f"{folder}/copy/db.sqlite3") as copy:
+            names = [row[0] for row in copy.execute("select full_name from patients_patient")]
+        self.assertEqual(names, ["مريض النسخة التجريبية"])
+        self.assertNotContains(self.client.get("/"), "TEST COPY")
+        with override_settings(TEST_COPY=True):
+            self.assertContains(self.client.get("/"), "TEST COPY")

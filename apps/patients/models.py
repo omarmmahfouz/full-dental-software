@@ -308,7 +308,12 @@ class PatientDocument(TimeStampedModel):
 
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="documents", verbose_name=_("patient"))
     kind = models.CharField(_("document type"), max_length=20, choices=Kind.choices)
-    file = models.FileField(_("file"), upload_to=patient_document_path)
+    file = models.FileField(_("file"), upload_to=patient_document_path, blank=True,
+                            help_text=_("A picture or PDF: the X-ray, the CBCT report or a few screenshots of it."))
+    location = models.CharField(
+        _("where the full scan is kept"), max_length=500, blank=True,
+        help_text=_("For a CBCT (DICOM files, too big to upload): the folder on the server or the viewer link "
+                    "from the centre, e.g. \\\\CIA-SERVER\\CBCT\\CIA-00020 or https://…"))
     original = models.FileField(_("original scan"), upload_to=patient_document_path, blank=True,
                                 help_text=_("The picture as it was uploaded, before the card was cut out."))
     notes = models.CharField(_("notes"), max_length=255, blank=True)
@@ -323,7 +328,11 @@ class PatientDocument(TimeStampedModel):
 
     @property
     def is_image(self):
-        return os.path.splitext(self.file.name)[1].lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+        return bool(self.file) and os.path.splitext(self.file.name)[1].lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+
+    @property
+    def location_is_link(self):
+        return self.location.lower().startswith(("http://", "https://"))
 
     def save(self, *args, **kwargs):
         if self._state.adding and self.kind in self.CARD_KINDS and self.file and not self.original:

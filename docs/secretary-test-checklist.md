@@ -177,3 +177,11 @@ All the steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section
 96. **CIC prices**: at CIC a new bill offers "كشف CIC", "زرعة CIC" and "تركيبة على زرعة CIC".
 97. **Two Fawry machines**: a card payment asks which machine took it (Fawry 1 or Fawry 2). "ماكينة فوري" shows what each machine holds.
 98. **Payments of the day**: "مدفوعات المرضى" shows the place you work in; "كل الأماكن" shows both.
+
+## Q. New in this version (6): speed, X-rays and CBCT
+Delete the `data` folder and run `trial-windows.bat` again to get the new sample data.
+99. **Long lists in pages**: open "الفواتير" and choose a whole year in the dates, then "مدفوعات المرضى" the same way. Each page shows up to 200 rows, with "السابق" / "التالي" at the bottom; the totals at the top are for the whole period.
+100. **X-rays of a patient**: open patient **CIA-00005**. The new tab **"الأشعة والـ CBCT"** shows a panoramic X-ray (a small picture that opens full size), a CBCT kept on the server (its folder, with a copy button 📋: press it, then paste in File Explorer) and a CBCT on the centre's viewer ("افتح الأشعة" opens the link).
+101. **Add a CBCT that is too big to upload**: on any patient, "البطاقة والمستندات" → "رفع مستند / صورة بطاقة": choose "أشعة / CBCT", leave the file empty and write in **"مكان حفظ الأشعة كاملة"** a folder such as `\\CIA-SERVER\CBCT\CIA-00001`. It is saved and shows in the X-rays tab. With neither a file nor a place, it asks for one of them.
+102. **Bigger X-rays**: an X-ray picture or PDF up to 60 MB is accepted as "أشعة / CBCT"; other documents stay up to 15 MB.
+103. **Pictures load quickly**: the document cards show small copies of the pictures; tapping one opens the full picture.

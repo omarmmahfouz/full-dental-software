@@ -79,3 +79,7 @@ In the sample data:
     - **People and logins**: the secretary's "works at".
     - *Academy → Dentists*: each dentist's "works at".
 24. *Reports → Balance sheet*: CIC's column has its patient payments (where they were paid) and **Paid to the doctors (their shares)** as a cost.
+
+## G. New in this version (6): quick with years of data
+25. As **moderator**, *Clinics → Doctors' shares* for a whole year, and the *Clinic report* for a year: they open in about a second (before, with thousands of patients, they took 15 seconds). The numbers are the same as each doctor's statement: open Dr. Walid Hamdy's statement for the same period and compare *Share* and *Still owed*.
+26. As **secretary** at CIC: "الفواتير" and "مدفوعات المرضى" for a long period show 200 rows a page, with the totals for the whole period.

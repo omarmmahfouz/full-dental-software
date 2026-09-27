@@ -14,6 +14,22 @@ def has_role(user, roles):
 
 
 @register.filter
+def preview(file, size="small"):
+    """The address of a picture's small copy: {{ photo.file|preview }} for grids, {{ photo.file|preview:"medium" }}
+    for large photos. Files that are not pictures (PDF, video) keep their own address."""
+    from django.core.files.storage import default_storage
+
+    from apps.core import previews
+
+    name = getattr(file, "name", file) or ""
+    if not name:
+        return ""
+    if not previews.can_preview(name) or size not in previews.SIZES:
+        return default_storage.url(name)
+    return default_storage.url(previews.preview_name(name, size))
+
+
+@register.filter
 def field_col(bound_field):
     """Bootstrap grid column for a form field (wide widgets take the full row)."""
     col = getattr(bound_field.field, "col", None)

@@ -14,6 +14,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from apps.clinical.models import TreatmentStep, TreatmentStepType
+from apps.core import previews
 from apps.core.roles import CLINICAL, MANAGEMENT, has_role
 from apps.dentists.models import Dentist
 from apps.patients.access import get_clinical_patient_or_403
@@ -313,13 +314,14 @@ def photos(request, patient_pk):
                     if upload.size > limit * 1024 * 1024:
                         errors.append(_("%(name)s is larger than %(mb)s MB.") % {"name": upload.name, "mb": limit})
                         continue
-                    ClinicalPhoto.objects.create(
+                    photo = ClinicalPhoto.objects.create(
                         patient=patient, stage=stage, photo_type=types.get(type_id), file=upload,
                         surgery=form.cleaned_data.get("surgery"), teeth=form.cleaned_data.get("teeth", ""),
                         taken_on=form.cleaned_data["taken_on"],
                         notes=(extra_name if key == "extra" and extra_name else form.cleaned_data.get("notes", "")),
                         created_by=request.user,
                     )
+                    previews.make_previews(photo.file.name)
                     saved += 1
             for error in errors:
                 messages.error(request, error)
@@ -358,6 +360,7 @@ def photo_delete(request, pk):
     photo = get_object_or_404(ClinicalPhoto, pk=pk)
     get_clinical_patient_or_403(request.user, photo.patient_id)
     stage = photo.stage
+    previews.delete_previews(photo.file.name)
     photo.file.delete(save=False)
     photo.delete()
     messages.success(request, _("File deleted."))

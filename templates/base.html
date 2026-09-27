@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{% trans "Cairo Implant Academy" %}{% endblock %} · {% trans "Dental system" %}</title>
+  <title>{% if test_copy %}[{% trans "TEST" %}] {% endif %}{% block title %}{% trans "Cairo Implant Academy" %}{% endblock %} · {% trans "Dental system" %}</title>
   {% if RTL %}<link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">{% else %}<link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">{% endif %}
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/cairo/cairo.css' %}">
@@ -17,6 +17,7 @@
 </head>
 <body class="sec-{{ section }}{% if current_branch %} place-{{ current_branch.code }}{% endif %}{% if user.is_authenticated and bottom_nav %} has-bottom-bar{% endif %} {% block body_class %}{% endblock %}"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}" data-user="{{ user.pk }}"{% if hints_reset %} data-hints-reset{% endif %}{% endif %}>
 <div class="nav-progress no-print" data-nav-progress aria-hidden="true"></div>
+{% if test_copy %}<div class="test-copy-banner" role="alert"><i class="bi bi-cone-striped"></i> {% trans "TEST COPY: for trying things out. Nothing done here changes the real system, and nothing here is kept." %}</div>{% endif %}
 {% if user.is_authenticated %}
 <nav class="navbar navbar-expand-xl app-navbar no-print">
   <div class="container-fluid">

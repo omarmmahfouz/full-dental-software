@@ -143,10 +143,10 @@ class BillingPlaceTests(PlaceMixin, TestCase):
         self.assertEqual(page.context["machine"], self.machines[1])
         self.assertEqual(len(page.context["per_machine"]), 2)
         # The payments of the day: the place worked in, or all places.
-        self.assertEqual(len(self.client.get("/billing/payments/").context["payments"]), 1)
+        self.assertEqual(self.client.get("/billing/payments/").context["page_obj"].paginator.count, 1)
         self.work_at("sec", "CIA")
-        self.assertEqual(len(self.client.get("/billing/payments/").context["payments"]), 0)
-        self.assertEqual(len(self.client.get("/billing/payments/?place=all").context["payments"]), 1)
+        self.assertEqual(self.client.get("/billing/payments/").context["page_obj"].paginator.count, 0)
+        self.assertEqual(self.client.get("/billing/payments/?place=all").context["page_obj"].paginator.count, 1)
         # The owner's balance sheet puts the money where it was paid.
         self.client.login(username="owner", password=PASSWORD)
         page = self.client.get("/reports/balance/")

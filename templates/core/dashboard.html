@@ -7,6 +7,17 @@
   <span class="today-chip"><i class="bi bi-calendar3"></i> {{ today|date:"l d/m/Y" }}</span>
 </div>
 
+{% if backup.problem %}
+<div class="alert alert-danger d-flex flex-wrap align-items-center gap-2 backup-alert" role="alert">
+  <i class="bi bi-shield-exclamation fs-4"></i>
+  <div class="flex-grow-1"><b>{% trans "Check the backup" %}</b>
+    {% for part in backup.parts %}{% if part.failed or part.overdue %}<div class="small">{{ part.label }}: {% if part.failed %}{% trans "the last try failed." %}{% elif part.last_ok %}{% blocktrans with when=part.last_ok.started_at|timesince %}last good one {{ when }} ago.{% endblocktrans %}{% else %}{% trans "never done yet." %}{% endif %}</div>{% endif %}{% endfor %}</div>
+  <a class="btn btn-sm btn-light" href="{% url 'settings:backup' %}"><i class="bi bi-safe"></i> {% trans "Backup and export" %}</a>
+</div>
+{% elif backup %}
+<div class="small text-success mb-2 backup-ok"><i class="bi bi-shield-check"></i> {% blocktrans with when=backup.parts.0.last_ok.started_at|date:"d/m g:i A" %}Backup OK (last: {{ when }}){% endblocktrans %}</div>
+{% endif %}
+
 {% if clinic_cards %}
 <div class="row g-3 mb-3">{% for card in clinic_cards %}
   <div class="col-lg-6"><a class="card clinic-card h-100 text-decoration-none place-{{ card.place.code }}" href="{% url 'clinics:report' %}?place={{ card.place.code }}">
