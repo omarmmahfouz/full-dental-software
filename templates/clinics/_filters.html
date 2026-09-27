@@ -1,0 +1,5 @@
+{% load i18n %}<form class="card card-body mb-3 no-print" data-no-leave-warning><div class="row g-2 align-items-end">
+  {% for field in form %}<div class="col-6 col-md-3"><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <div class="col-md-3 d-flex gap-2"><button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Show" %}</button>
+    <button type="button" class="btn btn-outline-secondary" onclick="window.print()" title="{% trans 'Print' %}"><i class="bi bi-printer"></i></button></div>
+</div></form>

@@ -229,6 +229,9 @@ class Payment(TimeStampedModel):
         help_text=_("Photo of the transfer / deposit receipt."),
     )
     notes = models.CharField(_("notes"), max_length=255, blank=True)
+    fawry_machine = models.ForeignKey(
+        "billing.FawryMachine", verbose_name=_("Fawry machine"), null=True, blank=True, on_delete=models.PROTECT,
+        related_name="course_payments", help_text=_("For card payments: the machine that took it."))
 
     class Meta:
         ordering = ["-paid_on", "-pk"]
@@ -242,6 +245,10 @@ class Payment(TimeStampedModel):
         return reverse("academy:payment_receipt", args=[self.pk])
 
     def save(self, *args, **kwargs):
+        if self.method == PaymentMethod.FAWRY and self.fawry_machine_id is None:
+            from apps.billing.models import FawryMachine
+
+            self.fawry_machine = FawryMachine.default()
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.receipt_number:

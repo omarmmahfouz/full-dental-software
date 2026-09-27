@@ -17,4 +17,5 @@ urlpatterns = [
     path("problems/<int:pk>/", problems.problem_update, name="problem_update"),
     path("notifications/read-all/", views.notification_mark_all_read, name="notifications_read_all"),
     path("hints/", views.toggle_hints, name="hints_toggle"),
+    path("place/", views.switch_place, name="switch_place"),
 ]

@@ -7,6 +7,23 @@
   <span class="today-chip"><i class="bi bi-calendar3"></i> {{ today|date:"l d/m/Y" }}</span>
 </div>
 
+{% if clinic_cards %}
+<div class="row g-3 mb-3">{% for card in clinic_cards %}
+  <div class="col-lg-6"><a class="card clinic-card h-100 text-decoration-none place-{{ card.place.code }}" href="{% url 'clinics:report' %}?place={{ card.place.code }}">
+    <div class="card-body">
+      <div class="d-flex align-items-center gap-2 mb-2"><span class="place-letterhead-code small-code">{{ card.place.code }}</span>
+        <div><div class="fw-bold text-body">{{ card.place }}</div><div class="small text-muted">{% trans "This month" %}</div></div></div>
+      <div class="clinic-card-stats">
+        <div><b>{{ card.visit_count }}</b><span>{% trans "visits" %}</span></div>
+        <div><b>{{ card.chair_minutes|minutes }}</b><span>{% trans "in the chair" %}</span></div>
+        <div><b class="text-success">{{ card.collected|money }}</b><span>{% trans "paid" %}</span></div>
+        <div><b>{{ card.share|money }}</b><span>{% trans "doctors' shares" %}</span></div>
+        <div><b class="{% if card.owed > 0 %}text-danger{% endif %}">{{ card.owed|money }}</b><span>{% trans "owed to doctors" %}</span></div>
+      </div>
+    </div></a></div>
+{% endfor %}</div>
+{% endif %}
+
 {% if is_front_desk %}
 <div class="quick-actions mb-3 no-print">
   <form class="quick-search" role="search" action="{% url 'patients:list' %}">

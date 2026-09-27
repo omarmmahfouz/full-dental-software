@@ -3,8 +3,9 @@
 Read this first, then `README.md` (what the system does, role by role) and the checklists in `docs/`.
 
 ## The project and how the owner works
-- A Django system for the **Cairo Implant Academy (CIA)**. The private clinic (`PVT`), the dental lab (`LAB`) and
-  **CIC** (a future economical clinic) come later; their branches already exist.
+- A Django system for the **Cairo Implant Academy (CIA)** and **CIC, the Cairo Implant Center** (a private economical
+  clinic, mainly implants, whose many doctors are paid by percentage or fixed amounts). The dental lab (`LAB`) and
+  El Khadem dental clinic (likely the `PVT` branch; confirm with the owner) come next; their branches already exist.
 - It runs **on the clinic's own server or PC**, with no cloud. Fonts, icons and scripts are in `static/vendor`, so it works offline.
 - The owner sends **numbered lists of changes** ("rounds"). For each round:
   1. Build every point.
@@ -55,6 +56,7 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - `secretary` does the reception work (front desk).
 - `supervisor` is kept for later.
 - `stock` is the stock manager.
+- `moderator` is the clinic manager: doctors' fee rules, shares, payouts and the clinic report (`CLINIC_MANAGERS` = owner + moderator).
 - Groups used in views: `FRONT_DESK`, `MANAGEMENT`, `CLINICAL`, `DENTISTS`, `PATIENT_VIEWERS`.
 
 ## Code map and conventions
@@ -70,6 +72,15 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - `billing`: services, charges, bills, payments, **Fawry ledger** in `billing/fawry.py`
   - `stock`: every change goes through `stock.services.record_movement`; implants by lot are in `stock/implants.py`
   - `complaints`, `academy`, `purchasing`, `reports` (money and balance sheet are owner-only)
+  - `clinics`: `FeeRule` (percent of what was paid / fixed per unit / fixed per visit, per doctor and place),
+    `DoctorPayout`, `shares.py` (statement, owed, summary), the clinic report
+- **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
+  through `WorkingPlaceMiddleware`); `working_places(user)` = the owner's all, else `profile.places` + `profile.branch`.
+  - Bills, charges (with `dentist`), patient payments, appointments, rooms, room shifts and stock movements carry a place.
+  - Patients are shared (one file); new files take the place's prefix (`CIC-…`).
+  - `Dentist.places` + `Dentist.objects.working_at(place)`; `Service.branch` ("only at") + `Service.for_place(place)`;
+    `StockItem.branch` = belongs to (empty = shared).
+  - Two Fawry machines (`FawryMachine`): each card payment and Fawry move names its machine.
 - **Approvals** (`apps/core/approvals.py`: `needs_approval`, `request_change`) go to the head of CIA or the owner.
   They cover:
   - patient data edited by the reception;
@@ -110,7 +121,7 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   DJANGO_DEBUG=1 .venv/bin/python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests \
     apps.clinical.tests apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests \
     apps.prescriptions.tests apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests \
-    apps.surgery.tests
+    apps.surgery.tests apps.clinics.tests
   ```
 - A throw-away demo copy. Keep it outside the repo, e.g. in a scratch folder:
   ```bash
@@ -127,7 +138,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 
 ## Testing notes for the owner's report
 - To get the new sample data: delete the `data` folder, then run `trial-windows.bat` (or `sh trial-mac-linux.sh`).
-- Logins (password `demo12345`): owner, headcia, teamhead, dentist1, dentist2, secretary, secretary2 (no academy), stock.
+- Logins (password `demo12345`): owner, headcia, teamhead, dentist1, dentist2 (also at CIC), secretary (CIA and CIC),
+  secretary2 (no academy), stock, moderator (CIC manager), cicdoctor (a CIC doctor).
+- CIC's steps are in `docs/cic-test-checklist.md`.
 - Known limits to state honestly:
   - Fawry is a ledger typed by the reception; there is no link to the machine itself.
   - WhatsApp opens one message per click; there is no automatic sending.
@@ -135,3 +148,6 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - The ID card photo is cropped, but its text is not read.
   - The drug doses need a doctor's review in Settings.
   - There is no freehand pen drawing or on-screen signature yet.
+  - A doctor's percentage is taken of what the patient has paid so far, counted on the date the service was given;
+    nothing is taken off first (e.g. lab or implant cost) unless the owner asks for it.
+  - CIC has no logo of its own yet: its bills print its name, phone and address.

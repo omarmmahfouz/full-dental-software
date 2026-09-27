@@ -28,8 +28,8 @@ def _details(source):
     from apps.purchasing.models import Purchase
 
     if isinstance(source, PatientPayment):
-        return ("patient_payment", FawryMove.Kind.COLLECTION, source.patient.branch, source.paid_on, source.amount,
-                source.method, source.reference, source.patient.full_name)
+        return ("patient_payment", FawryMove.Kind.COLLECTION, source.branch or source.patient.branch, source.paid_on,
+                source.amount, source.method, source.reference, source.patient.full_name)
     if isinstance(source, Payment):
         enrollment = source.enrollment
         return ("academy_payment", FawryMove.Kind.COLLECTION, enrollment.course.branch, source.paid_on, source.amount,
@@ -54,6 +54,9 @@ def sync(source):
     elif move.amount != amount and kind == FawryMove.Kind.COLLECTION:
         move.fee = fee_for(amount)
     move.kind, move.branch, move.moved_on, move.amount = kind, branch, day, amount
+    machine = getattr(source, "fawry_machine", None)
+    if machine is not None:
+        move.machine = machine  # the payment says which machine took it; purchases keep what the ledger says
     move.reference, move.description = reference[:100], description[:255]
     if kind == FawryMove.Kind.SERVICE:
         move.service = FawryMove.Service.SUPPLIER

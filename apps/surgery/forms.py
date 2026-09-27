@@ -108,7 +108,8 @@ class SurgerySiteForm(BootstrapFormMixin, forms.ModelForm):
             "lot_number", "sticker", "insertion_torque", "isq", "subcrestal", "notes",
         ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, branch=None, **kwargs):
+        self.branch = branch  # the surgery's place: its own implants and the shared ones are offered
         super().__init__(*args, **kwargs)
         self.fields["implant_system"].queryset = ImplantSystem.objects.filter(is_active=True)
         self.fields["sticker"].validators.append(validate_upload)
@@ -124,7 +125,7 @@ class SurgerySiteForm(BootstrapFormMixin, forms.ModelForm):
         instance = self.instance
         keep = (instance.implant_stock_item_id, instance.lot_number) if instance.implant_stock_item_id else None
         system = self.data.get(self.add_prefix("implant_system")) if self.is_bound else instance.implant_system_id
-        rows = lot_choices(system=system, keep=keep) if system else []
+        rows = lot_choices(system=system, keep=keep, branch=self.branch) if system else []
         self.stock_rows = rows
         self.fields["stock_choice"].choices = [("", _("not from stock"))] + [(r["value"], r["label"]) for r in rows]
         self.fields["stock_choice"].widget.attrs["data-stock-lots"] = ""

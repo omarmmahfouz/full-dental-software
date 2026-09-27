@@ -68,6 +68,13 @@
 .sec-reports { --section: #4953C4; --section-soft: #ECEDFB; }
 .sec-settings, .sec-account { --section: #55606B; --section-soft: #ECEFF2; }
 
+/* One colour per place (CIA, CIC...): the line under the top bar and the place switch, so nobody
+   books or bills in the wrong place by mistake. */
+:root, .place-CIA { --place: #5C8020; --place-light: #9EC64F; }
+.place-CIC { --place: #1F6FB2; --place-light: #6FB1E8; }
+.place-PVT { --place: #8A4FBF; --place-light: #C39BE6; }
+.place-LAB { --place: #6B7280; --place-light: #B7BDC6; }
+
 html { scroll-padding-top: 5rem; }
 body, .tooltip, .popover { font-family: "Cairo", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
 body.bg-body-tertiary, body { background: var(--app-bg) !important; color: var(--ink); }
@@ -237,7 +244,18 @@ tr.row-link { cursor: pointer; }
   box-shadow: 0 1px 0 var(--line), 0 4px 18px rgba(30, 45, 15, .05);
 }
 .app-navbar::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(255, 255, 255, .9); backdrop-filter: saturate(170%) blur(10px); }
-.app-navbar::after { content: ""; position: absolute; inset: auto 0 0 0; height: 3px; background: linear-gradient(90deg, #9EC64F, #5C8020 60%, #9EC64F); }
+.app-navbar::after { content: ""; position: absolute; inset: auto 0 0 0; height: 3px; background: linear-gradient(90deg, var(--place-light), var(--place) 60%, var(--place-light)); }
+.place-switch { margin-inline-end: .5rem; }
+.place-pill {
+  display: inline-flex; align-items: center; gap: .4rem; border: 0; border-radius: 999px; padding: .35rem .8rem;
+  font-weight: 700; font-size: .9rem; letter-spacing: .03em; color: #fff; background: linear-gradient(160deg, var(--place-light), var(--place));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--place) 35%, transparent); transition: transform var(--fast) var(--ease), box-shadow var(--fast);
+}
+.place-pill:hover { transform: translateY(-1px); box-shadow: 0 5px 14px color-mix(in srgb, var(--place) 40%, transparent); }
+.place-pill .place-dot { background: #fff; }
+.place-dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; background: var(--place); box-shadow: 0 0 0 3px color-mix(in srgb, var(--place) 20%, transparent); }
+.place-switch .dropdown-item.active { background: color-mix(in srgb, var(--place) 14%, #fff); color: var(--ink); }
+.place-badge { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; color: var(--place); background: color-mix(in srgb, var(--place) 12%, #fff); border: 1px solid color-mix(in srgb, var(--place) 30%, #fff); white-space: nowrap; }
 .app-navbar .navbar-brand { display: flex; align-items: center; gap: .6rem; white-space: nowrap; color: var(--brand-gray-dark); font-size: .95rem; font-weight: 700; }
 .app-navbar .navbar-brand img { height: 42px; width: auto; transition: transform var(--normal) var(--ease); }
 .app-navbar .navbar-brand:hover img { transform: rotate(-4deg) scale(1.04); }
@@ -662,3 +680,21 @@ main.page-enter { animation: page-in .35s var(--ease) both; }
 }
 .today-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .8rem; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--ink-2); font-weight: 600; font-size: .88rem; box-shadow: var(--shadow-1); }
 .today-chip .bi { color: var(--section); }
+.place-letterhead { display: inline-flex; align-items: center; gap: .75rem; text-align: start; }
+.place-letterhead-code { display: grid; place-items: center; min-width: 4.2rem; height: 4.2rem; padding: 0 .5rem; border-radius: 16px; font-size: 1.4rem; font-weight: 700; letter-spacing: .04em; color: #fff; background: linear-gradient(160deg, var(--place-light), var(--place)); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.machine-strip { display: flex; flex-wrap: wrap; gap: .6rem; }
+.machine-chip { display: flex; flex-direction: column; gap: .1rem; padding: .6rem .9rem; border-radius: var(--radius-sm); background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow-1); color: var(--ink); text-decoration: none; min-width: 12rem; transition: transform var(--fast) var(--ease), box-shadow var(--fast); }
+.machine-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-2); color: var(--ink); }
+.machine-chip.is-current { border-color: var(--section); box-shadow: 0 0 0 2px var(--section-soft), var(--shadow-1); }
+.machine-chip .bi { color: var(--section); }
+.use-place { display: flex; flex-direction: column; gap: .15rem; padding: .55rem .85rem; border-radius: var(--radius-sm); border: 1px solid var(--line); border-inline-start: 4px solid var(--place); background: #fff; min-width: 14rem; }
+.place-none { --place: #adb5bd; --place-light: #dee2e6; }
+.day-bars td > div > .bar { flex: 0 0 auto; max-width: 75%; }
+.bar-visits { background: linear-gradient(90deg, #6FB1E8, #1F6FB2); }
+.sec-clinics { --section: #1F6FB2; --section-soft: #E6F0FA; }
+.clinic-card { border-top: 4px solid var(--place); }
+.small-code { min-width: 3rem; height: 3rem; font-size: 1rem; border-radius: 12px; }
+.clinic-card-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); gap: .5rem; }
+.clinic-card-stats > div { display: flex; flex-direction: column; background: var(--surface-2); border-radius: var(--radius-xs); padding: .45rem .6rem; }
+.clinic-card-stats b { font-size: 1.1rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.clinic-card-stats span { font-size: .78rem; color: var(--ink-3); }

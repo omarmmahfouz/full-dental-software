@@ -31,13 +31,15 @@ AREAS = [
     ("purchases", gettext_lazy("Purchases"), ["/purchases/"]),
     ("stock", gettext_lazy("Stock"), ["/stock/"]),
     ("reports", gettext_lazy("Reports"), ["/reports/"]),
+    ("clinics", gettext_lazy("Clinics: doctors' shares and clinic report"), ["/clinics/"]),
 ]
 AREA_LABELS = {code: label for code, label, _prefixes in AREAS}
 _PREFIXES = sorted(((prefix, code) for code, _label, prefixes in AREAS for prefix in prefixes), key=lambda p: -len(p[0]))
 
 # Always allowed, whatever the limits: logging out, the language, changing one's own password,
-# reporting a problem with the software, switching the page hints.
-FREE_PATHS = ("/login/", "/logout/", "/i18n/", "/password/", "/static/", "/favicon", "/problems/report/", "/hints/")
+# reporting a problem with the software, switching the page hints and the place worked in.
+FREE_PATHS = ("/login/", "/logout/", "/i18n/", "/password/", "/static/", "/favicon", "/problems/report/", "/hints/",
+              "/place/")
 RANK = {AreaAccess.Level.FULL: 2, AreaAccess.Level.READ: 1, AreaAccess.Level.HIDDEN: 0}
 
 

@@ -30,11 +30,12 @@ from apps.clinical.models import ChartEffect, Lab, LabRequest, LabRequestEvent, 
 from apps.clinical.services import perform_lab_action
 from apps.clinical.views import record_treatment_on_chart
 from apps.complaints.models import Complaint, ComplaintFollowUp
-from apps.billing.models import Bill, Charge, FawryMove, PatientPayment, Service, create_bill
+from apps.billing.models import Bill, Charge, FawryMachine, FawryMove, PatientPayment, Service, create_bill
 from apps.charting.sync import sync_medical_history
 from apps.clinical.models import OutsideRequest
 from apps.core.approvals import request_change
 from apps.core.models import AreaAccess, Branch, ChangeRequest, ClinicSettings, PersonAreaAccess
+from apps.clinics.models import DoctorPayout, FeeRule
 from apps.dentists.models import Dentist
 from apps.patients.calllists import create_call_list
 from apps.patients.models import (
@@ -53,7 +54,8 @@ from apps.surgery.prostheses import apply_stage
 from apps.surgery.views import complete_plan_for_surgery, update_chart_for_surgery
 
 STOCK_LIST = Path(__file__).resolve().parents[3] / "stock" / "data" / "cia_material_instrument_list.csv"
-DEMO_USERS = ["owner", "headcia", "teamhead", "dentist1", "dentist2", "secretary", "secretary2", "stock"]
+DEMO_USERS = ["owner", "headcia", "teamhead", "dentist1", "dentist2", "secretary", "secretary2", "stock", "moderator",
+              "cicdoctor"]
 
 FIRST = ["محمد", "أحمد", "محمود", "مصطفى", "علي", "حسن", "إبراهيم", "يوسف", "سارة", "منى", "هبة", "فاطمة", "نادية", "سعاد", "أمل"]
 LAST = ["عبد الله", "السيد", "حسين", "عبد الرحمن", "إبراهيم", "مصطفى", "الشريف", "عثمان", "سليمان", "فؤاد"]
@@ -644,11 +646,12 @@ class Command(BaseCommand):
 
         self._round_three(branch, today, now, at, patients, booked_patients, rooms, cia_dentists, candidates,
                           types, services, secretary, head, stock_user, owner)
+        self._round_cic(today, at, user, patients, booked_patients, cia_dentists, types, secretary, stock_user)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
             "CIA dentists team), dentist1 and dentist2 (CIA dentists), secretary, secretary2 (reception without the "
-            "academy), stock (stock manager). "
+            "academy), stock (stock manager), moderator (CIC clinic manager), cicdoctor (a CIC doctor). "
             "Candidates, training dentists and supervisors have no login."
         ))
 
@@ -786,3 +789,158 @@ class Command(BaseCommand):
             complaint.status = Complaint.Status.IN_PROGRESS
             complaint.set_situation("المريض محجوز يوم السبت للكشف، والطبيب اطّلع على الشكوى", secretary)
             complaint.save()
+
+    def _round_cic(self, today, at, make_user, patients, booked_patients, cia_dentists, types, secretary, stock_user):
+        """CIC, the Cairo Implant Center: the secretary works at both places, its doctors are paid by rules
+        (a percentage, a fixed amount per implant, a fixed amount per visit), a month of visits with bills and
+        payments (some on the second Fawry machine), a payment to a doctor, and CIC's own material in stock."""
+        academy, cic = Branch.objects.get(code="CIA"), Branch.objects.get(code="CIC")
+        Branch.objects.filter(pk=cic.pk).update(phone="0225550000", address="Nasr City, Cairo")
+        cic.refresh_from_db()
+        rooms = list(Room.objects.filter(branch=cic).order_by("sort_order"))
+        machine_1, machine_2 = FawryMachine.objects.order_by("sort_order", "pk")[:2]
+        FawryMachine.objects.filter(pk=machine_1.pk).update(terminal_id="T-10233", notes="Reception desk")
+        FawryMachine.objects.filter(pk=machine_2.pk).update(terminal_id="T-10874", notes="Second machine")
+        machine_2.refresh_from_db()
+
+        # People: the secretary works at CIA and CIC; the clinic manager (moderator) at CIC.
+        secretary.profile.places.set([academy, cic])
+        moderator = make_user("moderator", "Hany", "(CIC manager)", "moderator")
+        moderator.profile.branch = cic
+        moderator.profile.save()
+        moderator.profile.places.set([cic])
+
+        # Doctors: Dr. Sherif works at both places; two doctors work at CIC only.
+        mona, sherif, _rania = cia_dentists
+        sherif.places.set([academy, cic])
+        mona.places.set([academy])
+        walid = Dentist.objects.create(full_name="Dr. Walid Hamdy", name_ar="د. وليد حمدي", kind=Dentist.Kind.SPECIALIST,
+                                       phone="01000000011", branch=cic,
+                                       user=make_user("cicdoctor", "Dr. Walid Hamdy", "", "dentist"))
+        walid.user.profile.branch = cic
+        walid.user.profile.save()
+        walid.places.set([cic])
+        hala = Dentist.objects.create(full_name="Dr. Hala Mostafa", name_ar="د. هالة مصطفى", kind=Dentist.Kind.FREELANCER,
+                                      phone="01000000012", branch=cic)
+        hala.places.set([cic])
+
+        # CIC's own price list, next to the services of every place.
+        cic_services = {}
+        for name_en, name_ar, price, quick in [("CIC consultation", "كشف CIC", 250, True),
+                                               ("CIC implant", "زرعة CIC", 9000, False),
+                                               ("CIC crown on implant", "تركيبة على زرعة CIC", 3500, False)]:
+            cic_services[name_en] = Service.objects.create(name_en=name_en, name_ar=name_ar, price=Decimal(price),
+                                                           branch=cic, quick_button=quick, sort_order=90)
+        scaling = Service.objects.get(name_en="Scaling")
+
+        # How each doctor is paid at CIC, set by the moderator.
+        start = today - timedelta(days=120)
+        FeeRule.objects.create(dentist=sherif, branch=cic, method=FeeRule.Method.PERCENT, value=Decimal("30"),
+                               starts_on=start, created_by=moderator, notes="30% of what the patient paid")
+        FeeRule.objects.create(dentist=walid, branch=cic, service=cic_services["CIC implant"],
+                               method=FeeRule.Method.PER_UNIT, value=Decimal("1500"), starts_on=start, created_by=moderator)
+        FeeRule.objects.create(dentist=walid, branch=cic, method=FeeRule.Method.PERCENT, value=Decimal("25"),
+                               starts_on=start, created_by=moderator)
+        FeeRule.objects.create(dentist=hala, branch=cic, method=FeeRule.Method.PER_VISIT, value=Decimal("400"),
+                               starts_on=start, created_by=moderator)
+
+        # This week's CIC room schedule.
+        week = [today + timedelta(days=i) for i in range(7)]
+        for day in week:
+            if day.weekday() == 4:  # Friday off
+                continue
+            for room, dentist, hours in [(rooms[0], walid, (time(12), time(20))), (rooms[1], hala, (time(12), time(18))),
+                                         (rooms[2], sherif, (time(17), time(21)))]:
+                RoomShift.objects.create(room=room, date=day, start_time=hours[0], end_time=hours[1], dentist=dentist,
+                                         day_type=RoomShift.DayType.REGULAR, created_by=secretary)
+
+        # CIC patients: three new files (numbered CIC-...), and CIA patients who also come to CIC.
+        new_files = []
+        for i, (name, nid, phone) in enumerate([("كريم عبد الحميد سالم", "28705120104511", "01150000001"),
+                                                ("نهى محمود فرج", "29211030104622", "01150000002"),
+                                                ("سامح عادل منصور", "28001250104733", "01150000003")]):
+            new_files.append(Patient.objects.create(branch=cic, full_name=name, national_id=nid, phone_primary=phone,
+                                                    assigned_dentist=[walid, hala, sherif][i], created_by=secretary))
+        visitors = new_files + [patients[2], patients[4], booked_patients[6]]
+
+        # A month of CIC visits: arrived, in the chair, left, then billed and paid.
+        rng = random.Random(21)
+        plan = [  # days ago, hour, patient, doctor, services, paid part, method
+            (26, 13, 0, walid, ["CIC consultation"], 1, PaymentMethod.CASH),
+            (24, 14, 1, hala, ["CIC consultation", "Scaling"], 1, PaymentMethod.FAWRY),
+            (21, 18, 3, sherif, ["CIC consultation"], 1, PaymentMethod.CASH),
+            (19, 13, 0, walid, ["CIC implant", "CIC implant"], Decimal("0.6"), PaymentMethod.FAWRY),
+            (15, 15, 2, sherif, ["CIC consultation", "Scaling"], 1, PaymentMethod.INSTAPAY),
+            (12, 16, 4, hala, ["Scaling"], 1, PaymentMethod.CASH),
+            (9, 12, 5, walid, ["CIC implant"], 1, PaymentMethod.FAWRY),
+            (6, 19, 3, sherif, ["CIC crown on implant"], Decimal("0.5"), PaymentMethod.CASH),
+            (3, 14, 1, hala, ["CIC consultation"], 1, PaymentMethod.CASH),
+            (1, 13, 2, walid, ["CIC consultation"], 1, PaymentMethod.FAWRY),
+        ]
+        for days_ago, hour, who, doctor, names, part, method in plan:
+            day = today - timedelta(days=days_ago)
+            room = rooms[[walid, hala, sherif].index(doctor)]
+            visit = Appointment.objects.create(branch=cic, patient=visitors[who], scheduled_at=at(day, hour), room=room,
+                                               dentist=doctor, duration_minutes=45, created_by=secretary,
+                                               procedure=types["Implant placement"] if "CIC implant" in names else None)
+            arrived = at(day, hour) + timedelta(minutes=rng.randint(-5, 12))
+            visit.mark_arrived(arrived)
+            visit.mark_entered_room(arrived + timedelta(minutes=rng.randint(3, 15)))
+            visit.mark_left(visit.entered_room_at + timedelta(minutes=rng.randint(20, 75)))
+            visit.save()
+            lines = []
+            for name in names:
+                service = cic_services.get(name) or scaling
+                lines.append({"service": service, "teeth": "36" if name == "CIC implant" and not lines else
+                              ("46" if name == "CIC implant" else "")})
+            bill = create_bill(visit.patient, lines, secretary, billed_on=day, appointment=visit, dentist=doctor, branch=cic)
+            amount = (bill.totals()["net"] * Decimal(part)).quantize(Decimal("1"))
+            PatientPayment.objects.create(
+                patient=visit.patient, bill=bill, branch=cic, amount=amount, paid_on=day, method=method,
+                fawry_machine=machine_2 if method == PaymentMethod.FAWRY else None,
+                reference=f"IP{rng.randint(10000, 99999)}" if method == PaymentMethod.INSTAPAY else "",
+                created_by=secretary)
+
+        # Today at CIC: one patient seen, one waiting, one still to come.
+        for hour, who, doctor, state in [(12, 5, walid, "left"), (13, 0, hala, "arrived"), (18, 4, sherif, "booked")]:
+            visit = Appointment.objects.create(branch=cic, patient=visitors[who], scheduled_at=at(today, hour),
+                                               room=rooms[[walid, hala, sherif].index(doctor)], dentist=doctor,
+                                               duration_minutes=30, created_by=secretary)
+            if state in ("left", "arrived"):
+                visit.mark_arrived(at(today, hour) - timedelta(minutes=5))
+            if state == "left":
+                visit.mark_entered_room(at(today, hour) + timedelta(minutes=5))
+                visit.mark_left(at(today, hour) + timedelta(minutes=40))
+            visit.save()
+
+        # The moderator paid Dr. Sherif part of his CIC share.
+        DoctorPayout.objects.create(dentist=sherif, branch=cic, paid_on=today - timedelta(days=4), amount=Decimal("500"),
+                                    method=PaymentMethod.CASH, period_from=today - timedelta(days=30),
+                                    period_to=today - timedelta(days=5), notes="Part of his share", created_by=moderator)
+
+        # Stock: CIC's own implants and drapes, and each place's use of the shared stock.
+        implants = StockCategory.objects.get(name_en="Implants & components")
+        osstem = ImplantSystem.objects.filter(company="Osstem").first()
+        cic_implant = StockItem.objects.create(
+            name=f"{osstem} 4.0 x 10 (CIC)", category=implants, unit="piece", min_quantity=2, branch=cic,
+            implant_system=osstem, implant_diameter=Decimal("4.0"), implant_length=Decimal("10"), unit_cost=Decimal("750"),
+            created_by=stock_user)
+        record_movement(cic_implant, StockMovement.Kind.IN, 6, stock_user, lot="OS-CIC-01", branch=cic,
+                        expiry_date=today + timedelta(days=700), unit_cost=Decimal("750"), notes="Bought for CIC")
+        drapes = StockItem.objects.create(name="Sterile surgical drapes (CIC)", category=StockCategory.objects.filter(
+            name_en__icontains="Consumable").first() or implants, unit="piece", min_quantity=10, branch=cic,
+            unit_cost=Decimal("35"), created_by=stock_user)
+        record_movement(drapes, StockMovement.Kind.IN, 40, stock_user, branch=cic, unit_cost=Decimal("35"))
+        record_movement(drapes, StockMovement.Kind.OUT, 6, stock_user, branch=cic, destination="CIC room 1",
+                        moved_at=at(today - timedelta(days=9), 13))
+        record_movement(cic_implant, StockMovement.Kind.OUT, 1, stock_user, branch=cic, lot="OS-CIC-01",
+                        destination="Dr. Walid Hamdy", moved_at=at(today - timedelta(days=9), 13))
+        shared = list(StockItem.objects.filter(branch__isnull=True, implant_system__isnull=True, quantity__gte=5)
+                      .order_by("pk")[:4])
+        for n, item in enumerate(shared):
+            if item.unit_cost is None:
+                StockItem.objects.filter(pk=item.pk).update(unit_cost=Decimal(20 + n * 15))
+                item.refresh_from_db()
+            for place, quantity, days_ago, where in [(cic, 2, 10 - n, "CIC room 2"), (academy, 3, 8 - n, "Room 3")]:
+                record_movement(item, StockMovement.Kind.OUT, quantity, stock_user, branch=place, destination=where,
+                                unit_cost=item.unit_cost, moved_at=at(today - timedelta(days=days_ago), 11))

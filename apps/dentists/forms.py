@@ -4,6 +4,8 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.forms import StyledForm, StyledModelForm, clean_phone_value
 
+from apps.core.models import Branch
+
 from .models import Dentist
 
 CLINICIANS = (
@@ -26,10 +28,13 @@ class DentistChoiceField(forms.ModelChoiceField):
 class DentistForm(StyledModelForm):
     class Meta:
         model = Dentist
-        fields = ["full_name", "name_ar", "kind", "phone", "branch", "user", "is_active", "notes"]
+        fields = ["full_name", "name_ar", "kind", "phone", "places", "user", "is_active", "notes"]
+        widgets = {"places": forms.CheckboxSelectMultiple}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["places"].queryset = Branch.objects.filter(is_active=True).exclude(
+            kind=Branch.Kind.LAB).order_by("sort_order", "pk")
         taken = Dentist.objects.exclude(pk=self.instance.pk).exclude(user=None).values_list("user_id", flat=True)
         self.fields["user"].queryset = get_user_model().objects.filter(is_active=True).exclude(pk__in=taken)
         self.fields["user"].help_text = _("The login this dentist uses, so the system knows which work is theirs.")

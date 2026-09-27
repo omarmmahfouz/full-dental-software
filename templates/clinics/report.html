@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Clinic report" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-clipboard-data"></i> {% trans "Clinic report" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.code }}</span>{% endif %}
+    <small class="text-muted fs-6">{{ place }} · {{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
+  <a class="btn btn-outline-primary no-print" href="{% url 'clinics:doctors' %}{{ query }}"><i class="bi bi-people"></i> {% trans "Doctors' shares" %}</a>
+</div>
+{% include "clinics/_filters.html" %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><span class="stat-icon"><i class="bi bi-cash-stack"></i></span><div class="stat-value text-success">{{ collected|money }}</div><div class="stat-label">{% trans "Paid by the patients" %}</div><div class="small text-muted">{% trans "billed" %} {{ billed|money }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><span class="stat-icon"><i class="bi bi-calendar-check"></i></span><div class="stat-value">{{ visit_count }}</div><div class="stat-label">{% trans "Visits (patient left)" %}</div><div class="small text-muted">{% blocktrans count n=patients_seen %}{{ n }} patient seen{% plural %}{{ n }} patients seen{% endblocktrans %} · {% blocktrans count n=new_files %}{{ n }} new file{% plural %}{{ n }} new files{% endblocktrans %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><span class="stat-icon"><i class="bi bi-stopwatch"></i></span><div class="stat-value">{{ chair_minutes|minutes }}</div><div class="stat-label">{% trans "Time in the chair" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><span class="stat-icon"><i class="bi bi-piggy-bank"></i></span><div class="stat-value {% if left < 0 %}text-danger{% else %}text-primary{% endif %}">{{ left|money }}</div><div class="stat-label">{% trans "Left for the clinic" %}</div><div class="small text-muted">{% trans "paid − doctors' shares − materials used" %}</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-header"><i class="bi bi-calculator"></i> {% trans "Money" %}</div>
+      <table class="table table-sm mb-0">
+        <tr><td>{% trans "Paid by the patients" %}</td><td class="text-end fw-semibold text-success">{{ collected|money }}</td></tr>
+        <tr><td>− {% trans "Doctors' shares" %}</td><td class="text-end">{{ totals.share|default:0|money }}</td></tr>
+        <tr><td>− {% trans "Materials used from stock (value)" %}</td><td class="text-end">{{ stock_used|money }}</td></tr>
+        <tr class="fw-bold"><td>{% trans "Left for the clinic" %}</td><td class="text-end">{{ left|money }}</td></tr>
+        <tr><td class="small text-muted">{% trans "Paid to the doctors in the period" %}</td><td class="text-end small">{{ totals.paid_out|default:0|money }}</td></tr>
+        <tr><td class="small text-muted">{% trans "Still owed to the doctors" %}</td><td class="text-end small text-danger">{{ totals.owed|default:0|money }}</td></tr>
+      </table>
+      <div class="card-body border-top">
+        <div class="section-title mt-0">{% trans "How the patients paid" %}</div>
+        {% for label, amount in by_method %}<div class="d-flex justify-content-between small"><span>{{ label }}</span><b>{{ amount|money }}</b></div>{% empty %}<div class="small text-muted">—</div>{% endfor %}
+        {% if by_machine %}<div class="section-title">{% trans "By Fawry machine" %}</div>
+        {% for name, amount in by_machine %}<div class="d-flex justify-content-between small"><span><i class="bi bi-credit-card"></i> {{ name }}</span><b>{{ amount|money }}</b></div>{% endfor %}{% endif %}
+        {% if by_status %}<div class="section-title">{% trans "Appointments" %}</div>
+        {% for label, n in by_status %}<div class="d-flex justify-content-between small"><span>{{ label }}</span><b>{{ n }}</b></div>{% endfor %}{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card h-100"><div class="card-header"><i class="bi bi-people"></i> {% trans "Doctors" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Doctor" %}</th><th class="text-end">{% trans "Visits" %}</th><th class="text-end">{% trans "In the chair" %}</th><th class="text-end">{% trans "Paid" %}</th><th class="text-end">{% trans "Share" %}</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td><a href="{% url 'clinics:statement' row.dentist.pk %}{{ query }}">{{ row.dentist }}</a></td><td class="text-end">{{ row.visit_count }}</td><td class="text-end">{{ row.chair_minutes|minutes }}</td><td class="text-end">{{ row.collected|money }}</td><td class="text-end fw-semibold">{{ row.share|money }}</td></tr>
+        {% empty %}<tr><td colspan="5" class="text-muted">{% trans "No doctors in this period." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+{% if days %}<div class="card"><div class="card-header"><i class="bi bi-bar-chart-line"></i> {% trans "Day by day" %}</div>
+  <div class="table-responsive"><table class="table table-sm mb-0 day-bars">
+    <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Visits" %}</th><th>{% trans "Paid by the patients" %}</th></tr></thead>
+    <tbody>{% for d in days %}<tr><td class="nowrap">{{ d.day|date:"D d/m" }}</td>
+      <td><div class="d-flex align-items-center gap-2"><div class="bar bar-visits" style="width: {{ d.visits_pct }}%"></div><span class="small">{{ d.visits }}</span></div></td>
+      <td><div class="d-flex align-items-center gap-2"><div class="bar" style="width: {{ d.money_pct }}%"></div><span class="small">{{ d.money|money }}</span></div></td></tr>{% endfor %}</tbody>
+  </table></div></div>{% endif %}
+{% endblock %}

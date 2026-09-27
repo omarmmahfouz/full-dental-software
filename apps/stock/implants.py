@@ -4,15 +4,19 @@ placed implant out of stock (one piece of that lot), putting it back if the toot
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from .models import StockItem, StockMovement
 from .services import record_movement, undo_movement
 
 
-def implant_items(system=None, diameter=None, length=None):
+def implant_items(system=None, diameter=None, length=None, branch=None):
+    """Implant items in stock; with ``branch``, the shared ones and those of that place only."""
     items = StockItem.objects.filter(is_active=True, implant_system__isnull=False, implant_diameter__isnull=False,
                                      implant_length__isnull=False).select_related("implant_system")
+    if branch is not None:
+        items = items.filter(Q(branch__isnull=True) | Q(branch=branch))
     if system:
         items = items.filter(implant_system=system)
     if diameter:
@@ -34,11 +38,11 @@ def parse_choice(value):
     return int(item_id), lot
 
 
-def lot_choices(system=None, diameter=None, length=None, keep=None):
+def lot_choices(system=None, diameter=None, length=None, keep=None, branch=None):
     """Lots in stock for the chosen company (and size). ``keep`` (item_id, lot) is the lot this tooth
     already holds: it stays in the list even when the last piece is the one it took."""
     rows = []
-    for item in implant_items(system, diameter, length):
+    for item in implant_items(system, diameter, length, branch):
         lots = item.lots()
         if keep and keep[0] == item.pk and not any(l["lot"] == keep[1] for l in lots):
             lots.append({"lot": keep[1], "left": Decimal("0"), "expiry": None})
@@ -78,7 +82,7 @@ def take_implants(surgery, user):
             undo_movement(current)
         if wanted is not None:
             movement = record_movement(
-                site.implant_stock_item, StockMovement.Kind.OUT, 1, user, lot=site.lot_number,
+                site.implant_stock_item, StockMovement.Kind.OUT, 1, user, lot=site.lot_number, branch=surgery.branch,
                 destination=_("Surgery %(number)s, tooth %(tooth)s") % {"number": surgery.number, "tooth": site.tooth},
                 notes=patient[:255])
             site.stock_movement = movement

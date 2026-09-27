@@ -65,7 +65,7 @@ def sync_purchase(purchase, user):
                 continue
             undo_movement(existing)
         if line.stock_item_id:
-            record_movement(line.stock_item, K.IN, line.quantity, user, purchase_item=line,
+            record_movement(line.stock_item, K.IN, line.quantity, user, purchase_item=line, branch=purchase.branch,
                             unit_cost=line.unit_price, moved_at=_purchase_time(purchase),
                             notes=f"{purchase.supplier} {purchase.invoice_number}".strip())
             count += 1

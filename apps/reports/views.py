@@ -341,8 +341,8 @@ def balance_sheet(request):
     table = defaultdict(lambda: defaultdict(lambda: zero))  # line -> branch id -> amount
 
     patient_payments = PatientPayment.objects.filter(paid_on__range=(date_from, date_to))
-    for row in patient_payments.values("patient__branch").annotate(total=Sum("amount")):
-        table["patients"][row["patient__branch"]] += row["total"]
+    for row in patient_payments.values("branch").annotate(total=Sum("amount")):
+        table["patients"][row["branch"]] += row["total"]  # the place where the patient paid
     course_payments = Payment.objects.filter(paid_on__range=(date_from, date_to))
     for row in course_payments.values("enrollment__course__branch").annotate(total=Sum("amount")):
         table["courses"][row["enrollment__course__branch"]] += row["total"]
@@ -357,6 +357,11 @@ def balance_sheet(request):
         elif row["kind"] == FawryMove.Kind.SERVICE and row["purchase"] is None:
             table["bills"][branch] += row["amount"]
     line_total = ExpressionWrapper(F("quantity") * F("unit_price"), output_field=DecimalField(max_digits=14, decimal_places=2))
+    from apps.clinics.models import DoctorPayout
+
+    for row in DoctorPayout.objects.filter(paid_on__range=(date_from, date_to)).values("branch").annotate(
+            total=Sum("amount")):
+        table["doctors"][row["branch"]] += row["total"]
     items = PurchaseItem.objects.filter(purchase__purchase_date__range=(date_from, date_to))
     kinds = dict(PurchaseCategory.Kind.choices)
     purchase_lines = []
@@ -369,7 +374,8 @@ def balance_sheet(request):
     income_lines = [("patients", _("Patient payments (services, bills)")), ("courses", _("Course installments")),
                     ("bills_cash", _("Cash taken for bills paid on the Fawry machine"))]
     cost_lines = [("fawry_fees", _("Kept by Fawry (percentage and charges)")),
-                  ("bills", _("Bills paid through the Fawry machine (mobile, electricity...)"))]
+                  ("bills", _("Bills paid through the Fawry machine (mobile, electricity...)")),
+                  ("doctors", _("Paid to the doctors (their shares)"))]
     cost_lines += [(key, _("Purchases: %(kind)s") % {"kind": kinds.get(key.split("_", 1)[1], key)})
                    for key in sorted(purchase_lines)]
     used = {branch for line in table.values() for branch, amount in line.items() if amount}

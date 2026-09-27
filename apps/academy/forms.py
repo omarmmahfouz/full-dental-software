@@ -171,13 +171,16 @@ InstallmentFormSet = inlineformset_factory(
 class PaymentForm(StyledModelForm):
     class Meta:
         model = Payment
-        fields = ["amount", "paid_on", "method", "reference", "proof", "notes"]
+        fields = ["amount", "paid_on", "method", "fawry_machine", "reference", "proof", "notes"]
 
     def __init__(self, *args, enrollment=None, **kwargs):
         self.enrollment = enrollment
         super().__init__(*args, **kwargs)
         self.fields["proof"].validators.append(validate_upload)
         self.fields["proof"].widget.attrs["accept"] = "image/*,application/pdf"
+        from apps.billing.models import FawryMachine
+
+        self.fields["fawry_machine"].queryset = FawryMachine.objects.filter(is_active=True)
         for name in self.fields:
             self.fields[name].col = "col-md-4"
 
@@ -195,6 +198,11 @@ class PaymentForm(StyledModelForm):
                            PaymentMethod.BANK_DEPOSIT, PaymentMethod.CHEQUE)
         if data.get("method") in needs_reference and not data.get("reference"):
             self.add_error("reference", _("Write the transaction / transfer reference number."))
+        from apps.billing.forms import check_fawry_machine
+
+        check_fawry_machine(self, data)
+        if data.get("fawry_machine"):
+            self.instance.fawry_machine = data["fawry_machine"]
         return data
 
 

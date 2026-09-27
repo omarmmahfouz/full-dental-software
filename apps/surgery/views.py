@@ -144,7 +144,8 @@ def surgery_edit(request, pk=None):
     form = SurgeryForm(request.POST or None, request.FILES or None, instance=surgery, user=request.user,
                        patient=patient, initial=initial)
     formset = SurgerySiteFormSet(request.POST or None, request.FILES or None,
-                                 instance=surgery or Surgery(), prefix="sites")
+                                 instance=surgery or Surgery(), prefix="sites",
+                                 form_kwargs={"branch": surgery.branch if surgery else branch_for_user(request.user)})
     if request.method == "POST" and form.is_valid():
         formset.team = tuple(d for d in (form.cleaned_data.get("operator_1"), form.cleaned_data.get("operator_2")) if d)
     if request.method == "POST" and form.is_valid() and formset.is_valid():
@@ -193,7 +194,7 @@ def implant_lots(request):
     if not has_role(request.user, *CLINICAL):
         raise PermissionDenied
     system = request.GET.get("system", "")
-    rows = lot_choices(system=system) if system.isdigit() else []
+    rows = lot_choices(system=system, branch=branch_for_user(request.user)) if system.isdigit() else []
     return JsonResponse({"lots": [{k: str(v) for k, v in row.items()} for row in rows]})
 
 

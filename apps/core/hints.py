@@ -84,6 +84,17 @@ HINTS = {
     "purchasing:purchase_create": _("Add one line per item with its category. Link a line to a stock item to fill the stock."),
     "reports:index": _("Choose a report. Each one can be filtered by dates, and most can be exported."),
     "settings:home": _("Lists, clinic options and logins. Nothing is deleted: untick active to stop using an item."),
+    "clinics:doctors": _("Each doctor of the place: visits, time in the chair, what the patients paid and the "
+                         "doctor's share. Tap a doctor for the details and to record a payment to them."),
+    "clinics:statement": {
+        "dentist": _("Your services and visits at this place, the share of each one, and what you were paid."),
+        "default": _("Every service and visit of the doctor with its share. Record each payment to the doctor under "
+                     "the list: what is still owed goes down."),
+    },
+    "clinics:rules": _("How each doctor is paid: a percentage, a fixed amount for each service (each tooth) or for "
+                       "each visit. To change it from a date, add a new rule from that date."),
+    "clinics:report": _("The place over the period: what the patients paid, visits and time, the doctors' shares, "
+                        "the materials used, and what is left for the clinic."),
 }
 
 

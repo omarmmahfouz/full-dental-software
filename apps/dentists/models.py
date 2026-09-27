@@ -11,6 +11,16 @@ class DentistQuerySet(models.QuerySet):
     def active(self):
         return self.filter(is_active=True)
 
+    def working_at(self, branch):
+        """The dentists who work at a place: those who have it ticked, and those without places
+        ticked whose branch it is (or who have no branch, at the default place)."""
+        if branch is None:
+            return self
+        q = models.Q(places=branch) | models.Q(places__isnull=True, branch=branch)
+        if branch == Branch.default():
+            q |= models.Q(places__isnull=True, branch__isnull=True)
+        return self.filter(pk__in=self.model.objects.filter(q).values("pk"))
+
     def of_kind(self, *kinds):
         return self.filter(kind__in=kinds)
 
@@ -49,6 +59,10 @@ class Dentist(TimeStampedModel):
     branch = models.ForeignKey(
         Branch, verbose_name=_("branch"), null=True, blank=True, on_delete=models.SET_NULL, related_name="dentists"
     )
+    places = models.ManyToManyField(
+        Branch, verbose_name=_("works at"), blank=True, related_name="place_dentists",
+        help_text=_("The places this dentist works in, e.g. CIA and CIC. They are offered on the bookings and "
+                    "the room schedule of these places."))
     phone = models.CharField(_("mobile"), max_length=20, blank=True)
     is_active = models.BooleanField(
         _("working now"), default=True, help_text=_("Untick when they leave, so they no longer appear in the lists.")

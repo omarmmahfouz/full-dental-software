@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Doctors' shares" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-people"></i> {% trans "Doctors' shares" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.code }}</span>{% endif %}
+    <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-primary" href="{% url 'clinics:rules' %}{{ query }}"><i class="bi bi-percent"></i> {% trans "Fee rules" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'clinics:report' %}{{ query }}"><i class="bi bi-clipboard-data"></i> {% trans "Clinic report" %}</a>
+  </div>
+</div>
+{% include "clinics/_filters.html" %}
+{% if rows %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><span class="stat-icon"><i class="bi bi-cash-stack"></i></span><div class="stat-value text-success">{{ totals.collected|money }}</div><div class="stat-label">{% trans "Paid by the patients" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><span class="stat-icon"><i class="bi bi-percent"></i></span><div class="stat-value">{{ totals.share|money }}</div><div class="stat-label">{% trans "Doctors' shares" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><span class="stat-icon"><i class="bi bi-calendar-check"></i></span><div class="stat-value">{{ totals.visit_count }}</div><div class="stat-label">{% trans "Visits" %} · {{ totals.chair_minutes|minutes }} {% trans "in the chair" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><span class="stat-icon"><i class="bi bi-hourglass-split"></i></span><div class="stat-value text-danger">{{ totals.owed|money }}</div><div class="stat-label">{% trans "Still owed to the doctors" %}</div></div></div></div>
+</div>
+{% endif %}
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+  <thead><tr><th>{% trans "Doctor" %}</th><th>{% trans "How they are paid" %}</th><th class="text-end">{% trans "Visits" %}</th><th class="text-end">{% trans "In the chair" %}</th><th class="text-end">{% trans "Patients" %}</th><th class="text-end">{% trans "Billed" %}</th><th class="text-end">{% trans "Paid" %}</th><th class="text-end">{% trans "Share" %}</th><th class="text-end">{% trans "Paid to the doctor" %}</th><th class="text-end">{% trans "Still owed to the doctor" %}</th></tr></thead>
+  <tbody>{% for row in rows %}<tr>
+    <td><a class="fw-semibold" href="{% url 'clinics:statement' row.dentist.pk %}{{ query }}">{{ row.dentist }}</a><div class="small text-muted">{{ row.dentist.get_kind_display }}</div></td>
+    <td class="small">{% for rule in row.rules %}{% if rule.is_active %}<div>{{ rule.describe }}</div>{% endif %}{% empty %}<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> {% trans "no rule yet" %}</span>{% endfor %}</td>
+    <td class="text-end">{{ row.visit_count }}</td><td class="text-end">{{ row.chair_minutes|minutes }}</td><td class="text-end">{{ row.patient_count }}</td>
+    <td class="text-end">{{ row.billed|money }}</td><td class="text-end text-success">{{ row.collected|money }}</td>
+    <td class="text-end fw-bold">{{ row.share|money }}</td><td class="text-end">{{ row.paid_out|money }}</td>
+    <td class="text-end fw-bold {% if row.owed > 0 %}text-danger{% endif %}">{{ row.owed|money }}</td>
+  </tr>{% empty %}<tr><td colspan="10" class="text-center text-muted py-4">{% trans "No doctor worked at this place in this period, and none has a fee rule yet." %}</td></tr>{% endfor %}</tbody>
+  {% if rows %}<tfoot><tr class="fw-bold"><td colspan="2">{% trans "Total" %}</td><td class="text-end">{{ totals.visit_count }}</td><td class="text-end">{{ totals.chair_minutes|minutes }}</td><td></td>
+    <td class="text-end">{{ totals.billed|money }}</td><td class="text-end">{{ totals.collected|money }}</td><td class="text-end">{{ totals.share|money }}</td><td class="text-end">{{ totals.paid_out|money }}</td><td class="text-end text-danger">{{ totals.owed|money }}</td></tr></tfoot>{% endif %}
+</table></div></div>
+<p class="small text-muted mt-2"><i class="bi bi-info-circle"></i> {% trans "A percentage is taken of what the patient has paid for the service so far; a fixed amount counts each service (each tooth) or each finished visit. “Still owed” is everything earned up to the end of the period, less everything paid to the doctor." %}</p>
+{% endblock %}

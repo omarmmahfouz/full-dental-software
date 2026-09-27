@@ -15,6 +15,19 @@ from apps.patients.forms import PatientLookupField, lookup_value
 from .models import Appointment, PatientRequest, Room, RoomShift, WaitingEntry
 
 
+def limit_dentists_to_place(form, branch, names):
+    """Offer only the dentists who work at this place (and keep the ones a saved record already names)."""
+    if branch is None:
+        return
+    for name in names:
+        field = form.fields.get(name)
+        if field is None:
+            continue
+        keep = getattr(form.instance, f"{name}_id", None) if form.instance.pk else None
+        allowed = field.queryset.working_at(branch)
+        field.queryset = (allowed | field.queryset.filter(pk=keep)).distinct() if keep else allowed
+
+
 class RoomShiftForm(StyledModelForm):
     dentist = DentistChoiceField(kinds=Dentist.LOGIN_KINDS, label=_("CIA dentist"), required=False)
     other_dentist = DentistChoiceField(
@@ -45,6 +58,9 @@ class RoomShiftForm(StyledModelForm):
         self.fields["room"].queryset = rooms
         self.fields["room"].label_from_instance = lambda room: (
             f"{room} ({_('extra room')})" if room.is_extra else str(room))
+        limit_dentists_to_place(self, branch, ["dentist", "other_dentist", "supervisor", "second_dentist"])
+        if branch is not None and branch.kind != branch.Kind.ACADEMY:
+            self.fields["dentist"].label = _("dentist")
         self.fields["day_type"].help_text = _("For this room only: the other rooms can work as a regular day.")
         dentist = self.instance.dentist if self.instance.pk else None
         if dentist is not None and dentist.kind not in Dentist.LOGIN_KINDS:
@@ -99,11 +115,13 @@ class AppointmentForm(StyledModelForm):
 
     def __init__(self, *args, branch=None, patient=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.branch = branch
         rooms = Room.objects.filter(is_active=True)
         if branch is not None:
             rooms = rooms.filter(branch=branch)
         self.fields["room"].queryset = rooms
         self.fields["room"].help_text = _("Leave empty to use the room of the dentist's shift.")
+        limit_dentists_to_place(self, branch, ["dentist", "second_dentist"])
         default = ClinicSettings.get().default_appointment_minutes
         self.fields["duration_minutes"].initial = default
         self.fields["duration_minutes"].widget = forms.Select(
@@ -135,8 +153,9 @@ class AppointmentForm(StyledModelForm):
         patient = data.get("patient_lookup") or (self.instance.patient if self.instance.pk else None)
         start = data.get("scheduled_at")
         if patient and start:
-            if not data.get("dentist") and patient.assigned_dentist_id:
-                data["dentist"] = patient.assigned_dentist
+            if not data.get("dentist") and patient.assigned_dentist_id and (
+                    self.branch is None or Dentist.objects.working_at(self.branch).filter(pk=patient.assigned_dentist_id).exists()):
+                data["dentist"] = patient.assigned_dentist  # only if they work at this place
             end = start + timedelta(minutes=data.get("duration_minutes") or 60)
             clash = (
                 Appointment.objects.filter(patient=patient, scheduled_at__lt=end, scheduled_at__gt=start - timedelta(hours=4))

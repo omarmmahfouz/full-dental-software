@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from apps.core.mixins import role_required
-from apps.core.models import ClinicSettings
+from apps.core.models import ClinicSettings, branch_for_user, working_places
 from apps.core.roles import CLINICAL, FRONT_DESK, HEAD_CIA, OWNER, has_role
 from apps.dentists.models import Dentist
 from apps.patients.models import Patient
@@ -29,23 +29,25 @@ from .forms import (
     PatientPaymentForm,
     PaymentFilterForm,
     PayNowForm,
+    chosen_places,
 )
-from .models import Bill, FawryMove, PatientPayment, Service, account, create_bill
+from .models import Bill, FawryMachine, FawryMove, PatientPayment, Service, account, create_bill
 
 
 @role_required(*FRONT_DESK)
 def patient_account(request, pk):
     """The patient's services (price, discount, paid, left) and payments, with forms to add both."""
     patient = get_object_or_404(Patient, pk=pk)
+    here = branch_for_user(request.user)
     current = account(patient)
     action = request.POST.get("action")
-    charge_form = ChargeForm(request.POST if action == "charge" else None, prefix="c",
+    charge_form = ChargeForm(request.POST if action == "charge" else None, prefix="c", branch=here,
                              initial={"charged_on": timezone.localdate()})
     payment_form = PatientPaymentForm(request.POST if action == "payment" else None, prefix="p", account=current,
                                       initial={"paid_on": timezone.localdate()})
     if action == "charge" and charge_form.is_valid():
         charge = charge_form.save(commit=False)
-        charge.patient, charge.created_by = patient, request.user
+        charge.patient, charge.created_by, charge.branch = patient, request.user, here
         charge.save()
         messages.success(request, _("%(service)s added: %(net)s to pay.") % {"service": charge.service,
                                                                             "net": f"{charge.net:,.2f}"})
@@ -54,6 +56,7 @@ def patient_account(request, pk):
         with transaction.atomic():
             payment = payment_form.save(commit=False)
             payment.patient, payment.created_by = patient, request.user
+            payment.branch = payment.charge.branch if payment.charge_id else here
             payment.save()
         messages.success(request, _("Payment saved. Receipt %(number)s.") % {"number": payment.receipt_number})
         return redirect(payment)
@@ -73,18 +76,20 @@ def receipt(request, pk):
 def payment_list(request):
     """What the reception collected: by day, with the total for each payment method."""
     today = timezone.localdate()
-    form = PaymentFilterForm(request.GET or None)
+    here, places = branch_for_user(request.user), list(working_places(request.user))
+    form = PaymentFilterForm(request.GET or None, places=places, current=here)
     data = form.cleaned_data if form.is_valid() else {}
     date_from, date_to = data.get("date_from") or today, data.get("date_to") or today
-    payments = PatientPayment.objects.filter(paid_on__range=(date_from, date_to)).select_related(
-        "patient", "charge__service", "created_by")
+    shown = chosen_places(form, places, here)
+    payments = PatientPayment.objects.filter(paid_on__range=(date_from, date_to), branch__in=shown).select_related(
+        "patient", "charge__service", "created_by", "branch", "fawry_machine")
     if data.get("method"):
         payments = payments.filter(method=data["method"])
     by_method = defaultdict(lambda: Decimal("0"))
     for payment in payments:
         by_method[payment.get_method_display()] += payment.amount
     return render(request, "billing/payment_list.html", {
-        "form": form, "payments": payments, "date_from": date_from, "date_to": date_to,
+        "form": form, "payments": payments, "date_from": date_from, "date_to": date_to, "places_shown": shown,
         "total": sum(by_method.values(), Decimal("0")), "by_method": sorted(by_method.items()),
     })
 
@@ -100,29 +105,31 @@ def bill_create(request):
         patient = appointment.patient if appointment else None
     if patient is None and request.GET.get("patient", "").isdigit():
         patient = Patient.objects.filter(pk=request.GET["patient"]).first()
+    here = appointment.branch if appointment is not None else branch_for_user(request.user)
     initial = {"billed_on": timezone.localdate(), "dentist": appointment.dentist if appointment else None}
-    form = BillForm(request.POST or None, patient=patient, initial=initial)
+    form = BillForm(request.POST or None, patient=patient, initial=initial, branch=here)
     quick = request.GET.get("service", "")
-    lines = BillLineFormSet(request.POST or None, prefix="lines",
+    lines = BillLineFormSet(request.POST or None, prefix="lines", form_kwargs={"branch": here},
                             initial=[{"service": int(quick)}] if quick.isdigit() else None)
     pay = PayNowForm(request.POST or None, prefix="pay")
     if request.method == "POST" and form.is_valid() and lines.is_valid() and pay.is_valid():
         chosen = [line.cleaned_data for line in lines if line.cleaned_data.get("service")]
         bill = create_bill(form.cleaned_data["patient_lookup"], chosen, request.user,
                            billed_on=form.cleaned_data["billed_on"], appointment=appointment,
-                           dentist=form.cleaned_data.get("dentist"), notes=form.cleaned_data.get("notes", ""))
+                           dentist=form.cleaned_data.get("dentist"), notes=form.cleaned_data.get("notes", ""),
+                           branch=here)
         amount = pay.cleaned_data.get("amount")
         if amount:
             PatientPayment.objects.create(
-                patient=bill.patient, bill=bill, amount=amount,
+                patient=bill.patient, bill=bill, amount=amount, branch=bill.branch,
                 paid_on=bill.billed_on, method=pay.cleaned_data["method"], reference=pay.cleaned_data.get("reference", ""),
-                created_by=request.user,
+                fawry_machine=pay.cleaned_data.get("fawry_machine"), created_by=request.user,
             )
         messages.success(request, _("Bill %(number)s saved.") % {"number": bill.number})
         return redirect(bill)
     return render(request, "billing/bill_form.html", {
-        "form": form, "lines": lines, "pay": pay, "patient": patient, "appointment": appointment,
-        "quick_services": Service.objects.filter(is_active=True, quick_button=True),
+        "form": form, "lines": lines, "pay": pay, "patient": patient, "appointment": appointment, "place": here,
+        "quick_services": Service.for_place(here).filter(quick_button=True),
     })
 
 
@@ -148,7 +155,8 @@ def bill_pay(request, pk):
     if request.method == "POST" and pay.is_valid() and pay.cleaned_data.get("amount"):
         payment = PatientPayment.objects.create(
             patient=bill.patient, bill=bill, amount=pay.cleaned_data["amount"], method=pay.cleaned_data["method"],
-            reference=pay.cleaned_data.get("reference", ""), created_by=request.user)
+            reference=pay.cleaned_data.get("reference", ""), created_by=request.user, branch=bill.branch,
+            fawry_machine=pay.cleaned_data.get("fawry_machine"))
         messages.success(request, _("Payment saved. Receipt %(number)s.") % {"number": payment.receipt_number})
     else:
         for errors in pay.errors.values():
@@ -161,10 +169,13 @@ def bill_pay(request, pk):
 def bill_list(request):
     """The bills of a period; "not fully paid" shows what is left to collect (e.g. bills the dentists added)."""
     today = timezone.localdate()
-    form = BillFilterForm(request.GET or None)
+    here, places = branch_for_user(request.user), list(working_places(request.user))
+    form = BillFilterForm(request.GET or None, places=places, current=here)
     data = form.cleaned_data if form.is_valid() else {}
     date_from, date_to = data.get("date_from") or today, data.get("date_to") or today
-    bills = list(Bill.objects.filter(billed_on__range=(date_from, date_to)).select_related("patient", "dentist"))
+    shown = chosen_places(form, places, here)
+    bills = list(Bill.objects.filter(billed_on__range=(date_from, date_to), branch__in=shown)
+                 .select_related("patient", "dentist", "branch"))
     accounts, rows = {}, []
     for bill in bills:
         if bill.patient_id not in accounts:
@@ -174,7 +185,7 @@ def bill_list(request):
             continue
         rows.append({"bill": bill, **totals})
     return render(request, "billing/bill_list.html", {
-        "form": form, "rows": rows, "date_from": date_from, "date_to": date_to,
+        "form": form, "rows": rows, "date_from": date_from, "date_to": date_to, "places_shown": shown,
         "total_net": sum((r["net"] for r in rows), Decimal("0")),
         "total_left": sum((r["left"] for r in rows), Decimal("0")),
     })
@@ -192,13 +203,17 @@ def fawry_ledger(request):
     if not form.is_bound:
         form = FawryFilterForm(initial={"date_from": date_from, "date_to": date_to})
     moves = FawryMove.objects.filter(moved_on__range=(date_from, date_to)).select_related(
-        "branch", "created_by", "patient_payment__patient", "academy_payment__enrollment", "purchase")
+        "branch", "machine", "created_by", "patient_payment__patient", "academy_payment__enrollment", "purchase")
     filtered = bool(data.get("branch") or data.get("kind"))
+    machine = data.get("machine")
+    if machine is not None:
+        moves = moves.filter(machine=machine)
     if data.get("branch"):
         moves = moves.filter(branch=data["branch"])
     if data.get("kind"):
         moves = moves.filter(kind=data["kind"])
-    opening = fawry.held_at_fawry(until=date_from - timedelta(days=1))
+    on_machine = FawryMove.objects.filter(machine=machine) if machine is not None else None
+    opening = fawry.held_at_fawry(until=date_from - timedelta(days=1), moves=on_machine)
     rows = list(moves.order_by("moved_on", "pk"))
     running = opening
     for move in rows:
@@ -208,8 +223,11 @@ def fawry_ledger(request):
     totals = fawry.totals(moves)
     return render(request, "billing/fawry.html", {
         "form": form, "date_from": date_from, "date_to": date_to, "moves": rows, "filtered": filtered,
-        "totals": totals, "kept": totals["fees"] + totals[FawryMove.Kind.CHARGE], "opening": opening, "closing": fawry.held_at_fawry(until=date_to),
+        "totals": totals, "kept": totals["fees"] + totals[FawryMove.Kind.CHARGE], "opening": opening,
+        "closing": fawry.held_at_fawry(until=date_to, moves=on_machine), "machine": machine,
         "held_now": fawry.held_at_fawry(), "fee_percent": ClinicSettings.get().fawry_fee_percent,
+        "per_machine": [(m, fawry.held_at_fawry(moves=FawryMove.objects.filter(machine=m)))
+                        for m in FawryMachine.objects.all() if m.is_active or m.moves.exists()],
         "can_correct": has_role(request.user, OWNER, HEAD_CIA),
     })
 

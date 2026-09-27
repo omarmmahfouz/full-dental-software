@@ -4,7 +4,22 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.forms import BootstrapFormMixin, StyledForm, StyledModelForm
 
+from apps.core.models import Branch
+
 from .models import StockCategory, StockItem, StockMovement
+
+
+def places():
+    return Branch.objects.filter(is_active=True).exclude(kind=Branch.Kind.LAB).order_by("sort_order", "pk")
+
+
+def place_filter_field(label, shared_label=None):
+    """All / (shared) / each place, by code."""
+    choices = [("", _("All"))] + ([("shared", shared_label)] if shared_label else [])
+    choices += [(p.code, f"{p.code} — {p.name}") for p in places()]
+    field = forms.ChoiceField(label=label, required=False, choices=choices)
+    field.widget.attrs["class"] = "form-select"
+    return field
 
 
 class StockItemForm(StyledModelForm):
@@ -14,14 +29,16 @@ class StockItemForm(StyledModelForm):
 
     class Meta:
         model = StockItem
-        fields = ["name", "category", "unit", "min_quantity", "location", "code", "unit_cost", "is_active", "notes",
-                  "implant_system", "implant_diameter", "implant_length"]
+        fields = ["name", "category", "unit", "min_quantity", "location", "branch", "code", "unit_cost", "is_active",
+                  "notes", "implant_system", "implant_diameter", "implant_length"]
 
     def __init__(self, *args, **kwargs):
         from apps.surgery.models import ImplantSystem
 
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = StockCategory.objects.filter(is_active=True)
+        self.fields["branch"].queryset = places()
+        self.fields["branch"].empty_label = _("shared by all the places")
         self.fields["implant_system"].queryset = ImplantSystem.objects.filter(is_active=True)
         for name in ("implant_system", "implant_diameter", "implant_length"):
             self.fields[name].col = "col-md-4"
@@ -46,16 +63,25 @@ class StockFilterForm(StyledForm):
     expiring = forms.BooleanField(label=_("expiring soon"), required=False)
     inactive = forms.BooleanField(label=_("show items no longer used"), required=False)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["place"] = place_filter_field(_("belongs to"), _("shared by all the places"))
+
 
 class MovementForm(StyledModelForm):
     class Meta:
         model = StockMovement
-        fields = ["kind", "quantity", "moved_at", "destination", "lot", "expiry_date", "unit_cost", "notes"]
+        fields = ["kind", "quantity", "moved_at", "branch", "destination", "lot", "expiry_date", "unit_cost", "notes"]
 
     def __init__(self, *args, item=None, **kwargs):
         self.item = item
         super().__init__(*args, **kwargs)
         self.fields["quantity"].min_value = 0
+        self.fields["branch"].queryset = places()
+        self.fields["branch"].help_text = _("Empty = the place you work in.")
+        self.fields["branch"].col = "col-md-4"
+        if item is not None and item.branch_id:  # material of one place is used there only
+            self.fields["branch"].queryset = places().filter(pk=item.branch_id)
         for name in ("kind", "quantity", "moved_at"):
             self.fields[name].col = "col-md-4"
         for name in ("destination", "lot", "expiry_date", "unit_cost"):
@@ -92,12 +118,19 @@ UseFormSet = formset_factory(UseLineForm, extra=8)
 
 
 class UseHeaderForm(StyledForm):
+    branch = forms.ModelChoiceField(label=_("for the place"), queryset=Branch.objects.none(), required=False,
+                                    empty_label=None,
+                                    help_text=_("The place that uses these items, so each place's use can be followed."))
     destination = forms.CharField(label=_("for / taken by"), max_length=150,
                                   help_text=_("e.g. room 3, Dr. Mona, sterilisation, kitchen"))
     kind = forms.ChoiceField(label=_("movement"), choices=[
         (StockMovement.Kind.OUT, StockMovement.Kind.OUT.label), (StockMovement.Kind.WASTE, StockMovement.Kind.WASTE.label),
     ])
     notes = forms.CharField(label=_("notes"), required=False, max_length=255)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["branch"].queryset = places()
 
 
 class MovementFilterForm(StyledForm):
@@ -107,6 +140,10 @@ class MovementFilterForm(StyledForm):
     category = forms.ModelChoiceField(label=_("category"), queryset=StockCategory.objects.all(), required=False,
                                       empty_label=_("All"))
     q = forms.CharField(label=_("item or destination"), required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["place"] = place_filter_field(_("place"))
 
 
 class ImportForm(StyledForm):

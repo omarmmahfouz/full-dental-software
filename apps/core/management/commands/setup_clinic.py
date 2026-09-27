@@ -9,7 +9,7 @@ from apps.clinical.models import Lab, LabWorkType, TreatmentStepType
 from apps.surgery.models import ImplantSystem
 from apps.core.models import Branch, ClinicSettings
 from apps.core.roles import ALL_ROLES
-from apps.billing.models import Service
+from apps.billing.models import FawryMachine, Service
 from apps.patients.models import MedicalCondition, OutReason, ReferralSource
 from apps.prescriptions.defaults import load_defaults as load_prescription_defaults
 from apps.purchasing.models import PurchaseCategory
@@ -22,10 +22,11 @@ BRANCHES = [
     ("CIA", Branch.Kind.ACADEMY, "أكاديمية القاهرة لزراعة الأسنان", "Cairo Implant Academy"),
     ("PVT", Branch.Kind.CLINIC, "العيادة الخاصة", "Private Clinic"),
     ("LAB", Branch.Kind.LAB, "معمل الأسنان", "Dental Lab"),
-    ("CIC", Branch.Kind.CLINIC, "عيادة CIC الاقتصادية", "CIC economical clinic"),
+    ("CIC", Branch.Kind.CLINIC, "مركز القاهرة لزراعة الأسنان", "Cairo Implant Center"),
 ]
 
 ROOM_COUNT = 5
+CIC_ROOM_COUNT = 3  # a start: the owner renames, adds or stops rooms in Settings → Rooms
 
 REFERRAL_SOURCES = [
     # Arabic, English, asks_for_patient
@@ -338,6 +339,10 @@ class Command(BaseCommand):
             room, _created = Room.objects.get_or_create(branch=academy, name=f"غرفة {number}", defaults={"sort_order": number})
             if not room.name_en:
                 Room.objects.filter(pk=room.pk).update(name_en=f"Room {number}")
+        cic = Branch.objects.get(code="CIC")
+        if not Room.objects.filter(branch=cic).exists():
+            for number in range(1, CIC_ROOM_COUNT + 1):
+                Room.objects.create(branch=cic, name=f"CIC غرفة {number}", name_en=f"CIC room {number}", sort_order=number)
 
         counts = {
             "referral sources": _lookup(ReferralSource, REFERRAL_SOURCES, extra_fields=lambda r: {"asks_for_patient": r[2]}),
@@ -380,6 +385,10 @@ class Command(BaseCommand):
         counts["photo checklist items"] = added_photos
         counts["drugs, ready prescriptions and instruction sheets"] = load_prescription_defaults()
         counts["WhatsApp messages"] = load_whatsapp_templates()
+        # The owner's two Fawry POS machines (renamed, e.g. with their terminal numbers, in Settings).
+        for number in (1, 2):
+            if FawryMachine.objects.count() < 2 and not FawryMachine.objects.filter(name=f"Fawry {number}").exists():
+                FawryMachine.objects.create(name=f"Fawry {number}", sort_order=number)
         ClinicSettings.get()
 
         for label, count in counts.items():

@@ -51,3 +51,26 @@ class ErrorRecorderMiddleware:
 
         record_error(request, exception)
         return None  # the normal error page is still shown
+
+
+class WorkingPlaceMiddleware:
+    """People who work in more than one place (e.g. the secretary at CIA and at CIC) choose the place
+    they work in now with the switch in the top bar; it is kept in their session. Every page then
+    works for that place: the reception board, bookings, rooms, bills and stock use.
+    Must come after AuthenticationMiddleware."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, "user", None)
+        chosen = request.session.get("place") if user is not None and user.is_authenticated else None
+        if chosen:
+            from .models import working_places
+
+            place = working_places(user).filter(pk=chosen).first()
+            if place is None:
+                request.session.pop("place", None)
+            else:
+                user._working_branch = place
+        return self.get_response(request)

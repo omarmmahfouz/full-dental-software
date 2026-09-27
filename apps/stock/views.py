@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -9,7 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.core.mixins import role_required
-from apps.core.models import ClinicSettings
+from apps.core.models import ClinicSettings, branch_for_user
 from apps.core.roles import STOCK_ROLES
 from apps.scheduling.models import day_bounds
 
@@ -40,7 +41,7 @@ def expiring_soon(days=None):
 @role_required(*STOCK_ROLES)
 def item_list(request):
     form = StockFilterForm(request.GET or None)
-    items = StockItem.objects.select_related("category")
+    items = StockItem.objects.select_related("category", "branch")
     show_inactive = False
     if form.is_valid():
         data = form.cleaned_data
@@ -53,6 +54,10 @@ def item_list(request):
             items = items.filter(pk__in=low_stock().values("pk"))
         if data.get("expiring"):
             items = items.filter(pk__in=expiring_soon().values("item_id"))
+        if data.get("place") == "shared":
+            items = items.filter(branch__isnull=True)
+        elif data.get("place"):
+            items = items.filter(branch__code=data["place"])
     if not show_inactive:
         items = items.filter(is_active=True)
     page = Paginator(items, 100).get_page(request.GET.get("page"))
@@ -76,7 +81,8 @@ def item_edit(request, pk=None):
             obj.save()
             opening = form.cleaned_data.get("opening_quantity")
             if opening:
-                record_movement(obj, StockMovement.Kind.COUNT, opening, request.user, notes=_("Opening stock"))
+                record_movement(obj, StockMovement.Kind.COUNT, opening, request.user, notes=_("Opening stock"),
+                                branch=obj.branch)
         messages.success(request, _("Stock item saved."))
         return redirect(obj)
     return render(request, "includes/form_page.html", {
@@ -90,16 +96,19 @@ def item_detail(request, pk):
     item = get_object_or_404(StockItem.objects.select_related("category"), pk=pk)
     kind = request.GET.get("kind") if request.method == "GET" else None
     form = MovementForm(request.POST or None, item=item,
-                        initial={"kind": kind or StockMovement.Kind.OUT, "moved_at": timezone.localtime().replace(second=0, microsecond=0)})
+                        initial={"kind": kind or StockMovement.Kind.OUT, "branch": item.branch or branch_for_user(request.user),
+                                 "moved_at": timezone.localtime().replace(second=0, microsecond=0)})
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         record_movement(item, data["kind"], data["quantity"], request.user, moved_at=data["moved_at"],
                         destination=data["destination"], lot=data["lot"], expiry_date=data["expiry_date"],
-                        unit_cost=data["unit_cost"], notes=data["notes"])
+                        unit_cost=data["unit_cost"], notes=data["notes"],
+                        branch=data["branch"] or item.branch or branch_for_user(request.user))
         messages.success(request, _("Stock updated."))
         return redirect(item)
     return render(request, "stock/item_detail.html", {
-        "item": item, "form": form, "movements": item.movements.select_related("created_by", "purchase_item__purchase")[:200],
+        "item": item, "form": form,
+        "movements": item.movements.select_related("created_by", "purchase_item__purchase", "branch")[:200],
         "today": timezone.localdate(),
     })
 
@@ -107,20 +116,26 @@ def item_detail(request, pk):
 @role_required(*STOCK_ROLES)
 def use(request):
     """Take several items out of stock at once (e.g. what a room or the kitchen needs)."""
-    header = UseHeaderForm(request.POST or None)
+    header = UseHeaderForm(request.POST or None, initial={"branch": branch_for_user(request.user)})
     initial = []
     if request.GET.get("item", "").isdigit():
         initial = [{"item": request.GET["item"]}]
     formset = UseFormSet(request.POST or None, initial=initial, prefix="lines")
     if request.method == "POST" and header.is_valid() and formset.is_valid():
         lines = [f.cleaned_data for f in formset if f.cleaned_data.get("item")]
+        place = header.cleaned_data["branch"] or branch_for_user(request.user)
+        others = [line["item"] for line in lines if line["item"].branch_id and line["item"].branch_id != place.pk]
         if not lines:
             messages.error(request, _("Choose at least one item."))
+        elif others:
+            messages.error(request, _("%(item)s belongs to %(place)s: it cannot be used for %(here)s.")
+                           % {"item": others[0], "place": others[0].branch, "here": place})
         else:
             with transaction.atomic():
                 for line in lines:
                     record_movement(line["item"], header.cleaned_data["kind"], line["quantity"], request.user,
-                                    destination=header.cleaned_data["destination"], notes=header.cleaned_data["notes"])
+                                    destination=header.cleaned_data["destination"], notes=header.cleaned_data["notes"],
+                                    branch=place)
             messages.success(request, _("%(n)s items taken out of stock.") % {"n": len(lines)})
             return redirect("stock:item_list")
     return render(request, "stock/use.html", {"header": header, "formset": formset})
@@ -131,7 +146,7 @@ def movement_list(request):
     form = MovementFilterForm(request.GET or None)
     today = timezone.localdate()
     date_from, date_to = today - timedelta(days=30), today
-    qs = StockMovement.objects.select_related("item__category", "created_by")
+    qs = StockMovement.objects.select_related("item__category", "created_by", "branch")
     if form.is_valid():
         data = form.cleaned_data
         date_from = data.get("date_from") or date_from
@@ -142,11 +157,24 @@ def movement_list(request):
             qs = qs.filter(item__category=data["category"])
         if data.get("q"):
             qs = qs.filter(Q(item__name__icontains=data["q"]) | Q(destination__icontains=data["q"]))
+        if data.get("place"):
+            qs = qs.filter(branch__code=data["place"])
     qs = qs.filter(moved_at__gte=day_bounds(date_from)[0], moved_at__lt=day_bounds(date_to)[1])
     page = Paginator(qs, 100).get_page(request.GET.get("page"))
     return render(request, "stock/movement_list.html", {
         "filter_form": form, "page_obj": page, "date_from": date_from, "date_to": date_to,
+        "use_by_place": use_by_place(qs),
     })
+
+
+def use_by_place(movements):
+    """What each place took out of stock (used, damaged or expired) in the movements shown: pieces and value."""
+    rows = {}
+    for m in movements.filter(kind__in=(StockMovement.Kind.OUT, StockMovement.Kind.WASTE)).select_related("item", "branch"):
+        row = rows.setdefault(m.branch_id, {"place": m.branch, "moves": 0, "value": Decimal("0")})
+        row["moves"] += 1
+        row["value"] += m.quantity * (m.unit_cost or m.item.unit_cost or Decimal("0"))
+    return sorted(rows.values(), key=lambda r: -r["value"])
 
 
 @role_required(*STOCK_ROLES)

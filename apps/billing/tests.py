@@ -92,8 +92,15 @@ class BillTests(TestCase):
         page = self.client.get(bill.get_absolute_url())
         self.assertContains(page, bill.number)
         # the rest is paid from the bill page; the list of unpaid bills is then empty
+        from apps.billing.models import FawryMachine
+
         self.client.post(f"/billing/bills/{bill.pk}/pay/", {"pay-amount": "200", "pay-method": "fawry"})
+        self.assertEqual(bill.totals()["left"], Decimal("200"))  # with two machines, the machine must be chosen
+        second = FawryMachine.objects.order_by("pk")[1]
+        self.client.post(f"/billing/bills/{bill.pk}/pay/", {"pay-amount": "200", "pay-method": "fawry",
+                                                            "pay-fawry_machine": second.pk})
         self.assertEqual(bill.totals()["left"], Decimal("0"))
+        self.assertEqual(bill.payments.get(method="fawry").fawry_move.machine, second)
         self.assertEqual(list(self.client.get("/billing/bills/?date_from=20/09/2026&date_to=20/09/2026&unpaid=on")
                               .context["rows"]), [])
 
@@ -152,19 +159,23 @@ class FawryTests(TestCase):
         from apps.billing.fawry import held_at_fawry
         from apps.billing.models import FawryMove
 
+        from apps.billing.models import FawryMachine
+
         PatientPayment.objects.create(patient=self.patient, amount=Decimal("1000"), method="fawry")  # 980 held
+        machine = FawryMachine.default().pk
         self.client.login(username="sec", password=PASSWORD)
         today = timezone.localdate().strftime("%d/%m/%Y")
         response = self.client.post("/billing/fawry/new/", {
             "kind": "service", "branch": self.cic.pk, "moved_on": today, "amount": "200", "service": "electricity",
+            "machine": machine,
         })
         self.assertEqual(response.status_code, 302)
         self.client.post("/billing/fawry/new/", {
             "kind": "service", "branch": self.clinic.pk, "moved_on": today, "amount": "100", "service": "mobile",
-            "cash_received": "105", "description": "Recharge for a visitor",
+            "cash_received": "105", "description": "Recharge for a visitor", "machine": machine,
         })
         self.client.post("/billing/fawry/new/", {"kind": "settlement", "branch": self.branch.pk, "moved_on": today,
-                                                 "amount": "500"})
+                                                 "amount": "500", "machine": machine})
         self.assertEqual(FawryMove.objects.count(), 4)
         self.assertEqual(held_at_fawry(), Decimal("180"))  # 980 - 200 - 100 - 500
         page = self.client.get("/billing/fawry/")

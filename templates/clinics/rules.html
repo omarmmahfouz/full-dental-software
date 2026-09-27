@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Doctors' fee rules" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-percent"></i> {% trans "Doctors' fee rules" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.code }}</span>{% endif %}</h1>
+  {% if place %}<div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="{% url 'clinics:rule_create' %}?place={{ place.code }}"><i class="bi bi-plus-lg"></i> {% trans "New rule" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'clinics:doctors' %}?place={{ place.code }}"><i class="bi bi-people"></i> {% trans "Doctors' shares" %}</a>
+  </div>{% endif %}
+</div>
+<form class="card card-body mb-3 no-print" data-no-leave-warning><div class="row g-2 align-items-end">
+  <div class="col-md-4"><label class="form-label small">{{ form.place.label }}</label>{{ form.place }}</div>
+  <div class="col-md-3"><button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Show" %}</button></div>
+</div></form>
+<p class="small text-muted"><i class="bi bi-info-circle"></i> {% trans "Each doctor can be paid a percentage of what the patient paid, a fixed amount for each service (each tooth), or a fixed amount for each visit. A rule for one service (e.g. implants) comes before the rule for every service. To change a percentage from a date, add a new rule from that date: older services keep the old rule." %}</p>
+<div class="row g-3">
+  {% for dentist, dentist_rules in by_doctor %}
+  <div class="col-md-6 col-xl-4"><div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-person-badge"></i> {{ dentist }}</span>
+      <a class="small" href="{% url 'clinics:statement' dentist.pk %}?place={{ place.code }}">{% trans "Statement" %}</a></div>
+    <ul class="list-group list-group-flush">{% for rule in dentist_rules %}
+      <li class="list-group-item d-flex gap-2 align-items-start{% if not rule.is_active %} text-muted{% endif %}">
+        <i class="bi {% if rule.method == 'percent' %}bi-percent{% elif rule.method == 'per_visit' %}bi-calendar-check{% else %}bi-123{% endif %} mt-1"></i>
+        <div class="flex-grow-1"><b>{{ rule.describe }}</b>
+          <div class="small text-muted">{% trans "from" %} {{ rule.starts_on|date:"d/m/Y" }}{% if rule.ends_on %} {% trans "until" %} {{ rule.ends_on|date:"d/m/Y" }}{% endif %}{% if not rule.is_active %} · {% trans "not used" %}{% endif %}{% if rule.notes %} · {{ rule.notes }}{% endif %}</div></div>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'clinics:rule_update' rule.pk %}" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></a>
+      </li>{% endfor %}
+    </ul>
+    <div class="card-footer small"><a href="{% url 'clinics:rule_create' %}?place={{ place.code }}&amp;dentist={{ dentist.pk }}"><i class="bi bi-plus"></i> {% trans "Another rule for this doctor" %}</a></div>
+  </div></div>
+  {% empty %}<div class="col-12"><div class="card card-body text-muted">{% trans "No fee rules at this place yet." %}</div></div>{% endfor %}
+</div>
+{% if without_rules %}<div class="section-title">{% trans "Doctors of this place without a rule" %}</div>
+<div class="d-flex flex-wrap gap-2">{% for dentist in without_rules %}<a class="btn btn-sm btn-outline-primary" href="{% url 'clinics:rule_create' %}?place={{ place.code }}&amp;dentist={{ dentist.pk }}"><i class="bi bi-plus"></i> {{ dentist }}</a>{% endfor %}</div>{% endif %}
+{% endblock %}

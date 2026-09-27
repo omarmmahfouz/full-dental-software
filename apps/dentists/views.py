@@ -140,13 +140,23 @@ def dentist_detail(request, pk):
 @role_required(OWNER, HEAD_CIA)
 def dentist_edit(request, pk=None):
     dentist = get_object_or_404(Dentist, pk=pk) if pk else None
-    form = DentistForm(request.POST or None, instance=dentist)
+    here = branch_for_user(request.user)
+    initial = {}
+    if dentist is None:
+        initial["places"] = [here]
+    elif not dentist.places.exists():
+        initial["places"] = [dentist.branch or here]
+    form = DentistForm(request.POST or None, instance=dentist, initial=initial)
     if request.method == "POST" and form.is_valid():
         obj = form.save(commit=False)
         if not obj.pk:
             obj.created_by = request.user
-            obj.branch = obj.branch or branch_for_user(request.user)
+        places = list(form.cleaned_data.get("places") or []) or [obj.branch or here]  # none ticked: where you work
+        if obj.branch not in places:
+            obj.branch = places[0]  # their main place
         obj.save()
+        form.save_m2m()
+        obj.places.set(places)
         messages.success(request, _("Dentist saved."))
         return redirect(obj)
     return render(request, "includes/form_page.html", {

@@ -27,6 +27,7 @@ from apps.core.notify import notify_roles
 from apps.core.roles import (
     FRONT_DESK,
     HEAD_CIA,
+    MODERATOR,
     OWNER,
     PATIENT_VIEWERS,
     SECRETARY,
@@ -99,7 +100,8 @@ def check_schedule(appointment, request):
     if not off_schedule(appointment):
         return
     when = timezone.localtime(appointment.scheduled_at).strftime("%d/%m/%Y %I:%M %p")
-    notify_roles((HEAD_CIA, TEAM_HEAD, SUPERVISOR),
+    academy = appointment.branch is None or appointment.branch.kind == appointment.branch.Kind.ACADEMY
+    notify_roles((HEAD_CIA, TEAM_HEAD, SUPERVISOR) if academy else (MODERATOR,),
                  gettext_lazy("Booked outside the dentist's schedule: %(dentist)s"),
                  gettext_lazy("%(patient)s — %(when)s"), appointment.get_absolute_url(), exclude=request.user,
                  params={"dentist": appointment.dentist, "patient": appointment.patient.full_name, "when": when})
@@ -148,7 +150,7 @@ def dentist_day_json(request):
         else None
     if dentist is None:
         return JsonResponse({"working": None, "text": "", "shifts": []})
-    return JsonResponse(dentist_day(dentist, _parse_day(request.GET.get("day"))))
+    return JsonResponse(dentist_day(dentist, _parse_day(request.GET.get("day")), branch_for_user(request.user)))
 
 
 def week_start(day):

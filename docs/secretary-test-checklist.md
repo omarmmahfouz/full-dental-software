@@ -169,3 +169,11 @@ For WhatsApp to open on the reception PC, install **WhatsApp Desktop** or open *
 91. **Messages**: save something. The green "saved" message fades by itself after about 7 seconds (it waits while the mouse is on it). Red and yellow messages stay until you close them.
 92. **Rows**: on "كل المرضى" tap anywhere on a patient's row, not only the name: the file opens.
 93. **Form parts**: long forms such as "تسجيل مريض جديد" have numbered parts (1, 2, 3…) with a line after each title, and the small line under a field starts with ⓘ.
+
+## P. New in this version (5): CIC, the Cairo Implant Center
+All the steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, sections A, B and E. In short:
+94. **Two places**: the green **CIA** button next to the logo switches you to **CIC** (blue). The board, bookings, rooms, bills and payments then follow CIC.
+95. **Shared patients**: a CIA patient's file has **"احجز في CIC"**; the visits list shows a CIC badge on CIC visits.
+96. **CIC prices**: at CIC a new bill offers "كشف CIC", "زرعة CIC" and "تركيبة على زرعة CIC".
+97. **Two Fawry machines**: a card payment asks which machine took it (Fawry 1 or Fawry 2). "ماكينة فوري" shows what each machine holds.
+98. **Payments of the day**: "مدفوعات المرضى" shows the place you work in; "كل الأماكن" shows both.

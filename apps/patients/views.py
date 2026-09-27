@@ -330,7 +330,7 @@ def patient_detail(request, pk):
         "documents": patient.documents.all(),
         "relations": patient.relations(),
         "referred_patients": patient.referred_patients.all(),
-        "appointments": patient.appointments.select_related("room", "dentist").order_by("-scheduled_at")[:50],
+        "appointments": patient.appointments.select_related("room", "dentist", "branch").order_by("-scheduled_at")[:50],
         "steps": patient.treatment_steps.select_related("step_type", "operator", "verified_by")[:100],
         "plans": patient.treatment_plans.exclude(status="cancelled").select_related("dentist").prefetch_related(
             Prefetch("items", queryset=PlanItem.objects.select_related("step_type"))),

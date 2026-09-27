@@ -44,7 +44,7 @@
           <td class="nowrap small">{{ m.moved_at|date:"d/m/Y" }}</td>
           <td class="small">{{ m.get_kind_display }}</td>
           <td class="text-end fw-bold {% if m.change < 0 %}text-danger{% else %}text-success{% endif %}">{% if m.change > 0 %}+{% endif %}{{ m.change|floatformat:"-2" }}</td>
-          <td class="small">{{ m.destination|default:"" }}</td>
+          <td class="small">{% if m.branch %}<span class="place-badge place-{{ m.branch.code }}">{{ m.branch.code }}</span> {% endif %}{{ m.destination|default:"" }}</td>
           <td class="small">{{ m.lot }}{% if m.expiry_date %} <span class="{% if m.expiry_date <= today %}text-danger{% endif %}">{{ m.expiry_date|date:"d/m/Y" }}</span>{% endif %}</td>
           <td class="small">{% if m.purchase_item %}<a href="{{ m.purchase_item.purchase.get_absolute_url }}"><i class="bi bi-receipt"></i></a> {% endif %}{{ m.notes }}</td>
           <td class="small text-muted">{{ m.created_by|default:"" }}</td>

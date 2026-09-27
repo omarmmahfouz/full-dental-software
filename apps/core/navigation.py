@@ -4,7 +4,7 @@ most, then "Menu", which opens the full menu from the side."""
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from .roles import DENTISTS, FRONT_DESK, SECRETARY, STOCK, is_only_dentist, user_roles
+from .roles import DENTISTS, FRONT_DESK, MODERATOR, SECRETARY, STOCK, is_only_dentist, user_roles
 
 
 def _item(url_name, icon, label, match=None, query=""):
@@ -36,6 +36,11 @@ def bottom_nav(user, path, hidden_areas):
             items.append(_item("patients:list", "bi-people", _("My patients"), match="/patients/", query="?mine=on"))
         if "treatments" not in hidden_areas:
             items.append(_item("clinical:step_list", "bi-list-check", _("Treatments"), match="/clinical/"))
+    elif MODERATOR in roles:
+        if "clinics" not in hidden_areas:
+            items.append(_item("clinics:doctors", "bi-people", _("Doctors"), match="/clinics/"))
+            items.append(_item("clinics:report", "bi-clipboard-data", _("Report")))
+            items.append(_item("clinics:rules", "bi-percent", _("Fee rules")))
     elif STOCK in roles:
         if "stock" not in hidden_areas:
             items.append(_item("stock:item_list", "bi-boxes", _("Stock"), match="/stock/"))

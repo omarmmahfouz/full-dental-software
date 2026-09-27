@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     "apps.stock",
     "apps.prescriptions",
     "apps.reports",
+    "apps.clinics",
 ]
 
 MIDDLEWARE = [
@@ -91,6 +92,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.core.middleware.WorkingPlaceMiddleware",
     "apps.core.middleware.UserLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",

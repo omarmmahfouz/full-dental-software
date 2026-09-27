@@ -121,6 +121,10 @@ def step_create(request):
     if me is not None and initial.get("operator") != me:
         initial["assistant"] = me
     form = TreatmentStepForm(request.POST or None, user=request.user, patient=patient, initial=initial)
+    if "bill_service" in form.fields:  # the services of the place worked in
+        from apps.billing.models import Service
+
+        form.fields["bill_service"].queryset = Service.for_place(branch_for_user(request.user))
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             step = form.save(commit=False)
@@ -135,7 +139,8 @@ def step_create(request):
                                                    "price": form.cleaned_data.get("bill_price")}],
                                    request.user, billed_on=timezone.localtime(step.performed_at).date(),
                                    appointment=step.appointment, dentist=step.operator, source=Bill.Source.DENTIST,
-                                   notes=str(step.step_type))
+                                   notes=str(step.step_type),
+                                   branch=step.appointment.branch if step.appointment_id else branch_for_user(request.user))
         message = _("Treatment saved.")
         if bill is not None:
             message += " " + _("Bill %(number)s sent to the reception to collect.") % {"number": bill.number}

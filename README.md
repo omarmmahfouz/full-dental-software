@@ -1,13 +1,13 @@
 # Dental Group System — Cairo Implant Academy
 
-One system for the owner's three connected places:
+One system for the owner's connected places:
 
-| Branch | Code | Status |
+| Place | Code | Status |
 |---|---|---|
 | **Cairo Implant Academy** — teaching institute, economic dental service, course candidates, dentists | `CIA` | **In use: secretary + dentists** |
-| Private clinic — specialists and freelance doctors | `PVT` | planned (data model ready) |
-| Dental lab — serves both clinics and outside clinics | `LAB` | planned (lab requests already flow to it) |
-| CIC — the future economical clinic | `CIC` | planned (its money already goes through the Fawry machine and the balance sheet) |
+| **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use (new)**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report |
+| Private clinic (El Khadem dental clinic) — specialists and freelance doctors | `PVT` | next (the places, doctors' shares and stock already work for it) |
+| Dental lab — serves the clinics and outside clinics | `LAB` | next (lab requests already flow to it) |
 
 It runs **on your own PC or the clinic's own server**, with no cloud. Staff open it in a browser on the clinic network.
 Everything works offline, including fonts, icons and styles.
@@ -28,13 +28,28 @@ The language follows the person, not the PC:
 | CIA dentists (full or part time) | `dentist` | every patient, the complaints about them, **only their own schedule**, and their cases. They record the clinical work: their own, and the course candidates' work, choosing the candidate's and the supervisor's names. In surgery they are usually the **assistant** |
 | Secretary (reception) | `secretary` | reception, patients, the **day planner**, WhatsApp messages, **patient payments**, lab send / receive, CBCT and blood test requests, complaints, academy (if allowed in Settings), purchases, and the **patients to call** lists. Not the dental chart, treatment log or surgeries: the patient file shows her the plan and the treatments done, in plain Arabic. Her edits of patient data and visit times wait for the head of CIA's approval |
 | Stock manager | `stock` | the stock of materials, instruments, food and beverage, and purchases |
+| Clinic manager (moderator) (new) | `moderator` | the **Clinics** menu: how each doctor of CIC (and later the other clinics) is paid, the doctors' shares, payments to the doctors, and the clinic report |
+| CIC doctors (new) | `dentist`, or no login | booked at CIC; the ones with a login see **My shares**. A doctor can work at CIA and CIC |
 | Supervisors | no login for now | chosen by name: on treatments, surgeries, plans and lab requests |
 | Course candidates | **no login** | followed through their dentist file: batch, payments, implants done and remaining, every case |
 | Training dentists | no login | chosen by name |
 
 ## What it does
 
-### The look, for everyone (new)
+### CIC — the Cairo Implant Center (new)
+- **Places**: CIA and CIC share one system. People who work in both (e.g. the secretary) tick both in *Settings → People and logins*, and a coloured switch in the top bar (**CIA** green, **CIC** blue) chooses where they work now. The line under the top bar takes the place's colour, so nobody books or bills in the wrong place. Everything then works for that place: the reception board, the day planner, rooms and room schedule, bookings, free times, bills and payments, stock use.
+- **Shared patients**: one file per patient. A CIA patient can be booked and billed at CIC (the patient file has *Book at CIC*), and the visits list shows where each visit was. New files opened at CIC are numbered `CIC-…`.
+- **Doctors**: many doctors, some at CIA and CIC. Each dentist's *works at* places are set in *Academy → Dentists*; bookings and the room schedule of a place offer its own doctors only. CIC has 3 rooms to start (renamed or added in *Settings → Rooms*).
+- **How each doctor is paid** (*Clinics → Doctors' fee rules*, set by the moderator or the owner): a **percentage** of what the patient paid, a **fixed amount for each service** (for each tooth, e.g. 1,500 per implant), or a **fixed amount for each visit**. A rule for one service comes before the rule for every service (e.g. implants fixed, the rest 25%). To change a percentage from a date, add a new rule from that date.
+- **Doctors' shares** (*Clinics → Doctors' shares*): for a place and a period, each doctor's visits, **time in the chair**, patients, what was billed and **paid**, their **share**, what was **paid to them** and what is **still owed**. Each doctor's **statement** lists every service with its rule and share, every visit, and the payments to the doctor, with a form to record a new payment. A doctor with a login sees his own statement (*My shares*).
+- **Clinic report** (*Clinics → Clinic report*): what the patients paid (by payment method and by Fawry machine), visits and appointments, patients seen and new files, time in the chair, the doctors' shares and payouts, the **materials used** from stock, and **what is left for the clinic**, with a day-by-day view. The home page of the owner and the moderator shows this month at CIC.
+- **Prices per place**: a paid service can be for one place only (*Settings → Paid services → only at*), e.g. a CIC price list; each place's bills offer its own services and those of every place. Bills, services given and payments keep their place, and printed bills and receipts carry CIC's name, phone and address.
+- **Two Fawry machines**: every card payment says which machine took it (*Fawry machine* on the payment). *Patients → Fawry machine* shows what each machine still holds at Fawry, and can be filtered by machine. The machines are named in *Settings → Fawry machines*.
+- **Stock of each place**: an item can be **shared** or **belong to CIC** (material bought for it only). Every take-out says **for which place**, so *Stock movements* shows what each place used and its value, and CIC's own material cannot be taken out for CIA. Implants bought for CIC are offered on CIC's surgery charts only.
+- **Balance sheet**: patient payments are counted where they were paid, and the payments to the doctors are a cost of their place.
+- **Places list** (*Settings → Places*): each place's name, phone and address, used in WhatsApp messages and printouts.
+
+### The look, for everyone
 - **A colour for each part**: patients teal, schedule blue, clinical purple, complaints rose, academy amber, stock and purchases orange, reports indigo, settings grey. The menu entry, the icon of the page title and the line under the title share the colour, and the menu entry of the open page is marked.
 - **Clear separators**: page titles have a line under them, long forms are split into numbered parts (1, 2, 3…) with a line after each title, and cards, tables and lists have soft borders and headers.
 - **Motion**: the page slides in, the boxes and tiles appear one after another, the numbers on the home page count up, menus and pop-ups open smoothly, and buttons react when pressed. A thin green line at the top shows that the next page is loading. People whose device asks for less motion get none.
@@ -294,7 +309,7 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (hints are on for every sample login, so each main page shows its tip; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
+This makes a **practice copy on your PC** with sample data (now also **CIC**: three doctors paid in three ways, a month of CIC visits with bills and payments, some on the second Fawry machine, a payment to a doctor, CIC's own implants and drapes in stock, and each place's use of the shared stock; hints are on for every sample login; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
 
 **Windows**
 1. Install **Python 3.12 or newer** from https://www.python.org/downloads/. On the first installer screen, tick **"Add python.exe to PATH"**.
@@ -311,14 +326,17 @@ This makes a **practice copy on your PC** with sample data (hints are on for eve
    | `owner` | owner / CEO | English |
    | `headcia` | head of CIA | English |
    | `teamhead` | head of the CIA dentists team (also a CIA dentist) | English |
-   | `dentist1`, `dentist2` | CIA dentists | English |
-   | `secretary` | secretary | Arabic |
+   | `dentist1`, `dentist2` | CIA dentists (`dentist2`, Dr. Sherif, also works at CIC) | English |
+   | `secretary` | secretary, at **CIA and CIC** (the switch in the top bar) | Arabic |
    | `secretary2` | a second secretary who does not work with the academy | Arabic |
    | `stock` | stock manager | Arabic |
+   | `moderator` (new) | CIC clinic manager: doctors' fee rules, shares, payments to doctors, clinic report | English |
+   | `cicdoctor` (new) | Dr. Walid Hamdy, a CIC doctor paid 1,500 per implant and 25% of the rest | English |
 
    The 4 course candidates (batch IMP-2026-A), the training dentist and the supervisors have no login, as agreed.
 
 5. Follow the checklists step by step:
+   - **[docs/cic-test-checklist.md](docs/cic-test-checklist.md)** (new) for CIC: the secretary, the moderator, the owner and a CIC doctor
    - **[docs/secretary-test-checklist.md](docs/secretary-test-checklist.md)** for the secretary
    - **[docs/dentist-test-checklist.md](docs/dentist-test-checklist.md)** for the CIA dentists, the heads and the owner, including the settings
    - **[docs/stock-test-checklist.md](docs/stock-test-checklist.md)** for the stock manager
@@ -333,7 +351,7 @@ To start over with fresh sample data, delete the `data` folder and run it again.
 ## Tablets in the clinic
 
 The system works in the browser of a tablet on the clinic Wi-Fi, with nothing to install: open the server's address (e.g. `http://192.168.1.20:8000`) and add it to the home screen. It was checked at tablet sizes (1024 and 768 pixels wide): nothing needs sideways scrolling, and wide tables scroll inside their box.
-On a tablet (new) each person gets a bar at the bottom with their main places and *Menu*, the full menu slides in from the side, buttons and boxes are bigger for fingers, and *Save* stays in view on long forms (see *The look, for everyone* above).
+On a tablet each person gets a bar at the bottom with their main places and *Menu*, the full menu slides in from the side, buttons and boxes are bigger for fingers, and *Save* stays in view on long forms (see *The look, for everyone* above).
 
 Suggestion, when you decide to buy:
 - An **11-inch tablet used in landscape**: e.g. Samsung Galaxy Tab S9 FE / A9+ (Android) or an iPad 10th generation / iPad Air 11". Landscape gives the full-width forms and the tooth chart.
@@ -368,6 +386,10 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   - `prescriptions`: drug groups, ready prescriptions, post-op instruction sheets
   - `stock`: stock items, movements, low stock, import
   - `complaints`, `academy`, `purchasing`, `reports`
+  - `clinics`: how the doctors of a clinic are paid (fee rules), their shares, payments to them, and the clinic report
+- Places: `branch_for_user(user)` is the place the person works in now (the switch in the top bar keeps it in the session,
+  `WorkingPlaceMiddleware`); `working_places(user)` lists the places they can choose. Bills, services given, payments,
+  appointments, rooms and stock movements carry their place.
 - The look (no build step):
   - `static/css/app.css` starts with the colours, lines, shadows and motion as CSS variables. Each part of the system
     has an accent colour (`.sec-patients`, `.sec-scheduling`…), set on `<body>` from the page's address and on each menu entry.
@@ -378,7 +400,7 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   ```bash
   DJANGO_DEBUG=1 python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests apps.clinical.tests \
     apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests apps.prescriptions.tests \
-    apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests apps.surgery.tests
+    apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests apps.surgery.tests apps.clinics.tests
   ```
 - Backups: `python manage.py backup` (full ZIP into `BACKUP_DIR`, default `data/backups`), `python manage.py restore_backup <zip>`,
   and `python manage.py organize_photos` (moves photos saved by older versions into the readable folders).

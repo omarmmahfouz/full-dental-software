@@ -29,6 +29,10 @@ class StockItem(TimeStampedModel):
     unit_cost = models.DecimalField(_("last unit price"), max_digits=12, decimal_places=2, null=True, blank=True)
     is_active = models.BooleanField(_("in use"), default=True)
     notes = models.CharField(_("notes"), max_length=255, blank=True)
+    branch = models.ForeignKey(
+        "core.Branch", verbose_name=_("belongs to"), null=True, blank=True, on_delete=models.PROTECT,
+        related_name="stock_items",
+        help_text=_("Empty = shared by all the places. Choose a place (e.g. CIC) for material bought for it only."))
     implant_system = models.ForeignKey(
         "surgery.ImplantSystem", verbose_name=_("implant company / type"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="stock_items",
@@ -100,6 +104,10 @@ class StockMovement(models.Model):
         "purchasing.PurchaseItem", null=True, blank=True, on_delete=models.SET_NULL, related_name="stock_movement"
     )
     notes = models.CharField(_("notes"), max_length=255, blank=True)
+    branch = models.ForeignKey(
+        "core.Branch", verbose_name=_("place"), null=True, blank=True, on_delete=models.PROTECT,
+        related_name="stock_movements",
+        help_text=_("The place that used it (or received it), so each place's use of the stock can be followed."))
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name=_("recorded by"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="+",

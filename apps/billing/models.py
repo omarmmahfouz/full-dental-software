@@ -21,10 +21,43 @@ class Service(LookupModel):
     quick_button = models.BooleanField(
         _("quick button on a new bill"), default=False,
         help_text=_("Shown as a one-click button on a new bill, e.g. first-visit examination and CBCT."))
+    branch = models.ForeignKey(
+        Branch, verbose_name=_("only at"), null=True, blank=True, on_delete=models.PROTECT, related_name="services",
+        help_text=_("Empty = offered at every place. For a price list of one place (e.g. CIC), choose it here."))
 
     class Meta(LookupModel.Meta):
         verbose_name = _("paid service")
         verbose_name_plural = _("paid services")
+
+    @classmethod
+    def for_place(cls, branch):
+        """The services offered at a place: its own and those of every place."""
+        services = cls.objects.filter(is_active=True)
+        if branch is not None:
+            services = services.filter(models.Q(branch__isnull=True) | models.Q(branch=branch))
+        return services
+
+
+class FawryMachine(models.Model):
+    """One of the owner's Fawry POS machines. Each card payment says which machine took it."""
+
+    name = models.CharField(_("name"), max_length=60)
+    terminal_id = models.CharField(_("terminal / serial number"), max_length=60, blank=True)
+    notes = models.CharField(_("notes"), max_length=255, blank=True)
+    sort_order = models.PositiveIntegerField(_("sort order"), default=0)
+    is_active = models.BooleanField(_("active"), default=True)
+
+    class Meta:
+        ordering = ["sort_order", "pk"]
+        verbose_name = _("Fawry machine")
+        verbose_name_plural = _("Fawry machines")
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def default(cls):
+        return cls.objects.filter(is_active=True).first()
 
 
 class Bill(TimeStampedModel):
@@ -41,6 +74,8 @@ class Bill(TimeStampedModel):
     billed_on = models.DateField(_("date"), default=timezone.localdate, db_index=True)
     appointment = models.ForeignKey("scheduling.Appointment", verbose_name=_("visit"), null=True, blank=True,
                                     on_delete=models.SET_NULL, related_name="bills")
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), null=True, blank=True, on_delete=models.PROTECT,
+                               related_name="bills")
     dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist"), null=True, blank=True,
                                 on_delete=models.SET_NULL, related_name="bills")
     source = models.CharField(_("made by"), max_length=10, choices=Source.choices, default=Source.RECEPTION)
@@ -58,6 +93,8 @@ class Bill(TimeStampedModel):
         return reverse("billing:bill", args=[self.pk])
 
     def save(self, *args, **kwargs):
+        if self.branch_id is None:
+            self.branch_id = self.patient.branch_id  # the views give the place worked in; this is the fallback
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.number:
@@ -87,6 +124,11 @@ class Charge(TimeStampedModel):
                              related_name="charges")
     teeth = models.CharField(_("teeth"), max_length=100, blank=True)
     service = models.ForeignKey(Service, verbose_name=_("service"), on_delete=models.PROTECT, related_name="charges")
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), null=True, blank=True, on_delete=models.PROTECT,
+                               related_name="charges")
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist who did the work"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="charges",
+                                help_text=_("Counts for the doctor's share at clinics that pay a percentage."))
     charged_on = models.DateField(_("date"), default=timezone.localdate, db_index=True)
     price = models.DecimalField(_("price"), max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     discount_percent = models.DecimalField(
@@ -102,6 +144,16 @@ class Charge(TimeStampedModel):
 
     def __str__(self):
         return f"{self.service} — {self.charged_on:%d/%m/%Y}"
+
+    def save(self, *args, **kwargs):
+        if self.bill_id is not None:
+            if self.branch_id is None:
+                self.branch_id = self.bill.branch_id
+            if self.dentist_id is None:
+                self.dentist_id = self.bill.dentist_id
+        if self.branch_id is None:
+            self.branch_id = self.patient.branch_id
+        super().save(*args, **kwargs)
 
     @property
     def discount_amount(self):
@@ -128,6 +180,11 @@ class PatientPayment(TimeStampedModel):
                               default=PaymentMethod.CASH)
     reference = models.CharField(_("transaction reference"), max_length=100, blank=True)
     notes = models.CharField(_("notes"), max_length=255, blank=True)
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), null=True, blank=True, on_delete=models.PROTECT,
+                               related_name="patient_payments")
+    fawry_machine = models.ForeignKey(FawryMachine, verbose_name=_("Fawry machine"), null=True, blank=True,
+                                      on_delete=models.PROTECT, related_name="patient_payments",
+                                      help_text=_("For card payments: the machine that took it."))
 
     class Meta:
         ordering = ["-paid_on", "-pk"]
@@ -141,6 +198,11 @@ class PatientPayment(TimeStampedModel):
         return reverse("billing:receipt", args=[self.pk])
 
     def save(self, *args, **kwargs):
+        if self.branch_id is None:
+            source = self.bill or self.charge
+            self.branch_id = source.branch_id if source is not None else self.patient.branch_id
+        if self.method == PaymentMethod.FAWRY and self.fawry_machine_id is None:
+            self.fawry_machine = FawryMachine.default()
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.receipt_number:
@@ -186,18 +248,21 @@ def account(patient):
 
 
 def create_bill(patient, lines, user, billed_on=None, appointment=None, dentist=None,
-                source=Bill.Source.RECEPTION, notes=""):
+                source=Bill.Source.RECEPTION, notes="", branch=None):
     """A bill with one service given per line: {"service", "teeth", "price", "discount_percent",
-    "discount_reason"}. An empty price takes the service's price."""
+    "discount_reason"}. An empty price takes the service's price. The bill is for ``branch`` (the place
+    worked in; else the visit's place, else the patient's)."""
     billed_on = billed_on or timezone.localdate()
+    branch = branch or (appointment.branch if appointment is not None else None) or patient.branch
     with transaction.atomic():
         bill = Bill.objects.create(patient=patient, billed_on=billed_on, appointment=appointment, dentist=dentist,
-                                   source=source, notes=notes, created_by=user)
+                                   source=source, notes=notes, created_by=user, branch=branch)
         for line in lines:
             service = line["service"]
             price = line.get("price")
             Charge.objects.create(
                 patient=patient, bill=bill, service=service, teeth=line.get("teeth", ""), charged_on=billed_on,
+                branch=branch, dentist=line.get("dentist") or dentist,
                 price=service.price if price is None else price, discount_percent=line.get("discount_percent") or 0,
                 discount_reason=line.get("discount_reason", ""), created_by=user,
             )
@@ -205,7 +270,7 @@ def create_bill(patient, lines, user, billed_on=None, appointment=None, dentist=
 
 
 class FawryMove(TimeStampedModel):
-    """One move of money through the Fawry POS machine, for the academy, the private clinic or CIC.
+    """One move of money through one of the Fawry POS machines, for the academy, the private clinic or CIC.
 
     Card payments taken on the machine are added by themselves from the patient and course payments
     (and a purchase paid with Fawry becomes a bill paid through the machine); the rest is written
@@ -230,6 +295,8 @@ class FawryMove(TimeStampedModel):
     MONEY_IN = (Kind.COLLECTION, Kind.TOP_UP)
 
     number = models.CharField(_("number"), max_length=20, unique=True, blank=True, editable=False)
+    machine = models.ForeignKey(FawryMachine, verbose_name=_("Fawry machine"), null=True, blank=True,
+                                on_delete=models.PROTECT, related_name="moves")
     branch = models.ForeignKey(Branch, verbose_name=_("for"), on_delete=models.PROTECT, related_name="fawry_moves",
                                help_text=_("The academy, the private clinic or CIC."))
     kind = models.CharField(_("move"), max_length=20, choices=Kind.choices, default=Kind.COLLECTION)
@@ -261,6 +328,8 @@ class FawryMove(TimeStampedModel):
         return f"{self.number} - {self.get_kind_display()} - {self.amount}"
 
     def save(self, *args, **kwargs):
+        if self.machine_id is None:
+            self.machine = FawryMachine.default()
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.number:

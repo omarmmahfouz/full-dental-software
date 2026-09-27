@@ -27,8 +27,9 @@ from apps.patients.models import CallList, CallListEntry, Lead, Patient
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
 from .access import area_levels
-from .models import AreaAccess, ClinicSettings, Notification, UserProfile, branch_for_user
+from .models import AreaAccess, ClinicSettings, Notification, UserProfile, branch_for_user, working_places
 from .roles import (
+    CLINIC_MANAGERS,
     CLINICAL,
     FRONT_DESK,
     HEAD_CIA,
@@ -159,7 +160,25 @@ def dashboard(request):
 
         context["low_stock"] = low_stock().select_related("category")[:12]
         context["expiring"] = expiring_soon()[:8]
+    if has_role(user, *CLINIC_MANAGERS):
+        context["clinic_cards"] = clinic_cards(user, today)
     return render(request, "core/dashboard.html", context)
+
+
+def clinic_cards(user, today):
+    """This month at each place that pays its doctors by rules: visits, money in, the doctors' shares."""
+    from apps.clinics.models import FeeRule
+    from apps.clinics.shares import summary
+
+    cards = []
+    with_rules = set(FeeRule.objects.values_list("branch_id", flat=True))
+    for place in working_places(user):
+        if place.pk not in with_rules:
+            continue
+        rows, totals = summary(place, today.replace(day=1), today)
+        cards.append({"place": place, "rows": rows, **{k: totals.get(k, 0) for k in
+                                                        ("collected", "share", "owed", "visit_count", "chair_minutes")}})
+    return cards
 
 
 @login_not_required
@@ -179,6 +198,20 @@ def switch_language(request):
             profile.save(update_fields=["language"])
         response.set_cookie(settings.LANGUAGE_COOKIE_NAME, language, max_age=365 * 24 * 3600, samesite="Lax")
     return response
+
+
+@require_POST
+def switch_place(request):
+    """The switch in the top bar: work at another place (CIA, CIC...) from now on, then go on."""
+    place = working_places(request.user).filter(code=request.POST.get("place", "")).first()
+    if place is None:
+        raise PermissionDenied
+    request.session["place"] = place.pk
+    messages.info(request, _("You are working at %(place)s now.") % {"place": place.name})
+    target = request.POST.get("next") or "/"
+    if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
+        target = "/"
+    return redirect(target)
 
 
 @require_POST

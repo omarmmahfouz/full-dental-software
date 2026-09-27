@@ -2,7 +2,7 @@
 {% load i18n clinic %}
 {% block title %}{% trans "Fawry machine" %}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><i class="bi bi-credit-card-2-front"></i> {% trans "Fawry machine" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
+<div class="page-header"><h1><i class="bi bi-credit-card-2-front"></i> {% trans "Fawry machine" %}{% if machine %}: {{ machine }}{% endif %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
   <div class="d-flex flex-wrap gap-2 no-print">
     <a class="btn btn-primary" href="{% url 'billing:fawry_create' %}?kind=service"><i class="bi bi-lightning-charge"></i> {% trans "Bill paid through the machine" %}</a>
     <a class="btn btn-outline-primary" href="{% url 'billing:fawry_create' %}?kind=settlement"><i class="bi bi-bank"></i> {% trans "Transfer to the bank" %}</a>
@@ -20,6 +20,9 @@
   <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ totals.service|money }}</div><div class="stat-label">{% trans "Bills paid through the machine" %}{% if totals.cash_received %} <span class="d-block">{% trans "cash taken for them" %}: {{ totals.cash_received|money }}</span>{% endif %}</div></div></div></div>
   <div class="col-6 col-lg-3"><div class="card stat-card h-100 border-primary"><div class="card-body"><div class="stat-value text-primary">{{ held_now|money }}</div><div class="stat-label">{% trans "Held at Fawry now (not yet in the bank)" %}</div></div></div></div>
 </div>
+{% if per_machine|length > 1 %}<div class="machine-strip mb-3">{% for m, held in per_machine %}
+  <a class="machine-chip{% if machine and machine.pk == m.pk %} is-current{% endif %}" href="?machine={{ m.pk }}&amp;date_from={{ date_from|date:'d/m/Y' }}&amp;date_to={{ date_to|date:'d/m/Y' }}"><i class="bi bi-credit-card"></i> <b>{{ m }}</b>{% if m.terminal_id %} <span class="small text-muted ltr">{{ m.terminal_id }}</span>{% endif %}<span>{% trans "held at Fawry" %}: <b>{{ held|money }}</b></span></a>
+{% endfor %}</div>{% endif %}
 <div class="d-flex flex-wrap gap-2 mb-2 small">
   <span class="badge text-bg-light border">{% trans "Money put on the machine" %}: {{ totals.top_up|money }}</span>
   <span class="badge text-bg-light border">{% trans "Transferred to the bank" %}: {{ totals.settlement|money }}</span>
@@ -31,7 +34,7 @@
   <tbody>{% for m in moves %}<tr>
     <td class="small">{{ m.number }}</td>
     <td class="nowrap">{{ m.moved_on|date:"d/m/Y" }}</td>
-    <td class="small">{{ m.branch }}</td>
+    <td class="small">{{ m.branch }}{% if per_machine|length > 1 %}<div class="text-muted">{{ m.machine|default:"" }}</div>{% endif %}</td>
     <td>{{ m.get_kind_display }}{% if m.service %} <span class="small text-muted">— {{ m.get_service_display }}</span>{% endif %}</td>
     <td class="small">{% if m.source and not m.academy_payment_id and not m.purchase_id or m.academy_payment_id and "academy" not in hidden_areas or m.purchase_id and can_purchase %}<a href="{{ m.source.get_absolute_url }}">{{ m.source_label }}</a>{% else %}{{ m.source_label|default:"" }}{% endif %}{% if m.reference %} <span class="text-muted ltr">#{{ m.reference }}</span>{% endif %}{% if m.cash_received %}<div class="text-success">{% trans "cash taken" %}: {{ m.cash_received|money }}</div>{% endif %}</td>
     <td class="text-end fw-semibold">{{ m.amount|money }}</td>

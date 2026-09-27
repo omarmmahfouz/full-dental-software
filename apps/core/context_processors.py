@@ -1,8 +1,9 @@
 from django.conf import settings
 
-from .models import ChangeRequest, ProblemReport, branch_for_user
+from .models import ChangeRequest, ProblemReport, branch_for_user, working_places
 from .roles import (
     ALL_ROLES,
+    CLINIC_MANAGERS,
     CLINICAL,
     DENTISTS,
     FRONT_DESK,
@@ -41,6 +42,7 @@ def app_context(request):
                 "can_purchase": bool(roles & set(PURCHASE_ROLES)),
                 "sees_reports": bool(roles & set(MANAGEMENT + (TEAM_HEAD,))),
                 "only_dentist": is_only_dentist(user),
+                "is_clinic_manager": bool(roles & set(CLINIC_MANAGERS)),
             }
         )
         from .access import area_levels, area_of
@@ -56,6 +58,8 @@ def app_context(request):
         context["hints_reset"] = request.session.pop("hints_reset", False)
         context["bottom_nav"] = bottom_nav(user, request.path, context["hidden_areas"])
         context["role_labels"] = [label for code, label in ROLE_CHOICES if code in roles]
+        places = list(working_places(user))
+        context["working_places"] = places if len(places) > 1 else []
         context["read_only_here"] = (levels.get(area_of(request.path)) or levels.get("*")) == "read"
         context["can_stock"] = context["can_stock"] and "stock" not in context["hidden_areas"]
         context["can_purchase"] = context["can_purchase"] and "purchases" not in context["hidden_areas"]
@@ -76,6 +80,7 @@ def app_context(request):
 
             context["my_dentist"] = Dentist.for_user(user)
             if context["my_dentist"] is not None:
+                context["my_fee_rules"] = context["my_dentist"].fee_rules.exists()
                 from apps.clinical.visit_notes import visits_without_notes
 
                 context["missing_notes"] = len(visits_without_notes(context["my_dentist"]))

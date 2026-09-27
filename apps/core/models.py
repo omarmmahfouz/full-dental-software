@@ -81,6 +81,10 @@ class UserProfile(models.Model):
     branch = models.ForeignKey(
         Branch, verbose_name=_("branch"), null=True, blank=True, on_delete=models.SET_NULL, related_name="staff"
     )
+    places = models.ManyToManyField(
+        Branch, verbose_name=_("works at"), blank=True, related_name="staff_places",
+        help_text=_("The places this person works in. With more than one, a switch in the top bar chooses the "
+                    "place they work in now."))
     phone = models.CharField(_("mobile"), max_length=20, blank=True)
     language = models.CharField(
         _("interface language"), max_length=5, blank=True,
@@ -333,8 +337,30 @@ class Notification(models.Model):
 
 
 def branch_for_user(user):
-    """The branch a staff member works in (falls back to the default branch)."""
+    """The place a staff member works in now: the one chosen with the switch in the top bar
+    (see WorkingPlaceMiddleware), else their own branch, else the default branch."""
+    working = getattr(user, "_working_branch", None) if user is not None else None
+    if working is not None:
+        return working
     profile = getattr(user, "profile", None) if user and user.is_authenticated else None
     if profile is not None and profile.branch_id:
         return profile.branch
     return Branch.default()
+
+
+def working_places(user):
+    """The places (not the lab) this person can work in: all of them for the owner, else the
+    places ticked on their profile and their own branch."""
+    from .roles import OWNER, user_roles
+
+    places = Branch.objects.filter(is_active=True).exclude(kind=Branch.Kind.LAB).order_by("sort_order", "pk")
+    if user is None or not user.is_authenticated:
+        return places.none()
+    if user.is_superuser or OWNER in user_roles(user):
+        return places
+    profile = getattr(user, "profile", None)
+    if profile is None:
+        return places.filter(pk=getattr(Branch.default(), "pk", None))
+    ids = set(profile.places.values_list("pk", flat=True))
+    ids.add(profile.branch_id or getattr(Branch.default(), "pk", None))
+    return places.filter(pk__in=ids)

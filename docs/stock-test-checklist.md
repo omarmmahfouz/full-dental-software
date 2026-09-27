@@ -57,3 +57,9 @@ When something is wrong or missing, note three things:
 23. **Tablet** (or a browser window under 1200 px): the bar at the bottom has "الرئيسية", "المخزن", "صرف", "المشتريات" and "القائمة". "القائمة" slides the whole menu in from the side.
 24. In "صرف من المخزن" the rows and buttons are bigger for touch, and on a long list "حفظ" stays at the bottom of the screen.
 25. Stock and purchases pages have their own orange colour on the title and the menu; low-stock rows are easy to spot.
+
+## J. New in this version (5): stock of each place
+The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. In short:
+26. An item can be **shared** by all the places or **belong to CIC** ("يخص" on the item). The list has a CIC badge on CIC's items and a filter by place.
+27. "صرف من المخزن" asks **for which place**; CIC's own material cannot be taken out for CIA.
+28. "حركات المخزن" shows **what each place used** in the period and its value, with a place badge on each movement.

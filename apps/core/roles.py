@@ -13,6 +13,8 @@ Who logs in at the Cairo Implant Academy:
   their own schedule and cases, and record the clinical work - also the work of the
   course candidates, choosing the candidate's and the supervisor's names.
 - stock: the stock manager - stock of materials, instruments, food and beverage, and purchases.
+- moderator: the clinic manager - sets how each doctor of a clinic (e.g. CIC) is paid, follows the
+  doctors' shares and payouts and the clinic report.
 - supervisor: kept for later. Supervisors and course candidates do not log in for now;
   they are chosen by name on the clinical forms.
 """
@@ -27,6 +29,7 @@ SUPERVISOR = "supervisor"
 SECRETARY = "secretary"
 DENTIST = "dentist"
 STOCK = "stock"
+MODERATOR = "moderator"
 
 ROLE_CHOICES = [
     (OWNER, _("Owner / CEO")),
@@ -36,6 +39,7 @@ ROLE_CHOICES = [
     (SECRETARY, _("Secretary")),
     (DENTIST, _("CIA dentist")),
     (STOCK, _("Stock manager")),
+    (MODERATOR, _("Clinic manager (moderator)")),
 ]
 ALL_ROLES = tuple(code for code, _label in ROLE_CHOICES)
 
@@ -47,6 +51,7 @@ DENTISTS = (TEAM_HEAD, DENTIST)
 PATIENT_VIEWERS = FRONT_DESK + DENTISTS
 STOCK_ROLES = (OWNER, HEAD_CIA, STOCK)
 PURCHASE_ROLES = (OWNER, HEAD_CIA, SECRETARY, STOCK)
+CLINIC_MANAGERS = (OWNER, MODERATOR)
 STAFF = ALL_ROLES
 
 

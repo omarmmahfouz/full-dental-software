@@ -59,10 +59,12 @@ def free_times(branch, duration, dentist=None, start=None, days=45, limit=8):
     return found[:limit]
 
 
-def dentist_day(dentist, day):
-    """The dentist's shifts on ``day`` and a sentence for the reception."""
-    shifts = list(RoomShift.objects.filter(Q(dentist=dentist) | Q(second_dentist=dentist), date=day)
-                  .select_related("room").order_by("start_time"))
+def dentist_day(dentist, day, branch=None):
+    """The dentist's shifts on ``day`` (at this place, when given) and a sentence for the reception."""
+    shifts = RoomShift.objects.filter(Q(dentist=dentist) | Q(second_dentist=dentist), date=day)
+    if branch is not None:
+        shifts = shifts.filter(room__branch=branch)
+    shifts = list(shifts.select_related("room").order_by("start_time"))
     when = date_format(day, "l d/m/Y")
     if not shifts:
         text = _("%(dentist)s is not on the room schedule on %(day)s. You can still book: the supervisor will be "

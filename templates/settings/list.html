@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header">
   <h1><a class="text-decoration-none" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i></a> {{ title }}</h1>
-  <a class="btn btn-primary" href="{% url 'settings:list_create' key %}"><i class="bi bi-plus-lg"></i> {% trans "Add" %}</a>
+  {% if can_add %}<a class="btn btn-primary" href="{% url 'settings:list_create' key %}"><i class="bi bi-plus-lg"></i> {% trans "Add" %}</a>{% endif %}
 </div>
 <div class="card"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
   <thead><tr>{% for h in headers %}<th>{{ h|capfirst }}</th>{% endfor %}<th></th></tr></thead>

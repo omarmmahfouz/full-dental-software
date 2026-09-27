@@ -22,7 +22,12 @@
     <a class="btn btn-outline-secondary" href="{% url 'patients:update' patient.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
     {% if "billing" not in hidden_areas %}<a class="btn btn-success" href="{% url 'billing:bill_create' %}?patient={{ patient.pk }}"><i class="bi bi-receipt"></i> {% trans "New bill" %}</a>
     <a class="btn btn-outline-success" href="{% url 'billing:account' patient.pk %}"><i class="bi bi-wallet2"></i> {% trans "Account & payments" %}</a>{% endif %}
-    <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>
+    <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}{% if working_places %} ({{ current_branch.code }}){% endif %}</a>
+    {% for place in working_places %}{% if place.pk != current_branch.pk %}
+    <form method="post" action="{% url 'core:switch_place' %}" class="d-inline" data-no-leave-warning>{% csrf_token %}
+      <input type="hidden" name="place" value="{{ place.code }}"><input type="hidden" name="next" value="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}">
+      <button class="btn btn-outline-primary place-{{ place.code }}"><span class="place-dot"></span> {% blocktrans with place=place.code %}Book at {{ place }}{% endblocktrans %}</button></form>
+    {% endif %}{% endfor %}
     <a class="btn btn-outline-warning" href="{% url 'complaints:create' %}?patient={{ patient.pk }}"><i class="bi bi-chat-left-dots"></i> {% trans "Record complaint" %}</a>
     {% endif %}
     {% if is_clinical %}<a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>
@@ -94,7 +99,7 @@
       <tbody>
       {% for a in appointments %}
       <tr>
-        <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|date:"d/m/Y g:i A" }}</a>{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}</td>
+        <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|date:"d/m/Y g:i A" }}</a>{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}{% if a.branch_id != patient.branch_id %} <span class="place-badge place-{{ a.branch.code }}">{{ a.branch.code }}</span>{% endif %}</td>
         <td>{{ a.room|default:"—" }}</td><td>{{ a.dentist|default:"—" }}</td>
         <td>{{ a.arrived_at|time:"g:i A"|default:"—" }}</td>
         <td>{% if a.is_late %}<span class="text-danger fw-bold">{{ a.late_minutes|minutes }}</span>{% elif a.late_minutes is not None %}{{ a.late_minutes|minutes }}{% else %}—{% endif %}</td>

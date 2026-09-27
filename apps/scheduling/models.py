@@ -274,14 +274,13 @@ class Appointment(TimeStampedModel):
         if not self.dentist_id:
             return None
         local = timezone.localtime(self.scheduled_at)
-        return (
-            RoomShift.objects.filter(
-                models.Q(dentist_id=self.dentist_id) | models.Q(second_dentist_id=self.dentist_id),
-                date=local.date(), start_time__lte=local.time(), end_time__gt=local.time()
-            )
-            .select_related("room")
-            .first()
+        shifts = RoomShift.objects.filter(
+            models.Q(dentist_id=self.dentist_id) | models.Q(second_dentist_id=self.dentist_id),
+            date=local.date(), start_time__lte=local.time(), end_time__gt=local.time()
         )
+        if self.branch_id:
+            shifts = shifts.filter(room__branch_id=self.branch_id)  # a shift at another place does not count
+        return shifts.select_related("room").first()
 
 
 def day_bounds(day):

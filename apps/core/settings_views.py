@@ -18,7 +18,7 @@ from django.utils.translation import gettext_lazy
 from apps.charting.models import PhotoType
 from apps.clinical.models import Lab, LabWorkType, TreatmentStepType
 from apps.dentists.models import Dentist
-from apps.billing.models import Service
+from apps.billing.models import FawryMachine, Service
 from apps.patients.models import MedicalCondition, OutReason, ReferralSource
 from apps.prescriptions.models import (
     Drug,
@@ -63,6 +63,9 @@ LISTS = {
     "instruction_sheets": (gettext_lazy("Post-op instruction sheets"), InstructionSheet,
                            ["name_ar", "name_en", "procedures", "body_ar", "body_en", "sort_order", "is_active"],
                            ["name_en", "procedures"], None, gettext_lazy("Prescriptions")),
+    "places": (gettext_lazy("Places (CIA, CIC...): name, phone and address"), Branch,
+               ["name_ar", "name_en", "phone", "address", "sort_order", "is_active"], ["name_ar", "name_en", "phone"],
+               None, gettext_lazy("Reception")),
     "rooms": (gettext_lazy("Rooms"), Room, ["name", "name_en", "branch", "sort_order", "is_active", "notes"],
               ["name", "name_en"], None, gettext_lazy("Reception")),
     "referral_sources": (gettext_lazy("How patients heard about us"), ReferralSource,
@@ -71,10 +74,13 @@ LISTS = {
     "medical_conditions": (gettext_lazy("Medical conditions"), MedicalCondition,
                            ["name_ar", "name_en", "is_alert", "sort_order", "is_active"], ["name_ar", "name_en"], None,
                            gettext_lazy("Reception")),
-    "services": (gettext_lazy("Paid services and prices"), Service, ["name_ar", "name_en", "price", "quick_button",
-                                                                   "sort_order", "is_active"],
-                 ["name_ar", "name_en", "price", "quick_button"], None,
+    "services": (gettext_lazy("Paid services and prices"), Service, ["name_ar", "name_en", "price", "branch",
+                                                                   "quick_button", "sort_order", "is_active"],
+                 ["name_ar", "name_en", "price", "branch", "quick_button"], None,
                  gettext_lazy("Reception")),
+    "fawry_machines": (gettext_lazy("Fawry machines"), FawryMachine, ["name", "terminal_id", "notes", "sort_order",
+                                                                      "is_active"], ["name", "terminal_id"], None,
+                       gettext_lazy("Reception")),
     "out_reasons": (gettext_lazy("Reasons for a patient being out"), OutReason, LOOKUP, ["name_ar", "name_en"], None,
                     gettext_lazy("Reception")),
     "labs": (gettext_lazy("Labs"), Lab, ["name", "name_en", "branch", "phone", "contact_person", "is_active"],
@@ -109,6 +115,10 @@ def _entry(key):
     return entry
 
 
+# Lists whose rows are fixed: they can be changed but not added from here (a new place needs its code).
+NO_ADD = {"places"}
+
+
 @role_required(OWNER, HEAD_CIA)
 def list_rows(request, key):
     title, model, _fields, columns, _inline, _group = _entry(key)
@@ -121,12 +131,15 @@ def list_rows(request, key):
             display = getattr(obj, f"get_{name}_display", None)
             values.append(display() if display else getattr(obj, name))
         cells.append((obj, values, getattr(obj, "is_active", True)))
-    return render(request, "settings/list.html", {"key": key, "title": title, "headers": headers, "rows": cells})
+    return render(request, "settings/list.html", {"key": key, "title": title, "headers": headers, "rows": cells,
+                                                  "can_add": key not in NO_ADD})
 
 
 @role_required(OWNER, HEAD_CIA)
 def list_edit(request, key, pk=None):
     title, model, fields, _columns, inline, _group = _entry(key)
+    if pk is None and key in NO_ADD:
+        raise Http404
     obj = get_object_or_404(model, pk=pk) if pk else None
     form_class = modelform_factory(model, form=StyledModelForm, fields=fields)
     form = form_class(request.POST or None, instance=obj)
@@ -191,6 +204,11 @@ class UserForm(StyledForm):
     is_active = forms.BooleanField(label=gettext_lazy("can log in"), required=False, initial=True)
     new_password = forms.CharField(label=gettext_lazy("new password"), required=False,
                                    help_text=gettext_lazy("Leave empty to keep the password (a new person gets one made up)."))
+    places = forms.ModelMultipleChoiceField(
+        label=gettext_lazy("works at"), required=False, widget=forms.CheckboxSelectMultiple,
+        queryset=Branch.objects.filter(is_active=True).exclude(kind=Branch.Kind.LAB).order_by("sort_order", "pk"),
+        help_text=gettext_lazy("E.g. the secretary at CIA and CIC. With more than one place, a switch in the top bar "
+                               "chooses where they work now. The owner works everywhere."))
     dentist = forms.ModelChoiceField(label=gettext_lazy("dentist record"), required=False,
                                      queryset=Dentist.objects.filter(kind__in=Dentist.LOGIN_KINDS),
                                      help_text=gettext_lazy("For CIA dentists: the dentist this login belongs to."))
@@ -206,7 +224,7 @@ class UserForm(StyledForm):
                                  widget=TimeSelect())
 
     fieldsets = [
-        (gettext_lazy("Person"), ["username", "first_name", "roles", "is_active", "new_password", "dentist"]),
+        (gettext_lazy("Person"), ["username", "first_name", "roles", "places", "is_active", "new_password", "dentist"]),
         (gettext_lazy("Access limits"), ["read_only", "access_from", "access_until", "access_days", "access_start",
                                          "access_end"]),
     ]
@@ -269,6 +287,7 @@ def user_edit(request, pk=None):
             "read_only": profile.read_only, "access_from": profile.access_from, "access_until": profile.access_until,
             "access_days": [d for d in profile.access_days.split(",") if d], "access_start": profile.access_start,
             "access_end": profile.access_end,
+            "places": list(profile.places.all()) or [p for p in [profile.branch or Branch.default()] if p],
             **{f"area__{rule.area}": rule.level for rule in PersonAreaAccess.objects.filter(user=target)},
         }
     form = UserForm(request.POST or None, user=target, initial=initial)
@@ -292,8 +311,12 @@ def user_edit(request, pk=None):
             profile.access_from, profile.access_until = data["access_from"], data["access_until"]
             profile.access_days = ",".join(data["access_days"])
             profile.access_start, profile.access_end = data["access_start"], data["access_end"]
+            places = list(data["places"])
+            if places and (profile.branch is None or profile.branch not in places):
+                profile.branch = places[0]  # their main place: the one they start in
             profile.branch = profile.branch or Branch.default()
             profile.save()
+            profile.places.set(places)
             for code, _label, _prefixes in AREAS:
                 level = data.get(f"area__{code}")
                 if level:

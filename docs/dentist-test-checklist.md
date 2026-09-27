@@ -189,3 +189,10 @@ A screenshot helps a lot.
 80. **Tooltips**: with a mouse, rest on an icon button (the bell, print, approvals): a short label says what it does. On touch screens they do not appear.
 81. **Links that open**: as **dentist1**, open one of your surgery charts: your name is a link to your file, the other operator's name is plain text (his file is closed to you). As **owner** both are links. As **secretary**, a dentist's file lists the cases with links to the patient file, not to the chart.
 82. **Log-in page**: the CIA panel beside the form, and the eye button to show the password.
+
+## O. New in this version (5): CIC, the Cairo Implant Center
+All the steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, sections C, D and F. In short:
+83. **Moderator** (`moderator`): *Clinics → Doctors' shares*, the statement of each doctor with the payments to him, *Doctors' fee rules* (a percentage, a fixed amount per service or tooth, or per visit), and the *Clinic report*.
+84. **CIC doctor** (`cicdoctor`): *Clinical → My shares* opens his own statement.
+85. **dentist2** works at CIA and CIC: the place button next to the logo, and his CIC share under *My shares*.
+86. **Owner**: *Settings → Places*, *Fawry machines*, the "only at" column of *Paid services*, "works at" of people and dentists; the balance sheet counts payments where they were paid and the payments to the doctors as a cost.

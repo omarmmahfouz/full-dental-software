@@ -8,6 +8,11 @@
   {% for field in filter_form %}<div class="col-6 col-md-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}
   <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
 </div></form>
+{% if use_by_place %}<div class="card mb-3"><div class="card-header"><i class="bi bi-geo-alt"></i> {% trans "Used by each place in this period" %}</div>
+  <div class="d-flex flex-wrap gap-2 p-3">{% for row in use_by_place %}
+    <div class="use-place place-{{ row.place.code|default:'none' }}"><span class="place-dot"></span> <b>{% if row.place %}{{ row.place.code }} — {{ row.place }}{% else %}{% trans "place not written" %}{% endif %}</b>
+      <span>{% blocktrans count n=row.moves %}{{ n }} item taken out{% plural %}{{ n }} items taken out{% endblocktrans %} · {% trans "value" %} <b>{{ row.value|floatformat:"0" }}</b></span></div>
+  {% endfor %}</div></div>{% endif %}
 <div class="card"><div class="table-responsive"><table class="table table-sm table-hover mb-0">
   <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Item" %}</th><th>{% trans "Movement" %}</th><th class="text-end">{% trans "Change" %}</th><th>{% trans "For / taken by" %}</th><th>{% trans "Notes" %}</th><th>{% trans "Recorded by" %}</th></tr></thead>
   <tbody>{% for m in page_obj %}<tr>
@@ -15,7 +20,7 @@
     <td><a href="{{ m.item.get_absolute_url }}">{{ m.item.name }}</a> <span class="small text-muted">{{ m.item.category }}</span></td>
     <td class="small">{{ m.get_kind_display }}</td>
     <td class="text-end fw-bold {% if m.change < 0 %}text-danger{% else %}text-success{% endif %}">{% if m.change > 0 %}+{% endif %}{{ m.change|floatformat:"-2" }} <span class="small fw-normal text-muted">{{ m.item.unit }}</span></td>
-    <td class="small">{{ m.destination }}</td><td class="small">{{ m.notes }}</td><td class="small text-muted">{{ m.created_by|default:"" }}</td>
+    <td class="small">{% if m.branch %}<span class="place-badge place-{{ m.branch.code }}">{{ m.branch.code }}</span> {% endif %}{{ m.destination }}</td><td class="small">{{ m.notes }}</td><td class="small text-muted">{{ m.created_by|default:"" }}</td>
   </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No movements in this period." %}</td></tr>{% endfor %}</tbody>
 </table></div></div>
 {% include "includes/pagination.html" %}
