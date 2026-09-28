@@ -16,7 +16,7 @@ from apps.clinical.models import TreatmentStepType
 from apps.core.forms import StyledForm
 from apps.core.roles import MANAGEMENT, TEAM_HEAD, has_role
 from apps.dentists.forms import DentistChoiceField
-from apps.patients.models import Gender
+from apps.patients.models import Gender, Patient
 from apps.scheduling.models import Appointment
 
 from .models import PlanItem, TreatmentPlan
@@ -62,7 +62,8 @@ def _years_ago(day, years):
 
 def find_plans(data):
     """Returns [(plan, matching planned items)]."""
-    plans = TreatmentPlan.objects.select_related("patient", "dentist", "approved_by").prefetch_related("items__step_type")
+    plans = TreatmentPlan.objects.filter(patient__in=Patient.objects.here()).select_related(  # this place's
+        "patient", "dentist", "approved_by").prefetch_related("items__step_type")
     plans = plans.filter(status__in=data.get("status") or OPEN)
     if data.get("difficulty"):
         plans = plans.filter(difficulty__in=data["difficulty"])

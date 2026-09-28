@@ -2,7 +2,13 @@
 {% load i18n clinic %}
 {% block title %}{% trans "Appointment" %}{% endblock %}
 {% block content %}
-{% if off_schedule %}<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2"><i class="bi bi-exclamation-triangle"></i> {% blocktrans with dentist=appointment.dentist %}{{ dentist }} is not on the room schedule at this time (not his day or hours). The supervisor was told.{% endblocktrans %}
+{% if appointment.status == "pending" %}<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2"><i class="bi bi-hourglass-split"></i> {% blocktrans with dentist=appointment.dentist %}Not {{ dentist }}'s day or hours: this booking waits for the approval of the dentist or the head. The patient is confirmed once it is approved.{% endblocktrans %}
+  {% if can_approve %}<form method="post" action="{% url 'scheduling:appointment_approve' appointment.pk %}" class="d-flex flex-wrap gap-2 ms-auto" data-no-leave-warning>{% csrf_token %}
+    <input class="form-control form-control-sm" style="max-width: 16rem" name="note" placeholder="{% trans 'note (optional)' %}">
+    <button class="btn btn-sm btn-success" name="action" value="approve"><i class="bi bi-check2"></i> {% trans "Approve" %}</button>
+    <button class="btn btn-sm btn-outline-danger" name="action" value="refuse" data-confirm="{% trans 'Refuse this booking? The reception will call the patient.' %}"><i class="bi bi-x"></i> {% trans "Refuse" %}</button></form>{% endif %}
+  {% if dentist_whatsapp %}<a class="btn btn-sm btn-success" href="{{ dentist_whatsapp }}" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> {% trans "Tell the dentist on WhatsApp" %}</a>{% endif %}</div>
+{% elif off_schedule %}<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2"><i class="bi bi-exclamation-triangle"></i> {% blocktrans with dentist=appointment.dentist %}{{ dentist }} is not on the room schedule at this time (not his day or hours). The supervisor was told.{% endblocktrans %}
   {% if dentist_whatsapp %}<a class="btn btn-sm btn-success ms-auto" href="{{ dentist_whatsapp }}" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> {% trans "Tell the dentist on WhatsApp" %}</a>{% endif %}</div>{% endif %}
 {% with a=appointment %}
 <div class="page-header">

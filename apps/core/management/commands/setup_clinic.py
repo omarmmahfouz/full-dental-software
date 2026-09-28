@@ -26,6 +26,7 @@ BRANCHES = [
 ]
 
 ROOM_COUNT = 5
+EXTRA_ROOM_COUNT = 4
 CIC_ROOM_COUNT = 3  # a start: the owner renames, adds or stops rooms in Settings → Rooms
 
 REFERRAL_SOURCES = [
@@ -61,6 +62,7 @@ SERVICES = [
 OUT_REASONS = [
     ("انقطع عن الحضور", "Stopped coming"),
     ("انتقل لعيادة أخرى", "Moved to another clinic"),
+    ("انتقل لمكان آخر من أماكننا (ملف جديد)", "Moved to another of our places (new file)"),
     ("رفض خطة العلاج أو التكلفة", "Refused the plan or the cost"),
     ("سبب طبي", "Medical reason"),
     ("عدم الالتزام بالمواعيد أو التعليمات", "Did not follow appointments or instructions"),
@@ -343,6 +345,14 @@ class Command(BaseCommand):
         if not Room.objects.filter(branch=cic).exists():
             for number in range(1, CIC_ROOM_COUNT + 1):
                 Room.objects.create(branch=cic, name=f"CIC غرفة {number}", name_en=f"CIC room {number}", sort_order=number)
+        # Up to four numbered extra rooms at each place: shown on the schedules only on a day an appointment or a
+        # shift is put in them.
+        for place, prefix_ar, prefix_en in ((academy, "", ""), (cic, "CIC ", "CIC ")):
+            for number in range(1, EXTRA_ROOM_COUNT + 1):
+                Room.objects.get_or_create(
+                    branch=place, name=f"{prefix_ar}غرفة إضافية {number}",
+                    defaults={"name_en": f"{prefix_en}Extra room {number}", "sort_order": 100 + number, "is_extra": True,
+                              "notes": "Opened on busy days"})
 
         counts = {
             "referral sources": _lookup(ReferralSource, REFERRAL_SOURCES, extra_fields=lambda r: {"asks_for_patient": r[2]}),

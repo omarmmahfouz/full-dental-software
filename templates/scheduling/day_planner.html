@@ -31,4 +31,15 @@
 </div>
 
 <div class="card"><div class="card-body p-2">{% include "scheduling/_day_grid.html" %}</div></div>
+{% if closed_extra_rooms and is_front_desk %}
+<div class="d-flex flex-wrap align-items-center gap-2 mt-2 small no-print extra-rooms-closed">
+  <span class="text-muted"><i class="bi bi-door-closed"></i> {% trans "Extra rooms (closed; they open when you book in one or add a shift):" %}</span>
+  {% for room in closed_extra_rooms %}
+  <span class="btn-group btn-group-sm">
+    <a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_create' %}?at={{ day|date:'Y-m-d' }}T09:00&amp;room={{ room.pk }}" data-tip="{% trans 'Book in this room' %}"><i class="bi bi-calendar-plus"></i> {{ room }}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'scheduling:shift_create' %}?room={{ room.pk }}&amp;date={{ day|date:'Y-m-d' }}" data-tip="{% trans 'Add a shift in this room' %}" aria-label="{% trans 'Add a shift in this room' %}"><i class="bi bi-clock"></i></a>
+  </span>
+  {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

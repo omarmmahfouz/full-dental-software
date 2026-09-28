@@ -70,7 +70,8 @@ def calllist_create(request):
 
 @role_required(*FRONT_DESK, TEAM_HEAD)
 def calllist_list(request):
-    lists = CallList.objects.select_related("created_by").prefetch_related("entries")
+    lists = CallList.objects.filter(branch=branch_for_user(request.user)).select_related(
+        "created_by").prefetch_related("entries")
     rows = [(c, *c.progress) for c in lists[:200]]
     return render(request, "patients/calllist_list.html", {
         "open_lists": [r for r in rows if r[1] < r[2]], "done_lists": [r for r in rows if r[1] >= r[2]][:30],

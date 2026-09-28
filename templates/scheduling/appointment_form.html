@@ -1,11 +1,20 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n clinic %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="page-header"><h1>{{ title }}</h1></div>
 <div class="card mb-3"><div class="card-body">
   <form method="post" novalidate id="appointment-form" data-free-url="{% url 'scheduling:free_times' %}" data-day-url="{% url 'scheduling:dentist_day' %}">
     {% csrf_token %}
+    {% if others %}
+    <div class="alert alert-warning others-check" role="alert">
+      <div class="fw-bold mb-1"><i class="bi bi-calendar2-week"></i> {% trans "This patient already has these appointments. Keep them?" %}</div>
+      <p class="small mb-2">{% trans "Tick the ones the new appointment replaces: they are cancelled. The others are kept. Then press Save again." %}</p>
+      <input type="hidden" name="others_checked" value="1">
+      {% for other in others %}<div class="form-check mb-1"><input class="form-check-input" type="checkbox" name="cancel_other" value="{{ other.pk }}" id="other-{{ other.pk }}">
+        <label class="form-check-label" for="other-{{ other.pk }}"><b>{{ other.scheduled_at|date:"l d/m/Y g:i A" }}</b> · {{ other.dentist|default:"" }}{% if other.room %} · {{ other.room }}{% endif %}{% if other.what %} · {{ other.what }}{% endif %} {% status_badge other %}</label></div>{% endfor %}
+    </div>
+    {% endif %}
     {% include "includes/form_fields.html" %}
     <div class="booking-helper mt-3 no-print">
       <div class="alert py-2 small mb-2" data-dentist-day hidden></div>

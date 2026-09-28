@@ -72,7 +72,7 @@ class StepListView(SearchMixin, ListView):
         if not has_role(self.request.user, *CLINICAL):
             raise PermissionDenied
         self.filter_form = StepFilterForm(self.request.GET or None)
-        qs = TreatmentStep.objects.select_related(
+        qs = TreatmentStep.objects.filter(patient__branch=branch_for_user(self.request.user)).select_related(
             "patient", "step_type", "operator", "assistant", "supervisor", "verified_by"
         )
         if is_only_dentist(self.request.user):
@@ -143,6 +143,9 @@ def step_create(request):
                                    branch=step.appointment.branch if step.appointment_id else branch_for_user(request.user))
         message = _("Treatment saved.")
         if bill is not None:
+            from apps.billing.views import send_bill_to_reception
+
+            send_bill_to_reception(bill, request.user)
             message += " " + _("Bill %(number)s sent to the reception to collect.") % {"number": bill.number}
         if changed:
             message += " " + _("Dental chart updated for %(n)s teeth.") % {"n": changed}
@@ -216,7 +219,8 @@ class LabListView(SearchMixin, ListView):
         if not has_role(user, *ANY_STAFF):
             raise PermissionDenied
         self.filter_form = LabFilterForm(self.request.GET or None)
-        qs = LabRequest.objects.select_related("patient", "work_type", "lab", "dentist")
+        qs = LabRequest.objects.filter(patient__branch=branch_for_user(user)).select_related(
+            "patient", "work_type", "lab", "dentist")
         me = Dentist.for_user(user)
         if is_only_dentist(user):
             qs = qs.filter(Q(dentist=me) | Q(patient__assigned_dentist=me)) if me else qs.none()

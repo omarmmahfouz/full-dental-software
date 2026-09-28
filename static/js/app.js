@@ -600,6 +600,85 @@
     input.focus();
   });
 
+  // Choice buttons (e.g. how the patient paid): the Fawry machine is asked only when Fawry is pressed.
+  function syncFawryMachine(group) {
+    var form = group.closest("form");
+    var machine = form && form.querySelector("select[name$='fawry_machine']");
+    if (!machine) return;
+    var picked = group.querySelector("input:checked");
+    var box = machine.closest("[class*='col-']") || machine.parentNode;
+    box.hidden = !(picked && picked.value === "fawry");
+  }
+  document.querySelectorAll("[data-choice-buttons]").forEach(function (group) {
+    syncFawryMachine(group);
+    group.addEventListener("change", function () { syncFawryMachine(group); });
+  });
+
+  // Save a printout as a picture or a PDF, or send it (receipts, prescriptions, bills):
+  //   <button data-save-as="jpeg|pdf|share" data-save-target="#receipt" data-save-name="PR-000012"
+  //           data-page="80mm|a5|a4" data-phone="2010..." data-text="...">
+  // The two libraries are on this server (static/vendor) and load the first time they are needed.
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
+      var script = document.createElement("script");
+      script.src = src; script.onload = resolve; script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  function snapshot(target) {
+    return loadScript(document.body.getAttribute("data-vendor-html2canvas")).then(function () {
+      document.body.classList.add("is-snapshot");
+      return window.html2canvas(target, { scale: 2, backgroundColor: "#ffffff", useCORS: true,
+                                          onclone: function (doc) { doc.body.classList.add("is-snapshot"); } })
+        .finally(function () { document.body.classList.remove("is-snapshot"); });
+    });
+  }
+  function download(blob, name) {
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob); link.download = name;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 4000);
+  }
+  var PAGES = { "80mm": [80, null], a5: [148, 210], a4: [210, 297] };
+  function toPdf(canvas, page) {
+    return loadScript(document.body.getAttribute("data-vendor-jspdf")).then(function () {
+      var size = PAGES[page] || PAGES.a4;
+      var width = size[0], margin = page === "80mm" ? 2 : 8;
+      var imageHeight = (width - 2 * margin) * canvas.height / canvas.width;
+      var height = size[1] || imageHeight + 2 * margin;
+      var pdf = new window.jspdf.jsPDF({ unit: "mm", format: [width, height], orientation: width > height ? "l" : "p" });
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, width - 2 * margin,
+                   Math.min(imageHeight, height - 2 * margin));
+      return pdf.output("blob");
+    });
+  }
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest && event.target.closest("[data-save-as]");
+    if (!button) return;
+    var target = document.querySelector(button.getAttribute("data-save-target"));
+    if (!target) return;
+    var kind = button.getAttribute("data-save-as"), name = button.getAttribute("data-save-name") || "document";
+    button.disabled = true;
+    snapshot(target).then(function (canvas) {
+      if (kind === "pdf") return toPdf(canvas, button.getAttribute("data-page")).then(function (blob) { download(blob, name + ".pdf"); });
+      return new Promise(function (resolve) { canvas.toBlob(resolve, "image/jpeg", 0.92); }).then(function (blob) {
+        if (kind !== "share") { download(blob, name + ".jpg"); return; }
+        var file = new File([blob], name + ".jpg", { type: "image/jpeg" });
+        var text = button.getAttribute("data-text") || "";
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          return navigator.share({ files: [file], text: text }).catch(function () {});
+        }
+        // No sharing in this browser (e.g. on the clinic's http network): save the picture, then open the chat.
+        download(blob, name + ".jpg");
+        var phone = button.getAttribute("data-phone");
+        if (phone) window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(text), "_blank", "noopener");
+        var note = button.getAttribute("data-saved-note");
+        if (note) window.alert(note);
+      });
+    }).catch(function () {}).finally(function () { button.disabled = false; });
+  });
+
   // data-copy="text": puts the text on the clipboard (e.g. the folder of a CBCT), and shows a tick for a moment.
   // navigator.clipboard needs https; on the clinic's http network the older way is used.
   document.addEventListener("click", function (event) {

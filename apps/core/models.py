@@ -156,6 +156,31 @@ def page_cache():
         _page_cache.reset(token)
 
 
+# The place the person making the page works in now (set by WorkingPlaceMiddleware). Patients belong to one
+# place: searches, lookups and lists use it, so a place never sees the names of another place's patients.
+_current_place = ContextVar("current_place", default=None)
+
+
+@contextmanager
+def working_at(place):
+    token = _current_place.set(place)
+    try:
+        yield
+    finally:
+        _current_place.reset(token)
+
+
+def current_place():
+    """The place worked in now, or None outside a page (commands, the nightly tasks)."""
+    return _current_place.get()
+
+
+def reception_default():
+    """What the reception sees in a patient's file until the owner changes it: the lab work to receive, the CBCT and
+    tests to send the patient for, and the instructions to print."""
+    return ["lab", "tests", "instructions"]
+
+
 class ClinicSettings(models.Model):
     """Options the owner changes from Settings, without touching the code. One row."""
 
@@ -180,6 +205,9 @@ class ClinicSettings(models.Model):
     fawry_fee_percent = models.DecimalField(
         _("Fawry percentage on card payments (%)"), max_digits=5, decimal_places=2, default=0,
         help_text=_("What Fawry keeps from each payment taken on its machine, e.g. 1.5. Each move can still be corrected."))
+    # The parts of a patient's file the reception sees (apps/patients/access.py FILE_PARTS); dentists see them all.
+    reception_sees = models.JSONField(_("the reception sees in a patient's file"), default=reception_default,
+                                      blank=True)
 
     class Meta:
         verbose_name = _("clinic options")
@@ -402,6 +430,20 @@ def branch_for_user(user):
     if profile is not None and profile.branch_id:
         return profile.branch
     return Branch.default()
+
+
+def staff_at(place, *roles):
+    """The active people with one of ``roles`` who work at ``place`` (their own place or one ticked)."""
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+
+    users = get_user_model().objects.filter(is_active=True, groups__name__in=roles)
+    if place is not None:
+        here = Q(profile__branch=place) | Q(profile__places=place)
+        if place == Branch.default():  # people without a place of their own work at the main place
+            here |= Q(profile__isnull=True) | Q(profile__branch__isnull=True)
+        users = users.filter(here)
+    return users.distinct()
 
 
 def working_places(user):

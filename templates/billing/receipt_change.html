@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Correct, cancel or refund" %} {{ payment.receipt_number }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-pencil-square"></i> {% trans "Correct, cancel or refund" %} <small class="text-muted fs-6">{{ payment.receipt_number }}</small></h1>
+  <a class="btn btn-outline-secondary" href="{{ payment.get_absolute_url }}"><i class="bi bi-receipt"></i> {% trans "The receipt" %}</a></div>
+<p class="text-muted">{{ payment.patient.full_name }} · {{ payment.paid_on|date:"d/m/Y" }} · <b>{{ payment.amount|money }}</b> {{ payment.get_method_display }}{% if payment.fawry_machine %} ({{ payment.fawry_machine }}){% endif %}</p>
+{% if payment.is_cancelled %}<div class="alert alert-danger">{% trans "This receipt is cancelled." %}</div>
+{% elif not can_change %}<div class="alert alert-warning">{% trans "Only the receipts of today can be changed at the reception. Ask the owner or the head of CIA for an earlier one." %}</div>{% endif %}
+<p class="small text-muted"><i class="bi bi-shield-check"></i> {% trans "Nothing is deleted: every change is written on the receipt with your name and the reason, and the owner is told of cancellations and refunds." %}</p>
+<div class="row g-3">
+  {% if can_change and not payment.is_cancelled and not payment.is_refund %}
+  <div class="col-lg-6"><form method="post" class="card h-100" novalidate>{% csrf_token %}<input type="hidden" name="action" value="correct">
+    <div class="card-header"><i class="bi bi-pencil"></i> {% trans "Correct it" %} <span class="small text-muted">— {% trans "e.g. the wrong payment method or amount" %}</span></div>
+    <div class="card-body">{% with form=correct_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-primary mt-2">{% trans "Save the correction" %}</button></div></form></div>
+  {% endif %}
+  {% if not payment.is_cancelled and not payment.is_refund %}
+  <div class="col-lg-6"><form method="post" class="card h-100 border-success" novalidate>{% csrf_token %}<input type="hidden" name="action" value="refund">
+    <div class="card-header"><i class="bi bi-arrow-return-left"></i> {% trans "Give money back" %} <span class="small text-muted">— {% blocktrans with amount=payment.refundable|money %}up to {{ amount }}{% endblocktrans %}</span></div>
+    <div class="card-body">{% with form=refund_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-success mt-2" data-confirm="{% trans 'Save the refund? A refund receipt is made.' %}">{% trans "Save the refund" %}</button></div></form></div>
+  {% endif %}
+  {% if can_change and not payment.is_cancelled %}
+  <div class="col-lg-6"><form method="post" class="card h-100 border-danger" novalidate>{% csrf_token %}<input type="hidden" name="action" value="cancel">
+    <div class="card-header text-danger"><i class="bi bi-x-octagon"></i> {% trans "Cancel it" %} <span class="small text-muted">— {% trans "written by mistake" %}</span></div>
+    <div class="card-body">{% with form=cancel_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-danger mt-2" data-confirm="{% trans 'Cancel this receipt? It stays in the list, crossed out, and counts nowhere.' %}">{% trans "Cancel the receipt" %}</button></div></form></div>
+  {% endif %}
+</div>
+{% endblock %}

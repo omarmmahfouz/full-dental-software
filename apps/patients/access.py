@@ -25,10 +25,13 @@ def dentist_patients_q(dentist):
 
 
 def visible_patients(user):
-    """The front desk, management and the CIA dentists see every patient: the dentists
-    record the work of the course candidates, who do not log in. Others see none."""
+    """The front desk, management and the dentists see the patients of the place they work in now (the
+    switch in the top bar); a place never sees another place's patients. The CIA dentists see every CIA
+    patient: they record the work of the course candidates, who do not log in. Others see none."""
     if has_role(user, *PATIENT_VIEWERS):
-        return Patient.objects.all()
+        from apps.core.models import branch_for_user
+
+        return Patient.objects.filter(branch=branch_for_user(user))
     return Patient.objects.none()
 
 
@@ -39,7 +42,7 @@ def my_patients(user):
     dentist = Dentist.for_user(user)
     if dentist is None:
         return Patient.objects.none()
-    return Patient.objects.filter(pk__in=Patient.objects.filter(dentist_patients_q(dentist)).values("pk"))
+    return visible_patients(user).filter(pk__in=Patient.objects.filter(dentist_patients_q(dentist)).values("pk"))
 
 
 def get_visible_patient_or_403(user, pk):

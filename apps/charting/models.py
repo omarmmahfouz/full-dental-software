@@ -37,6 +37,10 @@ class Examination(TimeStampedModel):
     history_only = models.BooleanField(
         _("history taken by the reception"), default=False,
         help_text=_("Only the medical and dental history, asked at the reception; the dentist completes it."))
+    # Which parts of the file this record filled (the file is filled in order: medical history, dental history,
+    # examination, treatment plan, surgery chart; see apps/patients/sequence.py).
+    medical_taken = models.BooleanField(_("medical history taken"), default=True)
+    dental_taken = models.BooleanField(_("dental history taken"), default=True)
 
     # Tooth findings at examination (also written onto the dental chart).
     teeth_carious = models.CharField(_("carious"), max_length=120, blank=True)

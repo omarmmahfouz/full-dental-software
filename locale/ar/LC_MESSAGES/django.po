@@ -8657,7 +8657,7 @@ msgstr "إلغاء"
 
 #: templates/academy/receipt.html:9 templates/billing/receipt.html:8
 msgid "Payment receipt"
-msgstr "إيصال استلام نقدية"
+msgstr "إيصال دفع"
 
 #: templates/academy/receipt.html:12 templates/billing/receipt.html:11
 msgid "Receipt number"

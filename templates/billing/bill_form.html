@@ -28,8 +28,10 @@
       <p class="small text-muted mt-2 mb-0">{% trans "Leave the price empty to use the price of the list (Settings → Paid services)." %}</p>
     </div>
   </div>
-  <div class="card mb-3"><div class="card-header"><i class="bi bi-cash"></i> {% trans "Payment now (optional)" %}</div><div class="card-body">{% with form=pay %}{% include "includes/form_fields.html" %}{% endwith %}</div></div>
+  {% if pay %}<div class="card mb-3"><div class="card-header"><i class="bi bi-cash"></i> {% trans "Payment now (optional)" %}</div><div class="card-body">{% with form=pay %}{% include "includes/form_fields.html" %}{% endwith %}</div></div>
   <button class="btn btn-primary btn-lg px-5"><i class="bi bi-printer"></i> {% trans "Save and print the bill" %}</button>
+  {% else %}<div class="alert alert-info"><i class="bi bi-info-circle"></i> {% trans "The reception records what the patient pays and how. Your bill is sent to them when you save." %}</div>
+  <button class="btn btn-primary btn-lg px-5"><i class="bi bi-send"></i> {% trans "Send the bill to the reception" %}</button>{% endif %}
 </form>
 {% endblock %}
 {% block extra_js %}

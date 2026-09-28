@@ -106,8 +106,12 @@ class Appointment(TimeStampedModel):
         NO_SHOW = "no_show", _("Did not come")
         CANCELLED = "cancelled", _("Cancelled")
         LATE_NOT_SEEN = "late_not_seen", _("Came late — not seen")
+        PENDING = "pending", _("Waiting for approval (not the dentist's day)")
 
     WAITING_STATUSES = (Status.SCHEDULED, Status.CONFIRMED)
+    # Booked on a day or at an hour the dentist does not work: it holds the place until the dentist (or the head)
+    # approves it; no reminder goes to the patient before that.
+    BOOKED_STATUSES = (Status.SCHEDULED, Status.CONFIRMED, Status.PENDING)
     CLOSED_STATUSES = (Status.COMPLETED, Status.NO_SHOW, Status.CANCELLED, Status.LATE_NOT_SEEN)
 
     branch = models.ForeignKey(Branch, verbose_name=_("branch"), on_delete=models.PROTECT, related_name="appointments")
@@ -265,7 +269,7 @@ class Appointment(TimeStampedModel):
 
     def other_upcoming(self):
         """The patient's other booked appointments from now on."""
-        return (Appointment.objects.filter(patient_id=self.patient_id, status__in=self.WAITING_STATUSES,
+        return (Appointment.objects.filter(patient_id=self.patient_id, status__in=self.BOOKED_STATUSES,
                                            scheduled_at__gte=timezone.now() - timedelta(hours=2))
                 .exclude(pk=self.pk).select_related("dentist", "room").order_by("scheduled_at"))
 
@@ -402,6 +406,13 @@ class PatientRequest(TimeStampedModel):
         return self.approved_minutes or self.minutes
 
 
+class CallResult(models.TextChoices):
+    """What a patient on the waiting list said when a place was offered."""
+    NO_ANSWER = "no_answer", _("No answer")
+    NOT_THAT_DAY = "not_that_day", _("Cannot come that day")
+    NOT_INTERESTED = "not_interested", _("Does not want it any more")
+
+
 class WaitingEntry(TimeStampedModel):
     """A patient waiting for a place on busy days. When an appointment is cancelled or moved,
     the reception is told that a place is free and who is waiting for it."""
@@ -427,6 +438,9 @@ class WaitingEntry(TimeStampedModel):
                               db_index=True)
     appointment = models.ForeignKey(Appointment, verbose_name=_("appointment"), null=True, blank=True,
                                     on_delete=models.SET_NULL, related_name="waiting_entries")
+    last_call = models.CharField(_("last call"), max_length=15, choices=CallResult.choices, blank=True)
+    last_call_at = models.DateTimeField(_("called at"), null=True, blank=True)
+    calls = models.PositiveSmallIntegerField(_("calls"), default=0)
 
     class Meta:
         ordering = ["created_at"]

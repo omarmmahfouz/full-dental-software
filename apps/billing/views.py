@@ -1,39 +1,49 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from apps.academy.models import PaymentMethod
 from apps.core.mixins import role_required
-from apps.core.models import ClinicSettings, branch_for_user, working_places
-from apps.core.roles import CLINICAL, FRONT_DESK, HEAD_CIA, OWNER, has_role
+from apps.core.models import ClinicSettings, Notification, branch_for_user, staff_at, working_places
+from apps.core.notify import notify_users
+from apps.core.roles import CLINICAL, FRONT_DESK, HEAD_CIA, OWNER, SECRETARY, has_role
 from apps.dentists.models import Dentist
 from apps.patients.models import Patient
 from apps.scheduling.models import Appointment
 
-from . import fawry
+from . import fawry, receipts
 from .forms import (
     BillFilterForm,
     BillForm,
     BillLineFormSet,
     ChargeForm,
+    DayCloseForm,
+    DayPickForm,
+    DayReviewForm,
     FawryFilterForm,
     FawryMoveForm,
     PatientPaymentForm,
     PaymentFilterForm,
     PayNowForm,
+    ReceiptCancelForm,
+    ReceiptCorrectForm,
+    RefundForm,
     chosen_places,
 )
-from .models import Bill, FawryMachine, FawryMove, PatientPayment, Service, account, bill_totals, create_bill
+from .models import (
+    Bill, DayClosing, FawryMachine, FawryMove, PatientPayment, Service, account, bill_totals, create_bill,
+)
 
 
 PER_PAGE = 200  # rows on one page of a long list; the totals are for the whole period
@@ -72,9 +82,119 @@ def patient_account(request, pk):
 
 @role_required(*FRONT_DESK)
 def receipt(request, pk):
-    payment = get_object_or_404(PatientPayment.objects.select_related("patient", "charge__service", "created_by"),
-                                pk=pk)
-    return render(request, "billing/receipt.html", {"payment": payment, "account": account(payment.patient)})
+    """The receipt (80 mm, for the receipt printer), with its changes and what can be done with it."""
+    payment = get_object_or_404(PatientPayment.every.select_related(
+        "patient", "charge__service", "created_by", "branch", "fawry_machine", "refund_of", "cancelled_by"), pk=pk)
+    return render(request, "billing/receipt.html", {
+        "payment": payment, "account": account(payment.patient), "can_change": receipts.can_change(request.user, payment),
+        "log": payment.log.select_related("done_by"), "refunds": PatientPayment.every.filter(refund_of=payment),
+    })
+
+
+@role_required(*FRONT_DESK)
+def receipt_change(request, pk):
+    """Correct, cancel or refund a receipt, with the reason (see receipts.py)."""
+    payment = get_object_or_404(PatientPayment.every.select_related("patient"), pk=pk)
+    action = request.POST.get("action")
+    initial = {"amount": payment.amount, "method": payment.method, "fawry_machine": payment.fawry_machine,
+               "reference": payment.reference}
+    correct_form = ReceiptCorrectForm(request.POST if action == "correct" else None, initial=initial, prefix="c")
+    cancel_form = ReceiptCancelForm(request.POST if action == "cancel" else None, prefix="x")
+    refund_form = RefundForm(request.POST if action == "refund" else None, prefix="r",
+                             initial={"amount": max(payment.refundable(), Decimal("0"))})
+    if request.method == "POST":
+        try:
+            if action == "correct" and correct_form.is_valid():
+                data = correct_form.cleaned_data
+                receipts.correct(payment, request.user, data["reason"], amount=data["amount"], method=data["method"],
+                                 fawry_machine=data.get("fawry_machine"), reference=data.get("reference", ""))
+                messages.success(request, _("Receipt %(number)s corrected.") % {"number": payment.receipt_number})
+                return redirect(payment)
+            if action == "cancel" and cancel_form.is_valid():
+                receipts.cancel(payment, request.user, cancel_form.cleaned_data["reason"])
+                messages.success(request, _("Receipt %(number)s cancelled. It stays in the day's list, crossed out.")
+                                 % {"number": payment.receipt_number})
+                return redirect(payment)
+            if action == "refund" and refund_form.is_valid():
+                data = refund_form.cleaned_data
+                back = receipts.refund(payment, request.user, data["amount"], data["method"], data["reason"],
+                                       data.get("fawry_machine"))
+                messages.success(request, _("Refund saved: receipt %(number)s.") % {"number": back.receipt_number})
+                return redirect(back)
+        except ValidationError as error:
+            messages.error(request, error.messages[0])
+    return render(request, "billing/receipt_change.html", {
+        "payment": payment, "can_change": receipts.can_change(request.user, payment),
+        "correct_form": correct_form, "cancel_form": cancel_form, "refund_form": refund_form,
+    })
+
+
+@role_required(*FRONT_DESK)
+def day_review(request):
+    """The end of the day at a place: every receipt (cancelled ones crossed out), the totals by payment method,
+    the bills, the changes; the reception closes the day with the cash counted, the owner marks it reviewed."""
+    today = timezone.localdate()
+    here, places = branch_for_user(request.user), list(working_places(request.user))
+    form = DayPickForm(request.GET or None, places=places, current=here, initial={"day": today})
+    data = form.cleaned_data if form.is_valid() else {}
+    day = data.get("day") or today
+    shown = chosen_places(form, places, here)
+    place = shown[0] if len(shown) == 1 else None
+    summary = receipts.day_summary(place, day) if place is not None else None
+    closing = DayClosing.objects.filter(branch=place, day=day).select_related("closed_by", "reviewed_by").first() \
+        if place is not None else None
+    reviewer = has_role(request.user, OWNER, HEAD_CIA)
+    close_form = DayCloseForm(request.POST if request.POST.get("action") == "close" else None)
+    review_form = DayReviewForm(request.POST if request.POST.get("action") == "review" else None)
+    if request.method == "POST" and place is not None:
+        action = request.POST.get("action")
+        if action == "close" and closing is None and close_form.is_valid():
+            DayClosing.objects.create(
+                branch=place, day=day, totals={row[2]: str(row[1]) for row in summary["by_method"]},
+                total=summary["total"], receipts=summary["count"], cash_expected=summary["cash"],
+                cash_counted=close_form.cleaned_data["cash_counted"], notes=close_form.cleaned_data.get("notes", ""),
+                closed_by=request.user)
+            messages.success(request, _("The day is closed. The owner can now review it."))
+            return redirect(request.get_full_path())
+        if action == "review" and closing is not None and reviewer and review_form.is_valid():
+            closing.reviewed_by, closing.reviewed_at = request.user, timezone.now()
+            closing.review_notes = review_form.cleaned_data.get("review_notes", "")
+            closing.save()
+            messages.success(request, _("Marked as reviewed."))
+            return redirect(request.get_full_path())
+    return render(request, "billing/day_review.html", {
+        "form": form, "day": day, "place": place, "summary": summary, "closing": closing, "reviewer": reviewer,
+        "close_form": close_form, "review_form": review_form, "is_today": day == today,
+    })
+
+
+@role_required(*FRONT_DESK)
+def month_review(request):
+    """Each day of a month at a place: what was received, whether the day was closed and reviewed."""
+    today = timezone.localdate()
+    here, places = branch_for_user(request.user), list(working_places(request.user))
+    try:
+        first = datetime.strptime(request.GET.get("month", ""), "%Y-%m").date()
+    except ValueError:
+        first = today.replace(day=1)
+    last = (first.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+    code = request.GET.get("place")
+    place = next((p for p in places if p.code == code), here)
+    rows = []
+    totals = {row["paid_on"]: row for row in PatientPayment.objects.filter(
+        branch=place, paid_on__range=(first, last)).values("paid_on").annotate(total=Sum("amount"), n=Count("id"))}
+    closings = {c.day: c for c in DayClosing.objects.filter(branch=place, day__range=(first, last))}
+    day = first
+    while day <= min(last, today):
+        if day in totals or day in closings:
+            rows.append({"day": day, "total": totals.get(day, {}).get("total") or Decimal("0"),
+                         "count": totals.get(day, {}).get("n") or 0, "closing": closings.get(day)})
+        day += timedelta(days=1)
+    return render(request, "billing/month_review.html", {
+        "rows": rows, "first": first, "place": place, "places": places,
+        "total": sum((r["total"] for r in rows), Decimal("0")),
+        "prev_month": (first - timedelta(days=1)).replace(day=1), "next_month": last + timedelta(days=1),
+    })
 
 
 @role_required(*FRONT_DESK)
@@ -101,56 +221,80 @@ def payment_list(request):
 
 
 # ------------------------------------------------------------ bills
-@role_required(*FRONT_DESK)
+@role_required(*FRONT_DESK, *CLINICAL)
 def bill_create(request):
-    """A new bill: the patient, the services (several at once, with teeth and discounts) and,
-    if the patient pays now, the payment. Then the bill prints."""
+    """A new bill: the patient, the services (several at once, with teeth and discounts) and, at the reception,
+    the payment if the patient pays now. Then the bill prints.
+
+    A dentist writes the bill of their work but never the payment: the bill goes to the reception of the place,
+    who records what the patient paid and how."""
+    at_desk = has_role(request.user, *FRONT_DESK)
+    me = None if at_desk else Dentist.for_user(request.user)
     patient = appointment = None
     if request.GET.get("appointment", "").isdigit():
-        appointment = Appointment.objects.filter(pk=request.GET["appointment"]).select_related("patient", "dentist").first()
+        appointment = Appointment.objects.filter(pk=request.GET["appointment"], patient__in=Patient.objects.here()
+                                                 ).select_related("patient", "dentist").first()
         patient = appointment.patient if appointment else None
     if patient is None and request.GET.get("patient", "").isdigit():
-        patient = Patient.objects.filter(pk=request.GET["patient"]).first()
+        patient = Patient.objects.here().filter(pk=request.GET["patient"]).first()
     here = appointment.branch if appointment is not None else branch_for_user(request.user)
-    initial = {"billed_on": timezone.localdate(), "dentist": appointment.dentist if appointment else None}
+    initial = {"billed_on": timezone.localdate(), "dentist": appointment.dentist if appointment else me}
     form = BillForm(request.POST or None, patient=patient, initial=initial, branch=here)
     quick = request.GET.get("service", "")
     lines = BillLineFormSet(request.POST or None, prefix="lines", form_kwargs={"branch": here},
                             initial=[{"service": int(quick)}] if quick.isdigit() else None)
-    pay = PayNowForm(request.POST or None, prefix="pay")
-    if request.method == "POST" and form.is_valid() and lines.is_valid() and pay.is_valid():
+    pay = PayNowForm(request.POST or None, prefix="pay") if at_desk else None
+    if request.method == "POST" and form.is_valid() and lines.is_valid() and (pay is None or pay.is_valid()):
         chosen = [line.cleaned_data for line in lines if line.cleaned_data.get("service")]
         bill = create_bill(form.cleaned_data["patient_lookup"], chosen, request.user,
                            billed_on=form.cleaned_data["billed_on"], appointment=appointment,
-                           dentist=form.cleaned_data.get("dentist"), notes=form.cleaned_data.get("notes", ""),
-                           branch=here)
-        amount = pay.cleaned_data.get("amount")
+                           dentist=form.cleaned_data.get("dentist") or me, notes=form.cleaned_data.get("notes", ""),
+                           branch=here, source=Bill.Source.RECEPTION if at_desk else Bill.Source.DENTIST)
+        amount = pay.cleaned_data.get("amount") if pay is not None else None
         if amount:
-            PatientPayment.objects.create(
+            payment = PatientPayment.objects.create(
                 patient=bill.patient, bill=bill, amount=amount, branch=bill.branch,
                 paid_on=bill.billed_on, method=pay.cleaned_data["method"], reference=pay.cleaned_data.get("reference", ""),
                 fawry_machine=pay.cleaned_data.get("fawry_machine"), created_by=request.user,
             )
-        messages.success(request, _("Bill %(number)s saved.") % {"number": bill.number})
+            messages.success(request, _("Bill %(number)s saved, and the payment of %(amount)s (%(method)s): receipt "
+                                        "%(receipt)s.") % {"number": bill.number, "amount": f"{payment.amount:,.2f}",
+                                                           "method": payment.get_method_display(),
+                                                           "receipt": payment.receipt_number})
+        elif not at_desk:
+            send_bill_to_reception(bill, request.user)
+            messages.success(request, _("Bill %(number)s sent to the reception to collect.") % {"number": bill.number})
+        else:
+            messages.success(request, _("Bill %(number)s saved.") % {"number": bill.number})
         return redirect(bill)
     return render(request, "billing/bill_form.html", {
         "form": form, "lines": lines, "pay": pay, "patient": patient, "appointment": appointment, "place": here,
-        "quick_services": Service.for_place(here).filter(quick_button=True),
+        "quick_services": Service.for_place(here).filter(quick_button=True), "at_desk": at_desk,
     })
 
 
-def bill_detail(request, pk):
+def send_bill_to_reception(bill, user):
+    """Tell the reception of the bill's place that a dentist's bill waits to be collected."""
+    notify_users(staff_at(bill.branch, SECRETARY), gettext_lazy("A bill to collect: %(patient)s"),
+                 gettext_lazy("%(number)s from %(dentist)s: %(total)s"), bill.get_absolute_url(),
+                 Notification.Level.WARNING, exclude=user,
+                 params={"patient": bill.patient.full_name, "number": bill.number, "dentist": str(bill.dentist or user),
+                         "total": f"{bill.totals()['net']:,.2f}"})
+
+
+def bill_detail(request, pk, pay_form=None):
     """The printed bill (the reception, and the dentists for the bills of their work)."""
     bill = get_object_or_404(Bill.objects.select_related("patient", "dentist", "created_by"), pk=pk)
     if not has_role(request.user, *FRONT_DESK):
         me = Dentist.for_user(request.user)
-        if not has_role(request.user, *CLINICAL) or me is None or bill.dentist_id != me.pk:
+        mine = bill.created_by_id == request.user.pk or (me is not None and bill.dentist_id == me.pk)
+        if not has_role(request.user, *CLINICAL) or not mine:
             raise PermissionDenied
     current = account(bill.patient)
     return render(request, "billing/bill.html", {
         "bill": bill, "totals": bill.totals(current), "account": current,
         "payments": bill.payments.order_by("paid_on", "pk"),
-        "pay_form": PayNowForm(prefix="pay") if has_role(request.user, *FRONT_DESK) else None,
+        "pay_form": pay_form or (PayNowForm(prefix="pay") if has_role(request.user, *FRONT_DESK) else None),
     })
 
 
@@ -163,11 +307,15 @@ def bill_pay(request, pk):
             patient=bill.patient, bill=bill, amount=pay.cleaned_data["amount"], method=pay.cleaned_data["method"],
             reference=pay.cleaned_data.get("reference", ""), created_by=request.user, branch=bill.branch,
             fawry_machine=pay.cleaned_data.get("fawry_machine"))
-        messages.success(request, _("Payment saved. Receipt %(number)s.") % {"number": payment.receipt_number})
-    else:
-        for errors in pay.errors.values():
-            for error in errors:
-                messages.error(request, error)
+        messages.success(request, _("Payment saved: %(amount)s (%(method)s). Receipt %(number)s.") % {
+            "amount": f"{payment.amount:,.2f}", "method": payment.get_method_display(), "number": payment.receipt_number})
+        return redirect(payment)
+    if request.method == "POST":
+        # Show the form again as it was filled, with the problem next to the box (the chosen method is kept).
+        if pay.is_valid():
+            pay.add_error("amount", _("Write the amount paid."))
+        messages.error(request, _("The payment was not saved: see the red note in the form."))
+        return bill_detail(request, pk, pay_form=pay)
     return redirect(bill)
 
 

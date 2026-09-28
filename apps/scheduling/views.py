@@ -21,9 +21,8 @@ from apps.clinical.models import LabRequest
 from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import SearchMixin, role_required
 from apps.core.notify import notify_users
-from apps.core.models import ChangeRequest, ClinicSettings, Notification, branch_for_user
+from apps.core.models import ChangeRequest, ClinicSettings, Notification, branch_for_user, staff_at
 from apps.core.access import area_levels
-from apps.core.notify import notify_roles
 from apps.core.roles import (
     FRONT_DESK,
     HEAD_CIA,
@@ -91,23 +90,73 @@ def tell_arrival(appointment, request):
 
 def off_schedule(appointment):
     """A booked dentist with no room shift at that time (not his day or not his hours)."""
-    return bool(appointment.dentist_id) and appointment.status in Appointment.WAITING_STATUSES and \
+    return bool(appointment.dentist_id) and appointment.status in Appointment.BOOKED_STATUSES and \
         appointment.find_shift() is None
 
 
+def _approver_roles(appointment):
+    academy = appointment.branch is None or appointment.branch.kind == appointment.branch.Kind.ACADEMY
+    return (HEAD_CIA, TEAM_HEAD, SUPERVISOR) if academy else (MODERATOR,)
+
+
+def can_approve(user, appointment):
+    """Who approves a booking outside the dentist's days: the dentist, the heads of the place, the owner."""
+    me = Dentist.for_user(user)
+    return (has_role(user, OWNER) or (me is not None and me.pk == appointment.dentist_id)
+            or has_role(user, *_approver_roles(appointment)))
+
+
 def check_schedule(appointment, request):
-    """Booking a dentist outside his shifts is allowed, but the supervisors are told."""
+    """A booking outside the dentist's days or hours waits for approval: it holds the place, but the patient is
+    confirmed (and reminded) only once the dentist or the head of the place approves it."""
     if not off_schedule(appointment):
         return
+    if appointment.status != Appointment.Status.PENDING:
+        appointment.status = Appointment.Status.PENDING
+        appointment.save(update_fields=["status", "updated_at"])
     when = timezone.localtime(appointment.scheduled_at).strftime("%d/%m/%Y %I:%M %p")
-    academy = appointment.branch is None or appointment.branch.kind == appointment.branch.Kind.ACADEMY
-    notify_roles((HEAD_CIA, TEAM_HEAD, SUPERVISOR) if academy else (MODERATOR,),
-                 gettext_lazy("Booked outside the dentist's schedule: %(dentist)s"),
-                 gettext_lazy("%(patient)s — %(when)s"), appointment.get_absolute_url(), exclude=request.user,
+    users = list(staff_at(appointment.branch, *_approver_roles(appointment)))
+    if appointment.dentist.user_id and appointment.dentist.user.is_active:
+        users.append(appointment.dentist.user)
+    notify_users(users, gettext_lazy("Booking to approve (not the dentist's day): %(dentist)s"),
+                 gettext_lazy("%(patient)s — %(when)s"), appointment.get_absolute_url(), Notification.Level.WARNING,
+                 exclude=request.user,
                  params={"dentist": appointment.dentist, "patient": appointment.patient.full_name, "when": when})
-    messages.warning(request, _("%(dentist)s is not on the room schedule at this time. The supervisor was told; "
-                                "send the dentist a WhatsApp message from the appointment page.")
-                     % {"dentist": appointment.dentist})
+    messages.warning(request, _("%(dentist)s is not on the room schedule at this time: the booking waits for "
+                                "approval. Tell the patient it will be confirmed.") % {"dentist": appointment.dentist})
+
+
+@require_POST
+def appointment_approve(request, pk):
+    """Approve or refuse a booking outside the dentist's days (from the notification or the appointment page)."""
+    appointment = get_object_or_404(Appointment.objects.select_related("patient", "dentist", "branch"), pk=pk,
+                                    status=Appointment.Status.PENDING)
+    if not can_approve(request.user, appointment):
+        raise PermissionDenied
+    note = request.POST.get("note", "").strip()[:200]
+    approved = request.POST.get("action") == "approve"
+    if approved:
+        appointment.status = Appointment.Status.SCHEDULED
+    else:
+        appointment.status = Appointment.Status.CANCELLED
+        appointment.cancel_reason = _("Not approved by %(who)s") % {"who": request.user.get_full_name() or request.user}
+        if note:
+            appointment.cancel_reason += f": {note}"
+    appointment.save()
+    when = timezone.localtime(appointment.scheduled_at).strftime("%d/%m/%Y %I:%M %p")
+    notify_users(staff_at(appointment.branch, SECRETARY),
+                 gettext_lazy("Booking approved: %(patient)s") if approved
+                 else gettext_lazy("Booking not approved: %(patient)s"),
+                 gettext_lazy("%(when)s with %(dentist)s. Send the confirmation on WhatsApp.") if approved
+                 else gettext_lazy("%(when)s with %(dentist)s. Call the patient to book another time."),
+                 appointment.get_absolute_url(), Notification.Level.SUCCESS if approved else Notification.Level.WARNING,
+                 exclude=request.user,
+                 params={"patient": appointment.patient.full_name, "when": when, "dentist": appointment.dentist})
+    if not approved:
+        place_freed(appointment, request)
+    messages.success(request, _("Approved: the reception will confirm the patient.") if approved
+                     else _("Not approved: the reception will call the patient."))
+    return redirect(appointment)
 
 
 def dentist_whatsapp(appointment):
@@ -400,20 +449,40 @@ def appointment_create(request):
     if request.GET.get("procedure", "").isdigit():
         initial["procedure"] = int(request.GET["procedure"])
     form = AppointmentForm(request.POST or None, branch=branch, patient=patient, initial=initial)
+    others = []
     if request.method == "POST" and form.is_valid():
-        appointment = form.save(commit=False)
-        appointment.branch = branch
-        appointment.created_by = request.user
-        appointment.save()
-        link_booking(request, appointment)
-        link_waiting(request, appointment)
-        tell_dentists(appointment, gettext_lazy("New appointment with you"), request)
-        check_schedule(appointment, request)
-        messages.success(request, _("Appointment booked. Send the confirmation on WhatsApp."))
-        return redirect(appointment)
+        # The patient's other coming appointments: ask whether to keep them before booking another one.
+        others = list(Appointment.objects.filter(
+            patient=form.cleaned_data["patient_lookup"], status__in=Appointment.BOOKED_STATUSES,
+            scheduled_at__gte=timezone.now() - timedelta(hours=2)).select_related("dentist", "room", "branch")
+            .order_by("scheduled_at"))
+        if not others or request.POST.get("others_checked"):
+            appointment = form.save(commit=False)
+            appointment.branch = branch
+            appointment.created_by = request.user
+            appointment.save()
+            cancel = [a for a in others if str(a.pk) in request.POST.getlist("cancel_other")]
+            for old in cancel:
+                old.status = Appointment.Status.CANCELLED
+                old.cancel_reason = _("Replaced by the appointment of %(when)s") % {
+                    "when": timezone.localtime(appointment.scheduled_at).strftime("%d/%m/%Y %I:%M %p")}
+                old.save()
+                tell_dentists(old, gettext_lazy("Appointment cancelled"), request)
+                place_freed(old, request)
+            link_booking(request, appointment)
+            link_waiting(request, appointment)
+            tell_dentists(appointment, gettext_lazy("New appointment with you"), request)
+            check_schedule(appointment, request)
+            message = _("Appointment booked. Send the confirmation on WhatsApp.")
+            if cancel:
+                message += " " + _("%(n)s other appointments cancelled.") % {"n": len(cancel)}
+            if appointment.status != Appointment.Status.PENDING:
+                messages.success(request, message)
+            return redirect(appointment)
     return render(
         request, "scheduling/appointment_form.html",
-        {"form": form, "title": _("Book appointment"), "cancel_url": reverse("scheduling:day_planner")},
+        {"form": form, "title": _("Book appointment"), "cancel_url": reverse("scheduling:day_planner"),
+         "others": others},
     )
 
 
@@ -451,6 +520,7 @@ def appointment_detail(request, pk):
             "rooms": Room.objects.filter(branch=appointment.branch, is_active=True),
             "sent_messages": appointment.messages.select_related("sent_by"),
             "off_schedule": off_schedule(appointment),
+            "can_approve": appointment.status == Appointment.Status.PENDING and can_approve(request.user, appointment),
             "dentist_whatsapp": dentist_whatsapp(appointment) if has_role(request.user, *FRONT_DESK) else "",
         },
     )
@@ -516,6 +586,8 @@ def day_planner(request):
     context = day_grid(branch, day)
     if request.GET.get("fragment"):
         return render(request, "scheduling/_day_grid.html", {**context, "in_form": True})
+    shown = {column["room"].pk for column in context["columns"] if column.get("room") is not None}
+    context["closed_extra_rooms"] = Room.objects.filter(branch=branch, is_active=True, is_extra=True).exclude(pk__in=shown)
     start = week_start(day)
     context.update({
         "prev_day": day - timedelta(days=1), "next_day": day + timedelta(days=1),

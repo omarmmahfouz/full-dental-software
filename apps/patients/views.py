@@ -25,7 +25,7 @@ from apps.core import previews
 from apps.core.forms import clean_digits_value
 from apps.core.approvals import needs_approval, pending_for, request_change
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_required
-from apps.core.models import ChangeRequest, branch_for_user
+from apps.core.models import Branch, ChangeRequest, branch_for_user, working_places
 from apps.core.roles import CLINICAL, FRONT_DESK, PATIENT_VIEWERS, has_role
 from apps.core.utils import name_patterns, normalize_phone, validate_phone
 
@@ -95,7 +95,8 @@ class LeadListView(RoleRequiredMixin, SearchMixin, ListView):
     template_name = "patients/lead_list.html"
 
     def get_queryset(self):
-        qs = Lead.objects.select_related("referral_source", "converted_patient")
+        qs = Lead.objects.filter(branch=branch_for_user(self.request.user)).select_related(
+            "referral_source", "converted_patient")
         status = self.request.GET.get("status", "open")
         if status == "open":
             qs = qs.filter(status__in=Lead.OPEN_STATUSES)
@@ -325,6 +326,13 @@ class PatientUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
 
 
 def patient_detail(request, pk):
+    elsewhere = Patient.objects.filter(pk=pk).exclude(branch=branch_for_user(request.user)).values_list(
+        "branch", flat=True).first()
+    if elsewhere and has_role(request.user, *PATIENT_VIEWERS) and working_places(request.user).filter(
+            pk=elsewhere).exists():
+        # A file of another place this person works at (e.g. opened from a notification): switch place first.
+        return render(request, "patients/other_place.html", {"place": Branch.objects.get(pk=elsewhere),
+                                                               "next": request.get_full_path()})
     patient = get_visible_patient_or_403(request.user, pk)
     context = {
         "patient": patient,
@@ -351,7 +359,37 @@ def patient_detail(request, pk):
     if context["can_edit"]:
         context["document_form"] = PatientDocumentForm()
         context["relation_form"] = PatientRelationForm(patient=patient)
+        if patient.status != Patient.Status.OUT:
+            context["move_places"] = Branch.objects.filter(is_active=True).exclude(kind=Branch.Kind.LAB).exclude(
+                pk=patient.branch_id).order_by("sort_order", "pk")
+    if patient.transferred_to_id:
+        context["moved_to"] = patient.transferred_to
+        context["moved_to_opens"] = working_places(request.user).filter(pk=patient.transferred_to.branch_id).exists()
     return render(request, "patients/patient_detail.html", context)
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def patient_transfer(request, pk):
+    """Move the patient to another of our places: a new file there, this one closed (see transfer.py)."""
+    from .transfer import transfer
+
+    patient = get_visible_patient_or_403(request.user, pk)
+    place = Branch.objects.filter(code=request.POST.get("place"), is_active=True).exclude(kind=Branch.Kind.LAB).first()
+    if place is None:
+        messages.error(request, _("Choose the place the patient moves to."))
+        return redirect(patient)
+    try:
+        new, cancelled = transfer(patient, place, request.user)
+    except ValidationError as error:
+        messages.error(request, error.messages[0])
+        return redirect(patient)
+    message = _("The patient moved to %(place)s with the new file %(file)s. This file is now out.") % {
+        "place": place.code, "file": new.file_number}
+    if cancelled:
+        message += " " + _("%(n)s coming visits here were cancelled.") % {"n": cancelled}
+    messages.success(request, message)
+    return redirect(patient)
 
 
 def medical_history(request, pk):

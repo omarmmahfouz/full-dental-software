@@ -14,6 +14,14 @@ def has_role(user, roles):
 
 
 @register.filter
+def wa_number(phone):
+    """01001234567 -> 201001234567, for a WhatsApp link."""
+    from apps.scheduling.whatsapp import whatsapp_number
+
+    return whatsapp_number(phone)
+
+
+@register.filter
 def preview(file, size="small"):
     """The address of a picture's small copy: {{ photo.file|preview }} for grids, {{ photo.file|preview:"medium" }}
     for large photos. Files that are not pictures (PDF, video) keep their own address."""
@@ -77,7 +85,7 @@ STATUS_COLORS = {
     "not_interested": "secondary", "unreachable": "dark",
     # appointments
     "scheduled": "secondary", "confirmed": "primary", "arrived": "warning", "in_room": "info",
-    "completed": "success", "no_show": "danger", "cancelled": "dark", "late_not_seen": "danger",
+    "completed": "success", "no_show": "danger", "cancelled": "dark", "late_not_seen": "danger", "pending": "warning",
     # lab
     "draft": "secondary", "pending_review": "warning", "approved": "primary", "sent": "info",
     "received": "success", "delivered": "dark",

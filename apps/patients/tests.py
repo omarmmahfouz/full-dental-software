@@ -287,7 +287,7 @@ class PatientDataTests(TestCase):
 
     def test_old_files_keep_their_date_and_the_governorate_comes_from_the_id(self):
         self.client.post("/patients/new/", {
-            "full_name": "محمد أحمد", "id_type": "nid", "national_id": "29001152101234", "phone_primary": "01001234567",
+            "full_name": "محمد أحمد علي", "id_type": "nid", "national_id": "29001152101234", "phone_primary": "01001234567",
             "preferred_phone": "primary", "missing_teeth": "single", "referral_source": self.source.pk,
             "registered_on": "03/02/2019",
         })
@@ -423,3 +423,89 @@ class XrayAndCbctTests(TestCase):
         self.assertFalse(PatientDocument.objects.exists())
         self.client.post(self.url, {"kind": "xray", "file": SimpleUploadedFile("opg.pdf", big, "application/pdf")})
         self.assertTrue(PatientDocument.objects.filter(kind="xray").exists())
+
+
+class PatientsPerPlaceTests(TestCase):
+    """Each place has its own patients; moving to another place opens a new file there."""
+
+    def setUp(self):
+        from apps.core.models import Branch, UserProfile
+
+        self.cia = setup_clinic()
+        self.cic = Branch.objects.get(code="CIC")
+        self.secretary = make_user("sec", "secretary")
+        UserProfile.objects.update_or_create(user=self.secretary, defaults={"branch": self.cia})
+        self.secretary.profile.places.set([self.cia, self.cic])
+        self.patient = make_patient(self.cia, name="مريض الأكاديمية الأول")
+        self.client.login(username="sec", password=PASSWORD)
+
+    def work_at(self, code):
+        self.client.post("/place/", {"place": code, "next": "/"})
+
+    def test_a_place_does_not_see_the_patients_of_another_place(self):
+        self.assertEqual(len(self.client.get("/patients/lookup/?q=مريض").json()["results"]), 1)
+        self.work_at("CIC")
+        self.assertEqual(self.client.get("/patients/lookup/?q=مريض").json()["results"], [])
+        self.assertNotContains(self.client.get("/patients/?q=مريض"), "مريض الأكاديمية الأول")
+        other = self.client.get(self.patient.get_absolute_url())  # she works at CIA too: switch first
+        self.assertContains(other, "Work at CIA and open the file")
+        self.assertNotContains(other, "مريض الأكاديمية الأول")
+        # The same person cannot get a second file at CIC; the message gives the CIA file number, not the name.
+        response = self.client.post("/patients/new/", {"full_name": "مريض الأكاديمية الأول", "id_type": "nid",
+                                                       "national_id": self.patient.national_id,
+                                                       "phone_primary": "01005556666"})
+        self.assertIn(self.patient.file_number, str(response.context["form"].errors["national_id"]))
+        self.assertNotIn("مريض الأكاديمية", str(response.context["form"].errors["national_id"]))
+
+    def test_moving_to_another_place_opens_a_new_file_and_closes_this_one(self):
+        from datetime import datetime, time
+
+        from apps.scheduling.models import Appointment
+
+        coming = Appointment.objects.create(branch=self.cia, patient=self.patient, scheduled_at=timezone.make_aware(
+            datetime.combine(timezone.localdate() + timedelta(days=3), time(12))))
+        page = self.client.get(self.patient.get_absolute_url())
+        self.assertContains(page, "Move to another place")
+        self.assertNotContains(page, "Book at")  # booking at another place is not done
+        self.client.post(f"/patients/{self.patient.pk}/move/", {"place": "CIC"})
+        self.patient.refresh_from_db()
+        moved = self.patient.transferred_to
+        self.assertEqual(self.patient.status, Patient.Status.OUT)
+        self.assertEqual((moved.branch, moved.full_name, moved.national_id), (self.cic, self.patient.full_name,
+                                                                               self.patient.national_id))
+        self.assertTrue(moved.file_number.startswith("CIC-"))
+        coming.refresh_from_db()
+        self.assertEqual(coming.status, Appointment.Status.CANCELLED)
+        self.assertContains(self.client.get(self.patient.get_absolute_url()), moved.file_number)
+        # Coming back to CIA opens the old CIA file again, not a third one.
+        self.work_at("CIC")
+        self.client.post(f"/patients/{moved.pk}/move/", {"place": "CIA"})
+        self.patient.refresh_from_db()
+        moved.refresh_from_db()
+        self.assertEqual((self.patient.status, moved.status), (Patient.Status.ACTIVE, Patient.Status.OUT))
+        self.assertEqual(Patient.objects.count(), 2)
+
+    def test_complaints_follow_the_place(self):
+        from apps.complaints.models import Complaint
+
+        Complaint.objects.create(branch=self.cia, patient=self.patient, category="other", description="الانتظار")
+        self.assertEqual(len(self.client.get("/complaints/?status=").context["object_list"]), 1)
+        self.work_at("CIC")
+        self.assertEqual(len(self.client.get("/complaints/?status=").context["object_list"]), 0)
+
+
+class ArabicNameTests(TestCase):
+    def test_the_name_is_in_arabic_with_at_least_three_names(self):
+        from django import forms as django_forms
+
+        from apps.patients.forms import clean_arabic_name
+
+        self.assertEqual(clean_arabic_name("  محمد   أحمد علي "), "محمد أحمد علي")
+        for wrong in ("Mohamed Ahmed Ali", "محمد أحمد", "محمد أحمد 12", "محمد Ahmed علي"):
+            with self.assertRaises(django_forms.ValidationError):
+                clean_arabic_name(wrong)
+        setup_clinic()
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        response = self.client.post("/patients/new/", {"full_name": "Ahmed Ali Hassan"})
+        self.assertIn("Arabic", str(response.context["form"].errors["full_name"]))

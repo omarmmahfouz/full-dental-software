@@ -47,7 +47,7 @@ class PlaceMixin:
 class WorkingPlaceTests(PlaceMixin, TestCase):
     def test_cic_is_the_cairo_implant_center_with_rooms(self):
         self.assertEqual(self.cic.name_en, "Cairo Implant Center")
-        self.assertEqual(Room.objects.filter(branch=self.cic).count(), 3)
+        self.assertEqual(Room.objects.filter(branch=self.cic, is_extra=False).count(), 3)
         self.assertEqual(FawryMachine.objects.count(), 2)
 
     def test_the_secretary_switches_place_and_the_pages_follow(self):
@@ -63,13 +63,21 @@ class WorkingPlaceTests(PlaceMixin, TestCase):
         self.assertEqual(set(form.fields["room"].queryset), set(Room.objects.filter(branch=self.cic)))
         self.assertIn(self.walid, form.fields["dentist"].queryset)
         self.assertNotIn(self.mona, form.fields["dentist"].queryset)  # she works at CIA only
-        response = self.client.post("/schedule/appointments/new/", {
-            "patient_lookup": self.patient.file_number, "scheduled_at_0": self.today.strftime("%d/%m/%Y"),
-            "scheduled_at_1": "18:00", "duration_minutes": 30, "dentist": self.walid.pk, "room": self.cic_room.pk})
+        booking = {"scheduled_at_0": self.today.strftime("%d/%m/%Y"), "scheduled_at_1": "18:00",
+                   "duration_minutes": 30, "dentist": self.walid.pk, "room": self.cic_room.pk}
+        response = self.client.post("/schedule/appointments/new/", {"patient_lookup": self.patient.file_number, **booking})
+        self.assertEqual(response.status_code, 200)  # each place has its own patients: CIA's are not found at CIC
+        self.assertFalse(Appointment.objects.exists())
+        # The patient moves to CIC: a new CIC file, the CIA file is closed.
+        self.work_at("sec", "CIA")
+        self.client.post(f"/patients/{self.patient.pk}/move/", {"place": "CIC"})
+        self.patient.refresh_from_db()
+        moved = self.patient.transferred_to
+        self.assertEqual((self.patient.status, moved.branch), ("out", self.cic))
+        self.work_at("sec", "CIC")
+        response = self.client.post("/schedule/appointments/new/", {"patient_lookup": moved.file_number, **booking})
         self.assertEqual(response.status_code, 302)
-        visit = Appointment.objects.get()
-        self.assertEqual(visit.branch, self.cic)  # a CIA patient booked at CIC: one file for both places
-        self.assertContains(self.client.get(self.patient.get_absolute_url()), 'place-badge place-CIC')
+        self.assertEqual((Appointment.objects.get().branch, Appointment.objects.get().patient), (self.cic, moved))
 
     def test_a_place_that_is_not_yours_cannot_be_chosen(self):
         self.assertEqual(self.work_at("sec", "PVT").status_code, 403)
@@ -124,7 +132,8 @@ class BillingPlaceTests(PlaceMixin, TestCase):
 
     def test_a_bill_at_cic_is_counted_for_cic_with_its_fawry_machine(self):
         self.work_at("sec", "CIC")
-        data = {"patient_lookup": self.patient.file_number, "billed_on": self.today.strftime("%d/%m/%Y"),
+        cic_patient = make_patient(self.cic, name="مريض مركز القاهرة", nid="29001011234599", phone="01001234599")
+        data = {"patient_lookup": cic_patient.file_number, "billed_on": self.today.strftime("%d/%m/%Y"),
                 "dentist": self.walid.pk, "lines-TOTAL_FORMS": 1, "lines-INITIAL_FORMS": 0, "lines-MIN_NUM_FORMS": 1,
                 "lines-MAX_NUM_FORMS": 1000, "lines-0-service": self.cic_implant.pk, "lines-0-teeth": "36",
                 "pay-amount": "4000", "pay-method": "fawry"}
@@ -138,7 +147,7 @@ class BillingPlaceTests(PlaceMixin, TestCase):
         payment = PatientPayment.objects.get()
         self.assertEqual((payment.branch, payment.fawry_machine), (self.cic, self.machines[1]))
         move = payment.fawry_move
-        self.assertEqual((move.branch, move.machine), (self.cic, self.machines[1]))  # the patient's file is at CIA
+        self.assertEqual((move.branch, move.machine), (self.cic, self.machines[1]))
         page = self.client.get(f"/billing/fawry/?machine={self.machines[1].pk}")
         self.assertEqual(page.context["machine"], self.machines[1])
         self.assertEqual(len(page.context["per_machine"]), 2)

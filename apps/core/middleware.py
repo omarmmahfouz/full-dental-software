@@ -76,7 +76,12 @@ class WorkingPlaceMiddleware:
                 request.session.pop("place", None)
             else:
                 user._working_branch = place
-        return self.get_response(request)
+        if user is None or not user.is_authenticated:
+            return self.get_response(request)
+        from .models import branch_for_user, working_at
+
+        with working_at(branch_for_user(user)):  # patients are looked up in this place only
+            return self.get_response(request)
 
 
 class PageCacheMiddleware:

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "End of the day" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-calendar-check"></i> {% trans "End of the day" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.code }}</span>{% endif %} <small class="text-muted fs-6">{{ day|date:"l d/m/Y" }}</small></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'billing:month' %}?month={{ day|date:'Y-m' }}{% if place %}&amp;place={{ place.code }}{% endif %}"><i class="bi bi-calendar3"></i> {% trans "The month" %}</a>
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  </div>
+</div>
+<form class="d-flex flex-wrap gap-2 align-items-end mb-3 no-print">
+  {% for field in form %}<div><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Show" %}</button>
+</form>
+{% if summary %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-success">{{ summary.total|money }}</div><div class="stat-label">{% trans "Received" %} · {% blocktrans count n=summary.count %}{{ n }} receipt{% plural %}{{ n }} receipts{% endblocktrans %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ summary.cash|money }}</div><div class="stat-label">{% trans "Cash: should be in the drawer" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ summary.billed|money }}</div><div class="stat-label">{% trans "Bills of the day" %} · {% trans "left" %} {{ summary.left|money }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value {% if summary.refunds %}text-danger{% endif %}">{{ summary.refunds|money }}</div><div class="stat-label">{% trans "Given back" %} · {% blocktrans count n=summary.cancelled|length %}{{ n }} cancelled{% plural %}{{ n }} cancelled{% endblocktrans %}</div></div></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "By payment method" %}</div>
+    <table class="table table-sm mb-0">{% for label, amount, code in summary.by_method %}<tr><td>{{ label }}</td><td class="text-end fw-bold">{{ amount|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}</table></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "By who received it" %}</div>
+    <table class="table table-sm mb-0">{% for person, amount in summary.by_person %}<tr><td>{{ person|default:"—" }}</td><td class="text-end fw-bold">{{ amount|money }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}</table></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-receipt"></i> {% trans "Every receipt of the day" %}</div><div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+  <thead><tr><th>{% trans "Receipt" %}</th><th>{% trans "Time" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Bill" %}</th><th class="text-end">{% trans "Amount" %}</th><th>{% trans "Method" %}</th><th>{% trans "Received by" %}</th></tr></thead>
+  <tbody>{% for p in summary.receipts %}<tr class="{% if p.is_cancelled %}text-decoration-line-through text-muted{% elif p.is_refund %}table-warning{% endif %}">
+    <td><a href="{{ p.get_absolute_url }}">{{ p.receipt_number }}</a>{% if p.is_cancelled %} <span class="badge text-bg-danger">{% trans "cancelled" %}</span>{% elif p.is_refund %} <span class="badge text-bg-warning">{% trans "refund" %}</span>{% endif %}</td>
+    <td>{{ p.created_at|date:"g:i A" }}</td><td>{{ p.patient.full_name }}</td><td>{{ p.bill.number|default:"—" }}</td>
+    <td class="text-end fw-semibold">{{ p.amount|money }}</td><td>{{ p.get_method_display }}{% if p.fawry_machine %} <span class="small text-muted">({{ p.fawry_machine }})</span>{% endif %}</td><td class="small">{{ p.created_by|default:"—" }}</td>
+  </tr>{% empty %}<tr><td colspan="7" class="text-muted text-center py-3">{% trans "No receipts this day." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+
+{% if summary.changes %}<div class="card mb-3"><div class="card-header"><i class="bi bi-clock-history"></i> {% trans "Changes made to receipts" %}</div><ul class="list-group list-group-flush small">
+  {% for c in summary.changes %}<li class="list-group-item"><a href="{{ c.payment.get_absolute_url }}">{{ c.payment.receipt_number }}</a> · <b>{{ c.get_action_display }}</b> · {{ c.done_by|default:"" }} · {{ c.done_at|date:"g:i A" }} — {{ c.reason }}{% if c.before %} <span class="text-muted" dir="ltr">({{ c.before }}{% if c.after %} → {{ c.after }}{% endif %})</span>{% endif %}</li>{% endfor %}
+</ul></div>{% endif %}
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-lock"></i> {% trans "Closing the day" %}</div><div class="card-body">
+  {% if closing %}
+    <p class="mb-1">{% blocktrans with who=closing.closed_by when=closing.closed_at|date:"d/m/Y g:i A" %}Closed by {{ who }} on {{ when }}.{% endblocktrans %}</p>
+    <p class="mb-1">{% trans "Cash counted" %}: <b>{{ closing.cash_counted|money }}</b> · {% trans "should be" %}: {{ closing.cash_expected|money }} · {% trans "difference" %}: <b class="{% if closing.difference %}text-danger{% else %}text-success{% endif %}">{{ closing.difference|money }}</b>{% if closing.notes %} · {{ closing.notes }}{% endif %}</p>
+    {% if closing.total != summary.total %}<div class="alert alert-warning py-2 small mb-2"><i class="bi bi-exclamation-triangle"></i> {% blocktrans with then=closing.total|money now=summary.total|money %}Receipts changed after closing: {{ then }} at closing, {{ now }} now.{% endblocktrans %}</div>{% endif %}
+    {% if closing.reviewed_at %}<p class="text-success mb-0"><i class="bi bi-check2-circle"></i> {% blocktrans with who=closing.reviewed_by when=closing.reviewed_at|date:"d/m/Y" %}Reviewed by {{ who }} on {{ when }}.{% endblocktrans %}{% if closing.review_notes %} {{ closing.review_notes }}{% endif %}</p>
+    {% elif reviewer %}<form method="post" class="d-flex flex-wrap gap-2 align-items-end no-print">{% csrf_token %}<input type="hidden" name="action" value="review">{% for field in review_form %}<div class="flex-grow-1">{{ field }}</div>{% endfor %}<button class="btn btn-success"><i class="bi bi-check2-circle"></i> {% trans "Mark as reviewed" %}</button></form>{% endif %}
+  {% else %}
+    <p class="text-muted">{% trans "At the end of the day, count the cash in the drawer and close the day. The owner then reviews it." %}</p>
+    <form method="post" class="row g-2 align-items-end no-print" novalidate>{% csrf_token %}<input type="hidden" name="action" value="close">
+      {% for field in close_form %}<div class="col-md-4"><label class="form-label">{{ field.label }}</label>{{ field }}{% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>{% endfor %}
+      <div class="col-md-4"><button class="btn btn-primary" data-confirm="{% trans 'Close the day now?' %}"><i class="bi bi-lock"></i> {% trans "Close the day" %}</button></div>
+    </form>
+  {% endif %}
+</div></div>
+{% endif %}
+{% endblock %}

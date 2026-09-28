@@ -17,6 +17,7 @@ urlpatterns = [
     path("<int:pk>/documents/<int:doc_pk>/delete/", views.document_delete, name="document_delete"),
     path("<int:pk>/documents/<int:doc_pk>/rotate/", views.document_rotate, name="document_rotate"),
     path("<int:pk>/relations/", views.relation_add, name="relation_add"),
+    path("<int:pk>/move/", views.patient_transfer, name="transfer"),
     path("<int:pk>/relations/<int:rel_pk>/delete/", views.relation_delete, name="relation_delete"),
     path("calls/", views.LeadListView.as_view(), name="lead_list"),
     path("calls/new/", views.LeadCreateView.as_view(), name="lead_create"),

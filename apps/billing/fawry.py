@@ -44,15 +44,17 @@ def sync(source):
     """Add, change or remove the Fawry move of a payment or a purchase after it is saved."""
     field, kind, branch, day, amount, method, reference, description = _details(source)
     move = FawryMove.objects.filter(**{field: source}).first()
-    if method != PaymentMethod.FAWRY or not amount or amount <= 0:
+    cancelled = getattr(source, "cancelled_at", None) is not None
+    refund = isinstance(source, PatientPayment) and amount and amount < 0  # given back on the machine
+    if method != PaymentMethod.FAWRY or not amount or cancelled or (amount < 0 and not refund):
         if move is not None:
             move.delete()
         return None
     if move is None:
         move = FawryMove(**{field: source})
-        move.fee = fee_for(amount) if kind == FawryMove.Kind.COLLECTION else Decimal("0")
+        move.fee = fee_for(amount) if kind == FawryMove.Kind.COLLECTION and amount > 0 else Decimal("0")
     elif move.amount != amount and kind == FawryMove.Kind.COLLECTION:
-        move.fee = fee_for(amount)
+        move.fee = fee_for(amount) if amount > 0 else Decimal("0")
     move.kind, move.branch, move.moved_on, move.amount = kind, branch, day, amount
     machine = getattr(source, "fawry_machine", None)
     if machine is not None:

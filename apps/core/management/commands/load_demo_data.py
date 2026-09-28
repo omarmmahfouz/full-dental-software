@@ -254,8 +254,7 @@ class Command(BaseCommand):
         # room has a private surgery with a candidate while the others work as usual; next Thursday the
         # extra room is opened for extra patients.
         rooms = list(Room.objects.filter(branch=branch, is_extra=False))
-        extra_room = Room.objects.create(branch=branch, name="غرفة إضافية", name_en="Extra room", sort_order=9,
-                                         is_extra=True, notes="Opened on busy days")
+        extra_room = Room.objects.get(branch=branch, name="غرفة إضافية 1")  # four numbered ones from setup_clinic
         surgery_weekdays = ClinicSettings.get().surgery_weekdays
         coming = [today + timedelta(days=i) for i in range(1, 8)]
         next_monday = next(day for day in coming if day.weekday() == 0)
@@ -855,14 +854,20 @@ class Command(BaseCommand):
                 RoomShift.objects.create(room=room, date=day, start_time=hours[0], end_time=hours[1], dentist=dentist,
                                          day_type=RoomShift.DayType.REGULAR, created_by=secretary)
 
-        # CIC patients: three new files (numbered CIC-...), and CIA patients who also come to CIC.
+        # CIC patients: new files (numbered CIC-...). Each place has its own patients; one CIA patient moved to CIC
+        # (a new CIC file, the CIA file is out).
+        from apps.patients.transfer import transfer
+
         new_files = []
         for i, (name, nid, phone) in enumerate([("كريم عبد الحميد سالم", "28705120104511", "01150000001"),
                                                 ("نهى محمود فرج", "29211030104622", "01150000002"),
-                                                ("سامح عادل منصور", "28001250104733", "01150000003")]):
+                                                ("سامح عادل منصور", "28001250104733", "01150000003"),
+                                                ("رانيا حسام الدين عمر", "29107140104844", "01150000004"),
+                                                ("وليد صبري عبد العزيز", "28512010104955", "01150000005")]):
             new_files.append(Patient.objects.create(branch=cic, full_name=name, national_id=nid, phone_primary=phone,
-                                                    assigned_dentist=[walid, hala, sherif][i], created_by=secretary))
-        visitors = new_files + [patients[2], patients[4], booked_patients[6]]
+                                                    assigned_dentist=[walid, hala, sherif][i % 3], created_by=secretary))
+        moved, _cancelled = transfer(booked_patients[6], cic, secretary)
+        visitors = new_files[:3] + [moved] + new_files[3:]
 
         # A month of CIC visits: arrived, in the chair, left, then billed and paid.
         rng = random.Random(21)

@@ -23,7 +23,7 @@ def make_user(username, *roles, first_name=""):
     return user
 
 
-def make_patient(branch, name="مريض تجربة", nid="29001011234567", phone="01001234567", **extra):
+def make_patient(branch, name="مريض تجربة أول", nid="29001011234567", phone="01001234567", **extra):
     from apps.patients.models import Patient
 
     return Patient.objects.create(branch=branch, full_name=name, national_id=nid, phone_primary=phone, **extra)

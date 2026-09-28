@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
@@ -119,6 +120,43 @@ class BillTests(TestCase):
         self.assertTrue(response.context["lines"].errors[0]["discount_reason"])
 
 
+    def test_a_dentist_writes_the_bill_and_the_reception_collects(self):
+        from apps.core.models import Notification, UserProfile
+        from apps.core.testing import make_dentist
+
+        dentist = make_dentist("doc", kind="fulltime")
+        UserProfile.objects.update_or_create(user=User.objects.get(username="sec"), defaults={"branch": self.branch})
+        self.client.login(username="doc", password=PASSWORD)
+        page = self.client.get(f"/billing/bills/new/?patient={self.patient.pk}")
+        self.assertIsNone(page.context["pay"])  # no payment part for the dentist
+        self.assertContains(page, "Send the bill to the reception")
+        response = self.post_bill([{"service": self.consult.pk}], **{"pay-amount": "300", "pay-method": "cash"})
+        from apps.billing.models import Bill
+
+        bill = Bill.objects.get()
+        self.assertEqual((bill.source, bill.dentist, bill.payments.count()), (Bill.Source.DENTIST, dentist, 0))
+        self.assertRedirects(response, bill.get_absolute_url())
+        self.assertEqual(self.client.post(f"/billing/bills/{bill.pk}/pay/", {"pay-amount": "300"}).status_code, 403)
+        note = Notification.objects.get(recipient__username="sec")
+        self.assertIn(bill.patient.full_name, note.title)
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertContains(self.client.get("/"), "bills to collect")
+        from apps.billing.models import FawryMachine
+
+        again = self.client.post(f"/billing/bills/{bill.pk}/pay/", {"pay-amount": "300", "pay-method": "fawry"})
+        self.assertEqual(again.status_code, 200)  # two machines: which one? The form keeps Fawry chosen.
+        self.assertIn("fawry_machine", again.context["pay_form"].errors)
+        self.assertContains(again, 'value="fawry" autocomplete="off" checked')
+        self.client.post(f"/billing/bills/{bill.pk}/pay/", {"pay-amount": "300", "pay-method": "fawry",
+                                                          "pay-fawry_machine": FawryMachine.objects.first().pk})
+        payment = bill.payments.get()
+        self.assertEqual(payment.method, "fawry")
+        receipt = self.client.get(payment.get_absolute_url())
+        self.assertContains(receipt, "<td>ماكينة فوري")  # the reception reads Arabic: "Fawry POS machine"
+        self.assertNotContains(receipt, "<td>كاش")
+        self.assertNotContains(receipt, "نقدية")  # the Arabic title once said "cash receipt" for every payment
+
+
 class FawryTests(TestCase):
     """Every move through the Fawry machine, its percentage, and the balance sheet."""
 
@@ -222,3 +260,81 @@ class FawryTests(TestCase):
         self.assertEqual([b.code for b in page["columns"]], ["CIA", "PVT", "CIC"])
         self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.get("/reports/balance/").status_code, 403)
+
+
+class ReceiptReviewTests(TestCase):
+    """Receipts are corrected, cancelled or refunded with a reason, and each day is closed and reviewed."""
+
+    def setUp(self):
+        from apps.core.models import UserProfile
+
+        self.branch = setup_clinic()
+        self.patient = make_patient(self.branch)
+        self.sec = make_user("sec", "secretary")
+        UserProfile.objects.update_or_create(user=self.sec, defaults={"branch": self.branch})
+        self.owner = make_user("owner", "owner")
+        consult = Service.objects.get(name_en="Consultation")
+        Charge.objects.create(patient=self.patient, service=consult, price=Decimal("1000"), branch=self.branch)
+        self.payment = PatientPayment.objects.create(patient=self.patient, amount=Decimal("600"), method="cash",
+                                                     branch=self.branch, created_by=self.sec)
+        self.client.login(username="sec", password=PASSWORD)
+        self.url = f"/billing/payments/{self.payment.pk}/change/"
+
+    def test_a_correction_is_written_on_the_receipt(self):
+        self.client.post(self.url, {"action": "correct", "c-amount": "600", "c-method": "instapay",
+                                    "c-reference": "IP123", "c-reason": "The patient paid by InstaPay"})
+        self.payment.refresh_from_db()
+        self.assertEqual(self.payment.method, "instapay")
+        receipt = self.client.get(self.payment.get_absolute_url())
+        self.assertContains(receipt, "The patient paid by InstaPay")
+        self.assertContains(receipt, "600.00")
+
+    def test_a_cancelled_receipt_counts_nowhere_but_stays_in_the_day(self):
+        from apps.core.models import Notification
+
+        self.client.post(self.url, {"action": "cancel", "x-reason": "Written twice"})
+        self.payment.refresh_from_db()
+        self.assertTrue(self.payment.is_cancelled)
+        self.assertEqual(account(self.patient)["paid"], Decimal("0"))
+        self.assertFalse(PatientPayment.objects.exists())
+        day = self.client.get("/billing/day/")
+        self.assertEqual(day.context["summary"]["total"], Decimal("0"))
+        self.assertEqual(len(day.context["summary"]["cancelled"]), 1)
+        self.assertContains(day, self.payment.receipt_number)
+        self.assertTrue(Notification.objects.filter(recipient=self.owner, level="warning").exists())  # the owner is told
+
+    def test_a_refund_is_a_receipt_below_zero_up_to_what_was_paid(self):
+        self.client.post(self.url, {"action": "refund", "r-amount": "900", "r-method": "cash", "r-reason": "x"})
+        self.assertEqual(PatientPayment.objects.count(), 1)  # more than was paid: refused
+        self.client.post(self.url, {"action": "refund", "r-amount": "200", "r-method": "cash",
+                                    "r-reason": "The patient stopped the treatment"})
+        back = PatientPayment.objects.get(refund_of=self.payment)
+        self.assertEqual(back.amount, Decimal("-200"))
+        self.assertEqual(account(self.patient)["paid"], Decimal("400"))
+        self.assertEqual(self.client.get("/billing/day/").context["summary"]["total"], Decimal("400"))
+
+    def test_the_reception_changes_only_the_receipts_of_today(self):
+        from datetime import timedelta
+
+        PatientPayment.objects.filter(pk=self.payment.pk).update(paid_on=timezone.localdate() - timedelta(days=2))
+        self.client.post(self.url, {"action": "cancel", "x-reason": "late"})
+        self.payment.refresh_from_db()
+        self.assertFalse(self.payment.is_cancelled)
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(self.url, {"action": "cancel", "x-reason": "Wrong patient"})
+        self.payment.refresh_from_db()
+        self.assertTrue(self.payment.is_cancelled)
+
+    def test_the_day_is_closed_with_the_cash_counted_and_reviewed_by_the_owner(self):
+        from apps.billing.models import DayClosing
+
+        self.client.post("/billing/day/", {"action": "close", "cash_counted": "550"})
+        closing = DayClosing.objects.get()
+        self.assertEqual((closing.cash_expected, closing.difference, closing.total), (Decimal("600"), Decimal("-50"),
+                                                                                      Decimal("600")))
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post("/billing/day/", {"action": "review", "review_notes": "50 missing: asked Mona"})
+        closing.refresh_from_db()
+        self.assertEqual(closing.reviewed_by, self.owner)
+        month = self.client.get("/billing/month/")
+        self.assertEqual(month.context["rows"][0]["closing"], closing)

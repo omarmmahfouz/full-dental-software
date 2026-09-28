@@ -180,9 +180,13 @@ class PaymentForm(StyledModelForm):
         self.fields["proof"].widget.attrs["accept"] = "image/*,application/pdf"
         from apps.billing.models import FawryMachine
 
+        from apps.billing.forms import method_buttons
+
         self.fields["fawry_machine"].queryset = FawryMachine.objects.filter(is_active=True)
+        self.fields["method"].widget = method_buttons()
         for name in self.fields:
             self.fields[name].col = "col-md-4"
+        self.fields["method"].col = "col-12"
 
     def clean_amount(self):
         amount = self.cleaned_data["amount"]

@@ -309,6 +309,28 @@ tr.row-link { cursor: pointer; }
 .dl-grid dd { margin: 0; }
 .doc-thumb { width: 100%; max-height: 180px; object-fit: contain; background: #f8f9fa; border-radius: .5rem; }
 .scan-location code { word-break: break-all; white-space: normal; }
+/* The 80 mm receipt (receipt printers), also saved as a picture or PDF */
+.receipt-80 { width: 80mm; max-width: 100%; margin: 0 auto; padding: 4mm; background: #fff; color: #111;
+  border: 1px dashed var(--line); font-size: 13px; position: relative; }
+.receipt-80 .print-logo { max-height: 42px; }
+.receipt-80 .place-letterhead { justify-content: center; }
+.receipt-title { font-weight: 700; margin-top: .25rem; border-top: 1px solid #111; border-bottom: 1px solid #111; padding: .15rem 0; }
+.receipt-lines { width: 100%; margin-top: .5rem; border-collapse: collapse; }
+.receipt-lines th { font-weight: 600; width: 40%; vertical-align: top; padding: .15rem 0; }
+.receipt-lines td { padding: .15rem 0; }
+.receipt-amount th, .receipt-amount td { font-size: 1.15em; font-weight: 700; border-top: 1px dashed #111; border-bottom: 1px dashed #111; }
+.receipt-foot { margin-top: 1.2rem; }
+.receipt-stamp { position: absolute; top: 40%; inset-inline: 0; text-align: center; font-size: 2rem; font-weight: 800;
+  color: rgba(200, 30, 30, .45); transform: rotate(-18deg); pointer-events: none; }
+.receipt-80.is-cancelled .receipt-lines { text-decoration: line-through; color: #777; }
+@media print { .receipt-80 { width: 76mm; border: 0; padding: 0; font-size: 12px; } }
+.is-snapshot .receipt-80 { border-color: #fff; }
+/* A page saved as a picture: no fading in, no motion (the copy would be taken half-faded). */
+.is-snapshot *, .is-snapshot *::before, .is-snapshot *::after { animation: none !important; transition: none !important; }
+.is-snapshot main, .is-snapshot .reveal { opacity: 1 !important; transform: none !important; }
+.choice-buttons { display: flex; flex-wrap: wrap; gap: .5rem; }
+.choice-buttons .btn { min-height: 44px; display: inline-flex; align-items: center; gap: .35rem; }
+.choice-buttons .btn-check:checked + .btn { box-shadow: 0 0 0 .2rem rgba(92, 128, 32, .25); font-weight: 600; }
 .schedule-grid td { min-width: 150px; vertical-align: top; }
 .shift-chip { display: block; background: var(--brand-green-soft); border-inline-start: 3px solid var(--app-primary); border-radius: .35rem; padding: .25rem .4rem; margin-bottom: .3rem; font-size: .82rem; transition: transform var(--fast), box-shadow var(--fast); }
 .shift-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-1); }
@@ -363,6 +385,12 @@ tr.row-link { cursor: pointer; }
 .patient-print { font-size: 1.05rem; }
 .rx-symbol { font-size: 2.2rem; font-weight: 700; color: var(--brand-green-dark); line-height: 1; }
 .rx-lines li { margin-bottom: .9rem; }
+.rx-mark { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 700; color: var(--brand-green-dark);
+  margin-inline-end: .35rem; }
+.rx-dose { padding-inline-start: 2.6rem; }
+/* The prescription is printed on A5 (148 x 210 mm) */
+.prescription-a5 { max-width: 148mm; }
+@media print { .prescription-a5 { max-width: none; width: 100%; font-size: .95rem; } .prescription-a5 .card-body { padding: 0 !important; } }
 .instruction-list li { margin-bottom: .35rem; }
 @media print { .patient-print { border: 0 !important; box-shadow: none !important; } }
 

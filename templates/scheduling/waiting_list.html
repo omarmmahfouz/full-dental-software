@@ -22,11 +22,26 @@
           <td class="small">{{ e.dentist|default:_("any dentist") }}</td>
           <td class="small">{{ e.procedure|default:"" }} · {{ e.minutes }} {% trans "min" %}{% if e.notes %}<div class="text-muted">{{ e.notes }}</div>{% endif %}</td>
           <td class="small nowrap">{{ e.wanted_from|date:"d/m" }}{% if e.wanted_to %} – {{ e.wanted_to|date:"d/m" }}{% else %} →{% endif %}</td>
-          <td class="nowrap"><a class="btn btn-sm btn-primary" href="{{ row.book_url }}"><i class="bi bi-calendar-plus"></i> {% trans "Book" %}</a>
-            <form method="post" action="{% url 'scheduling:waiting_remove' e.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-link text-danger" title="{% trans 'Remove' %}" data-confirm="{% trans 'Remove from the waiting list?' %}"><i class="bi bi-x-lg"></i></button></form></td>
+          <td class="nowrap"><a class="btn btn-sm btn-primary" href="{{ row.book_url }}" data-tip="{% trans 'The patient said yes: book it now (confirmed)' %}"><i class="bi bi-calendar-check"></i> {% trans "Said yes: book" %}</a>
+            <div class="dropdown d-inline"><button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-telephone"></i></button>
+              <ul class="dropdown-menu">{% for value, label in call_results %}<li><form method="post" action="{% url 'scheduling:waiting_call' e.pk %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="dropdown-item" name="result" value="{{ value }}">{{ label }}</button></form></li>{% endfor %}</ul></div>
+            <form method="post" action="{% url 'scheduling:waiting_remove' e.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-link text-danger" title="{% trans 'Remove' %}" data-confirm="{% trans 'Remove from the waiting list?' %}"><i class="bi bi-x-lg"></i></button></form>
+            {% if e.last_call %}<div class="small text-muted">{{ e.get_last_call_display }} · {{ e.last_call_at|date:"d/m g:i A" }}{% if e.calls > 1 %} ({% blocktrans count n=e.calls %}{{ n }} call{% plural %}{{ n }} calls{% endblocktrans %}){% endif %}</div>{% endif %}</td>
         </tr>{% endwith %}{% empty %}<tr><td colspan="5" class="text-muted">{% trans "Nobody is waiting." %}</td></tr>{% endfor %}</tbody>
       </table></div>
     </div>
+    {% if booked %}
+    <div class="card mt-3"><div class="card-header"><i class="bi bi-calendar-check"></i> {% trans "Booked from the waiting list: did they come?" %}</div>
+      <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Appointment" %}</th><th>{% trans "What happened" %}</th></tr></thead>
+        <tbody>{% for e in booked %}<tr>
+          <td><a href="{{ e.patient.get_absolute_url }}">{{ e.patient.full_name }}</a></td>
+          <td class="small"><a href="{{ e.appointment.get_absolute_url }}">{{ e.appointment.scheduled_at|date:"D d/m g:i A" }}</a> · {{ e.appointment.dentist|default:"" }}</td>
+          <td>{% status_badge e.appointment %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

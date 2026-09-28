@@ -1,6 +1,7 @@
 """The waiting list: patients who want a place on a busy day. When an appointment is
 cancelled, missed or moved, the reception is told that a place is free and who is waiting."""
 
+from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -12,13 +13,13 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from apps.core.mixins import role_required
-from apps.core.models import Notification
+from apps.core.models import Notification, branch_for_user
 from apps.core.notify import notify_users
 from apps.core.roles import FRONT_DESK, SECRETARY, users_with_role
 from apps.patients.models import Patient
 
 from .forms import WaitingEntryForm
-from .models import WaitingEntry
+from .models import CallResult, WaitingEntry
 
 
 def book_url(entry):
@@ -53,8 +54,32 @@ def waiting_list(request):
 
         chosen = _parse_day(day)
         entries = WaitingEntry.for_place(chosen, request.GET.get("for_dentist") or None)
+    here = branch_for_user(request.user)
+    entries = entries.filter(patient__branch=here)  # the patients of this place
     rows = [{"entry": e, "book_url": book_url(e)} for e in entries]
-    return render(request, "scheduling/waiting_list.html", {"form": form, "rows": rows, "day": day})
+    # Booked from the waiting list: did they come? (the last 30 days and the coming days)
+    booked = WaitingEntry.objects.filter(
+        status=WaitingEntry.Status.BOOKED, patient__branch=here,
+        appointment__scheduled_at__gte=timezone.now() - timedelta(days=30)).select_related(
+        "patient", "appointment__dentist").order_by("-appointment__scheduled_at")[:40]
+    return render(request, "scheduling/waiting_list.html", {
+        "form": form, "rows": rows, "day": day, "booked": booked, "call_results": CallResult.choices})
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def waiting_call(request, pk):
+    """What the patient said when the place was offered (no answer, not that day, not any more)."""
+    entry = get_object_or_404(WaitingEntry, pk=pk, status=WaitingEntry.Status.WAITING)
+    result = request.POST.get("result")
+    if result in CallResult.values:
+        entry.last_call, entry.last_call_at, entry.calls = result, timezone.now(), entry.calls + 1
+        if result == CallResult.NOT_INTERESTED:
+            entry.status = WaitingEntry.Status.REMOVED
+        entry.save()
+        messages.success(request, _("%(name)s: %(result)s.") % {"name": entry.patient.full_name,
+                                                               "result": CallResult(result).label})
+    return redirect(request.POST.get("next") or "scheduling:waiting_list")
 
 
 @role_required(*FRONT_DESK)
@@ -86,8 +111,13 @@ def place_freed(appointment, request):
 
 
 def link_waiting(request, appointment):
-    """Booked from the waiting list (?waiting=<pk>)."""
+    """Booked from the waiting list (?waiting=<pk>): the patient said yes on the phone, so the appointment is
+    confirmed on the spot, and the list then shows whether they came."""
     pk = request.GET.get("waiting", "")
     if pk.isdigit():
-        WaitingEntry.objects.filter(pk=pk, patient=appointment.patient, status=WaitingEntry.Status.WAITING).update(
-            status=WaitingEntry.Status.BOOKED, appointment=appointment, updated_at=timezone.now())
+        done = WaitingEntry.objects.filter(pk=pk, patient=appointment.patient, status=WaitingEntry.Status.WAITING
+                                           ).update(status=WaitingEntry.Status.BOOKED, appointment=appointment,
+                                                    updated_at=timezone.now())
+        if done and appointment.status == appointment.Status.SCHEDULED:
+            appointment.status = appointment.Status.CONFIRMED
+            appointment.save(update_fields=["status", "updated_at"])

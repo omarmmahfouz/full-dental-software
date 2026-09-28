@@ -25,7 +25,8 @@ class ComplaintListView(RoleRequiredMixin, ListView):
 
     def get_queryset(self):
         self.filter_form = ComplaintFilterForm(self.request.GET or {"status": "open"})
-        qs = Complaint.objects.visible_to(self.request.user).select_related(
+        qs = Complaint.objects.visible_to(self.request.user).filter(
+            branch=branch_for_user(self.request.user)).select_related(  # each place has its own complaints
             "patient", "assigned_to", "concerned_staff", "concerned_dentist"
         )
         if self.filter_form.is_valid():

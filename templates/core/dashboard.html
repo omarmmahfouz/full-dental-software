@@ -18,6 +18,13 @@
 <div class="small text-success mb-2 backup-ok"><i class="bi bi-shield-check"></i> {% blocktrans with when=backup.parts.0.last_ok.started_at|date:"d/m g:i A" %}Backup OK (last: {{ when }}){% endblocktrans %}</div>
 {% endif %}
 
+{% if bookings_to_approve %}
+<div class="alert alert-warning">
+  <div class="fw-bold mb-1"><i class="bi bi-hourglass-split"></i> {% trans "Bookings to approve (not the dentist's day or hours)" %}</div>
+  {% for a in bookings_to_approve %}<div><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|date:"D d/m g:i A" }} · {{ a.patient.full_name }} · {{ a.dentist|default:"" }}</a></div>{% endfor %}
+</div>
+{% endif %}
+
 {% if clinic_cards %}
 <div class="row g-3 mb-3">{% for card in clinic_cards %}
   <div class="col-lg-6"><a class="card clinic-card h-100 text-decoration-none place-{{ card.place.code }}" href="{% url 'clinics:report' %}?place={{ card.place.code }}">
@@ -122,6 +129,19 @@
           <a class="btn btn-sm btn-outline-primary" href="{% url 'patients:list' %}">{% trans "My patients" %} <span class="badge text-bg-primary">{{ my_patient_count }}</span></a>
           <a class="btn btn-sm btn-outline-primary" href="{% url 'clinical:lab_list' %}?mine=1">{% trans "My open lab requests" %} <span class="badge text-bg-primary">{{ my_open_labs }}</span></a>
         </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if doctor_bills %}
+  <div class="col-lg-6">
+    <div class="card h-100 border-warning">
+      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-receipt"></i> {% trans "Doctors' bills to collect" %}</span><a href="{% url 'billing:bill_list' %}?unpaid=on&amp;date_from={{ doctor_bills_from|date:'d/m/Y' }}" class="small">{% trans "All" %}</a></div>
+      <div class="list-group list-group-flush">
+        {% for row in doctor_bills %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ row.bill.get_absolute_url }}">
+          <span>{{ row.bill.patient.full_name }} <span class="small text-muted">{{ row.bill.number }} · {{ row.bill.dentist|default:"" }}</span></span>
+          <b class="text-danger">{{ row.left|money }}</b></a>{% endfor %}
       </div>
     </div>
   </div>

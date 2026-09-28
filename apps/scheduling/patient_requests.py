@@ -20,7 +20,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from apps.core.mixins import role_required
-from apps.core.models import Notification
+from apps.core.models import Notification, branch_for_user
 from apps.core.notify import notify_users
 from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, SUPERVISOR, TEAM_HEAD, users_with_role
 from apps.dentists.models import Dentist
@@ -58,7 +58,8 @@ def my_requests(request):
         messages.success(request, _("%(patient)s added. The supervisor will approve the list.")
                          % {"patient": item.patient.full_name})
         return redirect("scheduling:requests_mine")
-    items = dentist.patient_requests.select_related("patient", "step_type", "appointment")
+    items = dentist.patient_requests.filter(patient__branch=branch_for_user(request.user)).select_related(
+        "patient", "step_type", "appointment")
     recent = timezone.now() - timedelta(days=30)
     return render(request, "scheduling/requests_mine.html", {
         "form": form, "dentist": dentist,
@@ -113,7 +114,8 @@ def approve_requests(request):
         elif action == "reject":
             messages.success(request, _("Not approved. The dentist was told."))
         return redirect("scheduling:requests_approve")
-    waiting = PatientRequest.objects.filter(status=PatientRequest.Status.PROPOSED).select_related(
+    here = branch_for_user(request.user)
+    waiting = PatientRequest.objects.filter(status=PatientRequest.Status.PROPOSED, patient__branch=here).select_related(
         "dentist", "patient", "step_type").order_by("dentist__full_name", "-kind", "priority", "created_at")
     groups = {}
     for item in waiting:
@@ -121,7 +123,7 @@ def approve_requests(request):
     return render(request, "scheduling/requests_approve.html", {
         "groups": groups.items(), "durations": duration_choices(60),
         "decided": PatientRequest.objects.exclude(status=PatientRequest.Status.PROPOSED).filter(
-            decided_at__isnull=False).select_related("dentist", "patient", "step_type").order_by("-decided_at")[:20],
+            decided_at__isnull=False, patient__branch=here).select_related("dentist", "patient", "step_type").order_by("-decided_at")[:20],
     })
 
 
@@ -129,14 +131,16 @@ def approve_requests(request):
 def reception_requests(request):
     """The reception calls the approved patients of each dentist in order, main list first."""
     today = timezone.localdate()
-    items = PatientRequest.objects.filter(status=PatientRequest.Status.APPROVED).select_related(
+    here = branch_for_user(request.user)
+    items = PatientRequest.objects.filter(status=PatientRequest.Status.APPROVED, patient__branch=here).select_related(
         "dentist", "patient", "step_type").order_by("dentist__full_name", "-kind", "priority", "created_at")
     groups = {}
     for item in items:
         group = groups.setdefault(item.dentist, {"main": [], "backup": [], "cannot": []})
         group["main" if item.kind == PatientRequest.Kind.MAIN else "backup"].append(item)
     week_ago = timezone.now() - timedelta(days=7)
-    for item in PatientRequest.objects.filter(status=PatientRequest.Status.CANNOT_COME, updated_at__gte=week_ago)\
+    for item in PatientRequest.objects.filter(status=PatientRequest.Status.CANNOT_COME, updated_at__gte=week_ago,
+                                              patient__branch=here)\
             .select_related("dentist", "patient", "step_type"):
         groups.setdefault(item.dentist, {"main": [], "backup": [], "cannot": []})["cannot"].append(item)
     for dentist, group in groups.items():

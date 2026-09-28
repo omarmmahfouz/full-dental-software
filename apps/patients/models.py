@@ -165,6 +165,16 @@ class LeadCall(TimeStampedModel):
         verbose_name_plural = _("calls")
 
 
+class PatientQuerySet(models.QuerySet):
+    def here(self):
+        """The patients of the place worked in now (every patient outside a page, e.g. in commands).
+        A patient belongs to one place; moving to another place opens a new file there (``transfer``)."""
+        from apps.core.models import current_place
+
+        place = current_place()
+        return self.filter(branch=place) if place is not None else self
+
+
 class Patient(TimeStampedModel):
     class IdType(models.TextChoices):
         NATIONAL_ID = "nid", _("Egyptian national ID")
@@ -180,21 +190,11 @@ class Patient(TimeStampedModel):
     file_number = models.CharField(_("file number"), max_length=20, unique=True, blank=True, editable=False)
     full_name = models.CharField(_("full name (as on ID)"), max_length=150, db_index=True)
     id_type = models.CharField(_("ID type"), max_length=10, choices=IdType.choices, default=IdType.NATIONAL_ID)
-    national_id = models.CharField(
-        _("national ID / passport no."),
-        max_length=20,
-        unique=True,
-        error_messages={"unique": _("A patient with this ID number is already registered.")},
-    )
+    national_id = models.CharField(_("national ID / passport no."), max_length=20, db_index=True)
     birth_date = models.DateField(_("date of birth"), null=True, blank=True)
     gender = models.CharField(_("gender"), max_length=1, choices=Gender.choices, blank=True)
     marital_status = models.CharField(_("marital status"), max_length=10, choices=MaritalStatus.choices, blank=True)
-    phone_primary = models.CharField(
-        _("mobile 1 (primary)"),
-        max_length=20,
-        unique=True,
-        error_messages={"unique": _("This mobile number is already registered for another patient.")},
-    )
+    phone_primary = models.CharField(_("mobile 1 (primary)"), max_length=20, db_index=True)
     phone_secondary = models.CharField(_("mobile 2"), max_length=20, blank=True)
     preferred_phone = models.CharField(
         _("preferred mobile"), max_length=10, choices=PreferredPhone.choices, default=PreferredPhone.PRIMARY
@@ -232,11 +232,21 @@ class Patient(TimeStampedModel):
         _("file opened on"), default=timezone.localdate, db_index=True,
         help_text=_("Today by itself. When typing in old paper files, write the date the file was opened."))
     notes = models.TextField(_("notes"), blank=True)
+    transferred_to = models.ForeignKey(
+        "self", verbose_name=_("moved to the file"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="transferred_from", help_text=_("The new file opened when the patient moved to another place."))
+
+    objects = PatientQuerySet.as_manager()
 
     class Meta:
         ordering = ["-created_at"]
         verbose_name = _("patient")
         verbose_name_plural = _("patients")
+        constraints = [
+            # One file per person in each place (a person who moves to another place gets a new file there).
+            models.UniqueConstraint(fields=["branch", "national_id"], name="patient_one_id_per_place"),
+            models.UniqueConstraint(fields=["branch", "phone_primary"], name="patient_one_mobile_per_place"),
+        ]
 
     def __str__(self):
         return f"{self.full_name} ({self.file_number})" if self.file_number else self.full_name

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
@@ -10,6 +12,19 @@ from .models import Charge, FawryMachine, FawryMove, PatientPayment, Service
 
 NEEDS_REFERENCE = (PaymentMethod.INSTAPAY, PaymentMethod.WALLET, PaymentMethod.BANK, PaymentMethod.BANK_DEPOSIT,
                    PaymentMethod.CHEQUE)
+
+
+METHOD_ICONS = {"cash": "bi-cash-coin", "card": "bi-credit-card", "instapay": "bi-phone", "wallet": "bi-wallet2",
+                "bank": "bi-bank", "bank_deposit": "bi-bank2", "cheque": "bi-journal-text", "fawry": "bi-credit-card-2-front"}
+
+
+def method_buttons():
+    """How the patient paid, as big buttons (Fawry first after cash: the machines are used most)."""
+    from apps.core.widgets import ChoiceButtons
+
+    order = ["cash", "fawry", "card", "instapay", "wallet", "bank", "bank_deposit", "cheque"]
+    labels = dict(PaymentMethod.choices)
+    return ChoiceButtons(choices=[(value, labels[value]) for value in order], icons=METHOD_ICONS)
 
 
 def fawry_machine_field():
@@ -96,15 +111,19 @@ class PatientPaymentForm(StyledModelForm):
     def __init__(self, *args, account=None, **kwargs):
         self.account = account
         super().__init__(*args, **kwargs)
+        self.fields["method"].widget = method_buttons()
         unpaid = [row["charge"].pk for row in (account or {}).get("rows", []) if row["left"] > 0]
         self.fields["charge"].queryset = Charge.objects.filter(pk__in=unpaid).select_related("service")
         self.fields["charge"].empty_label = _("the oldest unpaid services")
         for field in self.fields.values():
             field.col = "col-md-4"
+        self.fields["method"].col = "col-12"
 
     def clean(self):
         data = super().clean()
         amount = data.get("amount")
+        if amount is not None and amount <= 0:
+            self.add_error("amount", _("Write the amount paid (a refund is made from the receipt)."))
         if amount and self.account is not None and amount > self.account["balance"]:
             self.add_error("amount", _("The amount is more than what the patient owes (%(balance)s).")
                            % {"balance": f"{self.account['balance']:,.2f}"})
@@ -194,6 +213,8 @@ class PayNowForm(StyledForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.col = "col-md-3"
+        self.fields["method"].widget = method_buttons()
+        self.fields["method"].col = "col-12"
 
     def clean(self):
         data = super().clean()
@@ -277,3 +298,72 @@ class FawryFilterForm(StyledForm):
 
         super().__init__(*args, **kwargs)
         self.fields["branch"].queryset = Branch.objects.exclude(kind=Branch.Kind.LAB).order_by("sort_order", "pk")
+
+
+class ReceiptCorrectForm(StyledForm):
+    amount = forms.DecimalField(label=_("amount paid"), min_value=Decimal("0.01"), max_digits=10, decimal_places=2)
+    method = forms.ChoiceField(label=_("payment method"), choices=PaymentMethod.choices)
+    fawry_machine = fawry_machine_field()
+    reference = forms.CharField(label=_("transaction reference"), required=False, max_length=100)
+    reason = forms.CharField(label=_("why the correction"), max_length=255)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["method"].widget = method_buttons()
+        for field in self.fields.values():
+            field.col = "col-md-4"
+        self.fields["method"].col = self.fields["reason"].col = "col-12"
+
+    def clean(self):
+        data = super().clean()
+        check_fawry_machine(self, data)
+        return data
+
+
+class ReceiptCancelForm(StyledForm):
+    reason = forms.CharField(label=_("why cancel it"), max_length=255,
+                             help_text=_("E.g. written twice, or on the wrong patient."))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["reason"].col = "col-12"
+
+
+class RefundForm(StyledForm):
+    amount = forms.DecimalField(label=_("amount given back"), min_value=Decimal("0.01"), max_digits=10,
+                                decimal_places=2)
+    method = forms.ChoiceField(label=_("given back by"), choices=PaymentMethod.choices, initial=PaymentMethod.CASH)
+    fawry_machine = fawry_machine_field()
+    reason = forms.CharField(label=_("why the refund"), max_length=255)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["method"].widget = method_buttons()
+        for field in self.fields.values():
+            field.col = "col-md-4"
+        self.fields["method"].col = self.fields["reason"].col = "col-12"
+
+    def clean(self):
+        data = super().clean()
+        check_fawry_machine(self, data)
+        return data
+
+
+class DayCloseForm(StyledForm):
+    cash_counted = forms.DecimalField(label=_("cash counted in the drawer"), min_value=0, max_digits=12,
+                                      decimal_places=2)
+    notes = forms.CharField(label=_("notes"), required=False, max_length=255)
+
+
+class DayReviewForm(StyledForm):
+    review_notes = forms.CharField(label=_("review notes"), required=False, max_length=255)
+
+
+class DayPickForm(StyledForm):
+    day = forms.DateField(label=_("day"), required=False)
+
+    def __init__(self, *args, places=(), current=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        add_place_filter(self, places, current)
+        if "place" in self.fields:  # one place at a time: the day is closed place by place
+            self.fields["place"].choices = [c for c in self.fields["place"].choices if c[0] != "all"]

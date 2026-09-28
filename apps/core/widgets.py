@@ -141,3 +141,30 @@ class DatalistInput(forms.TextInput):
         context["widget"]["options"] = list(options)
         context["widget"]["attrs"]["list"] = f"{context['widget']['attrs'].get('id', name)}_list"
         return context
+
+
+class ChoiceButtons(forms.RadioSelect):
+    """The choices as a row of big buttons, one pressed (e.g. how the patient paid): quicker than a list and hard
+    to leave on the wrong choice by mistake. ``icons`` maps a value to a Bootstrap icon."""
+
+    def __init__(self, attrs=None, choices=(), icons=None):
+        super().__init__(attrs, choices)
+        self.icons = icons or {}
+
+    def render(self, name, value, attrs=None, renderer=None):
+        from django.utils.html import format_html, format_html_join
+
+        attrs = self.build_attrs(self.attrs, attrs)
+        base = attrs.get("id") or f"id_{name}"
+        chosen = "" if value is None else str(value[0] if isinstance(value, (list, tuple)) and value else value)
+        rows = []
+        for index, (option, label) in enumerate(self.choices):
+            if option == "":
+                continue
+            rows.append((name, f"{base}_{index}", option, " checked" if str(option) == chosen else "",
+                         f"{base}_{index}", self.icons.get(option, "bi-circle"), label))
+        buttons = format_html_join(
+            "", '<input type="radio" class="btn-check" name="{}" id="{}" value="{}" autocomplete="off"{}>'
+                '<label class="btn btn-outline-primary" for="{}"><i class="bi {}"></i> {}</label>', rows)
+        return format_html('<div class="choice-buttons" role="radiogroup" data-choice-buttons="{}">{}</div>', name,
+                           buttons)

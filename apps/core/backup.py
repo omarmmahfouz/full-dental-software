@@ -93,7 +93,7 @@ class _Labels:
         if labels is None:
             # Every record of the table at once, with the records its name is made of (e.g. a visit's patient).
             labels = self.cache[model] = {obj.pk: str(obj) for obj in
-                                          model._default_manager.select_related().iterator(chunk_size=2000)}
+                                          model._base_manager.select_related().iterator(chunk_size=2000)}
         return labels.get(pk, "")
 
 
@@ -116,7 +116,7 @@ def table_rows(model, labels):
     The rows are read a few thousand at a time, so a big table does not fill the memory."""
     columns = _columns(model)
     headers = [header for _field, header, _kind in columns]
-    queryset = model._default_manager.all().order_by("pk")
+    queryset = model._base_manager.all().order_by("pk")  # everything, e.g. cancelled receipts too
     m2m = [field.name for field, _header, kind in columns if kind == "m2m"]
     if m2m:
         queryset = queryset.prefetch_related(*m2m)
@@ -416,7 +416,8 @@ def _write_zip(with_files):
         dump = tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False)
         try:
             with dump:  # written to a file, not held in memory
-                call_command("dumpdata", exclude=sorted(SKIPPED), natural_foreign=True, indent=1, stdout=dump)
+                call_command("dumpdata", exclude=sorted(SKIPPED), natural_foreign=True, indent=1, stdout=dump,
+                             use_base_manager=True)  # every record, e.g. cancelled receipts too
             bundle.write(dump.name, "database.json")
         finally:
             os.unlink(dump.name)

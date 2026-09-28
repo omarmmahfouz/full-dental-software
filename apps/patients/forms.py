@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.conf import settings
 from django.db.models import Q
@@ -12,6 +14,7 @@ from apps.core.forms import (
     clean_phone_value,
     validate_upload,
 )
+from apps.core.models import current_place
 from apps.core.utils import normalize_phone, parse_egyptian_national_id
 from apps.core.widgets import AutocompleteInput
 
@@ -38,11 +41,27 @@ def find_patient(value):
     query = Q(file_number__iexact=value) | Q(national_id=value)
     if phone:
         query |= Q(phone_primary=phone) | Q(phone_secondary=phone)
-    matches = list(Patient.objects.filter(query)[:2])
+    patients = Patient.objects.here()  # only the patients of the place worked in
+    matches = list(patients.filter(query)[:2])
     if not matches:
         # The full name, typed exactly, when only one patient has it.
-        matches = list(Patient.objects.filter(full_name__iexact=value)[:2])
+        matches = list(patients.filter(full_name__iexact=value)[:2])
     return matches[0] if len(matches) == 1 else None
+
+
+# Arabic letters (with their marks) and spaces only: the name as written on the Egyptian ID.
+ARABIC_NAME = re.compile(r"^[\u0621-\u063A\u0640-\u0652\u0670-\u06D3 ]+$")
+
+
+def clean_arabic_name(value):
+    """A patient's full name: in Arabic letters, at least three names (the person, the father, the grandfather)."""
+    name = " ".join((value or "").split())
+    if not ARABIC_NAME.match(name):
+        raise forms.ValidationError(_("Write the name in Arabic letters only, as on the ID."))
+    if len(name.split()) < 3:
+        raise forms.ValidationError(_("Write at least three names (the patient, the father and the grandfather), "
+                                      "as on the ID."))
+    return name
 
 
 class PatientLookupField(forms.CharField):
@@ -67,8 +86,8 @@ class PatientLookupField(forms.CharField):
 
 
 def duplicate_phone_error(phone, exclude_patient=None, exclude_lead=None):
-    """Explain who already owns a phone number (patients and the call list)."""
-    patients = Patient.objects.filter(Q(phone_primary=phone) | Q(phone_secondary=phone))
+    """Explain who already owns a phone number (the patients of the place worked in, and the call list)."""
+    patients = Patient.objects.here().filter(Q(phone_primary=phone) | Q(phone_secondary=phone))
     if exclude_patient is not None and exclude_patient.pk:
         patients = patients.exclude(pk=exclude_patient.pk)
     patient = patients.first()
@@ -205,6 +224,8 @@ class PatientForm(StyledModelForm):
             self.fields[name].widget.input_type = "tel"
             self.fields[name].widget.attrs["data-phone-check-url"] = _phone_check_url("patient", self.instance, name)
         self.fields["national_id"].widget.attrs.update({"data-digits": "1", "autocomplete": "off"})
+        self.fields["full_name"].widget.attrs.update({"lang": "ar", "dir": "rtl", "autocomplete": "off"})
+        self.fields["full_name"].help_text = _("In Arabic, at least three names, as on the ID.")
         self.fields["birth_date"].help_text = _("Filled automatically from the national ID.")
         self.fields["gender"].help_text = _("Filled automatically from the national ID.")
         self.fields["governorate"].help_text = _("Filled automatically from the national ID.")
@@ -227,13 +248,26 @@ class PatientForm(StyledModelForm):
         value = clean_digits_value(self.cleaned_data.get("national_id")).upper().replace(" ", "")
         if self.cleaned_data.get("id_type") == Patient.IdType.NATIONAL_ID:
             self._nid_data = parse_egyptian_national_id(value)
-        existing = Patient.objects.filter(national_id=value).exclude(pk=self.instance.pk).first()
+        others = Patient.objects.filter(national_id=value).exclude(pk=self.instance.pk).select_related("branch")
+        place = self.instance.branch if self.instance.pk else current_place()
+        existing = others.filter(branch=place).first() if place is not None else others.first()
         if existing:
             raise forms.ValidationError(
                 _("This ID is already registered for %(name)s (file %(file)s). Do not create a second file.")
                 % {"name": existing.full_name, "file": existing.file_number}
             )
+        elsewhere = others.exclude(status=Patient.Status.OUT).first()
+        if elsewhere and not self.instance.pk:
+            # Another place's patient: their name stays with that place.
+            raise forms.ValidationError(
+                _("This ID has an open file at %(place)s (file %(file)s). To move the patient here, open that file "
+                  "at %(place)s and press “Move to another place”.")
+                % {"place": elsewhere.branch.code, "file": elsewhere.file_number}
+            )
         return value
+
+    def clean_full_name(self):
+        return clean_arabic_name(self.cleaned_data.get("full_name"))
 
     def clean_registered_on(self):
         return self.cleaned_data.get("registered_on") or self.instance.registered_on or timezone.localdate()

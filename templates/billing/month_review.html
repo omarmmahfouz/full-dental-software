@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "The month's receipts" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-calendar3"></i> {% trans "The month's receipts" %} <span class="place-badge place-{{ place.code }}">{{ place.code }}</span> <small class="text-muted fs-6">{{ first|date:"F Y" }}</small></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="?month={{ prev_month|date:'Y-m' }}&amp;place={{ place.code }}"><i class="bi bi-chevron-left"></i></a>
+    <a class="btn btn-outline-secondary" href="?month={{ next_month|date:'Y-m' }}&amp;place={{ place.code }}"><i class="bi bi-chevron-right"></i></a>
+    {% if places|length > 1 %}{% for p in places %}<a class="btn btn-sm {% if p.pk == place.pk %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?month={{ first|date:'Y-m' }}&amp;place={{ p.code }}">{{ p.code }}</a>{% endfor %}{% endif %}
+  </div>
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
+  <thead><tr><th>{% trans "Day" %}</th><th class="text-end">{% trans "Received" %}</th><th class="text-end">{% trans "Receipts" %}</th><th>{% trans "Closed" %}</th><th class="text-end">{% trans "Cash difference" %}</th><th>{% trans "Reviewed" %}</th></tr></thead>
+  <tbody>{% for row in rows %}<tr>
+    <td><a href="{% url 'billing:day' %}?day={{ row.day|date:'d/m/Y' }}&amp;place={{ place.code }}">{{ row.day|date:"D d/m" }}</a></td>
+    <td class="text-end fw-semibold">{{ row.total|money }}</td><td class="text-end">{{ row.count }}</td>
+    <td>{% if row.closing %}<i class="bi bi-lock-fill text-success"></i> {{ row.closing.closed_by|default:"" }}{% else %}<span class="badge text-bg-warning">{% trans "not closed" %}</span>{% endif %}</td>
+    <td class="text-end {% if row.closing and row.closing.difference %}text-danger fw-bold{% endif %}">{% if row.closing %}{{ row.closing.difference|money }}{% else %}—{% endif %}</td>
+    <td>{% if row.closing.reviewed_at %}<i class="bi bi-check2-circle text-success"></i> {{ row.closing.reviewed_by }}{% elif row.closing %}<span class="badge text-bg-secondary">{% trans "to review" %}</span>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="6" class="text-muted text-center py-4">{% trans "No receipts this month." %}</td></tr>{% endfor %}</tbody>
+  {% if rows %}<tfoot><tr class="fw-bold"><td>{% trans "Total" %}</td><td class="text-end">{{ total|money }}</td><td colspan="4"></td></tr></tfoot>{% endif %}
+</table></div></div>
+{% endblock %}

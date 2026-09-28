@@ -4,6 +4,7 @@ with a discount of up to 100%, paid at once or in parts."""
 from collections import namedtuple
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.urls import reverse
@@ -168,6 +169,13 @@ class Charge(TimeStampedModel):
         return self.price - self.discount_amount
 
 
+class LivePaymentManager(models.Manager):
+    """The payments that count: a cancelled receipt is kept (for the review) but counts nowhere."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(cancelled_at__isnull=True)
+
+
 class PatientPayment(TimeStampedModel):
     receipt_number = models.CharField(_("receipt number"), max_length=20, unique=True, blank=True, editable=False)
     patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.PROTECT,
@@ -178,7 +186,7 @@ class PatientPayment(TimeStampedModel):
     bill = models.ForeignKey(Bill, verbose_name=_("bill"), null=True, blank=True, on_delete=models.SET_NULL,
                              related_name="payments")
     amount = models.DecimalField(_("amount paid"), max_digits=10, decimal_places=2,
-                                 validators=[MinValueValidator(Decimal("0.01"))])
+                                 help_text=_("A refund is written as a receipt with the amount given back."))
     paid_on = models.DateField(_("payment date"), default=timezone.localdate, db_index=True)
     method = models.CharField(_("payment method"), max_length=20, choices=PaymentMethod.choices,
                               default=PaymentMethod.CASH)
@@ -189,17 +197,40 @@ class PatientPayment(TimeStampedModel):
     fawry_machine = models.ForeignKey(FawryMachine, verbose_name=_("Fawry machine"), null=True, blank=True,
                                       on_delete=models.PROTECT, related_name="patient_payments",
                                       help_text=_("For card payments: the machine that took it."))
+    refund_of = models.ForeignKey("self", verbose_name=_("refund of the receipt"), null=True, blank=True,
+                                  on_delete=models.PROTECT, related_name="refunds")
+    cancelled_at = models.DateTimeField(_("cancelled at"), null=True, blank=True)
+    cancelled_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("cancelled by"), null=True, blank=True,
+                                     on_delete=models.SET_NULL, related_name="+")
+    cancel_reason = models.CharField(_("why cancelled"), max_length=255, blank=True)
+
+    objects = LivePaymentManager()
+    every = models.Manager()  # cancelled receipts too: the end-of-day review and the receipt itself
 
     class Meta:
         ordering = ["-paid_on", "-pk"]
         verbose_name = _("patient payment")
         verbose_name_plural = _("patient payments")
+        base_manager_name = "every"
 
     def __str__(self):
         return f"{self.receipt_number} - {self.amount}"
 
     def get_absolute_url(self):
         return reverse("billing:receipt", args=[self.pk])
+
+    @property
+    def is_refund(self):
+        return self.amount < 0
+
+    @property
+    def is_cancelled(self):
+        return self.cancelled_at is not None
+
+    def refundable(self):
+        """What can still be given back on this receipt."""
+        given = PatientPayment.objects.filter(refund_of=self).aggregate(total=models.Sum("amount"))["total"] or 0
+        return self.amount + given
 
     def save(self, *args, **kwargs):
         if self.branch_id is None:
@@ -212,6 +243,68 @@ class PatientPayment(TimeStampedModel):
             if not self.receipt_number:
                 self.receipt_number = f"PR-{self.pk:06d}"
                 type(self).objects.filter(pk=self.pk).update(receipt_number=self.receipt_number)
+
+
+class PaymentLog(models.Model):
+    """Every correction, cancellation and refund of a receipt: who, when, why, and what it was before."""
+
+    class Action(models.TextChoices):
+        CORRECTED = "corrected", _("Corrected")
+        CANCELLED = "cancelled", _("Cancelled")
+        REFUNDED = "refunded", _("Refunded")
+
+    payment = models.ForeignKey(PatientPayment, verbose_name=_("receipt"), on_delete=models.CASCADE,
+                                related_name="log")
+    action = models.CharField(_("what was done"), max_length=10, choices=Action.choices)
+    before = models.CharField(_("before"), max_length=255, blank=True)
+    after = models.CharField(_("after"), max_length=255, blank=True)
+    reason = models.CharField(_("why"), max_length=255)
+    done_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("by"), null=True, on_delete=models.SET_NULL,
+                                related_name="+")
+    done_at = models.DateTimeField(_("when"), default=timezone.now)
+
+    class Meta:
+        ordering = ["-done_at"]
+        verbose_name = _("receipt change")
+        verbose_name_plural = _("receipt changes")
+
+    def __str__(self):
+        return f"{self.payment.receipt_number}: {self.get_action_display()}"
+
+
+class DayClosing(models.Model):
+    """The end of a day at a place: the receipts of the day added up by payment method, the cash counted in the
+    drawer, and the owner's review."""
+
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), on_delete=models.PROTECT, related_name="day_closings")
+    day = models.DateField(_("day"))
+    totals = models.JSONField(_("totals by payment method"), default=dict)
+    total = models.DecimalField(_("total received"), max_digits=12, decimal_places=2, default=0)
+    receipts = models.PositiveIntegerField(_("receipts"), default=0)
+    cash_expected = models.DecimalField(_("cash that should be in the drawer"), max_digits=12, decimal_places=2,
+                                        default=0)
+    cash_counted = models.DecimalField(_("cash counted in the drawer"), max_digits=12, decimal_places=2)
+    notes = models.CharField(_("notes"), max_length=255, blank=True)
+    closed_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("closed by"), null=True,
+                                  on_delete=models.SET_NULL, related_name="+")
+    closed_at = models.DateTimeField(_("closed at"), default=timezone.now)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("reviewed by"), null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
+    reviewed_at = models.DateTimeField(_("reviewed at"), null=True, blank=True)
+    review_notes = models.CharField(_("review notes"), max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-day"]
+        verbose_name = _("day closing")
+        verbose_name_plural = _("day closings")
+        constraints = [models.UniqueConstraint(fields=["branch", "day"], name="one_closing_a_day_per_place")]
+
+    def __str__(self):
+        return f"{self.branch.code} {self.day:%d/%m/%Y}"
+
+    @property
+    def difference(self):
+        return self.cash_counted - self.cash_expected
 
 
 def _share_payments(charges, payments):

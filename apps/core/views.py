@@ -39,12 +39,14 @@ from .roles import (
     FRONT_DESK,
     HEAD_CIA,
     MANAGEMENT,
+    MODERATOR,
     OWNER,
     PATIENT_VIEWERS,
     PURCHASE_ROLES,
     SECRETARY,
     STOCK_ROLES,
     SUPERVISOR,
+    TEAM_HEAD,
     has_role,
 )
 
@@ -74,11 +76,11 @@ def dashboard(request):
 
         context["backup"] = backup_status()
     if has_role(user, *PATIENT_VIEWERS):
-        counts = dict(Patient.objects.values_list("status").annotate(n=Count("id")))
+        counts = dict(Patient.objects.here().values_list("status").annotate(n=Count("id")))
         context["patient_totals"] = {
             "total": sum(counts.values()), "active": counts.get(Patient.Status.ACTIVE, 0),
             "finished": counts.get(Patient.Status.FINISHED, 0), "out": counts.get(Patient.Status.OUT, 0),
-            "new_this_month": Patient.objects.filter(registered_on__gte=today.replace(day=1)).count(),
+            "new_this_month": Patient.objects.here().filter(registered_on__gte=today.replace(day=1)).count(),
         }
 
     todays = Appointment.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end)
@@ -96,14 +98,23 @@ def dashboard(request):
             "no_show": counts.get(Appointment.Status.NO_SHOW, 0),
         }
         context["calls_due"] = (
-            Lead.objects.filter(status__in=(Lead.Status.NEW, Lead.Status.FOLLOW_UP)).order_by("first_call_on", "created_at")[:8]
+            Lead.objects.filter(status__in=(Lead.Status.NEW, Lead.Status.FOLLOW_UP), branch=branch)
+            .order_by("first_call_on", "created_at")[:8]
         )
-        context["lab_to_send"] = LabRequest.objects.filter(status=LabRequest.Status.APPROVED).count()
-        context["lab_overdue"] = LabRequest.objects.filter(
-            status=LabRequest.Status.SENT, due_date__lt=today
-        ).count()
-        context["lab_received"] = LabRequest.objects.filter(status=LabRequest.Status.RECEIVED).count()
-        context["open_complaints"] = Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES).count()
+        from apps.billing.models import Bill, bill_totals
+
+        since = today - timedelta(days=30)
+        doctor_bills = list(Bill.objects.filter(branch=branch, source=Bill.Source.DENTIST, billed_on__gte=since)
+                            .select_related("patient", "dentist").order_by("-billed_on", "-pk")[:200])
+        left = bill_totals(doctor_bills)
+        context["doctor_bills"] = [{"bill": b, "left": left[b.pk]["left"]} for b in doctor_bills
+                                   if left[b.pk]["left"] > 0][:8]
+        context["doctor_bills_from"] = since
+        labs = LabRequest.objects.filter(patient__branch=branch)
+        context["lab_to_send"] = labs.filter(status=LabRequest.Status.APPROVED).count()
+        context["lab_overdue"] = labs.filter(status=LabRequest.Status.SENT, due_date__lt=today).count()
+        context["lab_received"] = labs.filter(status=LabRequest.Status.RECEIVED).count()
+        context["open_complaints"] = Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES, branch=branch).count()
         options = ClinicSettings.get()
         remind_day = today + timedelta(days=options.reminder_days_before)
         remind_start, remind_end = day_bounds(remind_day)
@@ -138,10 +149,12 @@ def dashboard(request):
         context["overdue_installments"] = sorted(overdue, key=lambda row: -row[1])[:8]
 
     if has_role(user, *MANAGEMENT):
-        context["lab_pending_review"] = LabRequest.objects.filter(status=LabRequest.Status.PENDING_REVIEW).count()
-        context["steps_to_check"] = TreatmentStep.objects.filter(verified_at__isnull=True).count()
+        context["lab_pending_review"] = LabRequest.objects.filter(status=LabRequest.Status.PENDING_REVIEW,
+                                                                  patient__branch=branch).count()
+        context["steps_to_check"] = TreatmentStep.objects.filter(verified_at__isnull=True,
+                                                                 patient__branch=branch).count()
         context["overdue_complaints"] = (
-            Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES, follow_up_due__lt=today)
+            Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES, follow_up_due__lt=today, branch=branch)
             .select_related("patient")
             .order_by("follow_up_due")[:8]
         )
@@ -161,12 +174,18 @@ def dashboard(request):
         context["my_week"] = list(days.values())
         context["my_complaints"] = unanswered(dentist)
         context["my_updates"] = user.notifications.filter(url__startswith="/schedule/appointments/")[:6]
-        context["my_patient_count"] = Patient.objects.filter(
+        context["my_patient_count"] = Patient.objects.here().filter(
             assigned_dentist=dentist, status=Patient.Status.ACTIVE
         ).count()
         context["my_open_labs"] = LabRequest.objects.filter(
             dentist=dentist, status__in=LabRequest.OPEN_STATUSES
         ).count()
+    pending = Appointment.objects.filter(status=Appointment.Status.PENDING, scheduled_at__gte=start).select_related(
+        "patient", "dentist").order_by("scheduled_at")
+    if has_role(user, OWNER, HEAD_CIA, TEAM_HEAD, SUPERVISOR, MODERATOR):
+        context["bookings_to_approve"] = list(pending.filter(branch=branch)[:10])
+    elif dentist is not None:
+        context["bookings_to_approve"] = list(pending.filter(dentist=dentist)[:10])
     context["show_supervisor_cards"] = has_role(user, *MANAGEMENT)
     if has_role(user, *STOCK_ROLES):
         from apps.stock.views import expiring_soon, low_stock

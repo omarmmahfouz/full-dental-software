@@ -10,12 +10,13 @@
       <select name="language" class="form-select"><option value="ar">العربية</option><option value="en" {% if language == "en" %}selected{% endif %}>English</option></select></div>
     <div class="col-md-5"><label class="form-label">{% trans "Sheets" %}</label>
       <div class="d-flex flex-wrap gap-3">{% for s in sheets %}<div class="form-check"><input class="form-check-input" type="checkbox" name="sheet" value="{{ s.pk }}" id="sheet{{ s.pk }}" {% if s.pk in chosen_ids %}checked{% endif %}><label class="form-check-label small" for="sheet{{ s.pk }}">{{ s }}</label></div>{% endfor %}</div></div>
-    <div class="col-md-2 d-flex gap-2"><button class="btn btn-outline-primary"><i class="bi bi-arrow-repeat"></i></button><button type="button" class="btn btn-primary flex-fill" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button></div>
+    <div class="col-md-2 d-flex gap-2"><button class="btn btn-outline-primary"><i class="bi bi-arrow-repeat"></i></button><button type="button" class="btn btn-primary flex-fill" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+      <button type="button" class="btn btn-outline-primary" data-save-as="pdf" data-page="a4" data-save-target="#instructions" data-save-name="instructions-{{ patient.file_number }}" data-tip="{% trans 'Save as PDF' %}" aria-label="{% trans 'Save as PDF' %}"><i class="bi bi-filetype-pdf"></i></button></div>
   </div>
   <div class="small text-muted mt-2">{% trans "The sheets that fit the surgery are chosen automatically." %}</div>
 </form>
 {% language language %}
-<div class="card mx-auto patient-print" style="max-width: 760px" {% if language == "ar" %}dir="rtl" lang="ar"{% else %}dir="ltr" lang="en"{% endif %}><div class="card-body p-4">
+<div class="card mx-auto patient-print" id="instructions" style="max-width: 760px" {% if language == "ar" %}dir="rtl" lang="ar"{% else %}dir="ltr" lang="en"{% endif %}><div class="card-body p-4">
   <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
     <div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
       <div><div class="fw-bold fs-5">{% if language == "ar" %}{{ branch.name_ar }}{% else %}{{ branch.name_en|default:branch.name_ar }}{% endif %}</div><div class="small text-muted">{{ branch.address }} {% if branch.phone %}— <span class="ltr">{{ branch.phone }}</span>{% endif %}</div></div></div>

@@ -111,7 +111,8 @@ def _can_edit_surgery(user, surgery):
 def surgery_list(request):
     if not has_role(request.user, *CLINICAL):
         raise PermissionDenied
-    qs = Surgery.objects.select_related("patient", "operator_1", "operator_2", "instructor").prefetch_related("sites")
+    qs = Surgery.objects.filter(patient__branch=branch_for_user(request.user)).select_related(
+        "patient", "operator_1", "operator_2", "instructor").prefetch_related("sites")
     if is_only_dentist(request.user):
         me = Dentist.for_user(request.user)
         mine = Q(created_by=request.user)

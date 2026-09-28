@@ -1,16 +1,19 @@
 {% extends "base.html" %}
 {% load i18n static %}
 {% block title %}{% trans "Prescription" %} — {{ patient.full_name }}{% endblock %}
+{% block extra_head %}<style>@media print { @page { size: A5; margin: 8mm; } main { max-width: none !important; } }</style>{% endblock %}
 {% block content %}
 {% if request.GET.flow and prescription.surgery %}<div class="alert alert-success d-flex flex-wrap align-items-center gap-2 no-print"><i class="bi bi-check2-circle"></i> {% trans "Prescription saved. Print it, then the post-op instructions for this surgery." %}
   <a class="btn btn-success ms-auto" href="{% url 'prescriptions:instructions' patient.pk %}?surgery={{ prescription.surgery_id }}"><i class="bi bi-arrow-right"></i> {% trans "Next: post-op instructions" %}</a></div>{% endif %}
 <div class="text-center mb-3 no-print d-flex gap-2 justify-content-center">
-  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print (A5)" %}</button>
+  <button class="btn btn-outline-primary" data-save-as="jpeg" data-save-target="#prescription" data-save-name="Rx-{{ patient.file_number }}-{{ prescription.prescribed_on|date:'Y-m-d' }}"><i class="bi bi-image"></i> {% trans "Save as a picture" %}</button>
+  <button class="btn btn-outline-primary" data-save-as="pdf" data-page="a5" data-save-target="#prescription" data-save-name="Rx-{{ patient.file_number }}-{{ prescription.prescribed_on|date:'Y-m-d' }}"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
   <a class="btn btn-outline-secondary" href="{% url 'prescriptions:instructions' patient.pk %}{% if prescription.surgery %}?surgery={{ prescription.surgery_id }}{% endif %}"><i class="bi bi-card-checklist"></i> {% trans "Post-op instructions" %}</a>
   <a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-arrow-left"></i> {% trans "Back to chart" %}</a>
 </div>
 {% language "ar" %}
-<div class="card mx-auto patient-print" style="max-width: 760px" dir="rtl" lang="ar"><div class="card-body p-4">
+<div class="card mx-auto patient-print prescription-a5" id="prescription" dir="rtl" lang="ar"><div class="card-body p-4">
   <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
     <div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
       <div><div class="fw-bold fs-5">{{ branch.name_ar|default:"أكاديمية القاهرة لزراعة الأسنان" }}</div><div class="small text-muted">{{ branch.address }} {% if branch.phone %}— <span class="ltr">{{ branch.phone }}</span>{% endif %}</div></div></div>
@@ -20,10 +23,9 @@
     <div class="col-7"><b>اسم المريض:</b> {{ patient.full_name }}</div>
     <div class="col-5">{% if patient.age is not None %}<b>السن:</b> {{ patient.age }} سنة{% endif %}</div>
   </div>
-  <div class="rx-symbol">℞</div>
-  <ol class="rx-lines" dir="ltr">
-    {% for line in lines %}<li><div class="fw-bold fs-5">{{ line.drug.name }}</div><div dir="rtl" class="text-end">{{ line.dose }}</div></li>{% endfor %}
-  </ol>
+  <ul class="rx-lines list-unstyled" dir="ltr">
+    {% for line in lines %}<li><div class="fw-bold fs-5"><span class="rx-mark">Rx/</span> {{ line.drug.name }}</div><div dir="rtl" class="text-end rx-dose">{{ line.dose }}</div></li>{% endfor %}
+  </ul>
   {% if prescription.notes %}<p class="mt-3">{{ prescription.notes }}</p>{% endif %}
   <div class="d-flex justify-content-between mt-5 pt-3">
     <div><b>الطبيب:</b> {{ prescription.dentist|default:"" }}</div>

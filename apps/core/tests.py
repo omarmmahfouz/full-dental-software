@@ -372,7 +372,7 @@ class ApprovalTests(TestCase):
         from apps.core.models import ChangeRequest
 
         self.client.login(username="sec", password=PASSWORD)
-        self.client.post(f"/patients/{self.patient.pk}/edit/", self.patient_data(full_name="اسم آخر"))
+        self.client.post(f"/patients/{self.patient.pk}/edit/", self.patient_data(full_name="اسم آخر جديد"))
         change = ChangeRequest.objects.get()
         self.client.login(username="head", password=PASSWORD)
         self.client.post(f"/approvals/{change.pk}/", {"action": "reject"})

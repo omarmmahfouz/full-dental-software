@@ -15,7 +15,7 @@
   <meta name="theme-color" content="#9EC64F">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="sec-{{ section }}{% if current_branch %} place-{{ current_branch.code }}{% endif %}{% if user.is_authenticated and bottom_nav %} has-bottom-bar{% endif %} {% block body_class %}{% endblock %}"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}" data-user="{{ user.pk }}"{% if hints_reset %} data-hints-reset{% endif %}{% endif %}>
+<body class="sec-{{ section }}{% if current_branch %} place-{{ current_branch.code }}{% endif %}{% if user.is_authenticated and bottom_nav %} has-bottom-bar{% endif %} {% block body_class %}{% endblock %}"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}" data-user="{{ user.pk }}"{% if hints_reset %} data-hints-reset{% endif %}{% endif %} data-vendor-html2canvas="{% static 'vendor/html2canvas/html2canvas.min.js' %}" data-vendor-jspdf="{% static 'vendor/jspdf/jspdf.umd.min.js' %}">
 <div class="nav-progress no-print" data-nav-progress aria-hidden="true"></div>
 {% if test_copy %}<div class="test-copy-banner" role="alert"><i class="bi bi-cone-striped"></i> {% trans "TEST COPY: for trying things out. Nothing done here changes the real system, and nothing here is kept." %}</div>{% endif %}
 {% if user.is_authenticated %}
@@ -66,6 +66,7 @@
             {% if "billing" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'billing:bill_create' %}"><i class="bi bi-receipt"></i> {% trans "New bill" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'billing:bill_list' %}"><i class="bi bi-receipt-cutoff"></i> {% trans "Bills" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'billing:payment_list' %}"><i class="bi bi-cash-stack"></i> {% trans "Patient payments" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'billing:day' %}"><i class="bi bi-calendar-check"></i> {% trans "End of the day" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'billing:fawry' %}"><i class="bi bi-credit-card-2-front"></i> {% trans "Fawry machine" %}</a></li>{% endif %}
             {% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% trans "All patients" %}</a></li>
