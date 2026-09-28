@@ -55,6 +55,22 @@ def get_visible_patient_or_403(user, pk):
     return patient
 
 
+def other_place_page(request, branch_id):
+    """A page of another of this person's places (e.g. opened from a notification): the page that offers to switch
+    to that place first, instead of "not allowed". None when the page is of the place worked in now."""
+    from django.shortcuts import render
+
+    from apps.core.models import Branch, branch_for_user, working_places
+
+    here = branch_for_user(request.user)
+    if not branch_id or (here is not None and branch_id == here.pk) or not has_role(request.user, *PATIENT_VIEWERS):
+        return None
+    if not working_places(request.user).filter(pk=branch_id).exists():
+        return None
+    return render(request, "patients/other_place.html", {"place": Branch.objects.get(pk=branch_id),
+                                                         "next": request.get_full_path()})
+
+
 def get_clinical_patient_or_403(user, pk):
     """For the dental chart, the treatment log and surgeries: the clinical team only. The reception
     reads the plan and the treatments done, in plain Arabic, on the patient file."""

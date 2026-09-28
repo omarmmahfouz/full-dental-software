@@ -1,3 +1,4 @@
+import os
 import io
 from decimal import Decimal
 
@@ -574,3 +575,73 @@ class PhotoPreviewTests(TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.media, previews.preview_name(photo.file.name, "medium"))))
         self.client.post(f"/chart/photo/{photo.pk}/delete/")
         self.assertFalse(os.path.exists(small))
+
+
+class PhotoEditTests(TestCase):
+    """A photo is cropped or turned in the page before it goes in the log book; the original is kept."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+
+        from django.test import override_settings
+
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, ignore_errors=True)
+        settings_override = override_settings(MEDIA_ROOT=self.media)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
+        self.branch = setup_clinic()
+        make_dentist("dentist", kind="fulltime")
+        make_user("sec", "secretary")
+        self.patient = make_patient(self.branch)
+
+    def picture(self, size, colour="red"):
+        from PIL import Image
+
+        output = io.BytesIO()
+        Image.new("RGB", size, colour).save(output, "JPEG")
+        return output.getvalue()
+
+    def test_the_edited_photo_takes_the_place_and_the_original_is_kept(self):
+        from django.core.files.base import ContentFile
+        from django.core.files.storage import default_storage
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+
+        from apps.charting.models import ClinicalPhoto, PhotoStage
+
+        photo = ClinicalPhoto(patient=self.patient, stage=PhotoStage.DIAGNOSTIC, notes="Smile")
+        photo.file.save("smile.jpg", ContentFile(self.picture((400, 300))), save=True)
+        first_name = photo.file.name
+        self.client.login(username="dentist", password=PASSWORD)
+        page = self.client.get(f"/chart/photo/{photo.pk}/edit/")
+        self.assertContains(page, "data-photo-editor")
+        response = self.client.post(f"/chart/photo/{photo.pk}/edit/", {
+            "image": SimpleUploadedFile("photo.jpg", self.picture((200, 150), "blue"), "image/jpeg")})
+        self.assertTrue(response.json()["ok"])
+        photo.refresh_from_db()
+        self.assertEqual(photo.file.name, first_name)  # the same name in the same folder, for the log book
+        self.assertIn("original", os.path.basename(photo.original.name))
+        with default_storage.open(photo.file.name) as handle:
+            self.assertEqual(Image.open(handle).size, (200, 150))
+        with default_storage.open(photo.original.name) as handle:
+            self.assertEqual(Image.open(handle).size, (400, 300))
+        # A second edit keeps the first original; a file that is not a picture is refused.
+        original = photo.original.name
+        self.client.post(f"/chart/photo/{photo.pk}/edit/", {
+            "image": SimpleUploadedFile("photo.jpg", self.picture((100, 75)), "image/jpeg")})
+        photo.refresh_from_db()
+        self.assertEqual(photo.original.name, original)
+        bad = self.client.post(f"/chart/photo/{photo.pk}/edit/", {
+            "image": SimpleUploadedFile("photo.jpg", b"not a picture", "image/jpeg")})
+        self.assertEqual(bad.status_code, 400)
+        # Put the original back.
+        self.client.post(f"/chart/photo/{photo.pk}/edit/", {"action": "restore"})
+        photo.refresh_from_db()
+        self.assertFalse(photo.original)
+        with default_storage.open(photo.file.name) as handle:
+            self.assertEqual(Image.open(handle).size, (400, 300))
+        self.assertEqual(len(default_storage.listdir(os.path.dirname(photo.file.name))[1]), 1)
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get(f"/chart/photo/{photo.pk}/edit/").status_code, 403)

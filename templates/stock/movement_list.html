@@ -8,6 +8,11 @@
   {% for field in filter_form %}<div class="col-6 col-md-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}
   <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
 </div></form>
+{% if use_by_group %}<div class="card mb-3"><div class="card-header"><i class="bi bi-diagram-3"></i> {% trans "Taken out of each group in this period" %}</div>
+  <div class="d-flex flex-wrap gap-2 p-3">{% for row in use_by_group %}
+    <a class="use-place text-decoration-none" href="?{{ request.GET.urlencode }}&amp;group={{ row.code }}"><i class="bi {{ row.icon }}"></i> <b>{{ row.label }}</b>
+      <span>{% blocktrans count n=row.moves %}{{ n }} item taken out{% plural %}{{ n }} items taken out{% endblocktrans %} · {% trans "value" %} <b>{{ row.value|floatformat:"0" }}</b></span></a>
+  {% endfor %}</div></div>{% endif %}
 {% if use_by_place %}<div class="card mb-3"><div class="card-header"><i class="bi bi-geo-alt"></i> {% trans "Used by each place in this period" %}</div>
   <div class="d-flex flex-wrap gap-2 p-3">{% for row in use_by_place %}
     <div class="use-place place-{{ row.place.code|default:'none' }}"><span class="place-dot"></span> <b>{% if row.place %}{{ row.place.code }} — {{ row.place }}{% else %}{% trans "place not written" %}{% endif %}</b>

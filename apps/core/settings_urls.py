@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import settings_views as views
+from . import passwords, settings_views as views
 
 app_name = "settings"
 
@@ -8,6 +8,8 @@ urlpatterns = [
     path("", views.settings_home, name="home"),
     path("options/", views.options_edit, name="options"),
     path("users/", views.user_list, name="users"),
+    path("users/password/<int:pk>/give/", passwords.give_password, name="password_give"),
+    path("users/password/<int:pk>/refuse/", passwords.refuse_password, name="password_refuse"),
     path("users/new/", views.user_edit, name="user_create"),
     path("users/<int:pk>/", views.user_edit, name="user_update"),
     path("access/", views.role_access, name="access"),

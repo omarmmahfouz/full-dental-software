@@ -83,3 +83,10 @@ In the sample data:
 ## G. New in this version (6): quick with years of data
 25. As **moderator**, *Clinics → Doctors' shares* for a whole year, and the *Clinic report* for a year: they open in about a second (before, with thousands of patients, they took 15 seconds). The numbers are the same as each doctor's statement: open Dr. Walid Hamdy's statement for the same period and compare *Share* and *Still owed*.
 26. As **secretary** at CIC: "الفواتير" and "مدفوعات المرضى" for a long period show 200 rows a page, with the totals for the whole period.
+
+## H. New in this version (7): each place apart
+27. As **secretary**, switch to **CIC** in the top bar: the patient list, the complaints, the waiting list and the patients to call are **CIC's only**; CIA's patients do not show, even their names. New CIC files are numbered `CIC-…`.
+28. The patient moved from CIA has a new CIC file; the old CIA file is *out*, with a link to the new one. A patient cannot be booked at CIC with a CIA file: move it first ("نقل لمكان آخر").
+29. CIC has its own 4 numbered **extra rooms**, closed until booked or given a shift.
+30. **End of the day at CIC**: "نهاية اليوم" shows CIC's receipts only; the day is closed for each place apart.
+31. A CIC doctor who writes a bill sends it to the CIC reception, which takes the payment.

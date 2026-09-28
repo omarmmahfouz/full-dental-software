@@ -31,6 +31,7 @@ from apps.core.utils import name_patterns, normalize_phone, validate_phone
 
 from .access import (
     file_parts,
+    other_place_page,
     get_clinical_patient_or_403,
     get_visible_patient_or_403,
     my_patients,
@@ -333,13 +334,10 @@ class PatientUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
 
 
 def patient_detail(request, pk):
-    elsewhere = Patient.objects.filter(pk=pk).exclude(branch=branch_for_user(request.user)).values_list(
-        "branch", flat=True).first()
-    if elsewhere and has_role(request.user, *PATIENT_VIEWERS) and working_places(request.user).filter(
-            pk=elsewhere).exists():
-        # A file of another place this person works at (e.g. opened from a notification): switch place first.
-        return render(request, "patients/other_place.html", {"place": Branch.objects.get(pk=elsewhere),
-                                                               "next": request.get_full_path()})
+    # A file of another place this person works at (e.g. opened from a notification): switch place first.
+    switch = other_place_page(request, Patient.objects.filter(pk=pk).values_list("branch", flat=True).first())
+    if switch is not None:
+        return switch
     patient = get_visible_patient_or_403(request.user, pk)
     context = {
         "patient": patient,

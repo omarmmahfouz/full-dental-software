@@ -456,7 +456,7 @@ class PatientsPerPlaceTests(TestCase):
         self.assertEqual(self.client.get("/patients/lookup/?q=مريض").json()["results"], [])
         self.assertNotContains(self.client.get("/patients/?q=مريض"), "مريض الأكاديمية الأول")
         other = self.client.get(self.patient.get_absolute_url())  # she works at CIA too: switch first
-        self.assertContains(other, "Work at CIA and open the file")
+        self.assertContains(other, "العمل في CIA وفتح الملف")
         self.assertNotContains(other, "مريض الأكاديمية الأول")
         # The same person cannot get a second file at CIC; the message gives the CIA file number, not the name.
         response = self.client.post("/patients/new/", {"full_name": "مريض الأكاديمية الأول", "id_type": "nid",
@@ -473,7 +473,7 @@ class PatientsPerPlaceTests(TestCase):
         coming = Appointment.objects.create(branch=self.cia, patient=self.patient, scheduled_at=timezone.make_aware(
             datetime.combine(timezone.localdate() + timedelta(days=3), time(12))))
         page = self.client.get(self.patient.get_absolute_url())
-        self.assertContains(page, "Move to another place")
+        self.assertContains(page, "نقل لمكان آخر")
         self.assertNotContains(page, "Book at")  # booking at another place is not done
         self.client.post(f"/patients/{self.patient.pk}/move/", {"place": "CIC"})
         self.patient.refresh_from_db()
@@ -516,7 +516,7 @@ class ArabicNameTests(TestCase):
         make_user("sec", "secretary")
         self.client.login(username="sec", password=PASSWORD)
         response = self.client.post("/patients/new/", {"full_name": "Ahmed Ali Hassan"})
-        self.assertIn("Arabic", str(response.context["form"].errors["full_name"]))
+        self.assertIn("العربية", str(response.context["form"].errors["full_name"]))
 
 
 class FileStepsTests(TestCase):

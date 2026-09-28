@@ -1,11 +1,32 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n clinic %}
 {% block title %}{% trans "People and logins" %}{% endblock %}
 {% block content %}
 <div class="page-header">
   <h1><a class="text-decoration-none" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i></a> {% trans "People and logins" %}</h1>
   <a class="btn btn-primary" href="{% url 'settings:user_create' %}"><i class="bi bi-person-plus"></i> {% trans "New login" %}</a>
 </div>
+{% if given_password %}
+<div class="alert alert-success d-flex flex-wrap align-items-center gap-2" id="password-requests">
+  <i class="bi bi-key fs-4"></i>
+  <div>{% blocktrans with name=given_password.name %}New temporary password for {{ name }}:{% endblocktrans %} <b class="fs-5 ltr user-select-all">{{ given_password.password }}</b>
+    <div class="small">{% trans "Tell it to the person (it is shown only now). They choose their own password when they log in." %}</div></div>
+  {% if given_password.phone %}<a class="btn btn-success ms-auto" target="_blank" rel="noopener" href="https://wa.me/{{ given_password.phone|wa_number }}?text={{ given_password.password|urlencode }}"><i class="bi bi-whatsapp"></i> {% trans "Send it on WhatsApp" %}</a>{% endif %}
+</div>
+{% endif %}
+{% if password_requests %}
+<div class="card border-warning mb-3"{% if not given_password %} id="password-requests"{% endif %}><div class="card-header"><i class="bi bi-question-circle text-warning"></i> {% trans "Forgotten passwords" %} <span class="badge text-bg-warning">{{ password_requests|length }}</span></div>
+  <ul class="list-group list-group-flush">{% for r in password_requests %}
+    <li class="list-group-item d-flex flex-wrap align-items-center gap-2">
+      <span><b>{{ r.user.get_full_name|default:r.user.username }}</b> <span class="ltr small text-muted">{{ r.user.username }}</span> · <span class="small">{{ r.asked_at|date:"d/m/Y g:i A" }}</span>{% if r.note %}<div class="small">{{ r.note }}</div>{% endif %}</span>
+      <span class="ms-auto d-flex gap-2">
+        <form method="post" action="{% url 'settings:password_give' r.pk %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-primary" data-confirm="{% trans 'Give this person a new temporary password? The old password stops working.' %}"><i class="bi bi-key"></i> {% trans "Give a new password" %}</button></form>
+        <form method="post" action="{% url 'settings:password_refuse' r.pk %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">{% trans "Close" %}</button></form>
+      </span>
+    </li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
 <div class="card"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
   <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Username" %}</th><th>{% trans "Roles" %}</th><th>{% trans "Access" %}</th><th>{% trans "Last login" %}</th></tr></thead>
   <tbody>{% for u, roles, profile, custom in rows %}<tr class="{% if not u.is_active %}text-muted{% endif %}">

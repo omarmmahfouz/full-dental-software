@@ -69,7 +69,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - `charting`: examination, tooth chart rules, plans, photos
   - `surgery`: surgery chart, implants, prostheses, case finder
   - `prescriptions`
-  - `billing`: services, charges, bills, payments, **Fawry ledger** in `billing/fawry.py`
+  - `billing`: services, charges, bills, payments, **Fawry ledger** in `billing/fawry.py`; receipts are never deleted:
+    `billing/receipts.py` corrects, cancels (`PatientPayment.every` still has them) or refunds (a negative receipt),
+    with a `PaymentLog`; `DayClosing` is the end of the day at a place
   - `stock`: every change goes through `stock.services.record_movement`; implants by lot are in `stock/implants.py`
   - `complaints`, `academy`, `purchasing`, `reports` (money and balance sheet are owner-only)
   - `clinics`: `FeeRule` (percent of what was paid / fixed per unit / fixed per visit, per doctor and place),
@@ -77,10 +79,13 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
   through `WorkingPlaceMiddleware`); `working_places(user)` = the owner's all, else `profile.places` + `profile.branch`.
   - Bills, charges (with `dentist`), patient payments, appointments, rooms, room shifts and stock movements carry a place.
-  - Patients are shared (one file); new files take the place's prefix (`CIC-…`).
+  - Each place has its own patients (`Patient.objects.here()`, `visible_patients`): a place never sees another place's
+    patients. New files take the place's prefix (`CIC-…`); moving one (`patients/transfer.py`) opens a new file there.
   - `Dentist.places` + `Dentist.objects.working_at(place)`; `Service.branch` ("only at") + `Service.for_place(place)`;
     `StockItem.branch` = belongs to (empty = shared).
   - Two Fawry machines (`FawryMachine`): each card payment and Fawry move names its machine.
+- **What the reception sees in a file**: `patients/access.py` `file_parts(user)` (owner's choice in Settings → Access,
+  `ClinicSettings.reception_sees`); the dentist fills the file in order (`patients/sequence.py`).
 - **Approvals** (`apps/core/approvals.py`: `needs_approval`, `request_change`) go to the head of CIA or the owner.
   They cover:
   - patient data edited by the reception;
@@ -163,7 +168,8 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - Fawry is a ledger typed by the reception; there is no link to the machine itself.
   - WhatsApp opens one message per click; there is no automatic sending.
   - The alert sound needs one click on the page first.
-  - The ID card photo is cropped, but its text is not read.
+  - The ID card photo is checked and cropped, and the 14-digit number is read on the tablet (made-up cards only were
+    tested); the name and the address are typed.
   - The drug doses need a doctor's review in Settings.
   - There is no freehand pen drawing or on-screen signature yet.
   - A doctor's percentage is taken of what the patient has paid so far, counted on the date the service was given;

@@ -502,15 +502,38 @@ class Command(BaseCommand):
         with open(STOCK_LIST, newline="", encoding="utf-8") as handle:
             entries = parse(csv.reader(handle))
         import_items(entries, StockCategory.objects.get(name_en="Instruments"), stock_user, note="Opening stock")
-        food = StockCategory.objects.get(name_en="Food & beverage")
-        for name, unit, quantity, minimum in [("Tea", "box", 6, 2), ("Coffee", "pack", 1, 2), ("Sugar", "kg", 4, 2),
-                                              ("Mineral water", "bottle", 24, 12), ("Biscuits", "pack", 10, 5)]:
-            item = StockItem.objects.create(name=name, category=food, unit=unit, min_quantity=minimum, created_by=stock_user)
+        # Every group of the stock has something: hospitality, stationery, sterilisation, surgery...
+        category = {c.name_en: c for c in StockCategory.objects.all()}
+        for name, group_name, unit, quantity, minimum in [
+                ("Tea", "Hospitality (tea, coffee, sugar, cups)", "box", 6, 2),
+                ("Coffee", "Hospitality (tea, coffee, sugar, cups)", "pack", 1, 2),
+                ("Sugar", "Hospitality (tea, coffee, sugar, cups)", "kg", 4, 2),
+                ("Paper cups", "Hospitality (tea, coffee, sugar, cups)", "pack", 3, 2),
+                ("Mineral water", "Food & beverage", "bottle", 24, 12),
+                ("Biscuits", "Food & beverage", "pack", 10, 5),
+                ("Receipt paper rolls 80 mm", "Printing & receipt rolls", "roll", 8, 4),
+                ("A4 paper", "Stationery", "ream", 2, 3),
+                ("Blue pens", "Stationery", "box", 2, 1),
+                ("Printer toner", "Printer ink & toner", "piece", 1, 1),
+                ("Sterilisation pouches", "Sterilisation (pouches, indicators)", "box", 5, 2),
+                ("Autoclave indicator strips", "Sterilisation (pouches, indicators)", "pack", 2, 1),
+                ("Saliva ejectors", "Disposables (suction tips, cups, bibs)", "pack", 6, 2),
+                ("Vicryl 4-0 sutures", "Sutures", "piece", 24, 10),
+                ("Bone graft 0.5 cc", "Bone grafts & membranes", "vial", 4, 2),
+                ("Collagen membrane 15x20", "Bone grafts & membranes", "piece", 3, 2),
+                ("Healing abutments", "Abutments & prosthetic parts", "piece", 10, 4),
+                ("Alginate", "Impression materials", "bag", 3, 1),
+                ("Glass ionomer cement (luting)", "Prosthodontics & cements", "pack", 2, 1),
+                ("K-files 15-40", "Endodontics (files, gutta-percha, sealers)", "box", 4, 2)]:
+            item = StockItem.objects.create(name=name, category=category[group_name], unit=unit, min_quantity=minimum,
+                                            created_by=stock_user)
             record_movement(item, StockMovement.Kind.COUNT, quantity, stock_user, notes="Opening stock")
         for name, minimum in [("Carpule articaine (Spain)", 20), ("Composite A2", 1), ("Etchant tips", 5), ("Floss", 1)]:
             StockItem.objects.filter(name=name).update(min_quantity=minimum)
         for name, quantity, where in [("Carpule articaine (Spain)", 12, "Room 1"), ("Etchant tips", 6, "Room 3"),
-                                      ("Composite A2", 1, "Room 2"), ("Coffee", 1, "Kitchen")]:
+                                      ("Composite A2", 1, "Room 2"), ("Coffee", 1, "Kitchen"),
+                                      ("A4 paper", 1, "Reception"), ("Vicryl 4-0 sutures", 6, "Surgery room"),
+                                      ("Sterilisation pouches", 2, "Sterilisation")]:
             record_movement(StockItem.objects.get(name=name), StockMovement.Kind.OUT, quantity, stock_user,
                             destination=where, moved_at=now - timedelta(days=rng.randint(1, 10)))
 
@@ -647,6 +670,7 @@ class Command(BaseCommand):
                           types, services, secretary, head, stock_user, owner)
         self._round_cic(today, at, user, patients, booked_patients, cia_dentists, types, secretary, stock_user)
         self._round_speed(today, at, patients, secretary)
+        self._round_seven(today, now, at, patients, booked_patients, cia_dentists, types, services, secretary, owner)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
@@ -991,3 +1015,89 @@ class Command(BaseCommand):
             BackupRun.objects.create(kind=kind, started_at=started, finished_at=started + timedelta(minutes=4), ok=ok,
                                      where="data/backups" if kind == BackupRun.Kind.DATABASE else "E:/CIA backup/files",
                                      **extra)
+
+    def _round_seven(self, today, now, at, patients, booked_patients, cia_dentists, types, services, secretary, owner):
+        """The doctors' bills, the receipts' review, the waiting list followed, a booking to approve, a WhatsApp
+        request from a dentist, a CBCT done on our machine, a new file half filled, and a forgotten password."""
+        from apps.billing import receipts
+        from apps.billing.models import DayClosing
+        from apps.core.models import PasswordHelp
+        from apps.patients.models import PatientDocument
+        from apps.scheduling.models import CallResult, WhatsAppRequest
+
+        branch = Branch.objects.get(code="CIA")
+        mona, sherif = cia_dentists[0], cia_dentists[1]
+        # A bill written by Dr. Mona after the treatment: waiting at the reception to be paid.
+        create_bill(patients[3], [{"service": services["Scaling"]}, {"service": services["Panoramic X-ray"]}],
+                    mona.user, dentist=mona, source=Bill.Source.DENTIST, branch=branch,
+                    notes="Scaling done today; panoramic for the plan")
+        # Receipts of yesterday: one written by mistake (cancelled), one with the wrong method (corrected), money
+        # given back on another; then the day closed by the reception, with 50 missing from the drawer.
+        yesterday = today - timedelta(days=1)
+
+        def paid(patient, amount, method=PaymentMethod.CASH):
+            return PatientPayment.objects.create(patient=patient, amount=Decimal(amount), method=method, branch=branch,
+                                                 paid_on=yesterday, created_by=secretary)
+
+        wrong = paid(patients[5], 500)
+        receipts.cancel(wrong, owner, "كُتب مرتين بالخطأ")
+        fawry = paid(patients[6], 1200)
+        receipts.correct(fawry, owner, "دفع بالكارت على ماكينة فوري", method=PaymentMethod.FAWRY,
+                         fawry_machine=FawryMachine.objects.filter(is_active=True).first())
+        back = paid(patients[7], 800)
+        receipts.refund(back, owner, Decimal("300"), PaymentMethod.CASH, "ألغى جلسة التنظيف")
+        summary = receipts.day_summary(branch, yesterday)
+        DayClosing.objects.create(branch=branch, day=yesterday, total=summary["total"], receipts=summary["count"],
+                                  totals={row[2]: str(row[1]) for row in summary["by_method"]},
+                                  cash_expected=summary["cash"], cash_counted=summary["cash"] - 50,
+                                  notes="ناقص 50 جنيه", closed_by=secretary)
+        # The waiting list followed: one patient did not answer twice, one got a place that was freed.
+        entries = list(WaitingEntry.objects.filter(status=WaitingEntry.Status.WAITING).order_by("pk"))
+        if entries:
+            WaitingEntry.objects.filter(pk=entries[0].pk).update(last_call=CallResult.NO_ANSWER, calls=2,
+                                                                 last_call_at=now - timedelta(hours=3))
+        if len(entries) > 1:
+            freed = Appointment.objects.create(
+                branch=branch, patient=entries[1].patient, dentist=mona, scheduled_at=at(today + timedelta(days=2), 13),
+                duration_minutes=entries[1].minutes, status=Appointment.Status.CONFIRMED, created_by=secretary,
+                purpose="من قائمة الانتظار")
+            WaitingEntry.objects.filter(pk=entries[1].pk).update(status=WaitingEntry.Status.BOOKED, appointment=freed,
+                                                                 last_call_at=now - timedelta(hours=1), calls=1)
+        # A booking outside Dr. Sherif's days: it holds the place and waits for approval.
+        friday = today + timedelta(days=(4 - today.weekday()) % 7 or 7)
+        cia_patient = Patient.objects.filter(branch=branch, status=Patient.Status.ACTIVE).order_by("pk")[11]
+        Appointment.objects.create(branch=branch, patient=cia_patient, dentist=sherif, scheduled_at=at(friday, 11),
+                                   duration_minutes=45, status=Appointment.Status.PENDING, created_by=secretary,
+                                   purpose="المريض لا يستطيع إلا يوم الجمعة")
+        # Dr. Mona's tablet has no WhatsApp: she asked the reception to send a prescription.
+        prescription = Prescription.objects.filter(patient__branch=branch).first()
+        if prescription is not None:
+            WhatsAppRequest.objects.create(patient=prescription.patient, branch=branch,
+                                           kind=WhatsAppRequest.Kind.PRESCRIPTION, requested_by=mona.user,
+                                           path=f"/prescriptions/{prescription.pk}/", note="Please send it today")
+        # CIA has a CBCT machine: one CBCT done here, with the folder of the scan; another still requested.
+        Branch.objects.filter(code="CIA").update(has_cbct=True)
+        done = OutsideRequest.objects.create(
+            patient=patients[9], kind=OutsideRequest.Kind.CBCT, dentist=mona, region=OutsideRequest.Region.UPPER,
+            field_of_view=OutsideRequest.FieldOfView.MEDIUM, purposes=["implant"], created_by=mona.user,
+            requested_on=today - timedelta(days=6))
+        scan = PatientDocument.objects.create(patient=patients[9], kind=PatientDocument.Kind.XRAY,
+                                              location=f"\\\\CIA-SERVER\\CBCT\\{patients[9].file_number}",
+                                              notes="CBCT upper jaw (our machine)", created_by=secretary)
+        OutsideRequest.objects.filter(pk=done.pk).update(status=OutsideRequest.Status.DONE_HERE, result=scan,
+                                                         done_on=today - timedelta(days=5), done_by=secretary)
+        # A new patient: the dentist took the medical history only, so the file shows "next: dental history".
+        new = Patient.objects.create(full_name="هشام فؤاد عبد الحميد", national_id="29203150104351",
+                                     birth_date=datetime(1992, 3, 15).date(), gender="M", governorate="01",
+                                     phone_primary="01099887766", branch=branch, created_by=secretary,
+                                     assigned_dentist=mona)
+        history = Examination.objects.create(patient=new, history_only=True, medical_taken=True, dental_taken=False,
+                                             bp_last_systolic=130, bp_last_diastolic=85, allergy_penicillin=True,
+                                             created_by=mona.user)
+        history.conditions.set(MedicalCondition.objects.filter(name_en="High blood pressure"))
+        sync_medical_history(history)
+        # The second secretary forgot her password and asked from the login page.
+        reception = get_user_model().objects.get(username="secretary2")
+        PasswordHelp.objects.create(username="secretary2", user=reception, note="أنا في الاستقبال",
+                                    asked_at=now - timedelta(minutes=40))
+

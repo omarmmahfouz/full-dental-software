@@ -7,6 +7,7 @@
   <div class="d-flex flex-wrap gap-2 no-print">
     <a class="btn btn-primary" href="{% url 'stock:use' %}"><i class="bi bi-box-arrow-right"></i> {% trans "Take out of stock" %}</a>
     <a class="btn btn-outline-primary" href="{% url 'stock:item_create' %}"><i class="bi bi-plus-lg"></i> {% trans "New stock item" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'stock:categories' %}"><i class="bi bi-tags"></i> {% trans "Categories" %}</a>
     <a class="btn btn-outline-secondary" href="{% url 'stock:import' %}"><i class="bi bi-file-earmark-arrow-up"></i> {% trans "Import a list" %}</a>
     <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
   </div>
@@ -15,7 +16,19 @@
   <div class="col-6 col-md-3"><a class="card stat-card text-decoration-none h-100" href="?low=on"><div class="card-body p-2"><div class="stat-value {% if low_count %}text-danger{% endif %}">{{ low_count }}</div><div class="stat-label">{% trans "Low stock" %}</div></div></a></div>
   <div class="col-6 col-md-3"><a class="card stat-card text-decoration-none h-100" href="?expiring=on"><div class="card-body p-2"><div class="stat-value {% if expiring_count %}text-warning{% endif %}">{{ expiring_count }}</div><div class="stat-label">{% blocktrans with n=expiry_days %}Expiring within {{ n }} days{% endblocktrans %}</div></div></a></div>
 </div>
+<nav class="stock-groups no-print" aria-label="{% trans 'Stock groups' %}">
+  <a class="stock-group{% if not group %} is-active{% endif %}" href="?"><i class="bi bi-grid-3x3-gap"></i><span>{% trans "Everything" %}</span></a>
+  {% for g in groups %}<a class="stock-group{% if g.active %} is-active{% endif %}" style="--group: {{ g.colour }}" href="?group={{ g.code }}">
+    <i class="bi {{ g.icon }}"></i><span>{{ g.label }}</span>
+    <small>{% blocktrans count n=g.count %}{{ n }} item{% plural %}{{ n }} items{% endblocktrans %}{% if g.low %} · <b class="text-danger">{% blocktrans with n=g.low %}{{ n }} low{% endblocktrans %}</b>{% endif %}</small>
+  </a>{% endfor %}
+</nav>
+{% if group_categories %}<div class="d-flex flex-wrap gap-2 mb-3 no-print stock-category-chips">
+  <a class="btn btn-sm {% if not chosen_category %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="?group={{ group }}">{% trans "All" %}</a>
+  {% for c, n in group_categories %}<a class="btn btn-sm {% if chosen_category == c %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="?group={{ group }}&amp;category={{ c.pk }}">{{ c }} <span class="badge text-bg-light">{{ n }}</span></a>{% endfor %}
+</div>{% endif %}
 <form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  {% if group %}<input type="hidden" name="group" value="{{ group }}">{% endif %}
   <div class="col-md-3"><label class="form-label">{{ filter_form.q.label }}</label>{{ filter_form.q }}</div>
   <div class="col-md-3"><label class="form-label">{{ filter_form.category.label }}</label>{{ filter_form.category }}</div>
   <div class="col-auto"><div class="form-check">{{ filter_form.low }} <label class="form-check-label" for="{{ filter_form.low.id_for_label }}">{{ filter_form.low.label }}</label></div></div>
@@ -28,6 +41,7 @@
   <thead><tr><th>{% trans "Item" %}</th><th>{% trans "Category" %}</th><th class="text-end">{% trans "In stock" %}</th><th>{% trans "Unit" %}</th><th class="text-end">{% trans "Reorder level" %}</th><th>{% trans "Place" %}</th><th class="no-print"></th></tr></thead>
   <tbody>
   {% for item in page_obj %}
+  {% ifchanged item.category_id %}<tr class="stock-category-row"><th colspan="7"><i class="bi {{ item.category.icon }}"></i> {{ item.category }} <span class="small text-muted fw-normal">· {{ item.category.get_group_display }}</span></th></tr>{% endifchanged %}
   <tr class="{% if item.is_low %}table-warning{% endif %}">
     <td><a class="fw-semibold" href="{{ item.get_absolute_url }}">{{ item.name }}</a>{% if item.branch %} <span class="place-badge place-{{ item.branch.code }}" title="{% trans 'belongs to' %} {{ item.branch }}">{{ item.branch.code }}</span>{% endif %}{% if not item.is_active %} <span class="badge text-bg-secondary">{% trans "not used" %}</span>{% endif %}</td>
     <td class="small">{{ item.category }}</td>

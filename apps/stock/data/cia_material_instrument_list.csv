@@ -7,7 +7,7 @@ quantity,name,category,unit
 20,Long needles,Anaesthesia & drugs,piece
 20,Short needles,Anaesthesia & drugs,piece
 1,Converter / modulator,Equipment,piece
-20,Polishing brushes,"Consumables (gloves, masks, gauze...)",piece
+20,Polishing brushes,Burs & rotary,piece
 1,Cavitron + key,Equipment,piece
 6,Cavitron tips,Instruments,piece
 1,Polishing paste,"Consumables (gloves, masks, gauze...)",jar
@@ -31,18 +31,18 @@ quantity,name,category,unit
 3,Excavators,Instruments,piece
 1,Ring holder,Instruments,piece
 1,Calcium applicator,Instruments,piece
-1,Universal bond,Dental materials,bottle
-1,Composite A2,Dental materials,syringe
-1,Composite A3,Dental materials,syringe
-1,Meta flowable,Dental materials,syringe
-1,3M flowable,Dental materials,syringe
-1,Etchant,Dental materials,syringe
+1,Universal bond,"Restorative materials (composite, bonding, GIC)",bottle
+1,Composite A2,"Restorative materials (composite, bonding, GIC)",syringe
+1,Composite A3,"Restorative materials (composite, bonding, GIC)",syringe
+1,Meta flowable,"Restorative materials (composite, bonding, GIC)",syringe
+1,3M flowable,"Restorative materials (composite, bonding, GIC)",syringe
+1,Etchant,"Restorative materials (composite, bonding, GIC)",syringe
 10,Etchant tips,"Consumables (gloves, masks, gauze...)",piece
 10,Flowable tips,"Consumables (gloves, masks, gauze...)",piece
 2,Bond carrier,"Consumables (gloves, masks, gauze...)",piece
 1,Teflon,"Consumables (gloves, masks, gauze...)",roll
-3,Fuji IX,Dental materials,pack
-1,Chemical cure Ca(OH)2,Dental materials,pack
+3,Fuji IX,"Restorative materials (composite, bonding, GIC)",pack
+1,Chemical cure Ca(OH)2,"Restorative materials (composite, bonding, GIC)",pack
 20,Sectional matrix,"Consumables (gloves, masks, gauze...)",piece
 4,Tofflemire matrix holder,Instruments,piece
 4,Rings,Instruments,piece
@@ -53,8 +53,8 @@ quantity,name,category,unit
 10,Plastic wedges,"Consumables (gloves, masks, gauze...)",piece
 4,Matrix band,"Consumables (gloves, masks, gauze...)",piece
 1,Articulating paper,"Consumables (gloves, masks, gauze...)",pack
-1,Temporary filling,Dental materials,jar
+1,Temporary filling,"Restorative materials (composite, bonding, GIC)",jar
 1,Floss,"Consumables (gloves, masks, gauze...)",roll
-,Burs,Instruments,piece
-,Low speed finishing burs,Instruments,piece
-,Stones,Instruments,piece
+,Burs,Burs & rotary,piece
+,Low speed finishing burs,Burs & rotary,piece
+,Stones,Burs & rotary,piece

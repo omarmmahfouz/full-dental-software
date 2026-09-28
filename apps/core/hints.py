@@ -74,6 +74,28 @@ HINTS = {
                              "take the money at once."),
     "billing:bill_list": _("Bills to collect are at the top. Tap a bill to take a payment or print it."),
     "billing:payment_list": _("The day's collections by payment method are at the top. Tap a payment to print its receipt."),
+    "billing:day": {
+        "front_desk": _("All the receipts of the day at this place. Before you leave, count the cash in the drawer and "
+                        "close the day. A receipt written by mistake is cancelled from the receipt itself."),
+        "default": _("The day's receipts, bills and changes. Tick the day as reviewed when it is right."),
+    },
+    "billing:month": _("Each day of the month with its total, whether it was closed and reviewed, and the difference "
+                       "in the drawer. Tap a day to open it."),
+    "billing:receipt_change": _("Correct the amount or the way of paying, cancel a receipt written by mistake, or give "
+                                "money back. Write why: the owner sees every change."),
+    "billing:bill": {
+        "dentist": _("The reception is told of this bill and takes the payment. Press WhatsApp to ask the reception "
+                     "to send it to the patient."),
+        "default": _("Take the payment under the bill; the receipt opens after saving."),
+    },
+    "clinical:outside_print": _("Print the request for the patient. When the scan is done, press Done here or at the "
+                                "centre and write the folder of the scan: it then opens with one click."),
+    "patients:medical_history": _("Ask the questions in order and tick the answers. Save and go on: the file goes "
+                                  "step by step to the dental history, the examination and the plan."),
+    "charting:photo_edit": _("Draw a frame to crop (4:3 fits the log book), turn or mirror, then save. The original "
+                             "photo is kept and can be put back."),
+    "stock:categories": _("The stock is in groups (dental, implants, beverage, stationery...), each with its "
+                          "categories. Add or rename a category here; the clock button shows its movements."),
     "billing:fawry": _("Card payments appear here by themselves. Add bills paid on the machine, money put on it and "
                        "Fawry's transfers to the bank."),
     "dentists:list": _("Every dentist by type. Tap a name to see their cases, surgeries and implants."),

@@ -140,7 +140,7 @@ class BillTests(TestCase):
         note = Notification.objects.get(recipient__username="sec")
         self.assertIn(bill.patient.full_name, note.title)
         self.client.login(username="sec", password=PASSWORD)
-        self.assertContains(self.client.get("/"), "bills to collect")
+        self.assertContains(self.client.get("/"), "فواتير الأطباء للتحصيل")
         from apps.billing.models import FawryMachine
 
         again = self.client.post(f"/billing/bills/{bill.pk}/pay/", {"pay-amount": "300", "pay-method": "fawry"})

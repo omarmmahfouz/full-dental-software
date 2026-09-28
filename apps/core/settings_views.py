@@ -94,8 +94,8 @@ LISTS = {
     "purchase_categories": (gettext_lazy("Purchase categories"), PurchaseCategory,
                             ["name_ar", "name_en", "kind", "sort_order", "is_active"], ["name_ar", "name_en", "kind"],
                             None, gettext_lazy("Stock and purchases")),
-    "stock_categories": (gettext_lazy("Stock categories"), StockCategory, LOOKUP, ["name_ar", "name_en"], None,
-                         gettext_lazy("Stock and purchases")),
+    "stock_categories": (gettext_lazy("Stock categories"), StockCategory, ["group"] + LOOKUP,
+                         ["group", "name_ar", "name_en"], None, gettext_lazy("Stock and purchases")),
     "whatsapp": (gettext_lazy("WhatsApp messages"), MessageTemplate, ["kind", "text", "is_active"], ["kind", "text"],
                  None, gettext_lazy("Reception")),
 }
@@ -273,7 +273,10 @@ def user_list(request):
     rows = [(u, [labels.get(g.name, g.name) for g in u.groups.all()], getattr(u, "profile", None),
              [(AREA_LABELS.get(rule.area, rule.area), rule.get_level_display()) for rule in u.area_access.all()])
             for u in users]
-    return render(request, "settings/users.html", {"rows": rows})
+    from .passwords import pending
+
+    return render(request, "settings/users.html", {"rows": rows, "password_requests": pending(),
+                                                   "given_password": request.session.pop("given_password", None)})
 
 
 @role_required(OWNER)

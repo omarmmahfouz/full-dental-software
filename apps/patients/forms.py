@@ -230,8 +230,9 @@ class PatientForm(StyledModelForm):
         self.fields["gender"].help_text = _("Filled automatically from the national ID.")
         self.fields["governorate"].help_text = _("Filled automatically from the national ID.")
         self.fields["registered_on"].required = False
-        for name in ("id_front", "id_back"):
-            self.fields[name].widget.attrs["accept"] = "image/*,application/pdf"
+        for name, side in (("id_front", "front"), ("id_back", "back")):
+            # data-id-card: the tablet checks the photo, cuts the card out and reads the number (app.js).
+            self.fields[name].widget.attrs.update({"accept": "image/*,application/pdf", "data-id-card": side})
         if self.instance.pk:
             # Documents and relations are managed from the patient file after registration.
             for name in ("id_front", "id_back", "relative_lookup", "relative_relation"):
@@ -320,7 +321,7 @@ class PatientDocumentForm(StyledModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["file"].widget.attrs["accept"] = "image/*,application/pdf"
+        self.fields["file"].widget.attrs.update({"accept": "image/*,application/pdf", "data-id-card": "any"})
         self.fields["location"].widget.attrs.update(dir="ltr", placeholder="\\\\CIA-SERVER\\CBCT\\…")
         for field in self.fields.values():
             field.col = "col-md-6 col-lg-3"

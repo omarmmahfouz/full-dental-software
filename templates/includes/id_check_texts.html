@@ -1,0 +1,23 @@
+{% load i18n static %}{% comment %}The words and the files of the ID photo check (app.js, input[data-id-card]).{% endcomment %}
+<div hidden data-id-check-texts
+  data-good="{% trans 'The photo is good.' %}"
+  data-fair="{% trans 'The photo can be used, but:' %}"
+  data-retake="{% trans 'Take the photo again:' %}"
+  data-dark="{% trans 'Too dark: take it where there is more light.' %}"
+  data-bright="{% trans 'Too bright: move away from the lamp or the window.' %}"
+  data-glare="{% trans 'There is a shine on the card: tilt the card a little.' %}"
+  data-blurry="{% trans 'Not sharp: hold the tablet still and tap the card on the screen to focus.' %}"
+  data-soft="{% trans 'A little blurred: check the number can be read.' %}"
+  data-small="{% trans 'The card is small in the photo: come closer.' %}"
+  data-no-card="{% trans 'The card was not found clearly: put it on a plain dark table.' %}"
+  data-upright="{% trans 'The card is standing up: turn it.' %}"
+  data-card-found="{% trans 'The card was cut out of the photo.' %}"
+  data-turn-left="{% trans 'Turn left' %}" data-turn-right="{% trans 'Turn right' %}"
+  data-whole="{% trans 'Keep the whole photo' %}" data-card-only="{% trans 'Only the card' %}"
+  data-again="{% trans 'Take again' %}"
+  data-reading="{% trans 'Reading the ID number from the card…' %}"
+  data-read-none="{% trans 'The number could not be read from the photo: write it.' %}"
+  data-filled="{% trans 'The ID number %s was read from the card and written above: check it.' %}"
+  data-differs="{% trans 'The card reads %s, not the number written above.' %}"
+  data-same="{% trans 'The number on the card is the one written above.' %}"
+  data-use="{% trans 'Use it' %}"></div>

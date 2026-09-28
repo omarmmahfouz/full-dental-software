@@ -168,12 +168,16 @@ def dashboard(request):
         context["dentist"] = dentist
         week = [today + timedelta(days=i) for i in range(7)]
         days = {day: {"day": day, "shifts": [], "appointments": []} for day in week}
+        my_places = set(working_places(user).values_list("pk", flat=True))
         for shift in RoomShift.objects.filter(dentist=dentist, date__range=(week[0], week[-1])).select_related("room"):
             days[shift.date]["shifts"].append(shift)
         for appointment in (Appointment.objects.filter(dentist=dentist, scheduled_at__gte=start,
                                                        scheduled_at__lt=day_bounds(week[-1])[1])
-                            .exclude(status=Appointment.Status.CANCELLED).select_related("patient", "room")
+                            .exclude(status=Appointment.Status.CANCELLED).select_related("patient", "room", "branch")
                             .order_by("scheduled_at")):
+            # A visit at another place: shown without the patient's name; it opens only where the person works.
+            appointment.other_place = branch is not None and appointment.branch_id != branch.pk
+            appointment.can_open = not appointment.other_place or appointment.branch_id in my_places
             days[timezone.localtime(appointment.scheduled_at).date()]["appointments"].append(appointment)
         context["my_week"] = list(days.values())
         context["my_complaints"] = unanswered(dentist)
@@ -189,7 +193,7 @@ def dashboard(request):
     if has_role(user, OWNER, HEAD_CIA, TEAM_HEAD, SUPERVISOR, MODERATOR):
         context["bookings_to_approve"] = list(pending.filter(branch=branch)[:10])
     elif dentist is not None:
-        context["bookings_to_approve"] = list(pending.filter(dentist=dentist)[:10])
+        context["bookings_to_approve"] = list(pending.filter(dentist=dentist, branch=branch)[:10])
     context["show_supervisor_cards"] = has_role(user, *MANAGEMENT)
     if has_role(user, *STOCK_ROLES):
         from apps.stock.views import expiring_soon, low_stock

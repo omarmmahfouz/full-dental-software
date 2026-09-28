@@ -100,6 +100,11 @@ class AccessControlMiddleware:
                 logout(request)
                 messages.error(request, problem)
                 return redirect("login")
+            from .passwords import must_change
+
+            if must_change(user):  # a temporary password from the owner: choose one's own first
+                messages.warning(request, _("Choose your own new password to go on."))
+                return redirect("password_change")
             levels = area_levels(user)
             area = area_of(path)
             level = levels.get(area) if area else levels.get("*")

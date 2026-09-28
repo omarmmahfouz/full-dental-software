@@ -301,15 +301,31 @@ PURCHASE_CATEGORIES = [
 
 
 STOCK_CATEGORIES = [
-    ("مواد أسنان", "Dental materials"),
-    ("أدوات وآلات", "Instruments"),
-    ("زرعات ومكوناتها", "Implants & components"),
-    ("بنج وأدوية", "Anaesthesia & drugs"),
-    ("مستهلكات (جوانتي، ماسكات، شاش...)", "Consumables (gloves, masks, gauze...)"),
-    ("أجهزة", "Equipment"),
-    ("طعام ومشروبات", "Food & beverage"),
-    ("منظفات", "Cleaning"),
-    ("أدوات مكتبية", "Stationery"),
+    # Arabic, English, group (apps/stock/models.py StockGroup)
+    ("مواد أسنان", "Dental materials", "dental"),
+    ("مواد حشو وترميم", "Restorative materials (composite, bonding, GIC)", "dental"),
+    ("مواد علاج العصب", "Endodontics (files, gutta-percha, sealers)", "dental"),
+    ("مواد الطبعات", "Impression materials", "dental"),
+    ("مواد التركيبات واللصق", "Prosthodontics & cements", "dental"),
+    ("فرز وأدوات دوّارة", "Burs & rotary", "dental"),
+    ("زرعات ومكوناتها", "Implants & components", "implants"),
+    ("دعامات وأجزاء تركيبات الزرعات", "Abutments & prosthetic parts", "implants"),
+    ("عظم صناعي وأغشية", "Bone grafts & membranes", "implants"),
+    ("خيوط جراحية", "Sutures", "implants"),
+    ("أدوات ودريلات الجراحة", "Surgical kits & drills", "implants"),
+    ("مستهلكات (جوانتي، ماسكات، شاش...)", "Consumables (gloves, masks, gauze...)", "infection"),
+    ("تعقيم (أكياس ومؤشرات)", "Sterilisation (pouches, indicators)", "infection"),
+    ("مستهلكات للاستخدام مرة واحدة", "Disposables (suction tips, cups, bibs)", "infection"),
+    ("بنج وأدوية", "Anaesthesia & drugs", "medicines"),
+    ("أدوات وآلات", "Instruments", "equipment"),
+    ("أجهزة", "Equipment", "equipment"),
+    ("قطع غيار", "Spare parts", "equipment"),
+    ("طعام ومشروبات", "Food & beverage", "beverage"),
+    ("ضيافة (شاي، قهوة، سكر، أكواب)", "Hospitality (tea, coffee, sugar, cups)", "beverage"),
+    ("منظفات", "Cleaning", "cleaning"),
+    ("أدوات مكتبية", "Stationery", "stationery"),
+    ("مطبوعات وورق إيصالات", "Printing & receipt rolls", "stationery"),
+    ("أحبار وطابعات", "Printer ink & toner", "stationery"),
 ]
 
 
@@ -366,7 +382,7 @@ class Command(BaseCommand):
             ),
             "lab work types": _lookup(LabWorkType, LAB_WORK_TYPES, extra_fields=lambda r: {}),
             "purchase categories": _lookup(PurchaseCategory, PURCHASE_CATEGORIES, extra_fields=lambda r: {"kind": r[2]}),
-            "stock categories": _lookup(StockCategory, STOCK_CATEGORIES, extra_fields=lambda r: {}),
+            "stock categories": _lookup(StockCategory, STOCK_CATEGORIES, extra_fields=lambda r: {"group": r[2]}),
         }
         Lab.objects.get_or_create(name="معمل الأسنان (معملنا)", defaults={"branch": Branch.objects.get(code="LAB")})
         Lab.objects.filter(name="معمل الأسنان (معملنا)", name_en="").update(name_en="Our dental lab")

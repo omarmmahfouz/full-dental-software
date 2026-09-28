@@ -718,6 +718,11 @@ class SpeedTests(TestCase):
         ("owner", f"/clinics/?place=CIC&{PERIOD}", 120),
         ("owner", f"/clinics/report/?place=CIC&{PERIOD}", 120),
         ("owner", "/surgery/finder/", 60),
+        ("secretary", "/billing/day/", 40),
+        ("owner", "/billing/month/", 40),
+        ("secretary", "/schedule/whatsapp/", 60),
+        ("owner", "/stock/", 40),
+        ("owner", "/stock/categories/", 40),
     ]
 
     @classmethod
@@ -838,3 +843,57 @@ class SafetyTests(TestCase):
         self.assertNotContains(self.client.get("/"), "TEST COPY")
         with override_settings(TEST_COPY=True):
             self.assertContains(self.client.get("/"), "TEST COPY")
+
+
+class ForgottenPasswordTests(TestCase):
+    """No e-mail on the clinic's network: the owner gives a temporary password, then the person chooses their own."""
+
+    def setUp(self):
+        setup_clinic()
+        self.owner = make_user("owner", "owner")
+        self.secretary = make_user("sec", "secretary")
+        self.secretary.profile.phone = "01001234567"
+        self.secretary.profile.save()
+
+    def test_ask_give_and_choose_a_new_password(self):
+        from apps.core.models import PasswordHelp
+
+        self.assertContains(self.client.get("/login/"), "/password/forgot/")
+        page = self.client.post("/password/forgot/", {"username": "SEC", "note": "at the reception"})
+        self.assertTrue(page.context["sent"])
+        asked = PasswordHelp.objects.get()
+        self.assertEqual((asked.user, asked.status), (self.secretary, "new"))
+        self.assertTrue(Notification.objects.filter(recipient=self.owner, url__contains="password-requests").exists())
+        # An unknown username gets the same answer, and nobody is told.
+        self.assertTrue(self.client.post("/password/forgot/", {"username": "nobody"}).context["sent"])
+        self.assertEqual(Notification.objects.count(), 1)
+        for _i in range(5):  # no more than three a day
+            self.client.post("/password/forgot/", {"username": "sec"})
+        self.assertEqual(PasswordHelp.objects.filter(username__iexact="sec").count(), 3)
+
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertIn(asked, list(self.client.get("/settings/users/").context["password_requests"]))
+        self.client.post(f"/settings/users/password/{asked.pk}/give/")
+        page = self.client.get("/settings/users/")
+        password = page.context["given_password"]["password"]
+        self.assertContains(page, "wa.me/201001234567")
+        self.assertFalse(page.context["password_requests"])
+        self.assertEqual(PasswordHelp.objects.filter(status="done").count(), 3)
+        self.client.logout()
+
+        self.assertFalse(self.client.login(username="sec", password=PASSWORD))  # the old password stops
+        self.assertTrue(self.client.login(username="sec", password=password))
+        self.assertRedirects(self.client.get("/"), "/password/")  # must choose a new password first
+        self.client.post("/password/", {"old_password": password, "new_password1": "Clinic-2026-new",
+                                        "new_password2": "Clinic-2026-new"})
+        self.secretary.profile.refresh_from_db()
+        self.assertFalse(self.secretary.profile.must_change_password)
+        self.assertEqual(self.client.get("/").status_code, 200)
+
+    def test_only_the_owner_gives_passwords(self):
+        from apps.core.models import PasswordHelp
+
+        asked = PasswordHelp.objects.create(username="sec", user=self.secretary)
+        make_user("head", "head_cia")
+        self.client.login(username="head", password=PASSWORD)
+        self.assertEqual(self.client.post(f"/settings/users/password/{asked.pk}/give/").status_code, 403)

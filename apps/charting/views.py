@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -404,9 +404,41 @@ def photo_delete(request, pk):
     stage = photo.stage
     previews.delete_previews(photo.file.name)
     photo.file.delete(save=False)
+    if photo.original:
+        photo.original.delete(save=False)
     photo.delete()
     messages.success(request, _("File deleted."))
     return redirect(f"{reverse('charting:photos', args=[photo.patient_id])}?stage={stage}")
+
+
+def photo_edit(request, pk):
+    """Crop, turn, mirror or lighten a photo before it goes in the log book. The page does the editing; the edited
+    picture comes back here and takes the photo's place, the original is kept (photo_edit.py)."""
+    from django.core.exceptions import ValidationError
+
+    from .photo_edit import restore_original, save_edited
+
+    photo = get_object_or_404(ClinicalPhoto.objects.select_related("patient", "photo_type"), pk=pk)
+    patient = get_clinical_patient_or_403(request.user, photo.patient_id)
+    _require_clinical(request.user)
+    if photo.is_video or not previews.can_preview(photo.file.name):
+        raise Http404
+    back = f"{reverse('charting:photos', args=[patient.pk])}?stage={photo.stage}"
+    if request.method == "POST":
+        if request.POST.get("action") == "restore":
+            restore_original(photo)
+            messages.success(request, _("The original photo is back."))
+            return redirect(back)
+        upload = request.FILES.get("image")
+        if upload is None:
+            return JsonResponse({"error": _("No picture was sent.")}, status=400)
+        try:
+            save_edited(photo, upload.read())
+        except ValidationError as error:
+            return JsonResponse({"error": " ".join(error.messages)}, status=400)
+        messages.success(request, _("Photo saved. The original is kept."))
+        return JsonResponse({"ok": True, "next": back})
+    return render(request, "charting/photo_edit.html", {"photo": photo, "patient": patient, "back": back})
 
 
 # ------------------------------------------------------------ photo log book and photo folders

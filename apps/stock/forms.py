@@ -6,7 +6,7 @@ from apps.core.forms import BootstrapFormMixin, StyledForm, StyledModelForm
 
 from apps.core.models import Branch
 
-from .models import StockCategory, StockItem, StockMovement
+from .models import StockCategory, StockGroup, StockItem, StockMovement
 
 
 def places():
@@ -20,6 +20,14 @@ def place_filter_field(label, shared_label=None):
     field = forms.ChoiceField(label=label, required=False, choices=choices)
     field.widget.attrs["class"] = "form-select"
     return field
+
+
+def grouped_categories(categories, empty="---------"):
+    """The categories as choices under their group (dental, implants, beverage...), easy to find in the list."""
+    by_group = {}
+    for category in categories:
+        by_group.setdefault(category.group, []).append((category.pk, str(category)))
+    return [("", empty)] + [(label, by_group[code]) for code, label in StockGroup.choices if code in by_group]
 
 
 class StockItemForm(StyledModelForm):
@@ -37,6 +45,7 @@ class StockItemForm(StyledModelForm):
 
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = StockCategory.objects.filter(is_active=True)
+        self.fields["category"].choices = grouped_categories(self.fields["category"].queryset)
         self.fields["branch"].queryset = places()
         self.fields["branch"].empty_label = _("shared by all the places")
         self.fields["implant_system"].queryset = ImplantSystem.objects.filter(is_active=True)
@@ -66,6 +75,7 @@ class StockFilterForm(StyledForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["place"] = place_filter_field(_("belongs to"), _("shared by all the places"))
+        self.fields["category"].choices = grouped_categories(StockCategory.objects.all(), _("All"))
 
 
 class MovementForm(StyledModelForm):
@@ -137,6 +147,7 @@ class MovementFilterForm(StyledForm):
     date_from = forms.DateField(label=_("From"), required=False)
     date_to = forms.DateField(label=_("To"), required=False)
     kind = forms.ChoiceField(label=_("movement"), required=False, choices=[("", _("All"))] + list(StockMovement.Kind.choices))
+    group = forms.ChoiceField(label=_("group"), required=False, choices=[("", _("All"))] + list(StockGroup.choices))
     category = forms.ModelChoiceField(label=_("category"), queryset=StockCategory.objects.all(), required=False,
                                       empty_label=_("All"))
     q = forms.CharField(label=_("item or destination"), required=False)
@@ -163,3 +174,16 @@ class ImportForm(StyledForm):
         if not upload.name.lower().endswith((".xlsx", ".csv")):
             raise forms.ValidationError(_("Upload an .xlsx or .csv file."))
         return upload
+
+
+class StockCategoryForm(StyledModelForm):
+    class Meta:
+        model = StockCategory
+        fields = ["group", "name_ar", "name_en", "sort_order", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("group", "name_ar", "name_en"):
+            self.fields[name].col = "col-md-4"
+        for name in ("sort_order", "is_active"):
+            self.fields[name].col = "col-6 col-md-2"

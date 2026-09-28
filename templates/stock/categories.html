@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Stock categories" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-tags"></i> {% trans "Stock categories" %}</h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'stock:item_list' %}"><i class="bi bi-boxes"></i> {% trans "Stock" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'stock:movement_list' %}"><i class="bi bi-arrow-left-right"></i> {% trans "Stock movements" %}</a>
+  </div>
+</div>
+<form method="post" class="card mb-4" id="category-form" novalidate>{% csrf_token %}
+  <div class="card-header"><i class="bi {% if editing %}bi-pencil{% else %}bi-plus-lg{% endif %}"></i> {% if editing %}{% blocktrans with name=editing %}Edit the category {{ name }}{% endblocktrans %}{% else %}{% trans "New category" %}{% endif %}</div>
+  <div class="card-body">{% include "includes/form_fields.html" %}
+    <div class="d-flex gap-2 mt-3"><button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+      {% if editing %}<a class="btn btn-outline-secondary" href="{% url 'stock:categories' %}">{% trans "Cancel" %}</a>{% endif %}</div>
+  </div>
+</form>
+<div class="row g-3">
+  {% for g in groups %}
+  <div class="col-md-6 col-xl-4" id="group-{{ g.code }}">
+    <div class="card h-100 stock-group-card" style="--group: {{ g.colour }}">
+      <div class="card-header d-flex justify-content-between align-items-center"><span class="fw-semibold"><i class="bi {{ g.icon }}" style="color: var(--group)"></i> {{ g.label }}</span>
+        <a class="btn btn-sm btn-link" href="?group={{ g.code }}#category-form" data-tip="{% trans 'Add a category here' %}" aria-label="{% trans 'Add a category here' %}"><i class="bi bi-plus-lg"></i></a></div>
+      <ul class="list-group list-group-flush">
+        {% for row in g.rows %}{% with c=row.category %}
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-2{% if not c.is_active %} text-muted{% endif %}">
+          <span><a href="{% url 'stock:item_list' %}?group={{ g.code }}&amp;category={{ c.pk }}">{{ c }}</a>{% if not c.is_active %} <span class="badge text-bg-secondary">{% trans "not used" %}</span>{% endif %}
+            <span class="small text-muted d-block">{% blocktrans count n=row.items %}{{ n }} item{% plural %}{{ n }} items{% endblocktrans %}{% if row.low %} · <b class="text-danger">{% blocktrans with n=row.low %}{{ n }} low{% endblocktrans %}</b>{% endif %}</span></span>
+          <span class="nowrap">
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'stock:movement_list' %}?category={{ c.pk }}" data-tip="{% trans 'Its stock movements' %}" aria-label="{% trans 'Its stock movements' %}"><i class="bi bi-clock-history"></i></a>
+            <a class="btn btn-sm btn-outline-primary" href="?edit={{ c.pk }}#category-form" data-tip="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></a>
+          </span>
+        </li>{% endwith %}
+        {% empty %}<li class="list-group-item text-muted small">{% trans "No categories yet." %}</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

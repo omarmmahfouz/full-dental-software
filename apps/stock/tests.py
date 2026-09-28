@@ -103,3 +103,53 @@ class StockTests(TestCase):
         line.delete()
         self.item.refresh_from_db()
         self.assertEqual(self.item.quantity, 0)
+
+
+class StockGroupsTests(TestCase):
+    """Stock in groups (dental, implants, beverage, stationery...), each with its categories."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.manager = make_user("stock", "stock")
+        self.client.login(username="stock", password=PASSWORD)
+        self.dental = StockCategory.objects.get(name_en="Dental materials")
+        self.tea = StockCategory.objects.get(name_en="Hospitality (tea, coffee, sugar, cups)")
+        self.composite = StockItem.objects.create(name="Composite A2", category=self.dental, unit="syringe",
+                                                  min_quantity=2)
+        self.sugar = StockItem.objects.create(name="Sugar", category=self.tea, unit="kg")
+        record_movement(self.composite, StockMovement.Kind.IN, 5, self.manager, unit_cost=Decimal("100"))
+        record_movement(self.sugar, StockMovement.Kind.IN, 3, self.manager, unit_cost=Decimal("30"))
+        record_movement(self.sugar, StockMovement.Kind.OUT, 1, self.manager)
+
+    def test_the_setup_puts_each_category_in_a_group(self):
+        self.assertEqual(self.dental.group, "dental")
+        self.assertEqual(StockCategory.objects.get(name_en="Sutures").group, "implants")
+        self.assertEqual(StockCategory.objects.get(name_en="Printing & receipt rolls").group, "stationery")
+        self.assertFalse(StockCategory.objects.filter(group="other").exists())
+
+    def test_the_stock_page_shows_the_groups_and_the_categories(self):
+        page = self.client.get("/stock/")
+        groups = {g["code"]: g for g in page.context["groups"]}
+        self.assertEqual((groups["dental"]["count"], groups["beverage"]["count"]), (1, 1))
+        self.assertContains(page, "stock-category-row")
+        page = self.client.get("/stock/", {"group": "beverage"})
+        self.assertEqual([i.name for i in page.context["page_obj"]], ["Sugar"])
+        self.assertIn(self.tea, [c for c, _n in page.context["group_categories"]])
+        movements = self.client.get("/stock/movements/", {"group": "beverage"})
+        self.assertEqual({m.item for m in movements.context["page_obj"]}, {self.sugar})
+        self.assertEqual([row["code"] for row in movements.context["use_by_group"]], ["beverage"])
+
+    def test_the_stock_manager_adds_and_edits_categories(self):
+        page = self.client.get("/stock/categories/")
+        self.assertContains(page, "ضيافة")
+        self.client.post("/stock/categories/", {"group": "beverage", "name_ar": "مياه معدنية", "name_en": "Water",
+                                                 "sort_order": 5, "is_active": "on"})
+        water = StockCategory.objects.get(name_en="Water")
+        self.assertEqual(water.group, "beverage")
+        self.client.post(f"/stock/categories/?edit={water.pk}", {"group": "beverage", "name_ar": "مياه",
+                                                                 "name_en": "Mineral water", "sort_order": 5})
+        water.refresh_from_db()
+        self.assertEqual((water.name_en, water.is_active), ("Mineral water", False))
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/stock/categories/").status_code, 403)

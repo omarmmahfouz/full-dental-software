@@ -777,3 +777,38 @@ main.page-enter { animation: page-in .35s var(--ease) both; }
 /* The chart's "mark many teeth at once" tool. */
 .chart-many { border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); padding: .5rem .75rem; background: var(--surface-2); }
 .chart-many summary { cursor: pointer; font-weight: 600; color: var(--ink-2); min-height: 32px; display: flex; align-items: center; gap: .4rem; }
+
+/* ---------------------------------------------------------------- stock groups (stock/item_list.html) */
+.stock-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: .5rem; margin-bottom: 1rem; }
+.stock-group { --group: var(--ink-2); display: flex; flex-direction: column; gap: .15rem; padding: .6rem .7rem; min-height: 44px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); text-decoration: none;
+  box-shadow: var(--shadow-1); transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease); }
+.stock-group > .bi { font-size: 1.3rem; color: var(--group); }
+.stock-group span { font-weight: 600; font-size: .88rem; line-height: 1.2; }
+.stock-group small { color: var(--ink-3); font-size: .75rem; }
+.stock-group:hover { border-color: var(--group); box-shadow: var(--shadow-2); }
+.stock-group.is-active { border-color: var(--group); box-shadow: inset 0 -3px 0 var(--group), var(--shadow-1); }
+.stock-category-row th { background: var(--surface-2) !important; font-size: .85rem; padding-top: .55rem !important; }
+
+/* ---------------------------------------------------------------- photo editor (charting/photo_edit.html) */
+.photo-editor-stage { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; overflow: hidden;
+  touch-action: none; user-select: none; -webkit-user-select: none; border-radius: var(--radius-sm); background: #1b1d1f; }
+.photo-editor-stage canvas { display: block; max-width: 100%; max-height: 70vh; }
+.photo-crop { position: absolute; border: 2px solid #fff; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .55); cursor: move;
+  background-image: linear-gradient(to right, transparent 33%, rgba(255,255,255,.35) 33%, rgba(255,255,255,.35) calc(33% + 1px), transparent calc(33% + 1px), transparent 66%, rgba(255,255,255,.35) 66%, rgba(255,255,255,.35) calc(66% + 1px), transparent calc(66% + 1px)),
+    linear-gradient(to bottom, transparent 33%, rgba(255,255,255,.35) 33%, rgba(255,255,255,.35) calc(33% + 1px), transparent calc(33% + 1px), transparent 66%, rgba(255,255,255,.35) 66%, rgba(255,255,255,.35) calc(66% + 1px), transparent calc(66% + 1px)); }
+.photo-crop-corner { position: absolute; right: -9px; bottom: -9px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--app-primary); cursor: nwse-resize; box-shadow: var(--shadow-2); }
+.photo-editor-loading { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .35); }
+.photo-editor-loading[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- ID photo check (app.js, input[data-id-card]) */
+.id-check { border-style: dashed; background: var(--surface-2); }
+.id-check-preview { width: 13rem; max-width: 100%; border-radius: var(--radius-xs); box-shadow: var(--shadow-1); background: #fff; }
+.id-check-list { list-style: none; padding: 0; margin: 0 0 .4rem; font-size: .88rem; }
+.id-check-list li { display: flex; gap: .35rem; align-items: baseline; }
+.id-check-list li::before { font-family: bootstrap-icons; }
+.id-check-list li.is-ok::before { content: "\F26A"; color: var(--bs-success); }
+.id-check-list li.is-warn::before { content: "\F33A"; color: var(--bs-warning); }
+.id-check-list li.is-bad::before { content: "\F626"; color: var(--bs-danger); }
+input.is-filled-from-card { background-color: #FFF8E6; border-color: var(--bs-warning); }

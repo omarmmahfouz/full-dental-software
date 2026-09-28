@@ -38,7 +38,7 @@ from apps.core.roles import (
 from apps.core.utils import normalize_digits
 from apps.core.widgets import time_label
 from apps.dentists.models import Dentist
-from apps.patients.access import get_visible_patient_or_403
+from apps.patients.access import get_visible_patient_or_403, other_place_page
 from apps.patients.models import Patient
 
 from .daygrid import day_grid, week_outline
@@ -405,6 +405,7 @@ class AppointmentListView(SearchMixin, ListView):
             raise PermissionDenied
         if is_only_dentist(self.request.user):
             qs = qs.filter(dentist=Dentist.for_user(self.request.user))
+        qs = qs.filter(branch=branch_for_user(self.request.user))  # each place sees its own patients only
         today = timezone.localdate()
         date_from, date_to = today, today + timedelta(days=7)
         if self.filter_form.is_valid():
@@ -506,6 +507,9 @@ def appointment_update(request, pk):
 
 def appointment_detail(request, pk):
     appointment = get_object_or_404(Appointment.objects.select_related("patient", "room", "dentist", "procedure", "requested_by", "second_dentist"), pk=pk)
+    switch = other_place_page(request, appointment.patient.branch_id)
+    if switch is not None:
+        return switch
     get_visible_patient_or_403(request.user, appointment.patient_id)
     return render(
         request,
@@ -791,6 +795,9 @@ def visit(request, pk):
 
     appointment = get_object_or_404(
         Appointment.objects.select_related("patient", "dentist", "room", "procedure", "requested_by"), pk=pk)
+    switch = other_place_page(request, appointment.patient.branch_id)
+    if switch is not None:
+        return switch
     patient = get_clinical_patient_or_403(request.user, appointment.patient_id)
     day = timezone.localtime(appointment.scheduled_at).date()
     start, end = day_bounds(day)

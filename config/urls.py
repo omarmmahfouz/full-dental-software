@@ -4,6 +4,7 @@ from django.urls import include, path, re_path
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.forms import LoginForm
+from apps.core.passwords import PasswordChange, forgot_password
 from apps.core.views import protected_media, switch_language
 
 admin.site.site_header = _("Dental group - system settings")
@@ -13,7 +14,8 @@ admin.site.index_title = _("Settings and lists")
 urlpatterns = [
     path("login/", auth_views.LoginView.as_view(authentication_form=LoginForm), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
-    path("password/", auth_views.PasswordChangeView.as_view(), name="password_change"),
+    path("password/", PasswordChange.as_view(), name="password_change"),
+    path("password/forgot/", forgot_password, name="password_forgot"),
     path("password/done/", auth_views.PasswordChangeDoneView.as_view(), name="password_change_done"),
     path("i18n/setlang/", switch_language, name="set_language"),
     path("admin/", admin.site.urls),

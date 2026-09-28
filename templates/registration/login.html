@@ -35,6 +35,7 @@
         <input type="hidden" name="next" value="{{ next }}">
         <button class="btn btn-primary btn-lg w-100"><i class="bi bi-box-arrow-in-right"></i> {% trans "Log in" %}</button>
       </form>
+      <div class="text-center mt-2"><a class="small" href="{% url 'password_forgot' %}">{% trans "Forgot your password?" %}</a></div>
       <form action="{% url 'set_language' %}" method="post" class="text-center mt-3" data-no-leave-warning>{% csrf_token %}
         <input name="next" type="hidden" value="{{ request.get_full_path }}">
         {% get_current_language as LANGUAGE_CODE %}

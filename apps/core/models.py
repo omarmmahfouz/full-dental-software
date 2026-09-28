@@ -101,6 +101,9 @@ class UserProfile(models.Model):
     read_only = models.BooleanField(
         _("read only"), default=False, help_text=_("Can open the pages of their role but cannot save or change anything.")
     )
+    must_change_password = models.BooleanField(
+        _("must choose a new password"), default=False,
+        help_text=_("Set when the owner gives a temporary password: the person chooses their own at the next login."))
     access_from = models.DateField(_("access starts on"), null=True, blank=True)
     access_until = models.DateField(_("access ends on"), null=True, blank=True,
                                     help_text=_("After this day the login stops working (e.g. end of a course or contract)."))
@@ -465,3 +468,31 @@ def working_places(user):
     ids = set(profile.places.values_list("pk", flat=True))
     ids.add(profile.branch_id or getattr(Branch.default(), "pk", None))
     return places.filter(pk__in=ids)
+
+
+class PasswordHelp(models.Model):
+    """Someone who forgot the password asks from the login page; the owner gives a temporary password (Settings →
+    Users). There is no e-mail: the clinic works on its own network."""
+
+    class Status(models.TextChoices):
+        NEW = "new", _("Waiting")
+        DONE = "done", _("New password given")
+        REFUSED = "refused", _("Refused")
+
+    username = models.CharField(_("username written"), max_length=150)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("person"), null=True, blank=True,
+                             on_delete=models.CASCADE, related_name="password_requests")
+    note = models.CharField(_("note"), max_length=200, blank=True)
+    asked_at = models.DateTimeField(_("asked at"), default=timezone.now)
+    status = models.CharField(_("status"), max_length=10, choices=Status.choices, default=Status.NEW)
+    done_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("done by"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="+")
+    done_at = models.DateTimeField(_("done at"), null=True, blank=True)
+
+    class Meta:
+        ordering = ["-asked_at"]
+        verbose_name = _("forgotten password")
+        verbose_name_plural = _("forgotten passwords")
+
+    def __str__(self):
+        return self.username

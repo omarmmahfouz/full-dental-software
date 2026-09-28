@@ -11,7 +11,8 @@
   <button class="btn btn-outline-primary" data-save-as="pdf" data-page="a5" data-save-target="#prescription" data-save-name="Rx-{{ patient.file_number }}-{{ prescription.prescribed_on|date:'Y-m-d' }}"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
   {% include "includes/send_to_patient.html" with kind="prescription" target="#prescription" name="Rx-"|add:patient.file_number text="روشتة "|add:patient.full_name %}
   <a class="btn btn-outline-secondary" href="{% url 'prescriptions:instructions' patient.pk %}{% if prescription.surgery %}?surgery={{ prescription.surgery_id }}{% endif %}"><i class="bi bi-card-checklist"></i> {% trans "Post-op instructions" %}</a>
-  <a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-arrow-left"></i> {% trans "Back to chart" %}</a>
+  {% if is_clinical %}<a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-arrow-left"></i> {% trans "Back to chart" %}</a>
+  {% else %}<a class="btn btn-outline-secondary" href="{{ patient.get_absolute_url }}"><i class="bi bi-arrow-left"></i> {% trans "Patient file" %}</a>{% endif %}
 </div>
 {% language "ar" %}
 <div class="card mx-auto patient-print prescription-a5" id="prescription" dir="rtl" lang="ar"><div class="card-body p-4">

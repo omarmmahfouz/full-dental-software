@@ -413,6 +413,8 @@ class ClinicalPhoto(TimeStampedModel):
     )
     teeth = models.CharField(_("teeth"), max_length=100, blank=True)
     file = models.FileField(_("photo / video"), upload_to=photo_path, max_length=400)
+    original = models.FileField(_("original photo"), upload_to=photo_path, max_length=400, blank=True,
+                                help_text=_("The photo as it was taken, kept when it is cropped or turned."))
     taken_on = models.DateField(_("date"), default=timezone.localdate)
     notes = models.CharField(_("notes"), max_length=255, blank=True)
 
@@ -427,3 +429,9 @@ class ClinicalPhoto(TimeStampedModel):
     @property
     def is_video(self):
         return os.path.splitext(self.file.name)[1].lower() in self.VIDEO_EXTENSIONS
+
+    @property
+    def is_picture(self):
+        """A photo that can be edited (not a video or a PDF)."""
+        return os.path.splitext(self.file.name)[1].lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif",
+                                                               ".tiff"}

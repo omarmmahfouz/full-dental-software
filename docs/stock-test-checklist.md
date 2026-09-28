@@ -66,3 +66,11 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
 
 ## K. New in this version (6): speed and safety
 29. Nothing changes in the stock pages. The lists stay quick with many movements: "حركات المخزن" for a whole year still opens at once, 100 movements a page.
+
+## L. New in this version (7): stock in groups
+30. "المخزن": at the top, **groups** with their number of items and how many are low: مواد أسنان، زرعات وجراحة، مكافحة العدوى ومستهلكات، بنج وأدوية، أدوات وأجهزة، مشروبات وضيافة، نظافة، أدوات مكتبية وطباعة. Tap one: its categories appear as buttons, and the list shows only that group.
+31. The list is in **blocks by category**, each with its group.
+32. **"الأقسام"**: every group with its categories, the number of items and of low items. Add a category in a group, rename one or stop using it; the clock button opens its movements.
+33. On an item, the category list is **grouped** by group (easy to find).
+34. "حركات المخزن": a filter by group, and **what was taken out of each group** in the period, with its value (tap a group to see its movements).
+35. The sample data has items in every group: tea and paper cups, A4 paper and receipt rolls, sterilisation pouches, sutures, bone graft and membranes, alginate, K-files.

@@ -173,7 +173,7 @@ For WhatsApp to open on the reception PC, install **WhatsApp Desktop** or open *
 ## P. New in this version (5): CIC, the Cairo Implant Center
 All the steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, sections A, B and E. In short:
 94. **Two places**: the green **CIA** button next to the logo switches you to **CIC** (blue). The board, bookings, rooms, bills and payments then follow CIC.
-95. **Shared patients**: a CIA patient's file has **"احجز في CIC"**; the visits list shows a CIC badge on CIC visits.
+95. **Shared patients**: replaced in version 7: each place has its own patients (step 115); a patient is moved with "نقل لمكان آخر" (step 116).
 96. **CIC prices**: at CIC a new bill offers "كشف CIC", "زرعة CIC" and "تركيبة على زرعة CIC".
 97. **Two Fawry machines**: a card payment asks which machine took it (Fawry 1 or Fawry 2). "ماكينة فوري" shows what each machine holds.
 98. **Payments of the day**: "مدفوعات المرضى" shows the place you work in; "كل الأماكن" shows both.
@@ -185,3 +185,27 @@ Delete the `data` folder and run `trial-windows.bat` again to get the new sample
 101. **Add a CBCT that is too big to upload**: on any patient, "البطاقة والمستندات" → "رفع مستند / صورة بطاقة": choose "أشعة / CBCT", leave the file empty and write in **"مكان حفظ الأشعة كاملة"** a folder such as `\\CIA-SERVER\CBCT\CIA-00001`. It is saved and shows in the X-rays tab. With neither a file nor a place, it asks for one of them.
 102. **Bigger X-rays**: an X-ray picture or PDF up to 60 MB is accepted as "أشعة / CBCT"; other documents stay up to 15 MB.
 103. **Pictures load quickly**: the document cards show small copies of the pictures; tapping one opens the full picture.
+
+## R. New in this version (7): bills, receipts, places and the file
+Delete the `data` folder and run `trial-windows.bat` again to get the new sample data.
+104. **Doctors' bills**: the home page has a card **"فواتير الأطباء للتحصيل"**: Dr. Mona wrote a bill (scaling + panoramic) and did not take money. Open it, then under the bill **"تسجيل دفعة لهذه الفاتورة"**: the ways of paying are big buttons; choose one and press "حفظ الدفعة".
+105. **The receipt opens after saving**, with a green message: *the payment was saved, receipt …*. It is an **80 mm** receipt ("طباعة (80 مم)").
+106. **Fawry on the receipt**: take a payment and press **"ماكينة فوري"**: the machine list appears (choose one). The receipt says "ماكينة فوري" and the machine's name, **not cash**. (Before, the Arabic word printed was wrong.)
+107. **Send the receipt to the patient**: on the receipt, "حفظ كصورة" and "حفظ كـ PDF" save it; **"إرسال للمريض"** shares the picture on a tablet, or saves it and opens the patient's WhatsApp chat on a PC (attach the picture there).
+108. **Correct, cancel or refund**: on a receipt of today, **"تصحيح أو إلغاء أو رد مبلغ"**: change the way of paying, cancel a receipt written by mistake, or give money back (a refund receipt is made). Each needs a reason and is written under the receipt, with your name. A receipt of an earlier day can be changed only by the owner or the head of CIA.
+109. **End of the day**: menu → **"نهاية اليوم"**: every receipt of the day at this place (cancelled ones crossed out), by way of paying and by who received it, the bills of the day and the changes. Count the cash in the drawer, write it and press **"إغلاق اليوم"**: the difference shows. Yesterday is already closed in the sample data, with 50 missing.
+110. **Waiting list**: "قائمة الانتظار": each patient has a call button with the answer (e.g. "لم يرد"), the number of calls and the last call. **"وافق: احجز"** books at once as confirmed. Below, **"حُجز من قائمة الانتظار: هل حضر؟"** shows each booked patient and what happened to the visit.
+111. **Extra rooms**: "جدول مواعيد اليوم": under the grid, **"غرف إضافية"** lists 4 numbered extra rooms, closed. Press one to book in it (it then shows on the grid for that day only), or the clock to add a shift in it.
+112. **Booking checks**: book a patient who already has an appointment: before saving, his other appointments are listed; tick the ones the new one replaces (they are cancelled) and save again. Book with Dr. Sherif on a Friday: it is saved **"في انتظار الموافقة (ليس يوم الطبيب)"** and the dentist or the head is asked; you are told when it is approved or refused.
+113. **Only Arabic names, at least three**: a new patient named in English, or with two names, is refused.
+114. **ID photo with the tablet**: new patient → "صورة البطاقة - الوجه" → take the photo. Under it: whether the photo is good (too dark, shiny, blurred, too far), the card **cut out** of the table, the buttons to turn it or keep the whole photo, and **the ID number read from the card** written in the national ID box (check it). A blurred photo says "صوّر مرة أخرى".
+115. **Each place has its own patients**: switch to CIC in the top bar: the patients, complaints, waiting list and calls are CIC's only. A CIA patient is not found at CIC.
+116. **Moving a patient to CIC** (rare): on a CIA file, **"نقل لمكان آخر"** → CIC: a new CIC file with a new number opens, the CIA file becomes out (with a link to the new one), and the coming CIA visits are cancelled. The sample patient CIA-00007 was moved this way.
+117. **What you see in a patient's file**: the dental work (plan, treatments, X-rays) is the dentists'. You see the data, the visits, the payments, a **"ملخص طبي"** (diseases, allergies) and what the owner allows. There is no "book at the private clinic" button any more.
+118. **Requests from the dentists**: "رسائل واتساب": at the top **"طلبات الأطباء"**: Dr. Mona asked you to send a prescription. **"فتح وإرسال"** opens it with "إرسال للمريض"; then **"تعليم كمُرسل"** (Dr. Mona is told).
+119. **CBCT done**: patient CIA-00010, tab "الأشعة المقطعية والتحاليل": the CBCT request says **done in our clinic**, with its folder (copy button). Open the other patient's CBCT request (waiting list patient): **"تمت عندنا"** / **"تمت في المركز"**, the date and the folder: the CBCT then opens from the dentist's examination.
+120. **Forgot the password**: log out; on the login page **"نسيت كلمة السر؟"** → write your username → "طلب كلمة سر جديدة". The owner is told (see step 124).
+121. **Owner, the month**: as `owner`, menu → "نهاية اليوم" / *The month*: each day with its total, closed or not, reviewed or not and the cash difference. Open yesterday and press *Mark as reviewed*.
+122. **Owner, a receipt of an earlier day**: open a receipt of yesterday: the owner can correct it; the change is written under it.
+123. **Owner, what the reception sees**: *Settings → Access by role*, at the bottom **What the reception sees in a patient's file**: tick *Treatment plans* and save; as `secretary` the plan tab appears in the file.
+124. **Owner, a forgotten password**: *Settings → People and logins*: at the top *Forgotten passwords* (secretary2 asked). *Give a new password* shows a temporary password once, with a WhatsApp button. Log in as `secretary2` with it: the system asks for a new password of your own before anything else.

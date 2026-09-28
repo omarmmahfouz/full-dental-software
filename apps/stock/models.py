@@ -7,12 +7,47 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.models import LookupModel, TimeStampedModel
 
 
+class StockGroup(models.TextChoices):
+    """The main sections of the stock; each category belongs to one."""
+
+    DENTAL = "dental", _("Dental materials")
+    IMPLANTS = "implants", _("Implants & surgery")
+    INFECTION = "infection", _("Infection control & disposables")
+    MEDICINES = "medicines", _("Anaesthesia & medicines")
+    EQUIPMENT = "equipment", _("Instruments & equipment")
+    BEVERAGE = "beverage", _("Beverage & hospitality")
+    CLEANING = "cleaning", _("Cleaning")
+    STATIONERY = "stationery", _("Stationery & printing")
+    OTHER = "other", _("Other")
+
+
+# The icon and the colour of each group on the stock page.
+GROUP_LOOK = {
+    StockGroup.DENTAL: ("bi-droplet-half", "#1f6fb2"),
+    StockGroup.IMPLANTS: ("bi-implant", "#5C8020"),
+    StockGroup.INFECTION: ("bi-shield-plus", "#0d8a7a"),
+    StockGroup.MEDICINES: ("bi-capsule", "#b03a48"),
+    StockGroup.EQUIPMENT: ("bi-tools", "#6c5a9c"),
+    StockGroup.BEVERAGE: ("bi-cup-hot", "#a0632b"),
+    StockGroup.CLEANING: ("bi-bucket", "#3b8bb0"),
+    StockGroup.STATIONERY: ("bi-printer", "#58595B"),
+    StockGroup.OTHER: ("bi-box", "#868C93"),
+}
+
+
 class StockCategory(LookupModel):
-    """Dental materials, instruments, implants, consumables, food & beverage..."""
+    """A category of stock inside one of the groups, e.g. Dental materials → Impression materials."""
+
+    group = models.CharField(_("group"), max_length=20, choices=StockGroup.choices, default=StockGroup.OTHER,
+                             db_index=True)
 
     class Meta(LookupModel.Meta):
         verbose_name = _("stock category")
         verbose_name_plural = _("stock categories")
+
+    @property
+    def icon(self):
+        return GROUP_LOOK.get(self.group, GROUP_LOOK[StockGroup.OTHER])[0]
 
 
 class StockItem(TimeStampedModel):

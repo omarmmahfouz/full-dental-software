@@ -20,6 +20,7 @@ urlpatterns = [
     path("plan/<int:pk>/edit/", views.plan_edit, name="plan_edit"),
     path("plan/<int:pk>/action/", views.plan_action, name="plan_action"),
     path("photo/<int:pk>/delete/", views.photo_delete, name="photo_delete"),
+    path("photo/<int:pk>/edit/", views.photo_edit, name="photo_edit"),
     path("preview/", views.chart_preview, name="preview"),
     path("plans/", plan_finder.plan_finder, name="plan_finder"),
 ]

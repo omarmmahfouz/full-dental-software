@@ -26,7 +26,7 @@ The language follows the person, not the PC:
 | Head of CIA | `head_cia` | everything except the money report; in the settings, the lists (implant companies, treatments, drugs…) but not logins or access |
 | Head of the CIA dentists team | `team_head` | what a CIA dentist sees, plus the follow-up report of the **CIA dentists** (not the candidates) and the treatment plan finder |
 | CIA dentists (full or part time) | `dentist` | every patient, the complaints about them, **only their own schedule**, and their cases. They record the clinical work: their own, and the course candidates' work, choosing the candidate's and the supervisor's names. In surgery they are usually the **assistant** |
-| Secretary (reception) | `secretary` | reception, patients, the **day planner**, WhatsApp messages, **patient payments**, lab send / receive, CBCT and blood test requests, complaints, academy (if allowed in Settings), purchases, and the **patients to call** lists. Not the dental chart, treatment log or surgeries: the patient file shows her the plan and the treatments done, in plain Arabic. Her edits of patient data and visit times wait for the head of CIA's approval |
+| Secretary (reception) | `secretary` | reception, patients, the **day planner**, WhatsApp messages, **patient payments** and the **end of the day**, lab send / receive, CBCT and blood test requests, complaints, academy (if allowed in Settings), purchases, and the **patients to call** lists. Not the dental chart, treatment log or surgeries: in the patient file she sees the data, the visits, the payments and a **medical summary**, and the parts the owner ticks in *Settings → Access* (new). She books; the dentists do not. Her edits of patient data and visit times wait for the head of CIA's approval |
 | Stock manager | `stock` | the stock of materials, instruments, food and beverage, and purchases |
 | Clinic manager (moderator) | `moderator` | the **Clinics** menu: how each doctor of CIC (and later the other clinics) is paid, the doctors' shares, payments to the doctors, and the clinic report |
 | CIC doctors | `dentist`, or no login | booked at CIC; the ones with a login see **My shares**. A doctor can work at CIA and CIC |
@@ -36,7 +36,41 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### Speed and safety with a lot of data (new)
+### New in this version: bills, receipts, places and the file step by step (new)
+- **Doctors write the bill, the reception takes the money**: at CIA and CIC a dentist's bill has no payment; the
+  reception is told, sees it under *Doctors' bills to collect* and records what was paid and how (big buttons).
+- **Receipts**: a green message after saving and the **80 mm receipt** opens; a Fawry payment shows *Fawry POS machine*
+  and the machine (the Arabic word was wrong before, so it read as cash). Save as a **picture or PDF**, or **send it to
+  the patient** on WhatsApp. **Correct, cancel or refund** a receipt with a reason: nothing is deleted, every change is
+  written on it, and the owner is told. **End of the day**: every receipt of the day at the place, by payment method
+  and by who received it; the reception counts the drawer and closes the day; the owner reviews each day and **the
+  month**.
+- **A5 prescription** with **Rx** before each drug, and the bill, the instructions and the case report as picture / PDF.
+- **Each place has its own patients**: CIA and CIC do not see each other's patients, complaints, waiting list or calls.
+  Moving a patient (rare) opens a **new file** at the other place and closes the old one (out), with a link between them.
+- **Bookings**: the other appointments of the patient are shown before saving (keep them or cancel them); a booking
+  outside the dentist's days or hours **waits for approval** by the dentist or the head. The **waiting list** records
+  each call and follows the booked patient to the visit. **Up to 4 numbered extra rooms** per place, shown only on a
+  day they are booked or given a shift. Only the reception books.
+- **Patient names** in Arabic, at least three names. **ID photo on the tablet**: the photo is checked (light, shine,
+  sharpness, distance), the card is cut out of the table, and the **ID number is read** from it (offline) and written
+  in the form, to be checked.
+- **The file step by step** for the dentist: medical history → dental history → examination → treatment plan →
+  surgery chart, each saved page going on to the next. The medical history is taken by the dentist; the reception
+  sees a **summary**. The owner chooses what else the reception sees in a file (*Settings → Access*).
+- **CBCT**: ticking *CBCT requested* opens the CBCT request; it is marked **done in our clinic** (where there is a CBCT
+  machine) or at the centre, with the folder of the scan, which then opens from the examination.
+- **Dental chart**: mark all the other teeth missing at once (one tooth left); the chart history reads in each
+  person's language. An **implant icon** replaces the scissors. The file exports to **Word, Excel or PDF**.
+- **Photos**: crop (4:3 for the log book), turn, mirror and lighten a photo before the log book; the original is kept.
+- **WhatsApp from a dentist's tablet** becomes a request in the reception's WhatsApp list.
+- **Stock in groups**: dental materials, implants & surgery, infection control, medicines, instruments, beverage &
+  hospitality, cleaning, stationery & printing, each with its categories; the stock manager edits them and sees what
+  each group used.
+- **Forgot your password?** on the login page: the owner is told and gives a temporary password (shown once, with a
+  WhatsApp button); the person chooses their own at the next login.
+
+### Speed and safety with a lot of data
 Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**: the reception and dentist pages open in
 0.03–0.15 s, the owner's money pages in 0.2–1.2 s (before: 15–25 s). Details and the server to buy: [docs/deployment.md](docs/deployment.md#many-photos-and-many-users-new).
 - **Quick money pages**: the home page, balance sheet, money report, doctors' shares, clinic report and bills add up all the
@@ -60,7 +94,7 @@ Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**:
 
 ### CIC — the Cairo Implant Center
 - **Places**: CIA and CIC share one system. People who work in both (e.g. the secretary) tick both in *Settings → People and logins*, and a coloured switch in the top bar (**CIA** green, **CIC** blue) chooses where they work now. The line under the top bar takes the place's colour, so nobody books or bills in the wrong place. Everything then works for that place: the reception board, the day planner, rooms and room schedule, bookings, free times, bills and payments, stock use.
-- **Shared patients**: one file per patient. A CIA patient can be booked and billed at CIC (the patient file has *Book at CIC*), and the visits list shows where each visit was. New files opened at CIC are numbered `CIC-…`.
+- **Each place has its own patients** (new): CIA and CIC do not see each other's patients, not even their names. New files opened at CIC are numbered `CIC-…`. A patient who moves (rare) gets a new file at the other place (*Move to another place*); the old file is closed as *out*, with a link to the new one.
 - **Doctors**: many doctors, some at CIA and CIC. Each dentist's *works at* places are set in *Academy → Dentists*; bookings and the room schedule of a place offer its own doctors only. CIC has 3 rooms to start (renamed or added in *Settings → Rooms*).
 - **How each doctor is paid** (*Clinics → Doctors' fee rules*, set by the moderator or the owner): a **percentage** of what the patient paid, a **fixed amount for each service** (for each tooth, e.g. 1,500 per implant), or a **fixed amount for each visit**. A rule for one service comes before the rule for every service (e.g. implants fixed, the rest 25%). To change a percentage from a date, add a new rule from that date.
 - **Doctors' shares** (*Clinics → Doctors' shares*): for a place and a period, each doctor's visits, **time in the chair**, patients, what was billed and **paid**, their **share**, what was **paid to them** and what is **still owed**. Each doctor's **statement** lists every service with its rule and share, every visit, and the payments to the doctor, with a form to record a new payment. A doctor with a login sees his own statement (*My shares*).
@@ -147,7 +181,7 @@ Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**:
   - The **ID scan** is cut out of the background, turned upright and shown as a card; the original photo is kept, and it can be turned by hand.
   - **File opened on** for old paper files, a list of all **governorates**, patients labelled **out** with a reason, and the call list sorted by the **first-call date**.
   - Mobiles with the wrong number of digits are refused, and duplicates name the other patient, in a **pop-up**.
-  - **Treatment plan** and **treatment steps** tabs in plain Arabic, with a simple explanation of each treatment and each tooth number (36 = الضرس الأول السفلي الأيسر). The **missing teeth** and the **medical history** follow the dentist's chart and examination.
+  - **Treatment plan** and **treatment steps** tabs in plain Arabic, with a simple explanation of each treatment and each tooth number (36 = الضرس الأول السفلي الأيسر), when the owner shows them to the reception (*Settings → Access*). The **missing teeth** and the **medical summary** follow the dentist's chart and examination.
   - Editing the data, or correcting forgotten arrival / room / leaving times, is sent to the **head of CIA for approval**.
 - **Patient payments**: services from a price list (CBCT, consultation, implant…), discounts up to 100% with the reason, payment in parts, receipts, and the day's collections by payment method.
 - **CBCT and blood test requests**, printed for the patient to take. The CBCT request asks the centre to send the DICOM files to **ciapts@gmail.com** (changeable in Settings).
@@ -317,7 +351,7 @@ User menu → **Settings**.
 - **Parts of the system for one person**: on a person's page, choose for each part "as the role", normal, read only or no access, e.g. only some secretaries work with the academy.
 - **Clinic options**: appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, the e-mail for CBCT files, and **Fawry's percentage** on card payments.
 - **Lists**: the **usual days at the lab** for each lab work type, which paid services get a **quick button** on a new bill, and implants in stock (company, diameter and length on the stock item).
-- **Backup and export** (owner): one button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones (new). The page shows the last good backup of each part and any error (new). *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
+- **Backup and export** (owner): one button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones. The page shows the last good backup of each part and any error. *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
 - **Problem reports** (owner and head of CIA): what the staff reported, and pages that stopped with an error (recorded automatically), with a download to send to whoever maintains the system.
 - **Access by role**: make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for a role.
   - It can only take access away, never give more than the role normally has.
@@ -383,12 +417,12 @@ Suggestion, when you decide to buy:
 ## Installing on the clinic server
 
 See **[docs/deployment.md](docs/deployment.md)** for these topics:
-- The server to buy for 10,000 patients and 1–3 TB of photos (new)
-- Docker (recommended), with nginx sending the photos (new)
+- The server to buy for 10,000 patients and 1–3 TB of photos
+- Docker (recommended), with nginx sending the photos
 - Windows without Docker
-- Backups and restore: the data every night, the new photos to a backup disk (new)
-- The test copy, and safe updates (new)
-- Many photos and many users: measured speeds, previews, logs, X-rays and CBCT (new)
+- Backups and restore: the data every night, the new photos to a backup disk
+- The test copy, and safe updates
+- Many photos and many users: measured speeds, previews, logs, X-rays and CBCT
 - The first setup: users, roles, rooms and lists
 
 ## Daily use guide for the secretaries (Arabic)
