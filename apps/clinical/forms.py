@@ -260,3 +260,33 @@ class OutsideRequestForm(StyledModelForm):
         elif not data.get("tests") and not data.get("other_tests"):
             self.add_error("tests", _("Choose at least one test."))
         return data
+
+
+class OutsideDoneForm(StyledForm):
+    """A CBCT (or the tests) is done: where, when, and where the scan is kept, so a click opens it later."""
+
+    where = forms.ChoiceField(label=_("done"), widget=forms.RadioSelect)
+    done_on = forms.DateField(label=_("done on"))
+    location = forms.CharField(
+        label=_("where the full scan is kept"), required=False, max_length=500,
+        help_text=_("The folder on the server or the viewer link from the centre, e.g. \\\\CIA-SERVER\\CBCT\\CIA-00020 "
+                    "or https://…"))
+    file = forms.FileField(label=_("picture or report"), required=False,
+                           help_text=_("A picture or PDF: the CBCT report or a few screenshots, or the test results."))
+
+    def __init__(self, *args, outside, has_cbct=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if outside.kind == OutsideRequest.Kind.CBCT:
+            choices = [(OutsideRequest.Status.DONE_OUTSIDE, _("At the CBCT centre"))]
+            if has_cbct:
+                choices.insert(0, (OutsideRequest.Status.DONE_HERE, _("Here, on our CBCT machine")))
+        else:
+            choices = [(OutsideRequest.Status.DONE_OUTSIDE, _("Results received from the lab"))]
+            self.fields["location"].label = _("where the results are kept")
+            self.fields["location"].help_text = ""
+        self.fields["where"].choices = choices
+        self.fields["where"].initial = choices[0][0]
+        self.fields["done_on"].col = "col-md-6"
+        self.fields["where"].col = "col-md-6"
+        self.fields["location"].widget.attrs.update({"dir": "ltr", "placeholder": "\\\\CIA-SERVER\\CBCT\\…"})
+        self.fields["file"].widget.attrs["accept"] = "image/*,application/pdf"

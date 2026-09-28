@@ -78,6 +78,8 @@ class ExaminationForm(StyledModelForm):
                      "implant_willingness_score"):
             self.fields[name].col = "col-6 col-md-3"
         self.fields["update_chart"].col = "col-12"
+        self.fields["cbct_requested"].help_text = _("When you save, the CBCT request opens to print for the patient.")
+        self.fields["cbct_done"].help_text = _("Where the scan is kept is written on the CBCT request (Done).")
 
     def clean(self):
         data = super().clean()
@@ -216,19 +218,33 @@ class PhotoUploadForm(StyledForm):
 
 
 class MedicalHistoryForm(StyledModelForm):
-    """The medical and dental history of the paper chart, filled at the reception."""
+    """The medical and dental history of the paper chart, taken by the dentist (or at the reception when the owner
+    allows it). ``part`` shows only the medical history ("medical") or only the dental history ("dental")."""
 
     fieldsets = HISTORY_FIELDSETS
+    PARTS = {"medical": HISTORY_FIELDSETS[:3], "dental": HISTORY_FIELDSETS[3:]}
 
     class Meta:
         model = Examination
         fields = HISTORY_FIELDS
         widgets = {"conditions": forms.CheckboxSelectMultiple}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, part=None, dentist=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["conditions"].queryset = MedicalCondition.objects.filter(is_active=True)
+        if part in self.PARTS:
+            self.fieldsets = self.PARTS[part]
+            shown = {name for _title, names in self.fieldsets for name in names}
+            for name in list(self.fields):
+                if name not in shown:
+                    del self.fields[name]
+        if "conditions" in self.fields:
+            self.fields["conditions"].queryset = MedicalCondition.objects.filter(is_active=True)
         for name in ("medical_comment", "conditions_comment", "drugs_taken", "operator_comments"):
-            self.fields[name].widget.attrs["rows"] = 2
-        for name in ("operator_comments", "cooperation_score", "implant_willingness_score"):
-            self.fields.pop(name, None)  # the dentist's own judgement
+            if name in self.fields:
+                self.fields[name].widget.attrs["rows"] = 2
+        for name in ("cooperation_score", "implant_willingness_score"):
+            if name in self.fields:
+                self.fields[name].col = "col-6 col-md-3"
+        if not dentist:
+            for name in ("operator_comments", "cooperation_score", "implant_willingness_score"):
+                self.fields.pop(name, None)  # the dentist's own judgement

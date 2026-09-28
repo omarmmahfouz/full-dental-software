@@ -141,6 +141,39 @@ class ChartPageTests(TestCase):
         self.client.logout()
         self.client.login(username=username, password=PASSWORD)
 
+    def test_the_chart_history_reads_in_each_persons_language(self):
+        with translation.override("ar"):  # e.g. written while an Arabic page was open
+            changes = plan_changes(self.patient, ChartEffect.CARIES, [16], "MO")
+            apply_changes(self.patient, changes, None, ToothChange.Source.EXAM)
+        change = ToothChange.objects.get(tooth=16)
+        self.assertNotIn("caries", change.summary)
+        with translation.override("en"):
+            self.assertEqual(change.text, "sound → caries MO")
+        with translation.override("ar"):
+            self.assertNotIn("caries", change.text)
+        self.login("dentist")
+        self.assertContains(self.client.get(self.url), "sound → caries MO")
+
+    def test_one_tooth_left_marks_all_the_others_missing(self):
+        ToothState.objects.create(patient=self.patient, tooth=46, status=ToothState.Status.IMPLANT)
+        self.login("dentist")
+        self.assertContains(self.client.get(self.url), "missing_others")
+        self.client.post(f"{self.url}many/", {"teeth": "33", "action": "missing_others"})
+        states = {s.tooth: s.status for s in self.patient.tooth_states.all()}
+        self.assertEqual(states[33] if 33 in states else "present", "present")
+        self.assertEqual(states[46], ToothState.Status.IMPLANT)  # implants are never touched
+        missing = [t for t, status in states.items() if status == ToothState.Status.MISSING]
+        self.assertEqual(len(missing), 30)  # 32 teeth - 33 kept - the implant at 46 (36 was missing already)
+        self.assertEqual(ToothChange.objects.filter(patient=self.patient, source="manual").count(), 29)
+        # Undo for one tooth, then mark a chosen tooth.
+        self.client.post(f"{self.url}many/", {"teeth": "34", "action": "present_these"})
+        self.assertEqual(ToothState.objects.get(patient=self.patient, tooth=34).status, ToothState.Status.PRESENT)
+        self.client.post(f"{self.url}many/", {"teeth": "34", "action": "missing_these"})
+        self.assertEqual(ToothState.objects.get(patient=self.patient, tooth=34).status, ToothState.Status.MISSING)
+        self.login("sec")
+        self.assertEqual(self.client.post(f"{self.url}many/", {"teeth": "33", "action": "missing_these"}).status_code,
+                         403)
+
     def test_who_can_see_and_edit_the_chart(self):
         self.login("dentist")
         response = self.client.get(self.url)
@@ -303,6 +336,14 @@ class ReceptionHistoryTests(TestCase):
         make_user("sec", "secretary")
         diabetes = MedicalCondition.objects.get(name_en="Diabetes")
         self.client.login(username="sec", password=PASSWORD)
+        # The dentist takes the history; the reception only when the owner allows it (Settings → Access).
+        self.assertEqual(self.client.get(f"/patients/{patient.pk}/history/").status_code, 403)
+        self.assertContains(self.client.get(f"/patients/{patient.pk}/"), "medical-summary")
+        from apps.core.models import ClinicSettings
+
+        options = ClinicSettings.get()
+        options.reception_sees = ["medical"]
+        options.save()
         form = self.client.get(f"/patients/{patient.pk}/history/").context["form"]
         self.assertIn("bp_last_systolic", form.fields)
         self.assertNotIn("cooperation_score", form.fields)

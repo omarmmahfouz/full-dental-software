@@ -458,3 +458,37 @@ class WaitingEntry(TimeStampedModel):
         if dentist_id:
             entries = entries.filter(models.Q(dentist_id=dentist_id) | models.Q(dentist__isnull=True))
         return entries.select_related("patient", "dentist", "procedure")
+
+
+class WhatsAppRequest(models.Model):
+    """A dentist asks the reception to send something to a patient on WhatsApp (the dentists' tablets have no
+    WhatsApp): a prescription, the instructions, a bill... It waits in the reception's WhatsApp list until sent."""
+
+    class Kind(models.TextChoices):
+        PRESCRIPTION = "prescription", _("Prescription")
+        INSTRUCTIONS = "instructions", _("Post-op instructions")
+        BILL = "bill", _("Bill")
+        REPORT = "report", _("Case report")
+        OTHER = "other", _("Other")
+
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="whatsapp_requests")
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), on_delete=models.PROTECT, related_name="+")
+    kind = models.CharField(_("what"), max_length=20, choices=Kind.choices, default=Kind.OTHER)
+    path = models.CharField(_("page"), max_length=300, help_text=_("The page the reception opens to send it."))
+    note = models.CharField(_("note for the reception"), max_length=200, blank=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                     related_name="+", verbose_name=_("asked by"))
+    requested_at = models.DateTimeField(_("asked at"), default=timezone.now)
+    sent_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="+", verbose_name=_("sent by"))
+    sent_at = models.DateTimeField(_("sent at"), null=True, blank=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+        verbose_name = _("WhatsApp request")
+        verbose_name_plural = _("WhatsApp requests")
+        indexes = [models.Index(fields=["branch", "sent_at"])]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} — {self.patient}"

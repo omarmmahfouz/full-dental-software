@@ -275,3 +275,37 @@ class OutsideRequestTests(TestCase):
         lab = OutsideRequest.objects.get(kind="medical_lab")
         self.assertNotContains(self.client.get(lab.get_absolute_url()), "ciapts@gmail.com")
         self.assertEqual(len(lab.test_labels()), 2)
+
+    def test_cbct_requested_opens_the_request_and_done_opens_the_scan(self):
+        from apps.charting.models import Examination
+        from apps.clinical.models import OutsideRequest
+
+        branch = setup_clinic()
+        patient = make_patient(branch)
+        make_dentist("dentist", kind="fulltime")
+        self.client.login(username="dentist", password=PASSWORD)
+        # Ticking "CBCT requested" on the examination opens the CBCT request, then goes on with the file.
+        response = self.client.post(f"/chart/patient/{patient.pk}/exam/new/?flow=1", {
+            "exam_date": "01/09/2026", "cbct_requested": "on", "flow": "1"})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/clinical/requests/new/", response.url)
+        self.assertIn("kind=cbct", response.url)
+        response = self.client.post(response.url, {"requested_on": "01/09/2026", "region": "lower"})
+        cbct = OutsideRequest.objects.get()
+        self.assertIn(f"/clinical/requests/{cbct.pk}/?next=", response.url)
+        page = self.client.get(response.url)
+        self.assertContains(page, f"/chart/patient/{patient.pk}/plan/new/?flow=1")  # "print it, then go on"
+        self.assertNotContains(page, "?where=done_here")  # no CBCT machine at this place
+        branch.has_cbct = True
+        branch.save()
+        self.assertContains(self.client.get(cbct.get_absolute_url()), "?where=done_here")
+        response = self.client.post(f"/clinical/requests/{cbct.pk}/done/", {
+            "where": "done_here", "done_on": "02/09/2026", "location": r"\\CIA-SERVER\CBCT\CIA-00001"})
+        cbct.refresh_from_db()
+        self.assertEqual((cbct.status, str(cbct.done_on)), ("done_here", "2026-09-02"))
+        self.assertEqual(cbct.result.location, r"\\CIA-SERVER\CBCT\CIA-00001")
+        self.assertTrue(Examination.objects.get().cbct_done)
+        exam_page = self.client.get(Examination.objects.get().get_absolute_url())
+        self.assertContains(exam_page, "CIA-SERVER")
+        self.assertContains(exam_page, cbct.get_absolute_url())
+        self.assertContains(self.client.get(f"/patients/{patient.pk}/"), "CIA-SERVER")

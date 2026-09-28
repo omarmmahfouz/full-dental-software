@@ -350,6 +350,20 @@ class OutsideRequest(TimeStampedModel):
     other_tests = models.CharField(_("other tests"), max_length=255, blank=True)
     notes = models.TextField(_("notes for the centre"), blank=True)
 
+    class Status(models.TextChoices):
+        REQUESTED = "requested", _("Requested")
+        DONE_HERE = "done_here", _("Done in our clinic")
+        DONE_OUTSIDE = "done_outside", _("Done at the centre")
+        CANCELLED = "cancelled", _("Cancelled")
+
+    status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.REQUESTED)
+    done_on = models.DateField(_("done on"), null=True, blank=True)
+    done_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="+", verbose_name=_("marked done by"))
+    result = models.ForeignKey("patients.PatientDocument", verbose_name=_("the scan"), null=True, blank=True,
+                               on_delete=models.SET_NULL, related_name="+",
+                               help_text=_("The X-ray / CBCT record with the folder or the link of the scan."))
+
     class Meta:
         ordering = ["-requested_on", "-pk"]
         verbose_name = _("CBCT / medical lab request")

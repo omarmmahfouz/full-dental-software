@@ -126,6 +126,10 @@ def dashboard(request):
                                          created_at__gte=timezone.now() - timedelta(days=3))
             .exclude(messages__kind="confirmation").count()
         )
+        from apps.scheduling.models import WhatsAppRequest
+
+        context["whatsapp_asked"] = WhatsAppRequest.objects.filter(branch=branch, sent_at__isnull=True).count()
+        context["whatsapp_to_send"] += context["whatsapp_asked"]
         context["coming_next"] = (
             todays.filter(status__in=Appointment.WAITING_STATUSES, scheduled_at__gte=timezone.now() - timedelta(hours=1))
             .select_related("patient", "dentist", "room").order_by("scheduled_at")[:6]

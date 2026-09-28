@@ -27,8 +27,8 @@ from apps.patients.access import get_clinical_patient_or_403, get_visible_patien
 from apps.scheduling.models import Appointment, day_bounds
 
 from .forms import (
-    LabActionForm, LabFilterForm, LabRequestForm, OutsideRequestForm, StepFilterForm, StepOperatorForm, StepReviewForm,
-    TreatmentStepForm,
+    LabActionForm, LabFilterForm, LabRequestForm, OutsideDoneForm, OutsideRequestForm, StepFilterForm,
+    StepOperatorForm, StepReviewForm, TreatmentStepForm,
 )
 from .models import LabRequest, LabRequestEvent, OutsideRequest, TreatmentStep, TreatmentStepType
 from .services import ACTION_LABELS, TRANSITIONS, available_actions, perform_lab_action
@@ -385,6 +385,9 @@ def outside_create(request):
         outside = form.save(commit=False)
         outside.patient, outside.kind, outside.created_by = patient, kind, request.user
         outside.save()
+        nxt = request.GET.get("next", "")
+        if nxt.startswith("/") and not nxt.startswith("//"):  # e.g. back to the file, step by step
+            return redirect(f"{outside.get_absolute_url()}?{urlencode({'next': nxt})}")
         return redirect(outside)
     return render(request, "includes/form_page.html", {
         "form": form, "title": f"{OutsideRequest.Kind(kind).label} — {patient.full_name}",
@@ -394,10 +397,53 @@ def outside_create(request):
 
 @role_required(*ANY_STAFF)
 def outside_print(request, pk):
-    outside = get_object_or_404(OutsideRequest.objects.select_related("patient", "dentist"), pk=pk)
+    outside = get_object_or_404(OutsideRequest.objects.select_related("patient", "dentist", "result", "done_by"),
+                                pk=pk)
     get_visible_patient_or_403(request.user, outside.patient_id)
+    nxt = request.GET.get("next", "")
     return render(request, "clinical/outside_print.html", {
         "outside": outside, "dicom_email": ClinicSettings.get().dicom_email, "branch": branch_for_user(request.user),
+        "next": nxt if nxt.startswith("/") and not nxt.startswith("//") else "",
+    })
+
+
+@role_required(*ANY_STAFF)
+def outside_done(request, pk):
+    """The CBCT (or the tests) is done: here on our machine or at the centre, and where the scan is kept. It is
+    added to the patient's X-rays & CBCT, and "CBCT done" then opens it."""
+    from apps.patients.models import PatientDocument
+
+    outside = get_object_or_404(OutsideRequest.objects.select_related("patient"), pk=pk)
+    patient = get_visible_patient_or_403(request.user, outside.patient_id)
+    place = patient.branch
+    if request.method == "POST" and request.POST.get("action") == "cancel":
+        outside.status = OutsideRequest.Status.CANCELLED
+        outside.save(update_fields=["status", "updated_at"])
+        messages.info(request, _("The request is cancelled."))
+        return redirect(outside)
+    form = OutsideDoneForm(request.POST or None, request.FILES or None, outside=outside, has_cbct=place.has_cbct,
+                           initial={"done_on": timezone.localdate(), "where": request.GET.get("where")})
+    if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data
+        with transaction.atomic():
+            if data["location"] or data["file"]:
+                is_cbct = outside.kind == OutsideRequest.Kind.CBCT
+                outside.result = PatientDocument.objects.create(
+                    patient=patient, kind=PatientDocument.Kind.XRAY if is_cbct else PatientDocument.Kind.OTHER,
+                    location=data["location"].strip(), file=data["file"] or "", created_by=request.user,
+                    notes=f"{outside.get_kind_display()} {data['done_on']:%d/%m/%Y}"[:255])
+            outside.status, outside.done_on, outside.done_by = data["where"], data["done_on"], request.user
+            outside.save()
+        if outside.kind == OutsideRequest.Kind.CBCT:
+            patient.examinations.filter(cbct_requested=True, cbct_done=False).update(cbct_done=True)
+        messages.success(request, _("Saved as done.") + (
+            " " + _("Write where the scan is kept when you have it, so it opens with one click.")
+            if outside.result_id is None else ""))
+        return redirect(outside)
+    return render(request, "includes/form_page.html", {
+        "form": form, "title": _("%(what)s done — %(name)s") % {"what": outside.get_kind_display(),
+                                                                "name": patient.full_name},
+        "title_icon": "bi-radioactive", "cancel_url": outside.get_absolute_url(),
     })
 
 

@@ -11,6 +11,7 @@ from django.db import transaction
 from django.forms import inlineformset_factory, modelform_factory
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -64,7 +65,8 @@ LISTS = {
                            ["name_ar", "name_en", "procedures", "body_ar", "body_en", "sort_order", "is_active"],
                            ["name_en", "procedures"], None, gettext_lazy("Prescriptions")),
     "places": (gettext_lazy("Places (CIA, CIC...): name, phone and address"), Branch,
-               ["name_ar", "name_en", "phone", "address", "sort_order", "is_active"], ["name_ar", "name_en", "phone"],
+               ["name_ar", "name_en", "phone", "address", "has_cbct", "sort_order", "is_active"],
+               ["name_ar", "name_en", "phone", "has_cbct"],
                None, gettext_lazy("Reception")),
     "rooms": (gettext_lazy("Rooms"), Room, ["name", "name_en", "branch", "sort_order", "is_active", "notes"],
               ["name", "name_en"], None, gettext_lazy("Reception")),
@@ -170,7 +172,7 @@ class _InlineForm(BootstrapFormMixin, forms.ModelForm):
 class BranchForm(StyledModelForm):
     class Meta:
         model = Branch
-        fields = ["name_ar", "name_en", "phone", "address"]
+        fields = ["name_ar", "name_en", "phone", "address", "has_cbct"]
 
 
 class OptionsForm(StyledModelForm):
@@ -336,8 +338,16 @@ def user_edit(request, pk=None):
 
 @role_required(OWNER)
 def role_access(request):
+    from apps.patients.access import ALL_PARTS, FILE_PARTS
+
     roles = [(code, label) for code, label in ROLE_CHOICES if code != OWNER]
     current = {(a.role, a.area): a.level for a in AreaAccess.objects.all()}
+    options = ClinicSettings.get()
+    if request.method == "POST" and request.POST.get("what") == "file_parts":
+        options.reception_sees = [code for code in request.POST.getlist("parts") if code in ALL_PARTS]
+        options.save(update_fields=["reception_sees"])
+        messages.success(request, _("Saved: the reception now sees these parts of a patient's file."))
+        return redirect(reverse("settings:access") + "#reception-file")
     if request.method == "POST":
         with transaction.atomic():
             for role, _label in roles:
@@ -355,6 +365,7 @@ def role_access(request):
             for area, label, _prefixes in AREAS]
     return render(request, "settings/access.html", {
         "roles": roles, "rows": rows, "levels": AreaAccess.Level.choices,
+        "file_parts": FILE_PARTS, "reception_sees": set(options.reception_sees or ()),
     })
 
 

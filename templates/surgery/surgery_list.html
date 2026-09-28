@@ -3,7 +3,7 @@
 {% block title %}{% trans "Surgeries" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-scissors"></i> {% trans "Surgeries" %}</h1>
+  <h1><i class="bi bi-implant"></i> {% trans "Surgeries" %}</h1>
   <div class="d-flex gap-2">
     {% if is_management %}<a class="btn btn-outline-primary" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i> {% trans "Case finder" %}</a>{% endif %}
     {% if roles.dentist or is_management %}<a class="btn btn-primary" href="{% url 'surgery:create' %}"><i class="bi bi-plus-lg"></i> {% trans "New surgery chart" %}</a>{% endif %}

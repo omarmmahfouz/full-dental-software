@@ -22,7 +22,7 @@
   <a class="visit-step tile-blue" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}&appointment={{ a.pk }}">
     <span class="visit-num">1</span><i class="bi bi-brush"></i><b>{% trans "Restorative or other treatment" %}</b><small>{% trans "with or without a bill" %}</small></a>
   <a class="visit-step tile-amber" href="{% url 'surgery:create' %}?patient={{ patient.pk }}&appointment={{ a.pk }}&flow=1">
-    <span class="visit-num">1</span><i class="bi bi-nut"></i><b>{% trans "Surgery chart" %}</b><small>{% trans "then the suggested prescription and the post-op instructions" %}</small></a>
+    <span class="visit-num">1</span><i class="bi bi-implant"></i><b>{% trans "Surgery chart" %}</b><small>{% trans "then the suggested prescription and the post-op instructions" %}</small></a>
   {% if surgery %}
   <a class="visit-step tile-green" href="{% url 'prescriptions:create' patient.pk %}?surgery={{ surgery.pk }}&flow=1">
     <span class="visit-num">2</span><i class="bi bi-capsule"></i><b>{% trans "Prescription" %}</b><small>{% trans "suggested from the surgery" %}</small></a>

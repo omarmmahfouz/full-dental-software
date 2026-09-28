@@ -1,0 +1,11 @@
+{% load i18n clinic %}{% comment %}
+"Send to the patient on WhatsApp". The reception sends the page as a picture itself; a dentist (no WhatsApp on the
+clinic's tablets) asks the reception to send it: the request waits in the reception's WhatsApp list.
+Context: patient, kind (prescription, instructions, bill, report), target (the part of the page to send, e.g.
+"#prescription"), name (the file name), text (the message, in Arabic).
+{% endcomment %}{% if is_front_desk %}<button type="button" class="btn btn-outline-success" data-save-as="share" data-save-target="{{ target }}" data-save-name="{{ name }}" data-phone="{{ patient.preferred_number|wa_number }}" data-text="{{ text }}"
+  data-saved-note="{% trans 'The page was saved as a picture in Downloads. Attach it in the WhatsApp chat that opens.' %}"><i class="bi bi-whatsapp"></i> {% trans "Send to the patient" %}</button>{% if request.GET.wa %}
+<form method="post" action="{% url 'scheduling:whatsapp_request_done' %}" class="d-inline" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="request" value="{{ request.GET.wa }}"><button class="btn btn-outline-secondary"><i class="bi bi-check2-all"></i> {% trans "Mark as sent" %}</button></form>{% endif %}
+{% else %}<form method="post" action="{% url 'scheduling:whatsapp_ask' %}" class="d-inline" data-no-leave-warning>{% csrf_token %}
+  <input type="hidden" name="patient" value="{{ patient.pk }}"><input type="hidden" name="kind" value="{{ kind }}"><input type="hidden" name="path" value="{{ request.get_full_path }}">
+  <button class="btn btn-outline-success"><i class="bi bi-whatsapp"></i> {% trans "Ask the reception to send it on WhatsApp" %}</button></form>{% endif %}

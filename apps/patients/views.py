@@ -29,12 +29,19 @@ from apps.core.models import Branch, ChangeRequest, branch_for_user, working_pla
 from apps.core.roles import CLINICAL, FRONT_DESK, PATIENT_VIEWERS, has_role
 from apps.core.utils import name_patterns, normalize_phone, validate_phone
 
-from .access import get_clinical_patient_or_403, get_visible_patient_or_403, my_patients, visible_patients
+from .access import (
+    file_parts,
+    get_clinical_patient_or_403,
+    get_visible_patient_or_403,
+    my_patients,
+    visible_patients,
+)
 from .forms import (
     LeadCallForm, LeadForm, PatientDocumentForm, PatientFilterForm, PatientForm, PatientRelationForm,
     duplicate_phone_error,
 )
 from .models import Lead, LeadCall, Patient, PatientDocument, PatientRelation
+from .sequence import file_steps
 
 
 def _text_search(qs, q, name_field="full_name", extra=()):
@@ -345,7 +352,7 @@ def patient_detail(request, pk):
         "plans": patient.treatment_plans.exclude(status="cancelled").select_related("dentist").prefetch_related(
             Prefetch("items", queryset=PlanItem.objects.select_related("step_type"))),
         "lab_requests": patient.lab_requests.select_related("work_type", "lab", "dentist"),
-        "outside_requests": patient.outside_requests.select_related("dentist"),
+        "outside_requests": patient.outside_requests.select_related("dentist", "result"),
         "id_cards": [d for d in patient.documents.all() if d.kind in PatientDocument.CARD_KINDS and d.is_image][:2],
         "open_labs": patient.open_lab_requests().select_related("work_type"),
         "complaints": patient.complaints.visible_to(request.user),
@@ -355,7 +362,10 @@ def patient_detail(request, pk):
         "pending_changes": pending_for(patient),
         "exam": patient.examinations.select_related("examined_by").prefetch_related("conditions").first(),
         "chart_missing": patient.tooth_states.filter(status="missing").exists(),
+        "parts": file_parts(request.user),
     }
+    if has_role(request.user, *CLINICAL):
+        context["file_steps"] = file_steps(patient)
     if context["can_edit"]:
         context["document_form"] = PatientDocumentForm()
         context["relation_form"] = PatientRelationForm(patient=patient)
@@ -393,36 +403,64 @@ def patient_transfer(request, pk):
 
 
 def medical_history(request, pk):
-    """The medical and dental history of the paper chart, asked at the reception (or by a dentist).
-    It is kept like an examination, so the dentist's next examination starts from it."""
+    """The medical and dental history of the paper chart, taken by the dentist (the reception only when the owner
+    allows it in Settings → Access; otherwise it sees a short summary). ``?part=medical`` or ``?part=dental`` shows
+    one of the two, as the first two steps of the file (sequence.py). It is kept like an examination, so the
+    dentist's examination starts from it."""
+    from .sequence import after_step
+
     patient = get_visible_patient_or_403(request.user, pk)
-    if not has_role(request.user, *FRONT_DESK, *CLINICAL):
+    if not has_role(request.user, *FRONT_DESK, *CLINICAL) or "medical" not in file_parts(request.user):
         raise PermissionDenied
+    part = request.GET.get("part") if request.GET.get("part") in MedicalHistoryForm.PARTS else None
+    dentist = has_role(request.user, *CLINICAL)
     latest = patient.examinations.prefetch_related("conditions").first()
     draft = latest if latest is not None and latest.history_only else None
-    initial = {}
-    if draft is None and latest is not None:
-        initial = {name: getattr(latest, Examination._meta.get_field(name).attname) for name in HISTORY_FIELDS
-                   if not Examination._meta.get_field(name).many_to_many}
-        initial["conditions"] = list(latest.conditions.all())
-    elif latest is None:
-        initial["conditions"] = list(patient.medical_conditions.all())
-    form = MedicalHistoryForm(request.POST or None, instance=draft or Examination(patient=patient), initial=initial)
+    instance, initial = draft, {}
+    if draft is None:
+        instance = Examination(patient=patient, medical_taken=False, dental_taken=False)
+        if latest is not None:
+            # Start from the last history (also the part not shown on this page), so only what changed is edited.
+            for name in HISTORY_FIELDS:
+                field = Examination._meta.get_field(name)
+                if not field.many_to_many:
+                    setattr(instance, field.attname, getattr(latest, field.attname))
+                    initial[name] = getattr(latest, field.attname)
+            instance.medical_taken, instance.dental_taken = latest.medical_taken, latest.dental_taken
+            initial["conditions"] = list(latest.conditions.all())
+        else:
+            initial["conditions"] = list(patient.medical_conditions.all())
+    form = MedicalHistoryForm(request.POST or None, instance=instance, initial=initial, part=part, dentist=dentist)
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             history = form.save(commit=False)
             if history.pk is None:
                 history.history_only, history.created_by = True, request.user
             history.exam_date = timezone.localdate()
+            if part in (None, "medical"):
+                history.medical_taken = True
+            if part in (None, "dental"):
+                history.dental_taken = True
             history.save()
             form.save_m2m()
+            if "conditions" not in form.fields and draft is None:
+                history.conditions.set(initial["conditions"])
             sync_medical_history(history)
-        messages.success(request, _("Medical and dental history saved. The dentist sees it at the next examination."))
-        return redirect(reverse("patients:detail", args=[pk]))
-    return render(request, "includes/form_page.html", {
-        "form": form, "title": _("Medical and dental history — %(name)s") % {"name": patient.full_name},
+        if part == "medical":
+            messages.success(request, _("Medical history saved."))
+        elif part == "dental":
+            messages.success(request, _("Dental history saved."))
+        else:
+            messages.success(request, _("Medical and dental history saved. The dentist sees it at the next examination."))
+        return redirect(after_step(request, patient, part or "dental") or reverse("patients:detail", args=[pk]))
+    titles = {"medical": _("Medical history — %(name)s"), "dental": _("Dental history — %(name)s")}
+    return render(request, "patients/history_form.html", {
+        "form": form, "patient": patient,
+        "title": titles.get(part, _("Medical and dental history — %(name)s")) % {"name": patient.full_name},
         "intro": _("The same questions as the paper chart. Ask the patient and tick or write the answers."),
         "cancel_url": patient.get_absolute_url(),
+        "file_steps": file_steps(patient, current=part) if dentist else None,
+        "flow": request.GET.get("flow"),
     })
 
 
@@ -513,3 +551,12 @@ def patient_word(request, pk):
     patient = get_clinical_patient_or_403(request.user, pk)
     return FileResponse(patient_docx(patient), as_attachment=True,
                         filename=f"{patient.file_number} {patient.full_name}.docx")
+
+
+def patient_excel(request, pk):
+    """The whole patient file as an Excel workbook (.xlsx), one sheet per part."""
+    from .word import patient_xlsx
+
+    patient = get_clinical_patient_or_403(request.user, pk)
+    return FileResponse(patient_xlsx(patient), as_attachment=True,
+                        filename=f"{patient.file_number} {patient.full_name}.xlsx")

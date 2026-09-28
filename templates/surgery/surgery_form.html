@@ -2,7 +2,8 @@
 {% load i18n %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><i class="bi bi-scissors"></i> {{ title }}</h1></div>
+<div class="page-header"><h1><i class="bi bi-implant"></i> {{ title }}</h1></div>
+{% if file_steps %}{% include "patients/_file_steps.html" %}{% endif %}
 <form method="post" enctype="multipart/form-data" novalidate data-teeth-missing="{{ missing }}">{% csrf_token %}
   {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
   {% for title, fields in form.bound_fieldsets %}

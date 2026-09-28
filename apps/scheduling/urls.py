@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import patient_requests, views, waiting
+from . import patient_requests, views, waiting, whatsapp_requests
 
 app_name = "scheduling"
 
@@ -35,4 +35,6 @@ urlpatterns = [
     path("whatsapp/", views.whatsapp_list, name="whatsapp"),
     path("whatsapp/<int:pk>/<slug:kind>/", views.whatsapp_send, name="whatsapp_send"),
     path("whatsapp/mark/<slug:kind>/", views.whatsapp_mark, name="whatsapp_mark"),
+    path("whatsapp/ask/", whatsapp_requests.whatsapp_ask, name="whatsapp_ask"),
+    path("whatsapp/asked/done/", whatsapp_requests.whatsapp_request_done, name="whatsapp_request_done"),
 ]

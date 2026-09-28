@@ -65,6 +65,9 @@ class Branch(LookupModel):
     kind = models.CharField(_("type"), max_length=20, choices=Kind.choices)
     address = models.CharField(_("address"), max_length=255, blank=True)
     phone = models.CharField(_("phone"), max_length=30, blank=True)
+    has_cbct = models.BooleanField(
+        _("has a CBCT machine"), default=False,
+        help_text=_("A CBCT asked by a dentist here can then be marked as done in the clinic."))
 
     class Meta(LookupModel.Meta):
         verbose_name = _("branch")

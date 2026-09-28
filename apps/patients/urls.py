@@ -13,6 +13,7 @@ urlpatterns = [
     path("<int:pk>/edit/", views.PatientUpdateView.as_view(), name="update"),
     path("<int:pk>/history/", views.medical_history, name="medical_history"),
     path("<int:pk>/word/", views.patient_word, name="word"),
+    path("<int:pk>/excel/", views.patient_excel, name="excel"),
     path("<int:pk>/documents/", views.document_upload, name="document_upload"),
     path("<int:pk>/documents/<int:doc_pk>/delete/", views.document_delete, name="document_delete"),
     path("<int:pk>/documents/<int:doc_pk>/rotate/", views.document_rotate, name="document_rotate"),

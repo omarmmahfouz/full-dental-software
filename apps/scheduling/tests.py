@@ -699,3 +699,43 @@ class WaitingListFollowUpTests(TestCase):
         self.assertEqual(self.entry.appointment.status, Appointment.Status.CONFIRMED)  # he said yes on the phone
         page = self.client.get("/schedule/waiting/")
         self.assertEqual(list(page.context["booked"]), [self.entry])
+
+
+class WhatsAppRequestTests(TestCase):
+    """The dentists' tablets have no WhatsApp: they ask the reception to send."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.secretary = make_user("sec", "secretary")
+        self.patient = make_patient(self.branch)
+
+    def test_the_dentist_asks_and_the_reception_sends(self):
+        from apps.core.models import Notification
+        from apps.scheduling.models import WhatsAppRequest
+
+        self.client.login(username="dentist", password=PASSWORD)
+        path = f"/patients/{self.patient.pk}/"
+        response = self.client.post("/schedule/whatsapp/ask/", {"patient": self.patient.pk, "kind": "prescription",
+                                                                "path": path})
+        self.assertRedirects(response, path)
+        self.client.post("/schedule/whatsapp/ask/", {"patient": self.patient.pk, "kind": "prescription",
+                                                     "path": path})  # asked twice: one request
+        asked = WhatsAppRequest.objects.get()
+        self.assertEqual((asked.kind, asked.branch, asked.sent_at), ("prescription", self.branch, None))
+        self.assertTrue(Notification.objects.filter(recipient=self.secretary, url="/schedule/whatsapp/#asked").exists())
+        # A link to another site is never kept.
+        self.client.post("/schedule/whatsapp/ask/", {"patient": self.patient.pk, "path": "//evil.example/"})
+        self.assertEqual(WhatsAppRequest.objects.filter(path=path).count(), 1)
+        self.assertFalse(WhatsAppRequest.objects.filter(path__contains="evil").exists())
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/schedule/whatsapp/")
+        self.assertIn(asked, list(page.context["asked"]))
+        self.assertContains(page, f"wa={asked.pk}")
+        self.assertEqual(self.client.get("/").context["whatsapp_asked"], 1)
+        self.client.post("/schedule/whatsapp/asked/done/", {"request": asked.pk})
+        asked.refresh_from_db()
+        self.assertEqual(asked.sent_by, self.secretary)
+        self.assertTrue(Notification.objects.filter(recipient=self.dentist.user, title__contains="WhatsApp").exists())
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.client.post("/schedule/whatsapp/asked/done/", {"request": asked.pk}).status_code, 403)

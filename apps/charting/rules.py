@@ -224,13 +224,15 @@ def apply_changes(patient, changes, user, source, treatment=None, surgery=None, 
                 setattr(state, name, value)
             state.updated_by = user
             state.save()
+        stage_from = stage_to = ""
         if change.site is not None and change.site_status:
+            stage_from, stage_to = change.site.implant_status or "", change.site_status
             change.site.advance(change.site_status, on=timezone.localdate(when))
             change.site.save()
         ToothChange.objects.create(
             patient=patient, tooth=change.tooth, changed_at=when, changed_by=user, source=source,
             treatment=treatment, surgery=surgery, examination=examination, summary=change.summary[:255],
-            before=change.before, after=change.after,
+            before=change.before, after=change.after, stage_from=stage_from, stage_to=stage_to, structured=True,
         )
     return len(changes)
 

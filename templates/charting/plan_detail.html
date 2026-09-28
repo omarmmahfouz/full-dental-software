@@ -27,7 +27,7 @@
       <thead><tr><th>{% trans "Phase" %}</th><th>{% trans "Procedure" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Details" %}</th><th>{% trans "Status" %}</th><th class="no-print"></th></tr></thead>
       <tbody>
       {% for section in sections %}
-      <tr class="plan-part-row"><th colspan="6">{% if section.code == "implant" %}<i class="bi bi-nut"></i>{% else %}<i class="bi bi-brush"></i>{% endif %} {{ section.label }}</th></tr>
+      <tr class="plan-part-row"><th colspan="6">{% if section.code == "implant" %}<i class="bi bi-implant"></i>{% else %}<i class="bi bi-brush"></i>{% endif %} {{ section.label }}</th></tr>
       {% for item in section.items %}
       <tr class="{% if item.status == 'done' %}table-success{% elif item.status == 'cancelled' %}text-muted{% endif %}">
         <td class="small">{{ item.get_phase_display }}</td>

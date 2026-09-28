@@ -763,7 +763,10 @@ def whatsapp_list(request):
         from apps.academy.reminders import reminders_due
 
         installments = reminders_due()
+    from .whatsapp_requests import pending_requests
+
     return render(request, "scheduling/whatsapp.html", {
+        "asked": pending_requests(branch_for_user(request.user)),
         "day": day, "prev_day": day - timedelta(days=1), "next_day": day + timedelta(days=1),
         "new_bookings": with_sent(new_bookings, MessageTemplate.Kind.CONFIRMATION),
         "reminders": with_sent(reminders, MessageTemplate.Kind.REMINDER),

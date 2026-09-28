@@ -14,7 +14,7 @@
     {% if can_edit %}
     <div class="d-flex flex-wrap gap-2 no-print">
       <a class="btn btn-sm btn-primary" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment" %}</a>
-      <a class="btn btn-sm btn-outline-primary" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-scissors"></i> {% trans "Surgery chart" %}</a>
+      <a class="btn btn-sm btn-outline-primary" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-implant"></i> {% trans "Surgery chart" %}</a>
       <a class="btn btn-sm btn-outline-primary" href="{% url 'charting:plan_create' patient.pk %}"><i class="bi bi-list-ol"></i> {% trans "Treatment plan" %}</a>
       <a class="btn btn-sm btn-outline-primary" href="{% if exam %}{% url 'charting:exam_detail' exam.pk %}{% else %}{% url 'charting:exam_create' patient.pk %}{% endif %}"><i class="bi bi-clipboard2-pulse"></i> {% trans "Examination & history" %}</a>
       <a class="btn btn-sm btn-outline-secondary" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-box-seam"></i> {% trans "Lab request" %}</a>
@@ -27,6 +27,18 @@
     <div class="d-flex justify-content-between small text-muted mb-1" dir="ltr"><span>{% trans "Patient's right" %}</span><span>{% trans "Patient's left" %}</span></div>
     <div class="odontogram-wrap">{{ svg }}</div>
     <div class="mt-2">{% include "charting/_legend.html" %}</div>
+    {% if can_edit %}
+    <details class="chart-many mt-3 no-print">
+      <summary><i class="bi bi-ui-checks-grid"></i> {% trans "Mark many teeth at once (e.g. only one tooth left)" %}</summary>
+      <form method="post" action="{% url 'charting:chart_many' patient.pk %}" class="d-flex flex-wrap align-items-end gap-2 mt-2" data-no-leave-warning>{% csrf_token %}
+        <div class="flex-grow-1" style="min-width: 14rem"><label class="form-label small mb-1" for="many-teeth">{% trans "Teeth" %}</label>
+          <input class="form-control" id="many-teeth" name="teeth" data-teeth-picker="multi" data-digits="1" placeholder="{% trans 'e.g. 33' %}" autocomplete="off"></div>
+        <button class="btn btn-outline-danger" name="action" value="missing_others" data-confirm="{% trans 'Mark every other tooth as missing? Implants are not touched, and each tooth keeps its history.' %}"><i class="bi bi-x-circle"></i> {% trans "All the other teeth are missing" %}</button>
+        <button class="btn btn-outline-secondary" name="action" value="missing_these"><i class="bi bi-dash-circle"></i> {% trans "These teeth are missing" %}</button>
+        <button class="btn btn-outline-success" name="action" value="present_these" data-tip="{% trans 'To undo: missing teeth chosen here become present again' %}"><i class="bi bi-arrow-counterclockwise"></i> {% trans "These teeth are present" %}</button>
+      </form>
+    </details>
+    {% endif %}
   </div>
 </div>
 
@@ -85,7 +97,7 @@
     </div>
     <div class="card"><div class="card-header">{% trans "Chart history" %}</div>
       <ul class="list-group list-group-flush small">
-        {% for c in changes %}<li class="list-group-item"><strong>{{ c.tooth }}</strong>: {{ c.summary }} <span class="text-muted">— {{ c.get_source_display }}, {{ c.changed_by|default:"" }}, {{ c.changed_at|date:"d/m/Y" }}</span></li>
+        {% for c in changes %}<li class="list-group-item"><strong>{{ c.tooth }}</strong>: {{ c.text }} <span class="text-muted">— {{ c.get_source_display }}, {{ c.changed_by|default:"" }}, {{ c.changed_at|date:"d/m/Y" }}</span></li>
         {% empty %}<li class="list-group-item text-muted">{% trans "No changes yet." %}</li>{% endfor %}
       </ul>
     </div>

@@ -25,6 +25,7 @@ from apps.core.mixins import role_required
 from apps.core.models import ChangeRequest, branch_for_user
 from apps.core.roles import CLINICAL, HEAD_CIA, MANAGEMENT, OWNER, has_role, is_only_dentist
 from apps.dentists.models import Dentist
+from apps.patients.sequence import file_steps
 from apps.patients.access import get_clinical_patient_or_403, visible_patients
 from apps.scheduling.models import Appointment
 from apps.stock.implants import lot_choices, take_implants
@@ -187,6 +188,7 @@ def surgery_edit(request, pk=None):
         "title": _("Edit surgery chart") if surgery else _("New surgery chart"),
         "procedures": SurgerySite.PROCEDURES,
         "missing": format_teeth(missing_teeth(chart_patient)) if chart_patient else "",
+        "file_steps": file_steps(patient, current="surgery") if patient is not None else None,
     })
 
 

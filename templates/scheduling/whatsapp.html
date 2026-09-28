@@ -4,6 +4,20 @@
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-whatsapp text-success"></i> {% trans "WhatsApp messages to send" %}</h1></div>
 <p class="small text-muted">{% trans "Click a button: WhatsApp opens with the message ready for that patient; press send there. The message is then ticked here." %}</p>
+{% if asked %}
+<div class="card mb-3 border-success" id="asked"><div class="card-header fw-semibold"><i class="bi bi-person-raised-hand"></i> {% trans "Asked by the dentists" %} <span class="badge text-bg-success">{{ asked|length }}</span></div>
+<div class="table-responsive"><table class="table table-sm align-middle mb-0"><tbody>
+  {% for r in asked %}<tr>
+    <td class="nowrap small text-muted">{{ r.requested_at|date:"d/m g:i A" }}</td>
+    <td><a class="fw-semibold" href="{{ r.patient.get_absolute_url }}">{{ r.patient.full_name }}</a> <span class="small text-muted ltr">{{ r.patient.file_number }}</span></td>
+    <td><b>{{ r.get_kind_display }}</b>{% if r.note %}<div class="small">{{ r.note }}</div>{% endif %}<div class="small text-muted">{{ r.requested_by|default:"" }}</div></td>
+    <td class="text-end nowrap">
+      <a class="btn btn-sm btn-success" href="{{ r.path }}{% if '?' in r.path %}&amp;{% else %}?{% endif %}wa={{ r.pk }}"><i class="bi bi-whatsapp"></i> {% trans "Open and send" %}</a>
+      <form method="post" action="{% url 'scheduling:whatsapp_request_done' %}" class="d-inline" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="request" value="{{ r.pk }}"><button class="btn btn-sm btn-outline-secondary" data-tip="{% trans 'Mark as sent' %}" aria-label="{% trans 'Mark as sent' %}"><i class="bi bi-check2-all"></i></button></form>
+    </td>
+  </tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
 <div class="card mb-3"><div class="card-header fw-semibold">{% trans "Confirm new bookings" %}</div>
   {% include "scheduling/_whatsapp_rows.html" with rows=new_bookings kind="confirmation" %}
 </div>

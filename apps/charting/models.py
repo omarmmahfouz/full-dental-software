@@ -235,11 +235,34 @@ class ToothChange(models.Model):
     summary = models.CharField(_("change"), max_length=255)
     before = models.JSONField(default=dict)
     after = models.JSONField(default=dict)
+    # The implant stage moved (e.g. placed → loaded). Kept as codes, so the history reads in each person's language.
+    stage_from = models.CharField(max_length=20, blank=True)
+    stage_to = models.CharField(max_length=20, blank=True)
+    structured = models.BooleanField(default=False, editable=False)
 
     class Meta:
         ordering = ["-changed_at", "-pk"]
         verbose_name = _("chart change")
         verbose_name_plural = _("chart history")
+
+    @property
+    def text(self):
+        """The change in the reader's language, written again from the tooth before and after (``summary`` keeps
+        the words of the person who made it, in their language)."""
+        from apps.surgery.models import SurgerySite
+
+        from .rules import state_label
+
+        parts = []
+        if self.before and self.after and self.before != self.after:
+            parts.append(f"{state_label(self.before)} → {state_label(self.after)}")
+        if self.stage_to:
+            labels = dict(SurgerySite.ImplantStatus.choices)
+            parts.append(_("implant: %(old)s → %(new)s") % {"old": labels.get(self.stage_from, "—"),
+                                                               "new": labels.get(self.stage_to, self.stage_to)})
+        elif not self.structured and "; " in self.summary:
+            parts.append(self.summary.split("; ", 1)[1])  # an older note, kept as it was written
+        return "; ".join(str(part) for part in parts) if parts else self.summary
 
 
 class TreatmentPlan(TimeStampedModel):

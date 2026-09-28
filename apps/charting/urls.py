@@ -6,6 +6,7 @@ app_name = "charting"
 
 urlpatterns = [
     path("patient/<int:patient_pk>/", views.chart, name="chart"),
+    path("patient/<int:patient_pk>/many/", views.chart_many, name="chart_many"),
     path("patient/<int:patient_pk>/tooth/<int:tooth>/", views.tooth_edit, name="tooth"),
     path("patient/<int:patient_pk>/exam/new/", views.exam_edit, name="exam_create"),
     path("patient/<int:patient_pk>/plan/new/", views.plan_edit, name="plan_create"),

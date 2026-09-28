@@ -36,7 +36,13 @@
       <tr><th>{% trans "Implant failed (before)" %}</th><td>{{ exam.teeth_implant_failed|default:"—" }}</td></tr>
       <tr><th>{% trans "Operator important notices" %}</th><td>{{ exam.operator_notices|linebreaksbr|default:"—" }}</td></tr>
       <tr><th>{% trans "Examined by" %}</th><td>{{ exam.examined_by|default:"—" }}{% if exam.supervisor %} — {% trans "Supervisor" %}: {{ exam.supervisor }}{% endif %}</td></tr>
-      <tr><th>CBCT</th><td>{% trans "Requested" %}: {{ exam.cbct_requested|yesno:"✔,✘" }} &nbsp; {% trans "Done" %}: {{ exam.cbct_done|yesno:"✔,✘" }} &nbsp; {% trans "New requested" %}: {{ exam.new_cbct_requested|yesno:"✔,✘" }}</td></tr>
+      <tr><th>CBCT</th><td class="d-flex flex-wrap align-items-center gap-2">
+        {% if cbct_request %}<a class="btn btn-sm {% if cbct_request.status == 'requested' %}btn-outline-warning{% else %}btn-outline-success{% endif %}" href="{{ cbct_request.get_absolute_url }}"><i class="bi bi-radioactive"></i> {% trans "CBCT requested" %} {{ cbct_request.requested_on|date:"d/m/Y" }} · {{ cbct_request.get_status_display }}</a>
+        {% elif exam.cbct_requested or exam.new_cbct_requested %}<span>{% trans "Requested" %} ✔</span> <a class="btn btn-sm btn-outline-primary" href="{% url 'clinical:outside_create' %}?patient={{ patient.pk }}&amp;kind=cbct"><i class="bi bi-radioactive"></i> {% trans "Write the CBCT request" %}</a>
+        {% else %}<span>{% trans "Requested" %}: ✘</span>{% endif %}
+        {% if cbct_scan %}{% with d=cbct_scan %}<span class="d-inline-flex align-items-center gap-1"><b>{% trans "CBCT done" %}:</b> {% if d.file %}<a href="{{ d.file.url }}" target="_blank">{% trans "report" %}</a>{% endif %}{% include "patients/_scan_location.html" %}</span>{% endwith %}
+        {% elif exam.cbct_done %}<span>{% trans "Done" %} ✔ <a href="{{ patient.get_absolute_url }}#xrays">{% trans "X-rays & CBCT" %}</a></span>{% endif %}
+      </td></tr>
     </tbody>
   </table>
   <div class="odontogram-wrap mb-3">{{ svg }}</div>

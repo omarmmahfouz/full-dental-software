@@ -21,7 +21,7 @@
     </dl>
     {% if chart_changes %}
     <div class="fw-semibold mt-3"><i class="bi bi-diagram-3"></i> {% trans "Dental chart changes" %}</div>
-    <ul class="small mb-0">{% for c in chart_changes %}<li>{{ c.tooth }}: {{ c.summary }}</li>{% endfor %}</ul>
+    <ul class="small mb-0">{% for c in chart_changes %}<li>{{ c.tooth }}: {{ c.text }}</li>{% endfor %}</ul>
     {% endif %}
   </div></div></div>
   <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Supervisor check" %}</div><div class="card-body">

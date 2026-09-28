@@ -5,10 +5,11 @@
 {% block content %}
 {% if request.GET.flow and prescription.surgery %}<div class="alert alert-success d-flex flex-wrap align-items-center gap-2 no-print"><i class="bi bi-check2-circle"></i> {% trans "Prescription saved. Print it, then the post-op instructions for this surgery." %}
   <a class="btn btn-success ms-auto" href="{% url 'prescriptions:instructions' patient.pk %}?surgery={{ prescription.surgery_id }}"><i class="bi bi-arrow-right"></i> {% trans "Next: post-op instructions" %}</a></div>{% endif %}
-<div class="text-center mb-3 no-print d-flex gap-2 justify-content-center">
+<div class="text-center mb-3 no-print d-flex flex-wrap gap-2 justify-content-center">
   <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print (A5)" %}</button>
   <button class="btn btn-outline-primary" data-save-as="jpeg" data-save-target="#prescription" data-save-name="Rx-{{ patient.file_number }}-{{ prescription.prescribed_on|date:'Y-m-d' }}"><i class="bi bi-image"></i> {% trans "Save as a picture" %}</button>
   <button class="btn btn-outline-primary" data-save-as="pdf" data-page="a5" data-save-target="#prescription" data-save-name="Rx-{{ patient.file_number }}-{{ prescription.prescribed_on|date:'Y-m-d' }}"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
+  {% include "includes/send_to_patient.html" with kind="prescription" target="#prescription" name="Rx-"|add:patient.file_number text="روشتة "|add:patient.full_name %}
   <a class="btn btn-outline-secondary" href="{% url 'prescriptions:instructions' patient.pk %}{% if prescription.surgery %}?surgery={{ prescription.surgery_id }}{% endif %}"><i class="bi bi-card-checklist"></i> {% trans "Post-op instructions" %}</a>
   <a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-arrow-left"></i> {% trans "Back to chart" %}</a>
 </div>

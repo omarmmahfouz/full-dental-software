@@ -96,7 +96,7 @@
             {% if is_clinical %}
             {% if "treatments" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'clinical:step_list' %}"><i class="bi bi-list-check"></i> {% trans "Treatment log" %}</a></li>{% endif %}
             {% if "surgery" not in hidden_areas %}
-            <li><a class="dropdown-item" href="{% url 'surgery:list' %}"><i class="bi bi-nut"></i> {% trans "Implant surgeries" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'surgery:list' %}"><i class="bi bi-implant"></i> {% trans "Implant surgeries" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'surgery:create' %}"><i class="bi bi-plus-circle"></i> {% trans "New surgery chart" %}</a></li>
             {% endif %}
             {% endif %}

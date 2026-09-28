@@ -13,10 +13,11 @@ from django.utils.dateparse import parse_date
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
-from apps.clinical.models import TreatmentStep, TreatmentStepType
+from apps.clinical.models import ChartEffect, TreatmentStep, TreatmentStepType
 from apps.core import previews
 from apps.core.roles import CLINICAL, MANAGEMENT, has_role
 from apps.dentists.models import Dentist
+from apps.patients.sequence import after_step, file_steps
 from apps.patients.access import get_clinical_patient_or_403
 
 from . import odontogram, photo_files
@@ -25,7 +26,7 @@ from .models import ClinicalPhoto, Examination, PhotoStage, PhotoType, PlanItem,
 from .plans import planned_by_tooth
 from .rules import DEFAULT, apply_changes, current_states, exam_changes, plan_changes, state_label
 from .sync import missing_teeth, sync_medical_history
-from .teeth import VALID_TEETH, format_teeth, parse_surfaces, parse_teeth
+from .teeth import ALL_TEETH, VALID_TEETH, chart_order, format_teeth, parse_surfaces, parse_teeth
 
 ALLOWED_MEDIA = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".bmp", ".tif", ".tiff", ".pdf"} | ClinicalPhoto.VIDEO_EXTENSIONS
 MAX_PHOTO_MB = 25
@@ -63,6 +64,35 @@ def chart(request, patient_pk):
         "prescriptions": patient.prescriptions.prefetch_related("lines__drug")[:5],
         "can_edit": has_role(request.user, *CLINICAL),
     })
+
+
+@require_POST
+def chart_many(request, patient_pk):
+    """Mark many teeth at once, e.g. a patient with one tooth left: choose that tooth and mark all the others
+    missing. Implants and pontics are never touched; every tooth changed is kept in its history."""
+    patient = get_clinical_patient_or_403(request.user, patient_pk)
+    _require_clinical(request.user)
+    try:
+        chosen = {tooth for tooth in parse_teeth(request.POST.get("teeth")) if tooth in VALID_TEETH}
+    except Exception:  # noqa: BLE001 - a wrong tooth number is said to the user
+        chosen = None
+    action = request.POST.get("action")
+    if not chosen or action not in ("missing_others", "missing_these", "present_these"):
+        messages.error(request, _("Choose the teeth first."))
+        return redirect("charting:chart", patient_pk=patient.pk)
+    states = current_states(patient)
+    status = {tooth: state.status for tooth, state in states.items()}
+    natural = {ToothState.Status.PRESENT, ToothState.Status.ROOT_REMNANT, ToothState.Status.IMPACTED}
+    if action == "present_these":
+        teeth = [t for t in chart_order(chosen) if status.get(t) == ToothState.Status.MISSING]
+        effect = ChartEffect.SOUND
+    else:
+        pool = [t for t in ALL_TEETH if t not in chosen] if action == "missing_others" else chart_order(chosen)
+        teeth = [t for t in pool if status.get(t, ToothState.Status.PRESENT) in natural]
+        effect = ChartEffect.EXTRACTION
+    changed = apply_changes(patient, plan_changes(patient, effect, teeth), request.user, ToothChange.Source.MANUAL)
+    messages.success(request, _("Dental chart updated for %(n)s teeth.") % {"n": changed})
+    return redirect("charting:chart", patient_pk=patient.pk)
 
 
 def tooth_edit(request, patient_pk, tooth):
@@ -166,19 +196,30 @@ def exam_edit(request, patient_pk=None, pk=None):
                                         ToothChange.Source.EXAM, examination=obj)
         messages.success(request, _("Examination and history saved.") + (
             " " + _("Dental chart updated for %(n)s teeth.") % {"n": changed} if changed else ""))
-        return redirect(obj)
+        after = after_step(request, patient, "exam") or obj.get_absolute_url()
+        wants_cbct = obj.cbct_requested and not obj.cbct_done or obj.new_cbct_requested
+        if wants_cbct and not patient.outside_requests.filter(kind="cbct", status="requested").exists():
+            # "CBCT requested" opens the CBCT request, to print for the patient (or to do on our machine).
+            messages.info(request, _("Now fill the CBCT request and print it for the patient."))
+            query = urlencode({"patient": patient.pk, "kind": "cbct", "next": after})
+            return redirect(f"{reverse('clinical:outside_create')}?{query}")
+        return redirect(after)
     return render(request, "charting/exam_form.html", {
         "form": form, "patient": patient, "exam": exam,
         "title": _("Edit examination & history") if exam else _("New examination & history"),
+        "file_steps": None if exam else file_steps(patient, current="exam"), "flow": request.GET.get("flow"),
     })
 
 
 def exam_detail(request, pk):
     exam = get_object_or_404(Examination.objects.select_related("patient", "examined_by", "supervisor"), pk=pk)
     patient = get_clinical_patient_or_403(request.user, exam.patient_id)
+    cbct = patient.outside_requests.filter(kind="cbct").exclude(status="cancelled").select_related("result").first()
+    scan = cbct.result if cbct is not None and cbct.result_id else patient.documents.filter(
+        kind="xray").exclude(location="").first()
     return render(request, "charting/exam_detail.html", {
         "exam": exam, "patient": patient, "svg": chart_svg(patient, clickable=False),
-        "can_edit": has_role(request.user, *CLINICAL),
+        "can_edit": has_role(request.user, *CLINICAL), "cbct_request": cbct, "cbct_scan": scan,
     })
 
 
@@ -204,11 +245,12 @@ def plan_edit(request, patient_pk=None, pk=None):
             formset.instance = obj
             formset.save()
         messages.success(request, _("Treatment plan saved."))
-        return redirect(obj)
+        return redirect(obj)  # the surgery chart, the last step, is filled on the day of the surgery
     return render(request, "charting/plan_form.html", {
         "form": form, "formset": formset, "patient": patient, "plan": plan,
         "sections": _plan_sections(formset), "missing": format_teeth(missing_teeth(patient)),
         "title": _("Edit treatment plan") if plan else _("New treatment plan"),
+        "file_steps": None if plan else file_steps(patient, current="plan"), "flow": request.GET.get("flow"),
     })
 
 

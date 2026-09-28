@@ -1,3 +1,4 @@
+import io
 import shutil
 import tempfile
 from datetime import date, timedelta
@@ -272,6 +273,13 @@ class TreatmentExplanationTests(TestCase):
         TreatmentStep.objects.create(patient=patient, step_type=scaling, performed_at=timezone.now())
         make_user("sec", "secretary")
         self.client.login(username="sec", password=PASSWORD)
+        # The dental work is hidden from the reception until the owner shows it (Settings → Access).
+        self.assertNotContains(self.client.get(f"/patients/{patient.pk}/"), "زرع بدليل جراحي")
+        from apps.core.models import ClinicSettings
+
+        options = ClinicSettings.get()
+        options.reception_sees = ["plan", "steps"]
+        options.save()
         page = self.client.get(f"/patients/{patient.pk}/")
         for text in ("زرع بدليل جراحي", guided.description_ar, "الضرس الأول السفلي الأيمن", scaling.description_ar):
             self.assertContains(page, text)
@@ -509,3 +517,77 @@ class ArabicNameTests(TestCase):
         self.client.login(username="sec", password=PASSWORD)
         response = self.client.post("/patients/new/", {"full_name": "Ahmed Ali Hassan"})
         self.assertIn("Arabic", str(response.context["form"].errors["full_name"]))
+
+
+class FileStepsTests(TestCase):
+    """The file is filled in order: medical history, dental history, examination, plan, surgery chart."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.patient = make_patient(self.branch)
+        make_dentist("dentist", kind="fulltime")
+        make_user("sec", "secretary")
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def steps(self):
+        return {s["code"]: s for s in self.client.get(f"/patients/{self.patient.pk}/").context["file_steps"]}
+
+    def test_the_dentist_goes_through_the_file_in_order(self):
+        from apps.charting.models import Examination
+
+        steps = self.steps()
+        self.assertTrue(steps["medical"]["next"])
+        self.assertTrue(steps["surgery"]["optional"])
+        page = self.client.get(steps["medical"]["url"])
+        self.assertNotIn("smoker", page.context["form"].fields)  # the dental history is the next page
+        self.assertIn("conditions", page.context["form"].fields)
+        response = self.client.post(steps["medical"]["url"], {"bp_last_systolic": "130", "allergy_penicillin": "on"})
+        self.assertRedirects(response, f"/patients/{self.patient.pk}/history/?part=dental&flow=1")
+        history = Examination.objects.get()
+        self.assertEqual((history.medical_taken, history.dental_taken, history.history_only), (True, False, True))
+        form = self.client.get(response.url).context["form"]
+        self.assertIn("cooperation_score", form.fields)  # the dentist's own judgement, asked of the dentist only
+        response = self.client.post(response.url, {"smoker": "on", "cigarettes_per_day": "10"})
+        self.assertRedirects(response, f"/chart/patient/{self.patient.pk}/exam/new/?flow=1", fetch_redirect_response=False)
+        history.refresh_from_db()
+        self.assertEqual((history.dental_taken, history.bp_last_systolic, history.smoker), (True, 130, True))
+        self.assertEqual(Examination.objects.count(), 1)
+        steps = self.steps()
+        self.assertTrue(steps["exam"]["next"] and steps["medical"]["done"] and steps["dental"]["done"])
+
+    def test_the_reception_sees_a_summary_and_what_the_owner_allows(self):
+        from apps.charting.models import Examination
+        from apps.core.models import ClinicSettings
+        from apps.patients.models import MedicalCondition
+
+        exam = Examination.objects.create(patient=self.patient, allergy_penicillin=True, bp_last_systolic=150,
+                                          bp_last_diastolic=95)
+        exam.conditions.add(MedicalCondition.objects.get(name_en="Diabetes"))
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get(f"/patients/{self.patient.pk}/")
+        self.assertIsNone(page.context.get("file_steps"))
+        self.assertContains(page, "medical-summary")
+        self.assertNotContains(page, "150/95")  # the full history stays with the dentist
+        self.assertNotContains(page, 'data-bs-target="#plan"')
+        self.assertContains(page, 'data-bs-target="#lab"')  # shown until the owner hides it
+        self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/history/").status_code, 403)
+        owner = make_user("boss", "owner")
+        self.client.force_login(owner)
+        self.client.post("/settings/access/", {"what": "file_parts", "parts": ["medical", "plan"]})
+        self.assertEqual(ClinicSettings.get().reception_sees, ["medical", "plan"])
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get(f"/patients/{self.patient.pk}/")
+        self.assertContains(page, "150/95")
+        self.assertContains(page, 'data-bs-target="#plan"')
+        self.assertNotContains(page, 'data-bs-target="#lab"')
+
+    def test_the_file_as_excel(self):
+        from openpyxl import load_workbook
+
+        response = self.client.get(f"/patients/{self.patient.pk}/excel/")
+        self.assertEqual(response.status_code, 200)
+        book = load_workbook(io.BytesIO(b"".join(response.streaming_content)))
+        self.assertIn("Personal data", book.sheetnames)
+        self.assertIn(self.patient.file_number, [row[1] for row in book["Personal data"].iter_rows(values_only=True)])
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/excel/").status_code, 403)

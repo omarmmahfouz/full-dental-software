@@ -18,4 +18,5 @@ urlpatterns = [
     path("lab/<int:pk>/print/", views.lab_print, name="lab_print"),
     path("requests/new/", views.outside_create, name="outside_create"),
     path("requests/<int:pk>/", views.outside_print, name="outside_print"),
+    path("requests/<int:pk>/done/", views.outside_done, name="outside_done"),
 ]

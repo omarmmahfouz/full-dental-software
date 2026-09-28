@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-heart-pulse"></i> {{ title }}</h1></div>
+{% if file_steps %}{% include "patients/_file_steps.html" %}{% endif %}
+{% if intro %}<p class="text-muted">{{ intro }}</p>{% endif %}
+<div class="card"><div class="card-body">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if flow %}<input type="hidden" name="flow" value="1">{% endif %}
+    {% include "includes/form_fields.html" %}
+    <div class="form-actions mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% if flow %}{% trans "Save and go to the next step" %}{% else %}{% trans "Save" %}{% endif %}</button>
+      <a class="btn btn-outline-secondary" href="{{ cancel_url }}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

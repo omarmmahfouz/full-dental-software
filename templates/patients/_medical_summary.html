@@ -1,0 +1,15 @@
+{% load i18n %}{% comment %}What the reception sees of the medical history: a short summary. The dentist takes the history.{% endcomment %}
+<div class="card mt-3 medical-summary"><div class="card-header"><i class="bi bi-heart-pulse text-danger"></i> {% trans "Medical summary" %}
+  {% if exam %}<span class="small text-muted">— {{ exam.exam_date|date:"d/m/Y" }}, {% if exam.history_only %}{{ exam.created_by|default:"" }}{% else %}{{ exam.examined_by|default:"" }}{% endif %}</span>{% endif %}</div>
+  <div class="card-body small">
+    {% if exam %}
+    <div class="mb-1"><b>{% trans "Conditions" %}:</b> {% for c in exam.conditions.all %}<span class="medical-alert py-0">{{ c }}</span>{% empty %}{% trans "none" %}{% endfor %} {{ exam.other_condition }}</div>
+    <div class="mb-1"><b>{% trans "Allergic to" %}:</b> {% if exam.allergy_penicillin %}<span class="medical-alert py-0">{% trans "Penicillin" %}</span> {% endif %}{% if exam.allergy_sulfa %}<span class="medical-alert py-0">{% trans "Sulfa" %}</span> {% endif %}{{ exam.allergy_other|default:"" }}{% if not exam.allergy_penicillin and not exam.allergy_sulfa and not exam.allergy_other %}{% trans "none" %}{% endif %}</div>
+    {% if exam.bleeding_or_aspirin %}<div class="mb-1"><b>{% trans "Prolonged bleeding / aspirin" %}:</b> {{ exam.bleeding_or_aspirin }}</div>{% endif %}
+    {% if exam.pregnant == "yes" or exam.lactating == "yes" %}<div class="mb-1"><span class="medical-alert py-0">{% if exam.pregnant == "yes" %}{% trans "Pregnant" %}{% else %}{% trans "Lactating" %}{% endif %}</span></div>{% endif %}
+    <div class="text-muted mt-2">{% trans "The dentist takes the full medical history; ask the dentist if you need more." %}</div>
+    {% else %}
+    <div class="text-muted">{% trans "Not taken yet: the dentist takes the medical history at the first visit. Tell the dentist if the patient says he has a disease or an allergy." %}</div>
+    {% endif %}
+  </div>
+</div>

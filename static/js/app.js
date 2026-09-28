@@ -646,10 +646,20 @@
       var size = PAGES[page] || PAGES.a4;
       var width = size[0], margin = page === "80mm" ? 2 : 8;
       var imageHeight = (width - 2 * margin) * canvas.height / canvas.width;
-      var height = size[1] || imageHeight + 2 * margin;
-      var pdf = new window.jspdf.jsPDF({ unit: "mm", format: [width, height], orientation: width > height ? "l" : "p" });
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, width - 2 * margin,
-                   Math.min(imageHeight, height - 2 * margin));
+      var height = size[1] || imageHeight + 2 * margin + 1;
+      var orientation = width > height ? "l" : "p";
+      var pdf = new window.jspdf.jsPDF({ unit: "mm", format: [width, height], orientation: orientation });
+      // A long page (e.g. a whole case report) goes on as many pages as it needs.
+      var pixelsPerMm = canvas.width / (width - 2 * margin);
+      var slice = Math.floor((height - 2 * margin) * pixelsPerMm);
+      for (var top = 0; top < canvas.height; top += slice) {
+        var part = document.createElement("canvas");
+        part.width = canvas.width; part.height = Math.min(slice, canvas.height - top);
+        part.getContext("2d").drawImage(canvas, 0, top, part.width, part.height, 0, 0, part.width, part.height);
+        if (top > 0) pdf.addPage([width, height], orientation);
+        pdf.addImage(part.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, width - 2 * margin,
+                     part.height / pixelsPerMm);
+      }
       return pdf.output("blob");
     });
   }
@@ -678,6 +688,10 @@
       });
     }).catch(function () {}).finally(function () { button.disabled = false; });
   });
+
+  // data-save-auto: the page was opened to be saved (e.g. "Export the file → PDF"): save it once it has loaded.
+  var autoSave = document.querySelector("[data-save-auto]");
+  if (autoSave) window.addEventListener("load", function () { setTimeout(function () { autoSave.click(); }, 300); });
 
   // data-copy="text": puts the text on the clipboard (e.g. the folder of a CBCT), and shows a tick for a moment.
   // navigator.clipboard needs https; on the clinic's http network the older way is used.

@@ -3,6 +3,26 @@
 {% block title %}{{ outside.get_kind_display }} — {{ outside.patient.full_name }}{% endblock %}
 {% block content %}
 {% with o=outside p=outside.patient %}
+<div class="card mx-auto mb-3 no-print outside-status status-{{ o.status }}" style="max-width: 800px"><div class="card-body d-flex flex-wrap align-items-center gap-2">
+  {% if o.status == "requested" %}
+  <span class="badge text-bg-warning fs-6"><i class="bi bi-hourglass-split"></i> {% trans "Requested" %}</span>
+  <span class="text-muted small">{% blocktrans with day=o.requested_on|date:"d/m/Y" %}since {{ day }}{% endblocktrans %}</span>
+  <span class="ms-auto d-flex flex-wrap gap-2">
+    {% if o.kind == "cbct" %}{% if p.branch.has_cbct %}<a class="btn btn-success" href="{% url 'clinical:outside_done' o.pk %}?where=done_here"><i class="bi bi-hospital"></i> {% trans "Done in our clinic" %}</a>{% endif %}
+    <a class="btn btn-outline-success" href="{% url 'clinical:outside_done' o.pk %}?where=done_outside"><i class="bi bi-building"></i> {% trans "Done at the centre" %}</a>
+    {% else %}<a class="btn btn-outline-success" href="{% url 'clinical:outside_done' o.pk %}"><i class="bi bi-clipboard2-check"></i> {% trans "Results received" %}</a>{% endif %}
+    <form method="post" action="{% url 'clinical:outside_done' o.pk %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-outline-secondary" name="action" value="cancel" data-confirm="{% trans 'Cancel this request?' %}">{% trans "Cancel the request" %}</button></form>
+  </span>
+  {% elif o.status == "cancelled" %}
+  <span class="badge text-bg-secondary fs-6">{% trans "Cancelled" %}</span>
+  {% else %}
+  <span class="badge text-bg-success fs-6"><i class="bi bi-check2-circle"></i> {{ o.get_status_display }}</span>
+  <span class="small text-muted">{{ o.done_on|date:"d/m/Y" }}{% if o.done_by %} — {{ o.done_by }}{% endif %}</span>
+  <span class="ms-auto">{% if o.result %}{% with d=o.result %}{% if d.file %}<a class="btn btn-sm btn-outline-primary" href="{{ d.file.url }}" target="_blank"><i class="bi bi-file-earmark-image"></i> {% trans "Report / pictures" %}</a>{% endif %}{% include "patients/_scan_location.html" %}{% endwith %}
+    {% else %}<a class="btn btn-sm btn-outline-primary" href="{% url 'clinical:outside_done' o.pk %}"><i class="bi bi-folder-plus"></i> {% trans "Write where the scan is kept" %}</a>{% endif %}</span>
+  {% endif %}
+  {% if next %}<a class="btn btn-primary w-100 mt-1" href="{{ next }}"><i class="bi bi-arrow-right"></i> {% trans "Print it, then go on" %}</a>{% endif %}
+</div></div>
 <div class="card mx-auto" style="max-width: 800px"><div class="card-body p-4">
   <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
     <div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">

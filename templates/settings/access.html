@@ -16,4 +16,17 @@
 </table></div></div>
 <button class="btn btn-primary px-4 mt-3"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
 </form>
+
+<form method="post" class="card mt-4" id="reception-file">{% csrf_token %}<input type="hidden" name="what" value="file_parts">
+  <div class="card-header"><i class="bi bi-person-vcard"></i> {% trans "What the reception sees in a patient's file" %}</div>
+  <div class="card-body">
+    <p class="small text-muted">{% trans "The reception always sees the patient's data, the bookings, the payments and a short medical summary. The dental work is the dentists': tick only what the secretaries need. The dentists, the heads and the owner see everything." %}</p>
+    <div class="row g-2">{% for code, label in file_parts %}
+      <div class="col-md-6"><label class="form-check d-flex align-items-center gap-2 border rounded-3 p-2 m-0">
+        <input class="form-check-input m-0" type="checkbox" name="parts" value="{{ code }}"{% if code in reception_sees %} checked{% endif %}>
+        <span>{{ label }}</span></label></div>{% endfor %}
+    </div>
+    <button class="btn btn-primary px-4 mt-3"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+  </div>
+</form>
 {% endblock %}

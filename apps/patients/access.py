@@ -3,8 +3,9 @@
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404
+from django.utils.translation import gettext_lazy as _
 
-from apps.core.roles import CLINICAL, PATIENT_VIEWERS, has_role
+from apps.core.roles import CLINICAL, FRONT_DESK, PATIENT_VIEWERS, has_role
 
 from .models import Patient
 
@@ -60,3 +61,27 @@ def get_clinical_patient_or_403(user, pk):
     if not has_role(user, *CLINICAL):
         raise PermissionDenied
     return get_visible_patient_or_403(user, pk)
+
+
+# The parts of a patient's file the owner can show to or hide from the reception (Settings → Access). The
+# dentists, the heads and the owner see them all; the reception always sees the patient's data, the bookings, the
+# payments and a short medical summary.
+FILE_PARTS = [
+    ("medical", _("The whole medical and dental history (otherwise only a short summary), and filling it")),
+    ("plan", _("Treatment plans")),
+    ("steps", _("Treatment steps (what was done)")),
+    ("lab", _("Lab requests")),
+    ("xrays", _("X-rays & CBCT")),
+    ("tests", _("CBCT and medical test requests")),
+    ("instructions", _("Post-op instructions to print")),
+]
+ALL_PARTS = frozenset(code for code, _label in FILE_PARTS)
+
+
+def file_parts(user):
+    """The parts of a patient's file this person sees."""
+    if has_role(user, *CLINICAL) or not has_role(user, *FRONT_DESK):
+        return ALL_PARTS
+    from apps.core.models import ClinicSettings
+
+    return ALL_PARTS & set(ClinicSettings.get().reception_sees or ())

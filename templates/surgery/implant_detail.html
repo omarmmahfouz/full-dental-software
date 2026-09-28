@@ -4,7 +4,7 @@
 {% block content %}
 {% with active="surgery" %}{% include "includes/patient_nav.html" %}{% endwith %}
 <div class="row g-3">
-  <div class="col-lg-5"><div class="card h-100"><div class="card-header fs-5"><i class="bi bi-nut"></i> {% trans "Implant" %} {{ site.tooth }} — {{ site.get_implant_status_display }}</div><div class="card-body">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header fs-5"><i class="bi bi-implant"></i> {% trans "Implant" %} {{ site.tooth }} — {{ site.get_implant_status_display }}</div><div class="card-body">
     <dl class="dl-grid">
       <dt>{% trans "Implant" %}</dt><dd>{{ site.implant_label }}</dd>
       <dt>{% trans "Lot" %}</dt><dd>{{ site.lot_number|default:"—" }}{% if site.sticker %} <a href="{{ site.sticker.url }}" target="_blank"><i class="bi bi-image"></i> {% trans "sticker" %}</a>{% endif %}</dd>
