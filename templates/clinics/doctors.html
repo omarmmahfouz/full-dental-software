@@ -3,7 +3,7 @@
 {% block title %}{% trans "Doctors' shares" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-people"></i> {% trans "Doctors' shares" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.code }}</span>{% endif %}
+  <h1><i class="bi bi-people"></i> {% trans "Doctors' shares" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.badge }}</span>{% endif %}
     <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
   <div class="d-flex flex-wrap gap-2 no-print">
     <a class="btn btn-outline-primary" href="{% url 'clinics:rules' %}{{ query }}"><i class="bi bi-percent"></i> {% trans "Fee rules" %}</a>

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Refer to a specialist" %}{% endblock %}
+{% block content %}
+{% with active="specialists" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="page-header"><h1><i class="bi bi-send"></i> {% trans "Refer to a specialist" %}</h1></div>
+<p class="text-muted small">{% trans "The specialist is told, and the reception books the patient with him. When he has seen the patient he writes his answer, and you are told. The letter prints with the patient's medical alerts." %}</p>
+<div class="card"><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}
+    <input type="hidden" name="patient" value="{{ patient.pk }}">
+    {% include "includes/form_fields.html" %}
+    <div class="form-actions mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-send-check"></i> {% trans "Send the referral" %}</button>
+      <a class="btn btn-outline-secondary" href="{% url 'specialties:patient' patient.pk %}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

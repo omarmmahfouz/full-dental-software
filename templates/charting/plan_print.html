@@ -1,0 +1,80 @@
+{% load static i18n clinic %}<!DOCTYPE html>
+<html lang="{{ print_language }}" dir="{% if print_language == 'ar' %}rtl{% else %}ltr{% endif %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% trans "Treatment plan" %} — {{ patient.full_name }}</title>
+  {% if print_language == "ar" %}<link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">{% else %}<link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">{% endif %}
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/cairo/cairo.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+</head>
+<body class="paper-page place-{{ place.code }} theme-{{ place.theme }}"{% if place.color %} style="--place: {{ place.color }}; --place-light: color-mix(in srgb, {{ place.color }} 55%, #fff)"{% endif %}>
+<div class="paper-toolbar no-print">
+  <a class="btn btn-outline-secondary btn-sm" href="{{ plan.get_absolute_url }}"><i class="bi bi-arrow-{% if print_language == 'ar' %}right{% else %}left{% endif %}"></i> {% trans "Back" %}</a>
+  <div class="btn-group btn-group-sm" role="group">
+    <a class="btn {% if print_language == 'en' %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?lang=en">English</a>
+    <a class="btn {% if print_language == 'ar' %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?lang=ar">العربية</a>
+  </div>
+  <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+</div>
+<main class="paper">
+  {% include "includes/place_letterhead.html" with place=place %}
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+    <div><div class="doc-title">{% trans "Treatment plan" %}</div>{% if plan.title %}<div class="text-muted">{{ plan.title }}</div>{% endif %}</div>
+    <div class="text-end small"><b>TP-{{ plan.pk|stringformat:"05d" }}</b><div>{{ plan.created_at|date:"d/m/Y" }}</div></div>
+  </div>
+  <div class="paper-patient mb-3">
+    <div><span class="text-muted small">{% trans "Patient" %}</span><div class="fw-bold">{{ patient.full_name }}</div></div>
+    <div><span class="text-muted small">{% trans "File" %}</span><div>{{ patient.file_number }}</div></div>
+    {% if patient.age is not None %}<div><span class="text-muted small">{% trans "Age" %}</span><div>{% blocktrans with age=patient.age %}{{ age }} years{% endblocktrans %}</div></div>{% endif %}
+    {% if plan.dentist %}<div><span class="text-muted small">{% trans "Planned by" %}</span><div>{{ plan.dentist }}</div></div>{% endif %}
+    {% if plan.duration %}<div><span class="text-muted small">{% trans "Expected duration" %}</span><div>{{ plan.duration }}</div></div>{% endif %}
+  </div>
+  {% if plan.diagnosis %}<div class="paper-section"><div class="doc-subtitle">{% trans "Diagnosis" %}</div><div class="letter-box">{{ plan.diagnosis|linebreaksbr }}</div></div>{% endif %}
+  <div class="paper-chart mb-3">{{ svg }}</div>
+
+  <div class="paper-section">
+    <div class="doc-subtitle">{% trans "The treatment, step by step" %}</div>
+    <table class="table table-sm paper-table align-middle">
+      <thead><tr><th style="width: 2rem">#</th><th>{% trans "Treatment" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Doctor" %}</th>{% if total is not None %}<th class="text-end">{% trans "Fee" %}</th>{% endif %}</tr></thead>
+      {% for phase in phases %}<tbody>
+        <tr class="paper-phase"><th colspan="{% if total is not None %}5{% else %}4{% endif %}"><span class="phase-num">{{ phase.phase }}</span> {{ phase.label }}</th></tr>
+        {% for item in phase.items %}<tr class="{% if item.status == 'done' %}is-done{% endif %}">
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td><b>{{ item.step_type }}</b>{% if item.details %}<div class="small text-muted">{{ item.details }}</div>{% endif %}{% if item.status == "done" %}<div class="small text-success"><i class="bi bi-check2-circle"></i> {% trans "Done" %} {{ item.done_at|date:"d/m/Y" }}</div>{% endif %}</td>
+          <td class="ltr-cell">{{ item.teeth|default:"—" }}</td>
+          <td>{{ item.dentist|default:plan.dentist|default:"—" }}</td>
+          {% if total is not None %}<td class="text-end nowrap">{% if item.fee is not None %}{{ item.fee|money }}{% endif %}</td>{% endif %}
+        </tr>{% endfor %}
+      </tbody>{% empty %}<tbody><tr><td colspan="5" class="text-muted">{% trans "No items." %}</td></tr></tbody>{% endfor %}
+      {% if total is not None %}<tfoot><tr class="paper-total"><th colspan="4">{% trans "Expected fees in total" %}</th><th class="text-end nowrap">{{ total|money }} {{ CLINIC.CURRENCY }}</th></tr></tfoot>{% endif %}
+    </table>
+    {% if total is not None %}<div class="small text-muted">{% trans "The fees are an estimate of the treatment written above: they change only if the treatment changes, and you are told first." %}</div>{% endif %}
+  </div>
+
+  {% if show_team and team %}
+  <div class="paper-section">
+    <div class="doc-subtitle">{% trans "Your treatment team" %}</div>
+    <div class="team-grid">{% for member in team %}<div class="team-card">
+      <div class="team-name">{{ member.doctor }}</div>
+      {% if member.doctor.role_line %}<div class="team-role">{{ member.doctor.role_line }}</div>{% endif %}
+      {% if member.parts %}<div class="small mt-1">{{ member.parts|join:" · " }}</div>{% elif member.doctor.pk == plan.dentist_id %}<div class="small mt-1">{% trans "Plans and follows the whole treatment" %}</div>{% endif %}
+    </div>{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  {% if plan.alternatives %}<div class="paper-section"><div class="doc-subtitle">{% trans "Other options explained to you" %}</div><div class="letter-box">{{ plan.alternatives|linebreaksbr }}</div></div>{% endif %}
+  {% if plan.notes %}<div class="paper-section small">{{ plan.notes|linebreaksbr }}</div>{% endif %}
+
+  <div class="paper-consent">
+    <p class="small mb-4">{% trans "The treatment above, its steps, its fees and the other options were explained to me, and I had the chance to ask my questions. I agree to start it." %}</p>
+    <div class="d-flex flex-wrap justify-content-between gap-4">
+      <div class="signature-block"><div class="fw-bold">{{ patient.full_name }}</div><div class="signature-line">{% trans "Patient's signature and date" %}</div></div>
+      <div class="signature-block"><div class="fw-bold">{{ plan.dentist|default:"" }}</div>{% if plan.dentist.role_line %}<div class="small text-muted">{{ plan.dentist.role_line }}</div>{% endif %}<div class="signature-line">{% trans "Doctor's signature" %}</div></div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

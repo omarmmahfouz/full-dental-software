@@ -3,7 +3,7 @@
 {% block title %}{{ dentist }} — {% trans "Statement" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-person-vcard"></i> {{ dentist }} <span class="place-badge place-{{ place.code }}">{{ place.code }}</span>
+  <h1><i class="bi bi-person-vcard"></i> {{ dentist }} <span class="place-badge place-{{ place.code }}">{{ place.badge }}</span>
     <small class="text-muted fs-6">{% trans "Statement" %} {{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
   {% if manager %}<a class="btn btn-outline-primary no-print" href="{% url 'clinics:doctors' %}{{ query }}"><i class="bi bi-people"></i> {% trans "All the doctors" %}</a>{% endif %}
 </div>
@@ -26,18 +26,20 @@
 
 <div class="card mb-3"><div class="card-header"><i class="bi bi-list-check"></i> {% trans "Services given" %} ({{ lines|length }})</div>
   <div class="table-responsive"><table class="table table-sm mb-0">
-    <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Service" %}</th><th>{% trans "Teeth" %}</th><th class="text-end">{% trans "Net" %}</th><th class="text-end">{% trans "Paid" %}</th><th>{% trans "Rule" %}</th><th class="text-end">{% trans "Share" %}</th></tr></thead>
+    <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Service" %}</th><th>{% trans "Teeth" %}</th><th class="text-end">{% trans "Net" %}</th><th class="text-end">{% trans "Paid" %}</th>{% if deducts %}<th class="text-end">{% trans "Lab / implant cost" %}</th>{% endif %}<th>{% trans "Rule" %}</th><th class="text-end">{% trans "Share" %}</th></tr></thead>
     <tbody>{% for line in lines %}<tr>
       <td class="nowrap">{{ line.charge.charged_on|date:"d/m/Y" }}</td>
-      <td>{{ line.charge.patient.full_name }} <span class="small text-muted">{{ line.charge.patient.file_number }}</span></td>
+      <td>{{ line.charge.patient.full_name }} <span class="small text-muted">{{ line.charge.patient.file_number }}</span>
+        {% if sources %}<div>{% if line.source == "own" %}<span class="badge text-bg-warning">{% trans "his own patient" %}</span>{% else %}<span class="badge text-bg-light">{% trans "clinic's patient" %}</span>{% endif %}</div>{% endif %}</td>
       <td>{{ line.charge.service }}{% if line.charge.bill %} <span class="small text-muted">{{ line.charge.bill.number }}</span>{% endif %}</td>
       <td class="small">{{ line.charge.teeth|default:"—" }}</td>
       <td class="text-end">{{ line.net|money }}</td>
       <td class="text-end {% if line.paid < line.net %}text-warning{% else %}text-success{% endif %}">{{ line.paid|money }}</td>
+      {% if deducts %}<td class="text-end">{% if manager %}<form method="post" action="{% url 'clinics:charge_cost' line.charge.pk %}" class="d-inline-flex gap-1 no-print" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><input class="form-control form-control-sm text-end" style="width: 6.5rem" name="cost" value="{{ line.charge.cost|floatformat:'0' }}" inputmode="decimal" aria-label="{% trans 'Lab / implant cost' %}"><button class="btn btn-sm btn-outline-secondary" title="{% trans 'Save the cost' %}"><i class="bi bi-check2"></i></button></form><span class="d-none d-print-inline">{{ line.cost|money }}</span>{% else %}{{ line.cost|money }}{% endif %}</td>{% endif %}
       <td class="small">{% if line.rule %}{{ line.rule.describe }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
       <td class="text-end fw-semibold">{{ line.share|money }}</td>
-    </tr>{% empty %}<tr><td colspan="8" class="text-muted">{% trans "No services in this period." %}</td></tr>{% endfor %}</tbody>
-    {% if lines %}<tfoot><tr class="fw-bold"><td colspan="4">{% trans "Total" %}</td><td class="text-end">{{ billed|money }}</td><td class="text-end">{{ collected|money }}</td><td></td><td class="text-end">{{ services_share|money }}</td></tr></tfoot>{% endif %}
+    </tr>{% empty %}<tr><td colspan="9" class="text-muted">{% trans "No services in this period." %}</td></tr>{% endfor %}</tbody>
+    {% if lines %}<tfoot><tr class="fw-bold"><td colspan="4">{% trans "Total" %}</td><td class="text-end">{{ billed|money }}</td><td class="text-end">{{ collected|money }}</td>{% if deducts %}<td class="text-end">{{ costs|money }}</td>{% endif %}<td></td><td class="text-end">{{ services_share|money }}</td></tr></tfoot>{% endif %}
   </table></div></div>
 
 <div class="row g-3">

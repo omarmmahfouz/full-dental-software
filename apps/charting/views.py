@@ -234,7 +234,8 @@ def plan_edit(request, patient_pk=None, pk=None):
         if me is not None:
             initial["dentist"] = me
     form = TreatmentPlanForm(request.POST or None, instance=plan, initial=initial)
-    formset = PlanItemFormSet(request.POST or None, instance=plan or TreatmentPlan(patient=patient), prefix="items")
+    formset = PlanItemFormSet(request.POST or None, instance=plan or TreatmentPlan(patient=patient), prefix="items",
+                              form_kwargs={"place": patient.branch})
     if request.method == "POST" and form.is_valid() and formset.is_valid():
         with transaction.atomic():
             obj = form.save(commit=False)
@@ -278,11 +279,49 @@ def plan_detail(request, pk):
     patient = get_clinical_patient_or_403(request.user, plan.patient_id)
     return render(request, "charting/plan_detail.html", {
         "plan": plan, "patient": patient,
-        "sections": plan.sections(plan.items.select_related("step_type", "done_treatment__operator", "done_surgery")),
+        "sections": plan.sections(plan.items.select_related("step_type", "done_treatment__operator", "done_surgery",
+                                                            "dentist")),
         "svg": chart_svg(patient, clickable=False),
         "can_edit": has_role(request.user, *CLINICAL),
         "can_approve": has_role(request.user, *MANAGEMENT) and plan.status == TreatmentPlan.Status.PROPOSED,
     })
+
+
+def plan_print(request, pk):
+    """The treatment plan given to the patient (A4): the place's letterhead, the diagnosis, the phases with the doctor
+    of each part and the fees, the treatment team of a comprehensive case, the options explained and the consent.
+    ``?lang=ar`` or ``?lang=en`` prints it in that language, whatever the doctor's own."""
+    from django.utils import translation
+
+    plan = get_object_or_404(TreatmentPlan.objects.select_related("patient", "patient__branch", "dentist",
+                                                                  "approved_by"), pk=pk)
+    patient = get_clinical_patient_or_403(request.user, plan.patient_id)
+    language = request.GET.get("lang") if request.GET.get("lang") in ("ar", "en") else translation.get_language()
+    items = [item for item in plan.items.select_related("step_type", "dentist").order_by("phase", "pk")
+             if item.status != PlanItem.Status.CANCELLED]
+    phases = []
+    for item in items:
+        if not phases or phases[-1]["phase"] != item.phase:
+            phases.append({"phase": item.phase, "label": item.get_phase_display(), "items": []})
+        phases[-1]["items"].append(item)
+    team = {}
+    for doctor in [plan.dentist] + [item.dentist for item in items]:
+        if doctor is not None:
+            team.setdefault(doctor.pk, {"doctor": doctor, "parts": []})
+    for item in items:
+        if item.dentist_id and str(item.step_type) not in team[item.dentist_id]["parts"]:
+            team[item.dentist_id]["parts"].append(str(item.step_type))
+    fees = [item.fee for item in items if item.fee is not None]
+    with translation.override(language):
+        for phase in phases:
+            phase["label"] = str(PlanItem.Phase(phase["phase"]).label).split(" - ", 1)[-1]
+        response = render(request, "charting/plan_print.html", {
+            "plan": plan, "patient": patient, "phases": phases, "team": list(team.values()),
+            "show_team": plan.comprehensive or len(team) > 1, "total": sum(fees) if fees else None,
+            "place": patient.branch, "svg": chart_svg(patient, clickable=False), "print_language": language,
+            "LANGUAGE_BIDI": language == "ar",
+        })
+    return response
 
 
 @require_POST

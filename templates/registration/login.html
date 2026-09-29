@@ -1,14 +1,20 @@
 {% extends "base.html" %}
 {% load i18n static %}
 {% block title %}{% trans "Log in" %}{% endblock %}
-{% block body_class %}login-page{% endblock %}
+{% block body_class %}login-page{% if login_place %} place-{{ login_place.code }} theme-{{ login_place.theme }}{% endif %}{% endblock %}
 {% block content %}
 <div class="login-shell">
   <section class="login-brand" aria-hidden="true">
     <span class="login-bubble b1"></span><span class="login-bubble b2"></span><span class="login-bubble b3"></span>
+    {% if login_place and login_place.code != "CIA" %}
+    {% if login_place.logo or login_place.is_elite %}<img class="login-mark" src="{{ login_place.mark_url }}" alt="">{% else %}<div class="login-place-code">{{ login_place.badge }}</div>{% endif %}
+    <div class="login-brand-name">{{ login_place.name }}</div>
+    <div class="login-brand-sub">{% firstof login_place.tagline _("Dental system") %}</div>
+    {% else %}
     <img class="login-mark" src="{% static 'img/cia-mark.png' %}" alt="">
     <div class="login-brand-name">{% trans "Cairo Implant Academy" %}</div>
     <div class="login-brand-sub">{% trans "Dental system" %}</div>
+    {% endif %}
     <ul class="login-points">
       <li><i class="bi bi-calendar-check"></i> {% trans "Reception, bookings and WhatsApp messages" %}</li>
       <li><i class="bi bi-clipboard2-pulse"></i> {% trans "Charts, surgeries and treatment plans" %}</li>
@@ -18,7 +24,8 @@
   <section class="login-panel">
     <div class="login-box">
       <div class="text-center mb-3">
-        <img class="login-logo" src="{% static 'img/cia-logo.png' %}" alt="Cairo Implant Academy">
+        {% if login_place and login_place.code != "CIA" %}{% if login_place.logo or login_place.is_elite %}<img class="login-logo" style="width: 96px" src="{{ login_place.mark_url }}" alt="{{ login_place.name }}">{% else %}<span class="place-badge place-{{ login_place.code }} fs-5">{{ login_place.badge }}</span>{% endif %}
+        {% else %}<img class="login-logo" src="{% static 'img/cia-logo.png' %}" alt="Cairo Implant Academy">{% endif %}
       </div>
       <h1 class="h4 fw-bold mb-1 text-center">{% trans "Welcome" %}</h1>
       <p class="text-muted text-center small mb-4">{% trans "Log in with the username and password the owner gave you." %}</p>

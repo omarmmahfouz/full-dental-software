@@ -23,7 +23,10 @@ def _at(day, minute):
 
 
 def free_times(branch, duration, dentist=None, start=None, days=45, limit=8):
-    """The first free time of each shift, day after day, from ``start`` (default: now)."""
+    """The first free time of each shift, day after day, from ``start`` (default: now): [{"at", "room", "dentist"}].
+    Where the rooms are shared, the first time a room and the doctor are both free."""
+    if branch is not None and branch.rooms_shared:
+        return shared_free_times(branch, duration, dentist, start, days, limit)
     now = timezone.localtime()
     start = timezone.localtime(start) if start else now
     duration = max(int(duration or 30), 5)
@@ -49,7 +52,7 @@ def free_times(branch, duration, dentist=None, start=None, days=45, limit=8):
                 clash = [a for a in booked if (a.room_id == shift.room_id or a.dentist_id == shift.dentist_id)
                          and a.scheduled_at < slot_end and a.scheduled_end > slot_start]
                 if not clash:
-                    found.append({"at": slot_start, "shift": shift})
+                    found.append({"at": slot_start, "shift": shift, "room": shift.room, "dentist": shift.dentist})
                     break
                 blocked_until = max(_minutes(timezone.localtime(a.scheduled_end)) for a in clash)
                 minute = max(minute + STEP, blocked_until + (-blocked_until % STEP))
@@ -59,8 +62,65 @@ def free_times(branch, duration, dentist=None, start=None, days=45, limit=8):
     return found[:limit]
 
 
+def _windows(branch, dentist, day, with_shifts):
+    """The hours to look in on ``day``: the doctor's own shifts when he has any on the room schedule, else the
+    opening hours of the place (none on the days it is closed)."""
+    if with_shifts:
+        return [(_minutes(s.start_time), _minutes(s.end_time)) for s in RoomShift.objects.filter(
+            Q(dentist=dentist) | Q(second_dentist=dentist), room__branch=branch, date=day).order_by("start_time")]
+    if day.weekday() in branch.closed_weekdays:
+        return []
+    opens, closes = branch.hours()
+    return [(_minutes(opens), _minutes(closes))]
+
+
+def shared_free_times(branch, duration, dentist=None, start=None, days=45, limit=8):
+    """Shared rooms: the first time of each day when a room is free and the doctor has no other patient."""
+    from .models import Room
+
+    now = timezone.localtime()
+    start = timezone.localtime(start) if start else now
+    duration = max(int(duration or 30), 5)
+    rooms = list(Room.objects.filter(branch=branch, is_active=True).order_by("is_extra", "sort_order", "name"))
+    # A doctor who keeps his days on the room schedule is offered those days only.
+    with_shifts = dentist is not None and RoomShift.objects.filter(
+        Q(dentist=dentist) | Q(second_dentist=dentist), room__branch=branch,
+        date__range=(start.date(), start.date() + timedelta(days=days))).exists()
+    found = []
+    for offset in range(days):
+        day = start.date() + timedelta(days=offset)
+        windows = _windows(branch, dentist, day, with_shifts)
+        if not windows or not rooms:
+            continue
+        begin, end = day_bounds(day)
+        booked = list(Appointment.objects.filter(branch=branch, scheduled_at__gte=begin, scheduled_at__lt=end)
+                      .exclude(status__in=NOT_BUSY))
+        for first, last in windows:
+            minute = first
+            if day == start.date():
+                minute = max(minute, _minutes(start) + (-_minutes(start) % STEP))
+            placed = None
+            while minute + duration <= last and placed is None:
+                slot_start, slot_end = _at(day, minute), _at(day, minute + duration)
+                overlapping = [a for a in booked if a.scheduled_at < slot_end and a.scheduled_end > slot_start]
+                doctor_busy = dentist is not None and any(a.dentist_id == dentist.pk for a in overlapping)
+                taken = {a.room_id for a in overlapping}
+                room = next((r for r in rooms if r.pk not in taken), None)
+                if room is not None and not doctor_busy:
+                    placed = {"at": slot_start, "shift": None, "room": room, "dentist": dentist}
+                minute += STEP
+            if placed:
+                found.append(placed)
+                break
+        if len(found) >= limit:
+            break
+    return found[:limit]
+
+
 def dentist_day(dentist, day, branch=None):
     """The dentist's shifts on ``day`` (at this place, when given) and a sentence for the reception."""
+    if branch is not None and branch.rooms_shared:
+        return shared_dentist_day(dentist, day, branch)
     shifts = RoomShift.objects.filter(Q(dentist=dentist) | Q(second_dentist=dentist), date=day)
     if branch is not None:
         shifts = shifts.filter(room__branch=branch)
@@ -77,3 +137,23 @@ def dentist_day(dentist, day, branch=None):
             "shifts": [{"room_id": s.room_id, "room": str(s.room), "from": f"{s.start_time:%H:%M}",
                         "to": f"{s.end_time:%H:%M}", "surgery": s.day_type == RoomShift.DayType.SURGERY}
                        for s in shifts]}
+
+
+def shared_dentist_day(dentist, day, branch):
+    """Shared rooms: no room schedule is needed; the reception sees the doctor's patients of the day."""
+    begin, end = day_bounds(day)
+    booked = list(Appointment.objects.filter(branch=branch, dentist=dentist, scheduled_at__gte=begin,
+                                             scheduled_at__lt=end).exclude(status__in=NOT_BUSY)
+                  .select_related("room").order_by("scheduled_at"))
+    when = date_format(day, "l d/m/Y")
+    if booked:
+        parts = [f"{timezone.localtime(a.scheduled_at):%H:%M}–{timezone.localtime(a.scheduled_end):%H:%M}"
+                 f"{f' ({a.room})' if a.room_id else ''}" for a in booked]
+        text = _("Rooms are shared here: a free room is chosen by itself. %(dentist)s already has on %(day)s: "
+                 "%(times)s.") % {"dentist": dentist, "day": when, "times": " · ".join(parts)}
+    else:
+        text = _("Rooms are shared here: a free room is chosen by itself. %(dentist)s has no patient yet on "
+                 "%(day)s.") % {"dentist": dentist, "day": when}
+    if day.weekday() in branch.closed_weekdays:
+        text += " " + _("The place is closed on this day.")
+    return {"working": day.weekday() not in branch.closed_weekdays, "text": text, "shifts": []}

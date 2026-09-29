@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Specialist cases" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-person-lines-fill"></i> {% trans "Specialist cases" %}</h1>
+  <a class="btn btn-outline-primary" href="{% url 'specialties:referrals' %}"><i class="bi bi-send"></i> {% trans "Referrals" %}{% if open_referrals %} <span class="badge text-bg-warning">{{ open_referrals }}</span>{% endif %}</a>
+</div>
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link {% if kind == 'endo' %}active{% endif %}" href="?kind=endo{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-bullseye"></i> {% trans "Endodontics" %} <span class="badge text-bg-light">{{ counts.endo }}</span></a></li>
+  <li class="nav-item"><a class="nav-link {% if kind == 'tmj' %}active{% endif %}" href="?kind=tmj{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-person-bounding-box"></i> {% trans "TMJ" %} <span class="badge text-bg-light">{{ counts.tmj }}</span></a></li>
+  <li class="nav-item"><a class="nav-link {% if kind == 'ortho' %}active{% endif %}" href="?kind=ortho{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-distribute-horizontal"></i> {% trans "Orthodontics" %} <span class="badge text-bg-light">{{ counts.ortho }}</span></a></li>
+  <li class="nav-item"><a class="nav-link {% if kind == 'shade' %}active{% endif %}" href="?kind=shade{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-palette2"></i> {% trans "Shades" %} <span class="badge text-bg-light">{{ counts.shade }}</span></a></li>
+</ul>
+<div class="d-flex flex-wrap gap-2 mb-3 no-print">
+  {% if me %}<a class="btn btn-sm {% if mine %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?kind={{ kind }}&amp;mine={% if mine %}0{% else %}1{% endif %}"><i class="bi bi-person-check"></i> {% trans "Only mine" %}</a>{% endif %}
+  {% for code, label in statuses %}<a class="btn btn-sm {% if status == code %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?kind={{ kind }}&amp;status={% if status != code %}{{ code }}{% endif %}{% if mine %}&amp;mine=1{% endif %}">{{ label }}</a>{% endfor %}
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+  <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Doctor" %}</th><th>{% trans "Details" %}</th><th>{% trans "Status" %}</th></tr></thead>
+  <tbody>{% for r in page_obj %}<tr>
+    {% if kind == "endo" %}
+    <td class="nowrap"><a href="{{ r.get_absolute_url }}">{{ r.started_on|date:"d/m/Y" }}</a></td><td>{{ r.patient.full_name }} <span class="small text-muted">{{ r.patient.file_number }}</span></td><td>{{ r.dentist|default:"—" }}</td>
+    <td><b>{{ r.tooth }}</b> — {{ r.get_treatment_display }}{% if r.difficulty %} <span class="badge {% if r.difficulty == 'high' %}text-bg-danger{% elif r.difficulty == 'moderate' %}text-bg-warning{% else %}text-bg-light{% endif %}">{{ r.get_difficulty_display }}</span>{% endif %}</td>
+    <td><span class="badge {% if r.status == 'obturated' %}text-bg-success{% elif r.status == 'open' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">{{ r.get_status_display }}</span></td>
+    {% elif kind == "tmj" %}
+    <td class="nowrap"><a href="{{ r.get_absolute_url }}">{{ r.exam_date|date:"d/m/Y" }}</a></td><td>{{ r.patient.full_name }} <span class="small text-muted">{{ r.patient.file_number }}</span></td><td>{{ r.dentist|default:"—" }}</td>
+    <td class="small">{{ r.diagnosis_labels|join:", "|default:"—" }}</td>
+    <td class="small">{% if r.opening %}{{ r.opening }} mm{% endif %}{% if r.pain_vas is not None %} · {{ r.pain_vas }}/10{% endif %}</td>
+    {% elif kind == "ortho" %}
+    <td class="nowrap"><a href="{{ r.get_absolute_url }}">{{ r.records_on|date:"d/m/Y" }}</a></td><td>{{ r.patient.full_name }} <span class="small text-muted">{{ r.patient.file_number }}</span></td><td>{{ r.dentist|default:"—" }}</td>
+    <td class="small">{{ r.get_appliance_display|default:"—" }}{% if r.months_in_treatment is not None %} · {% blocktrans count n=r.months_in_treatment %}{{ n }} month{% plural %}{{ n }} months{% endblocktrans %}{% endif %}</td>
+    <td><span class="badge text-bg-light">{{ r.get_status_display }}</span></td>
+    {% else %}
+    <td class="nowrap"><a href="{{ r.get_absolute_url }}">{{ r.taken_on|date:"d/m/Y" }}</a></td><td>{{ r.patient.full_name }} <span class="small text-muted">{{ r.patient.file_number }}</span></td><td>{{ r.dentist|default:"—" }}</td>
+    <td><span class="shade-chip" style="--shade: {{ r|shade_colour }}"></span> <b>{{ r.shade }}</b> — {{ r.teeth }}{% if r.stump %} · {% trans "stump" %} {{ r.stump }}{% endif %}</td>
+    <td class="small">{{ r.prosthesis }}</td>
+    {% endif %}
+  </tr>{% empty %}<tr><td colspan="5" class="text-muted text-center py-4">{% trans "Nothing yet. Open a patient's file → Specialists to start one." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

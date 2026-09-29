@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+{% with active="specialists" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="page-header"><h1><i class="bi bi-bullseye"></i> {{ title }}{% if record %} — {{ record.tooth }}{% endif %}</h1></div>
+{% if referral %}<div class="alert alert-info py-2"><i class="bi bi-send"></i> {% blocktrans with number=referral.number doctor=referral.from_dentist %}For the referral {{ number }} from {{ doctor }}{% endblocktrans %}: {{ referral.reason|truncatechars:120 }}</div>{% endif %}
+<form method="post" novalidate>{% csrf_token %}
+  <input type="hidden" name="patient" value="{{ patient.pk }}">{% if referral %}<input type="hidden" name="referral" value="{{ referral.pk }}">{% endif %}
+  <div class="card mb-3"><div class="card-body">{% include "includes/form_fields.html" %}</div></div>
+  <div class="card mb-3" data-formset="canals">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <span><i class="bi bi-rulers"></i> {% trans "The canals" %}</span>
+      <button type="button" class="btn btn-sm btn-outline-primary" data-usual-canals><i class="bi bi-magic"></i> {% trans "Add the usual canals of this tooth" %}</button>
+    </div>
+    <div class="card-body">
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors }}</div>{% endif %}
+      <div class="table-responsive"><table class="table table-sm align-middle canal-table">
+        <thead><tr><th>{% trans "Canal" %}</th><th>{% trans "Reference point" %}</th><th>{% trans "Working length (mm)" %}</th><th>{% trans "Measured by" %}</th><th>{% trans "Master apical file" %}</th><th>{% trans "Master cone" %}</th><th>{% trans "Curvature" %}</th><th>{% trans "Notes" %}</th><th>{% trans "delete" %}</th></tr></thead>
+        <tbody data-formset-rows>{% for row in formset %}<tr>{% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+          <td>{{ row.name }}{{ row.name.errors }}</td><td>{{ row.reference }}</td><td>{{ row.working_length }}{{ row.working_length.errors }}</td><td>{{ row.method }}</td><td>{{ row.master_file }}</td><td>{{ row.master_cone }}</td><td>{{ row.curvature }}</td><td>{{ row.notes }}</td><td>{% if row.instance.pk %}{{ row.DELETE }}{% endif %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <template><tr>{% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}<td>{{ formset.empty_form.name }}</td><td>{{ formset.empty_form.reference }}</td><td>{{ formset.empty_form.working_length }}</td><td>{{ formset.empty_form.method }}</td><td>{{ formset.empty_form.master_file }}</td><td>{{ formset.empty_form.master_cone }}</td><td>{{ formset.empty_form.curvature }}</td><td>{{ formset.empty_form.notes }}</td><td></td></tr></template>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add a canal" %}</button>
+      <datalist id="canal-names">{% for name in canal_names %}<option value="{{ name }}">{% endfor %}</datalist>
+    </div>
+  </div>
+  <div class="form-actions d-flex gap-2">
+    <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+    <a class="btn btn-outline-secondary" href="{% if record %}{{ record.get_absolute_url }}{% else %}{% url 'specialties:patient' patient.pk %}{% endif %}">{% trans "Cancel" %}</a>
+  </div>
+</form>
+{{ usual_canals|json_script:"usual-canals" }}
+{% endblock %}
+{% block extra_js %}
+<script>
+  // "Add the usual canals": MB, MB2, DB, P for an upper molar, MB, ML, D for a lower molar...
+  (function () {
+    var usual = JSON.parse(document.getElementById("usual-canals").textContent);
+    var button = document.querySelector("[data-usual-canals]");
+    var tooth = document.querySelector("select[name='tooth']");
+    if (!button || !tooth) return;
+    button.addEventListener("click", function () {
+      var n = parseInt(tooth.value, 10);
+      if (!n) { tooth.focus(); return; }
+      var upper = Math.floor(n / 10) === 1 || Math.floor(n / 10) === 2, position = n % 10;
+      var names = position >= 6 ? usual[upper ? "upper_molar" : "lower_molar"]
+        : position >= 4 ? usual[upper ? "upper_premolar" : "lower_premolar"] : usual.anterior;
+      var have = Array.prototype.map.call(document.querySelectorAll("input[name^='canals-'][name$='-name']"), function (i) { return i.value; });
+      names.forEach(function (name) {
+        if (have.indexOf(name) >= 0) return;
+        var row = window.addFormsetRow("canals");
+        if (row) row.querySelector("input[name$='-name']").value = name;
+      });
+    });
+  })();
+</script>
+{% endblock %}

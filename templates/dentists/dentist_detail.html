@@ -3,7 +3,8 @@
 {% block title %}{{ dentist.full_name }}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-person-badge"></i> {{ dentist.full_name }} <small class="text-muted fs-6">{{ dentist.get_kind_display }}</small></h1>
+  <h1><i class="bi bi-person-badge"></i> {{ dentist.full_name }} <small class="text-muted fs-6">{{ dentist.get_kind_display }}{% if dentist.specialty %} · {{ dentist.get_specialty_display }}{% endif %}</small></h1>
+  {% if dentist.title %}<div class="w-100 text-muted small">{{ dentist.title }}</div>{% endif %}
   <div class="d-flex flex-wrap gap-2 no-print">
     {% if roles.owner or roles.head_cia %}<a class="btn btn-outline-secondary" href="{% url 'dentists:update' dentist.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
     {% if dentist.candidate and opens.academy %}<a class="btn btn-outline-primary" href="{{ dentist.candidate.get_absolute_url }}"><i class="bi bi-mortarboard"></i> {% trans "Academy file" %}</a>{% endif %}

@@ -25,7 +25,7 @@
     <td><a href="{{ m.item.get_absolute_url }}">{{ m.item.name }}</a> <span class="small text-muted">{{ m.item.category }}</span></td>
     <td class="small">{{ m.get_kind_display }}</td>
     <td class="text-end fw-bold {% if m.change < 0 %}text-danger{% else %}text-success{% endif %}">{% if m.change > 0 %}+{% endif %}{{ m.change|floatformat:"-2" }} <span class="small fw-normal text-muted">{{ m.item.unit }}</span></td>
-    <td class="small">{% if m.branch %}<span class="place-badge place-{{ m.branch.code }}">{{ m.branch.code }}</span> {% endif %}{{ m.destination }}</td><td class="small">{{ m.notes }}</td><td class="small text-muted">{{ m.created_by|default:"" }}</td>
+    <td class="small">{% if m.branch %}<span class="place-badge place-{{ m.branch.code }}">{{ m.branch.badge }}</span> {% endif %}{{ m.destination }}</td><td class="small">{{ m.notes }}</td><td class="small text-muted">{{ m.created_by|default:"" }}</td>
   </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No movements in this period." %}</td></tr>{% endfor %}</tbody>
 </table></div></div>
 {% include "includes/pagination.html" %}

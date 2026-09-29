@@ -5,14 +5,18 @@
 <div class="page-header">
   <h1><i class="bi bi-calendar3-week"></i> {% trans "Day planner" %} — {{ day|date:"l d/m/Y" }}</h1>
   <div class="d-flex gap-2 flex-wrap no-print align-items-center">
-    <a class="btn btn-outline-secondary" href="?day={{ prev_day|date:'Y-m-d' }}" title="{% trans 'Previous day' %}"><i class="bi bi-chevron-right"></i></a>
+    <a class="btn btn-outline-secondary" href="?day={{ prev_day|date:'Y-m-d' }}{% if by == 'doctor' %}&amp;by=doctor{% endif %}" title="{% trans 'Previous day' %}"><i class="bi bi-chevron-right"></i></a>
     {% if not is_today %}<a class="btn btn-outline-primary" href="?">{% trans "Today" %}</a>{% endif %}
-    <a class="btn btn-outline-secondary" href="?day={{ next_day|date:'Y-m-d' }}" title="{% trans 'Next day' %}"><i class="bi bi-chevron-left"></i></a>
-    <form method="get" class="d-flex"><input class="form-control js-date" name="day" value="{{ day|date:'d/m/Y' }}" style="width: 9rem" onchange="this.form.submit()" aria-label="{% trans 'Go to date' %}"></form>
-    <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}?at={{ day|date:'Y-m-d' }}T09:00"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>
+    <a class="btn btn-outline-secondary" href="?day={{ next_day|date:'Y-m-d' }}{% if by == 'doctor' %}&amp;by=doctor{% endif %}" title="{% trans 'Next day' %}"><i class="bi bi-chevron-left"></i></a>
+    <form method="get" class="d-flex"><input class="form-control js-date" name="day" value="{{ day|date:'d/m/Y' }}" style="width: 9rem" onchange="this.form.submit()" aria-label="{% trans 'Go to date' %}">{% if by == "doctor" %}<input type="hidden" name="by" value="doctor">{% endif %}</form>
+    <div class="btn-group planner-view-switch" role="group" aria-label="{% trans 'Show' %}">
+      <a class="btn {% if by == 'room' %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?day={{ day|date:'Y-m-d' }}"><i class="bi bi-door-open"></i> {% trans "By room" %}</a>
+      <a class="btn {% if by == 'doctor' %}btn-secondary{% else %}btn-outline-secondary{% endif %}" href="?day={{ day|date:'Y-m-d' }}&amp;by=doctor"><i class="bi bi-person-badge"></i> {% trans "By doctor" %}</a>
+    </div>
+    {% if is_front_desk %}<a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}?at={{ day|date:'Y-m-d' }}T09:00"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a>{% endif %}
   </div>
 </div>
-<p class="text-muted small no-print">{% trans "Each column is a room with the dentist working there. Click a free (green) place to book that time, or a patient to open the appointment." %}</p>
+<p class="text-muted small no-print">{% if shared %}{% trans "The rooms are shared here: any doctor works in any free room. Click a free place to book it (the room is chosen by itself when left empty), a patient to open the appointment, or the ⇄ button to move him to another room (or drag him to another room on a PC)." %}{% elif by == "doctor" %}{% trans "Each column is a doctor, with the room of each patient. Click a free (green) place to book that time with the doctor." %}{% else %}{% trans "Each column is a room with the dentist working there. Click a free (green) place to book that time, or a patient to open the appointment." %}{% endif %}</p>
 
 <div class="week-outline mb-3 no-print">
   <a class="btn btn-sm btn-outline-secondary align-self-center" href="?day={{ prev_week|date:'Y-m-d' }}" title="{% trans 'Previous week' %}"><i class="bi bi-chevron-double-right"></i></a>
@@ -23,7 +27,7 @@
       {% if w.capacity %}
       <div class="progress my-1" style="height: 6px"><div class="progress-bar{% if w.percent >= 90 %} bg-danger{% elif w.percent >= 60 %} bg-warning{% endif %}" style="width: {{ w.percent }}%"></div></div>
       <div class="small text-muted">{% blocktrans with b=w.booked f=w.free %}{{ b }} booked · {{ f }} free{% endblocktrans %}</div>
-      {% else %}<div class="small text-muted mt-1">{% if w.booked %}{% blocktrans with b=w.booked %}{{ b }} booked{% endblocktrans %} · {% endif %}{% trans "no shifts" %}</div>{% endif %}
+      {% else %}<div class="small text-muted mt-1">{% if w.booked %}{% blocktrans with b=w.booked %}{{ b }} booked{% endblocktrans %} · {% endif %}{% if shared %}{% trans "closed" %}{% else %}{% trans "no shifts" %}{% endif %}</div>{% endif %}
     </div>
   </a>
   {% endfor %}
@@ -31,6 +35,13 @@
 </div>
 
 <div class="card"><div class="card-body p-2">{% include "scheduling/_day_grid.html" %}</div></div>
+{% if shared %}
+<div class="modal fade" id="room-modal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h5 class="modal-title"><i class="bi bi-arrow-left-right"></i> {% trans "Change the room" %}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button></div>
+  <div class="modal-body" data-room-modal-body></div>
+</div></div></div>
+<form method="post" id="room-drop-form" action="" hidden data-no-leave-warning>{% csrf_token %}<input type="hidden" name="room"><input type="hidden" name="swap" value="1"><input type="hidden" name="next" value="{{ request.get_full_path }}"></form>
+{% endif %}
 {% if closed_extra_rooms and is_front_desk %}
 <div class="d-flex flex-wrap align-items-center gap-2 mt-2 small no-print extra-rooms-closed">
   <span class="text-muted"><i class="bi bi-door-closed"></i> {% trans "Extra rooms (closed; they open when you book in one or add a shift):" %}</span>
@@ -43,3 +54,35 @@
 </div>
 {% endif %}
 {% endblock %}
+{% block extra_js %}{% if shared %}
+<script>
+  // Shared rooms: ⇄ opens the rooms the patient can move to; on a PC a patient can also be dragged to another room.
+  (function () {
+    var modal = document.getElementById("room-modal");
+    var body = modal && modal.querySelector("[data-room-modal-body]");
+    document.querySelectorAll("[data-room-choices]").forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        body.innerHTML = document.getElementById(button.getAttribute("data-room-choices")).innerHTML;
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+      });
+    });
+    var dragged = null, form = document.getElementById("room-drop-form");
+    document.querySelectorAll(".daygrid-block[data-appointment]").forEach(function (block) {
+      block.addEventListener("dragstart", function (event) { dragged = block; block.classList.add("is-dragging"); event.dataTransfer.effectAllowed = "move"; });
+      block.addEventListener("dragend", function () { block.classList.remove("is-dragging"); document.querySelectorAll(".is-drop-target").forEach(function (c) { c.classList.remove("is-drop-target"); }); });
+    });
+    document.querySelectorAll("[data-drop-room]").forEach(function (column) {
+      column.addEventListener("dragover", function (event) { if (dragged) { event.preventDefault(); column.classList.add("is-drop-target"); } });
+      column.addEventListener("dragleave", function () { column.classList.remove("is-drop-target"); });
+      column.addEventListener("drop", function (event) {
+        event.preventDefault();
+        if (!dragged || dragged.parentNode === column) return;
+        form.action = "{% url 'scheduling:appointment_room' 0 %}".replace("/0/", "/" + dragged.getAttribute("data-appointment") + "/");
+        form.querySelector("[name=room]").value = column.getAttribute("data-drop-room");
+        form.submit();
+      });
+    });
+  })();
+</script>
+{% endif %}{% endblock %}

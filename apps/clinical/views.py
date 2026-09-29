@@ -262,6 +262,7 @@ def lab_create(request):
         initial["dentist"] = patient.assigned_dentist
     elif me is not None:
         initial["dentist"] = me
+    initial.update(_shade_initial(request, patient))
     form = LabRequestForm(request.POST or None, user=request.user, patient=patient, initial=initial)
     if request.method == "POST" and form.is_valid():
         lab_request = form.save(commit=False)
@@ -282,6 +283,23 @@ def lab_create(request):
             messages.success(request, _("Lab request saved as draft."))
         return redirect(lab_request)
     return render(request, "clinical/lab_form.html", {"form": form, "title": _("New lab request")})
+
+
+def _shade_initial(request, patient):
+    """A lab request made from a shade record (``?shade_record=``) takes its teeth and shades."""
+    from apps.specialties.models import ShadeRecord
+
+    pk = request.GET.get("shade_record", "")
+    record = ShadeRecord.objects.filter(pk=pk, patient=patient).first() if patient and pk.isdigit() else None
+    if record is None:
+        return {}
+    return {"teeth": record.teeth, "shade_guide": record.guide, "shade": record.shade,
+            "shade_cervical": record.shade_cervical, "shade_incisal": record.shade_incisal,
+            "stump_shade": record.stump, "material": record.prosthesis[:100],
+            "instructions": "\n".join(part for part in (
+                ", ".join(str(label) for label in record.character_labels()),
+                f"{record._meta.get_field('translucency').verbose_name}: {record.get_translucency_display()}"
+                if record.translucency else "", record.notes) if part)}
 
 
 def lab_edit(request, pk):
@@ -363,9 +381,23 @@ def lab_action(request, pk):
 
 @role_required(*ANY_STAFF)
 def lab_print(request, pk):
-    lab_request = get_object_or_404(LabRequest.objects.select_related("patient", "work_type", "lab", "dentist"), pk=pk)
+    """The lab prescription printed with the place's letterhead: the teeth on a chart, the shade tabs in colour, the
+    design, what is sent with the work, and the signatures."""
+    from apps.charting.teeth import LOWER, UPPER, parse_teeth
+    from apps.specialties import shades
+
+    lab_request = get_object_or_404(LabRequest.objects.select_related(
+        "patient", "work_type", "lab", "dentist", "branch", "supervisor", "reviewed_by"), pk=pk)
     get_visible_patient_or_403(request.user, lab_request.patient_id)
-    return render(request, "clinical/lab_print.html", {"lab_request": lab_request})
+    chosen = set(parse_teeth(lab_request.teeth)) if lab_request.teeth else set()
+    colours = [(label, getattr(lab_request, name), shades.COLOURS.get(getattr(lab_request, name), ""))
+               for label, name in ((_("Cervical"), "shade_cervical"), (_("Middle"), "shade"),
+                                   (_("Incisal"), "shade_incisal"), (_("Stump"), "stump_shade"))
+               if getattr(lab_request, name)]
+    return render(request, "clinical/lab_print.html", {
+        "lab_request": lab_request, "place": lab_request.branch, "shade_colours": colours,
+        "upper": [(tooth, tooth in chosen) for tooth in UPPER], "lower": [(tooth, tooth in chosen) for tooth in LOWER],
+    })
 
 
 # ------------------------------------------------------------ CBCT and medical lab requests

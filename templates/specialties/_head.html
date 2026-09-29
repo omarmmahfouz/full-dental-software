@@ -1,0 +1,5 @@
+{% load i18n %}{% comment %}The top of a specialist's page: the place's letterhead when printed, the patient's tabs on the screen.{% endcomment %}
+<div class="d-none d-print-block mb-3">{% include "includes/place_letterhead.html" with place=place %}
+  <div class="d-flex justify-content-between mt-2"><div><b>{{ patient.full_name }}</b> · {{ patient.file_number }}{% if patient.age is not None %} · {% blocktrans with age=patient.age %}{{ age }} years{% endblocktrans %}{% endif %}{% if patient.gender %} · {{ patient.get_gender_display }}{% endif %}</div><div>{% now "d/m/Y" %}</div></div>
+</div>
+{% if clinical_nav %}{% with active="specialists" %}{% include "includes/patient_nav.html" %}{% endwith %}{% endif %}

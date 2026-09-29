@@ -31,8 +31,8 @@ HINTS = {
                                 "patient and write the answer."),
     "scheduling:today": _("Tap Arrived when the patient comes in, then In the room and Left. "
                           "The panel at the top follows the clock of this computer."),
-    "scheduling:day_planner": _("One column per room, in 15-minute steps. Tap a green place to book it, "
-                                "or tap a booking to open it."),
+    "scheduling:day_planner": _("One column per room (or per doctor: By doctor), in 15-minute steps. Tap a green "
+                                "place to book it, or tap a booking to open it."),
     "scheduling:appointment_create": _("Choose the patient and the dentist, then tap a green place in the day grid "
                                        "under the form, or use Nearest free times."),
     "scheduling:appointment_list": {
@@ -121,6 +121,30 @@ HINTS = {
                        "each visit. To change it from a date, add a new rule from that date."),
     "clinics:report": _("The place over the period: what the patients paid, visits and time, the doctors' shares, "
                         "the materials used, and what is left for the clinic."),
+    "clinics:prices": _("A doctor's own price for a service (e.g. the TMJ specialist's examination) and its usual lab "
+                        "or implant cost. His bills take this price by themselves."),
+    "specialties:cases": _("The specialists' charts at this place: endodontics, TMJ, orthodontics and shades. Tap a "
+                           "row to open it; new ones start from the patient's file → Specialists."),
+    "specialties:patient": {
+        "front_desk": _("The patient's referrals. Tap Book on a referral to book the patient with the specialist."),
+        "default": _("Refer the patient, or open a specialist's chart. The referrals and every chart of the patient "
+                     "are listed below."),
+    },
+    "specialties:referrals": {
+        "front_desk": _("Referrals to book: open one and tap Book, the specialist and the patient are filled in."),
+        "default": _("The referrals of this place: the ones sent to you, the ones you sent, and their answers."),
+    },
+    "specialties:referral": {
+        "front_desk": _("Book the patient with the specialist from here, and print the letter for the patient."),
+        "default": _("The letter prints with the place's letterhead. The specialist writes his answer at the bottom: "
+                     "the referring doctor is told."),
+    },
+    "specialties:endo": _("Add each visit with the medication left in the canals. When the tooth is obturated, tap "
+                          "Obturated: the dental chart shows the root canal."),
+    "specialties:tmj": _("Add each follow-up with the mouth opening and the pain: the bars show the progress."),
+    "specialties:ortho": _("Add each adjustment visit: the wires of the last visit are filled in, change what is new."),
+    "specialties:shade": _("The shade of each third of the tooth for the ceramist. Tap Lab request to send it with "
+                           "the work."),
 }
 
 

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "TMJ" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% include "specialties/_head.html" with place=exam.branch clinical_nav=True %}
+<div class="page-header">
+  <h1><i class="bi bi-person-bounding-box"></i> {% trans "TMJ examination" %} <small class="text-muted fs-6">{{ exam.exam_date|date:"d/m/Y" }} · {{ exam.dentist|default:"" }}</small></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'specialties:tmj_edit' exam.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    {% if exam.referral %}<a class="btn btn-outline-primary" href="{{ exam.referral.get_absolute_url }}"><i class="bi bi-reply"></i> {% trans "Answer the referral" %}</a>{% endif %}
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print the report" %}</button>
+  </div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-chat-square-text"></i> {% trans "The complaint" %}</div><div class="card-body small">
+    {% if exam.chief_complaint %}<p>{{ exam.chief_complaint|linebreaksbr }}</p>{% endif %}
+    <dl class="dl-grid">
+      {% if exam.since %}<dt>{% trans "Since" %}</dt><dd>{{ exam.since }}</dd>{% endif %}
+      <dt>{% trans "Pain" %}</dt><dd>{% if exam.pain_vas is not None %}<span class="vas-dot" style="--vas: {{ exam.pain_vas }}">{{ exam.pain_vas }}</span>/10{% else %}—{% endif %}</dd>
+      <dt>{% trans "Where" %}</dt><dd>{{ exam.site_labels|join:", "|default:"—" }}</dd>
+      <dt>{% trans "Headaches" %}</dt><dd>{% if exam.headache %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</dd>
+      <dt>{% trans "Clenching / grinding" %}</dt><dd>{{ exam.get_bruxism_display|default:"—" }}</dd>
+      {% if exam.habits %}<dt>{% trans "Habits" %}</dt><dd>{{ exam.habits }}</dd>{% endif %}
+    </dl>
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-arrows-vertical"></i> {% trans "Jaw movements" %}</div><div class="card-body">
+    <div class="jaw-gauge mb-2" aria-hidden="true"><div class="jaw-normal" title="40–50 mm"></div>{% if exam.opening %}<div class="jaw-mark{% if exam.opening_limited %} is-limited{% endif %}" style="--mm: {{ exam.opening }}"><span>{{ exam.opening }}</span></div>{% endif %}{% if exam.opening_max %}<div class="jaw-mark is-max" style="--mm: {{ exam.opening_max }}"><span>{{ exam.opening_max }}</span></div>{% endif %}</div>
+    <div class="small text-muted mb-2">{% trans "0 to 60 mm; the green band is the usual 40–50 mm." %}</div>
+    <dl class="dl-grid small">
+      <dt>{% trans "Opening" %}</dt><dd><b>{{ exam.opening|default:"—" }}</b> mm{% if exam.opening_max %} · {% trans "with help" %} {{ exam.opening_max }} mm{% endif %}{% if exam.opening_pain %} · <span class="text-danger">{% trans "painful" %}</span>{% endif %}</dd>
+      <dt>{% trans "Right / left" %}</dt><dd>{{ exam.right_lateral|default:"—" }} / {{ exam.left_lateral|default:"—" }} mm</dd>
+      <dt>{% trans "Forward" %}</dt><dd>{{ exam.protrusion|default:"—" }} mm</dd>
+      <dt>{% trans "Path" %}</dt><dd>{{ exam.get_path_display|default:"—" }}</dd>
+    </dl>
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-soundwave"></i> {% trans "The joints" %}</div><div class="card-body small">
+    <table class="table table-sm mb-2"><thead><tr><th></th><th>{% trans "Right" %}</th><th>{% trans "Left" %}</th></tr></thead>
+      <tbody><tr><th>{% trans "Sounds" %}</th><td>{{ exam.get_sound_right_display|default:"—" }}</td><td>{{ exam.get_sound_left_display|default:"—" }}</td></tr>
+      <tr><th>{% trans "Tender" %}</th><td>{% if exam.joint_tender_right %}<i class="bi bi-circle-fill text-danger"></i>{% else %}—{% endif %}</td><td>{% if exam.joint_tender_left %}<i class="bi bi-circle-fill text-danger"></i>{% else %}—{% endif %}</td></tr></tbody></table>
+    <div><b>{% trans "Locking" %}:</b> {{ exam.get_locking_display|default:"—" }}</div>
+    {% if exam.occlusion %}<div class="mt-1"><b>{% trans "Occlusion" %}:</b> {{ exam.occlusion }}</div>{% endif %}
+    {% if exam.imaging %}<div class="mt-1"><b>{% trans "Imaging" %}:</b> {{ exam.imaging|linebreaksbr }}</div>{% endif %}
+  </div></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-hand-index"></i> {% trans "Tender muscles" %}</div>
+    <ul class="list-group list-group-flush small">{% for m in exam.muscle_labels %}<li class="list-group-item"><i class="bi bi-dot text-danger"></i> {{ m }}</li>{% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-clipboard2-check"></i> {% trans "Diagnosis (DC/TMD)" %}</div>
+    <ul class="list-group list-group-flush">{% for d in exam.diagnosis_labels %}<li class="list-group-item fw-semibold">{{ d }}</li>{% empty %}<li class="list-group-item text-muted">—</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-list-check"></i> {% trans "Treatment plan" %}</div>
+    <ul class="list-group list-group-flush">{% for p in exam.plan_labels %}<li class="list-group-item">{{ p }}</li>{% empty %}<li class="list-group-item text-muted">—</li>{% endfor %}</ul>
+    {% if exam.splint %}<div class="card-body small border-top"><b>{% trans "Splint" %}:</b> {{ exam.splint }}</div>{% endif %}</div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-graph-up"></i> {% trans "Follow-up" %}</div>
+  <div class="card-body">
+    <div class="progress-rows mb-3">{% for row in progress %}<div class="progress-row"><span class="small nowrap">{{ row.date|date:"d/m/Y" }}</span>
+      <div class="flex-grow-1"><div class="bar-track"><div class="bar bar-opening" style="width: {% widthratio row.opening|default:0 60 100 %}%"></div></div><div class="bar-track mt-1"><div class="bar bar-pain" style="width: {% widthratio row.pain|default:0 10 100 %}%"></div></div></div>
+      <span class="small text-end" style="min-width: 7rem">{% if row.opening %}{{ row.opening }} mm{% else %}—{% endif %} · {% if row.pain is not None %}{{ row.pain }}/10{% else %}—{% endif %}</span></div>{% endfor %}</div>
+    <div class="small text-muted mb-2"><span class="legend-box bar-opening"></span> {% trans "mouth opening (of 60 mm)" %} <span class="legend-box bar-pain ms-2"></span> {% trans "pain (of 10)" %}</div>
+    <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>{% trans "Date" %}</th><th>{% trans "Opening" %}</th><th>{% trans "Pain" %}</th><th>{% trans "What was done" %}</th><th>{% trans "Notes" %}</th></tr></thead>
+      <tbody>{% for v in visits %}<tr><td class="nowrap">{{ v.date|date:"d/m/Y" }}</td><td>{{ v.opening|default:"—" }}{% if v.opening %} mm{% endif %}</td><td>{% if v.pain_vas is not None %}{{ v.pain_vas }}/10{% else %}—{% endif %}</td><td>{{ v.done }}</td><td class="small">{{ v.notes }}</td></tr>
+      {% empty %}<tr><td colspan="5" class="text-muted">{% trans "No follow-up yet." %}</td></tr>{% endfor %}</tbody></table></div>
+  </div>
+  <div class="card-body border-top no-print"><div class="section-title mt-0">{% trans "Add a follow-up" %}</div>
+    <form method="post" novalidate>{% csrf_token %}{% with form=visit_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-primary mt-3"><i class="bi bi-plus-circle"></i> {% trans "Save the follow-up" %}</button></form></div>
+</div>
+{% if exam.notes %}<div class="card mb-3"><div class="card-body"><b>{% trans "Notes" %}:</b> {{ exam.notes|linebreaksbr }}</div></div>{% endif %}
+<div class="d-none d-print-flex justify-content-end mt-5"><div class="signature-block"><div class="fw-bold">{{ exam.dentist|default:"" }}</div>{% if exam.dentist.role_line %}<div class="small text-muted">{{ exam.dentist.role_line }}</div>{% endif %}<div class="signature-line">{% trans "Signature" %}</div></div></div>
+{% endblock %}

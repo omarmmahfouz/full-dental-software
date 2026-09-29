@@ -142,6 +142,7 @@ class LabDetailsTests(TestCase):
             "shade": "A3", "submit_for_review": "1"})
         lab_request = LabRequest.objects.get()
         self.assertEqual((lab_request.shade_guide, lab_request.status), ("classical", LabRequest.Status.APPROVED))
+        self.assertEqual(lab_request.stage, LabRequest.Stage.FINAL)  # not chosen: the final work
         self.client.login(username="sec", password=PASSWORD)
         self.client.post(f"/clinical/lab/{lab_request.pk}/action/", {"action": "send", "checked": "on"})  # no collection
         lab_request.refresh_from_db()

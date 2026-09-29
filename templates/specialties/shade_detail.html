@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Shade" %} {{ record.shade }} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% include "specialties/_head.html" with place=record.branch clinical_nav=True %}
+<div class="page-header">
+  <h1><i class="bi bi-palette2"></i> {% trans "Shade for the prosthesis" %} <small class="text-muted fs-6">{{ record.taken_on|date:"d/m/Y" }} · {{ record.dentist|default:"" }}</small></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'specialties:shade_edit' record.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    <a class="btn btn-primary" href="{{ lab_url }}"><i class="bi bi-box-seam"></i> {% trans "Lab request with this shade" %}</a>
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
+  </div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-5"><div class="card h-100"><div class="card-header"><i class="bi bi-palette"></i> {{ record.get_guide_display }} — {{ record.teeth }}</div><div class="card-body">
+    <div class="shade-tooth mx-auto mb-3" aria-hidden="true">{% for label, value, colour in thirds %}<div class="shade-third" style="--shade: {{ colour|default:'#EEE9DD' }}"><span class="shade-name">{{ value }}</span><span class="shade-where">{{ label }}</span></div>{% endfor %}</div>
+    <dl class="dl-grid">
+      <dt>{% trans "Middle third" %}</dt><dd class="fw-bold fs-5">{{ record.shade }}</dd>
+      <dt>{% trans "Cervical third" %}</dt><dd>{{ record.shade_cervical|default:"—" }}</dd>
+      <dt>{% trans "Incisal third" %}</dt><dd>{{ record.shade_incisal|default:"—" }}</dd>
+      <dt>{% trans "Stump" %}</dt><dd>{% if record.stump %}<span class="shade-chip" style="--shade: {{ stump_colour }}"></span> {{ record.stump }}{% else %}—{% endif %}</dd>
+    </dl>
+  </div></div></div>
+  <div class="col-lg-7"><div class="card h-100"><div class="card-header"><i class="bi bi-stars"></i> {% trans "For the ceramist" %}</div><div class="card-body">
+    <dl class="dl-grid">
+      <dt>{% trans "For" %}</dt><dd>{{ record.prosthesis|default:"—" }}</dd>
+      <dt>{% trans "Translucency" %}</dt><dd>{{ record.get_translucency_display|default:"—" }}</dd>
+      <dt>{% trans "Surface" %}</dt><dd>{{ record.get_surface_display|default:"—" }}</dd>
+      <dt>{% trans "Characters" %}</dt><dd>{{ record.character_labels|join:", "|default:"—" }}</dd>
+      <dt>{% trans "Taken in" %}</dt><dd>{{ record.get_light_display }}</dd>
+    </dl>
+    {% if record.notes %}<p class="mt-2 mb-0">{{ record.notes|linebreaksbr }}</p>{% endif %}
+    {% if record.photo %}<a href="{{ record.photo.url }}" target="_blank"><img class="shade-photo mt-3" src="{{ record.photo|preview:'medium' }}" alt="{% trans 'Photo with the shade tab' %}" loading="lazy"></a>{% endif %}
+  </div></div></div>
+</div>
+{% endblock %}

@@ -135,14 +135,19 @@ class TreatmentPlanForm(StyledModelForm):
         help_text=_("Supervisors do not log in: choose who approved the plan."),
     )
 
+    fieldsets = [("", ["title", "difficulty", "dentist", "approved_by", "notes"]),
+                 (_("The plan printed for the patient"), ["comprehensive", "diagnosis", "duration", "alternatives"])]
+
     class Meta:
         model = TreatmentPlan
-        fields = ["title", "difficulty", "dentist", "approved_by", "notes"]
+        fields = ["title", "difficulty", "dentist", "approved_by", "notes", "comprehensive", "diagnosis", "duration",
+                  "alternatives"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["notes"].widget.attrs["rows"] = 2
-        for name in ("title", "difficulty", "dentist", "approved_by"):
+        for name in ("notes", "diagnosis", "alternatives"):
+            self.fields[name].widget.attrs["rows"] = 2
+        for name in ("title", "difficulty", "dentist", "approved_by", "comprehensive", "duration"):
             self.fields[name].col = "col-md-6"
 
     def save(self, commit=True):
@@ -169,13 +174,18 @@ class StepTypeSelect(forms.Select):
 
 
 class PlanItemForm(BootstrapFormMixin, forms.ModelForm):
+    dentist = DentistChoiceField(label=_("by the doctor"), required=False)
+
     class Meta:
         model = PlanItem
-        fields = ["phase", "step_type", "teeth", "details"]
-        widgets = {"step_type": StepTypeSelect}
+        fields = ["phase", "step_type", "teeth", "details", "dentist", "fee"]
+        widgets = {"step_type": StepTypeSelect, "fee": forms.NumberInput(attrs={"min": 0, "step": 50,
+                                                                              "inputmode": "decimal"})}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, place=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if place is not None:
+            self.fields["dentist"].queryset = self.fields["dentist"].queryset.working_at(place)
         self.fields["step_type"].queryset = TreatmentStepType.objects.filter(is_active=True)
         self.fields["teeth"].widget.attrs.update({"data-digits": "1", "data-teeth-picker": "multi"})
         self.fields["details"].widget.attrs["placeholder"] = _("e.g. implant 4.5 x 10, zirconia crown")

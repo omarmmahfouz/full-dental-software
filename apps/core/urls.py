@@ -18,4 +18,5 @@ urlpatterns = [
     path("notifications/read-all/", views.notification_mark_all_read, name="notifications_read_all"),
     path("hints/", views.toggle_hints, name="hints_toggle"),
     path("place/", views.switch_place, name="switch_place"),
+    path("place/<str:code>/logo/", views.place_logo, name="place_logo"),
 ]

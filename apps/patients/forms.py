@@ -192,6 +192,8 @@ class PatientForm(StyledModelForm):
     )
     id_back = forms.FileField(label=_("ID scan - back"), required=False, validators=[validate_upload])
     assigned_dentist = DentistChoiceField(label=_("responsible dentist"), required=False)
+    brought_by = DentistChoiceField(label=_("the doctor's own patient (brought by)"), required=False,
+                                    empty_label=_("No: a patient of the clinic"))
 
     fieldsets = [
         (_("Personal data"), ["full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "occupation"]),
@@ -199,7 +201,7 @@ class PatientForm(StyledModelForm):
         (_("ID scan"), ["id_front", "id_back"]),
         (_("Teeth and medical history (as told by the patient)"),
          ["missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes"]),
-        (_("Who referred you?"), ["referral_source", "referred_by_lookup", "referral_notes"]),
+        (_("Who referred you?"), ["referral_source", "referred_by_lookup", "referral_notes", "brought_by"]),
         (_("Relatives or friends among our patients"), ["relative_lookup", "relative_relation"]),
         (_("Follow-up"), ["registered_on", "assigned_dentist", "status", "out_reason", "out_notes", "notes"]),
     ]
@@ -210,8 +212,8 @@ class PatientForm(StyledModelForm):
             "full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "occupation",
             "phone_primary", "phone_secondary", "preferred_phone", "governorate", "city", "address",
             "missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes",
-            "referral_source", "referral_notes", "registered_on", "assigned_dentist", "status", "out_reason",
-            "out_notes", "notes",
+            "referral_source", "referral_notes", "brought_by", "registered_on", "assigned_dentist", "status",
+            "out_reason", "out_notes", "notes",
         ]
         widgets = {"medical_conditions": forms.CheckboxSelectMultiple}
 
@@ -230,6 +232,13 @@ class PatientForm(StyledModelForm):
         self.fields["gender"].help_text = _("Filled automatically from the national ID.")
         self.fields["governorate"].help_text = _("Filled automatically from the national ID.")
         self.fields["registered_on"].required = False
+        # At a clinic (El Khadem, CIC) a doctor may bring his own patient: it decides his share.
+        place = self.instance.branch if self.instance.pk else current_place()
+        if place is None or place.kind != place.Kind.CLINIC:
+            del self.fields["brought_by"]
+        else:
+            self.fields["brought_by"].queryset = self.fields["brought_by"].queryset.working_at(place)
+            self.fields["brought_by"].help_text = Patient._meta.get_field("brought_by").help_text
         for name, side in (("id_front", "front"), ("id_back", "back")):
             # data-id-card: the tablet checks the photo, cuts the card out and reads the number (app.js).
             self.fields[name].widget.attrs.update({"accept": "image/*,application/pdf", "data-id-card": side})

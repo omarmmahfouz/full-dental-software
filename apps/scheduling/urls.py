@@ -18,6 +18,7 @@ urlpatterns = [
     path("appointments/<int:pk>/times/", views.appointment_times, name="appointment_times"),
     path("appointments/<int:pk>/move/", views.appointment_reschedule, name="appointment_reschedule"),
     path("appointments/<int:pk>/approve/", views.appointment_approve, name="appointment_approve"),
+    path("appointments/<int:pk>/room/", views.appointment_room, name="appointment_room"),
     path("visit/<int:pk>/", views.visit, name="visit"),
     path("rooms/", views.room_schedule, name="room_schedule"),
     path("rooms/shift/new/", views.shift_edit, name="shift_create"),

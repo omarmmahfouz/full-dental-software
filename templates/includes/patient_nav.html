@@ -8,6 +8,7 @@
     <li class="nav-item"><a class="nav-link {% if active == 'chart' %}active{% endif %}" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a></li>
     <li class="nav-item"><a class="nav-link {% if active == 'surgery' %}active{% endif %}" href="{% url 'surgery:list' %}?q={{ patient.file_number }}"><i class="bi bi-implant"></i> {% trans "Surgeries" %}</a></li>
     <li class="nav-item"><a class="nav-link {% if active == 'photos' %}active{% endif %}" href="{% url 'charting:photos' patient.pk %}"><i class="bi bi-camera"></i> {% trans "Photos" %}</a></li>
+    <li class="nav-item"><a class="nav-link {% if active == 'specialists' %}active{% endif %}" href="{% url 'specialties:patient' patient.pk %}"><i class="bi bi-person-lines-fill"></i> {% trans "Specialists" %}</a></li>
     <li class="nav-item"><a class="nav-link {% if active == 'report' %}active{% endif %}" href="{% url 'charting:case_report' patient.pk %}"><i class="bi bi-journal-medical"></i> {% trans "Case report" %}</a></li>
   </ul>
 </div>

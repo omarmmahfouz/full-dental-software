@@ -209,3 +209,21 @@ Delete the `data` folder and run `trial-windows.bat` again to get the new sample
 122. **Owner, a receipt of an earlier day**: open a receipt of yesterday: the owner can correct it; the change is written under it.
 123. **Owner, what the reception sees**: *Settings → Access by role*, at the bottom **What the reception sees in a patient's file**: tick *Treatment plans* and save; as `secretary` the plan tab appears in the file.
 124. **Owner, a forgotten password**: *Settings → People and logins*: at the top *Forgotten passwords* (secretary2 asked). *Give a new password* shows a temporary password once, with a WhatsApp button. Log in as `secretary2` with it: the system asks for a new password of your own before anything else.
+
+## S. New in this version (8): عيادة الخادم (El Khadem)
+Delete the `data` folder and run `trial-windows.bat` again. El Khadem's reception logs in as **khadem**; every step is
+in **[khadem-test-checklist.md](khadem-test-checklist.md)**, sections A, B and H. In short:
+125. **عيادة الخادم** is a third place, with its own reception: she sees El Khadem's patients only (files `EK-…`), and
+     no academy. The screens are navy and gold.
+126. **"مين رشّحك؟"** has **"مريض الطبيب نفسه (جابه)"**: choose the doctor who brought the patient. It changes the
+     doctor's share (40% of his own patients, 30% of the clinic's).
+127. **The 4 rooms are shared**: book without a room, a free room is chosen by itself; a taken room is refused. In
+     "جدول مواعيد اليوم" move a patient to another room or **swap** two rooms with the **⇄** button, and press **"حسب
+     الطبيب"** to see a column for each doctor.
+128. **"التحويلات"** (under "العلاج"): the referrals from Dr. Amr to the specialists. **"احجز مع …"** opens the
+     booking with the patient and the doctor filled in; after saving the referral is booked. Print the letter for
+     the patient.
+129. **Each doctor's price**: a new bill with Dr. Hazem takes his own examination price (1,200).
+130. **Approvals**: her edits of a patient's data wait for **Dr. Amr's** approval, not the head of CIA's.
+131. **Shared with CIA and CIC**: the two Fawry machines and the stock. As `secretary` (CIA and CIC) nothing of El Khadem
+     shows.

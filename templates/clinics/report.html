@@ -3,7 +3,7 @@
 {% block title %}{% trans "Clinic report" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-clipboard-data"></i> {% trans "Clinic report" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.code }}</span>{% endif %}
+  <h1><i class="bi bi-clipboard-data"></i> {% trans "Clinic report" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.badge }}</span>{% endif %}
     <small class="text-muted fs-6">{{ place }} · {{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
   <a class="btn btn-outline-primary no-print" href="{% url 'clinics:doctors' %}{{ query }}"><i class="bi bi-people"></i> {% trans "Doctors' shares" %}</a>
 </div>

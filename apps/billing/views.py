@@ -267,9 +267,15 @@ def bill_create(request):
         else:
             messages.success(request, _("Bill %(number)s saved.") % {"number": bill.number})
         return redirect(bill)
+    from apps.clinics.prices import prices_at
+
+    doctor_prices = {}
+    for (dentist_id, service_id), row in prices_at(here).items():
+        doctor_prices.setdefault(str(dentist_id), {})[str(service_id)] = f"{row.price:.2f}"
     return render(request, "billing/bill_form.html", {
         "form": form, "lines": lines, "pay": pay, "patient": patient, "appointment": appointment, "place": here,
         "quick_services": Service.for_place(here).filter(quick_button=True), "at_desk": at_desk,
+        "doctor_prices": doctor_prices,
     })
 
 

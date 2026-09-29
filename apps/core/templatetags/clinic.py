@@ -174,3 +174,19 @@ def teeth_in_text(text):
         if name and (number, name) not in found:
             found.append((number, name))
     return found
+
+
+@register.filter
+def shade_colour(value):
+    """The colour of a shade tab (A2, 3M2, ND3…) on the screen, or of the main shade of a shade record."""
+    from apps.specialties.shades import COLOURS
+
+    return COLOURS.get(str(getattr(value, "shade", value) or ""), "#EEE9DD")
+
+
+@register.simple_tag
+def shade_guides():
+    """The tabs of each shade guide with their colours, for the shade picker on the page."""
+    from apps.specialties.shades import picker_data
+
+    return picker_data()

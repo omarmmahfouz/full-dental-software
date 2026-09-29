@@ -3,7 +3,7 @@
 {% block title %}{% trans "Doctors' fee rules" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-percent"></i> {% trans "Doctors' fee rules" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.code }}</span>{% endif %}</h1>
+  <h1><i class="bi bi-percent"></i> {% trans "Doctors' fee rules" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.badge }}</span>{% endif %}</h1>
   {% if place %}<div class="d-flex flex-wrap gap-2">
     <a class="btn btn-primary" href="{% url 'clinics:rule_create' %}?place={{ place.code }}"><i class="bi bi-plus-lg"></i> {% trans "New rule" %}</a>
     <a class="btn btn-outline-secondary" href="{% url 'clinics:doctors' %}?place={{ place.code }}"><i class="bi bi-people"></i> {% trans "Doctors' shares" %}</a>

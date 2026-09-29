@@ -2,11 +2,11 @@
 {% load i18n clinic %}
 {% block title %}{% trans "The month's receipts" %}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><i class="bi bi-calendar3"></i> {% trans "The month's receipts" %} <span class="place-badge place-{{ place.code }}">{{ place.code }}</span> <small class="text-muted fs-6">{{ first|date:"F Y" }}</small></h1>
+<div class="page-header"><h1><i class="bi bi-calendar3"></i> {% trans "The month's receipts" %} <span class="place-badge place-{{ place.code }}">{{ place.badge }}</span> <small class="text-muted fs-6">{{ first|date:"F Y" }}</small></h1>
   <div class="d-flex flex-wrap gap-2 no-print">
     <a class="btn btn-outline-secondary" href="?month={{ prev_month|date:'Y-m' }}&amp;place={{ place.code }}"><i class="bi bi-chevron-left"></i></a>
     <a class="btn btn-outline-secondary" href="?month={{ next_month|date:'Y-m' }}&amp;place={{ place.code }}"><i class="bi bi-chevron-right"></i></a>
-    {% if places|length > 1 %}{% for p in places %}<a class="btn btn-sm {% if p.pk == place.pk %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?month={{ first|date:'Y-m' }}&amp;place={{ p.code }}">{{ p.code }}</a>{% endfor %}{% endif %}
+    {% if places|length > 1 %}{% for p in places %}<a class="btn btn-sm {% if p.pk == place.pk %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?month={{ first|date:'Y-m' }}&amp;place={{ p.code }}">{{ p.badge }}</a>{% endfor %}{% endif %}
   </div>
 </div>
 <div class="card"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">

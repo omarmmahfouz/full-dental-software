@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Orthodontics" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% include "specialties/_head.html" with place=case.branch clinical_nav=True %}
+<div class="page-header">
+  <h1><i class="bi bi-distribute-horizontal"></i> {% trans "Orthodontic case" %} <span class="badge text-bg-light fs-6">{{ case.get_status_display }}</span></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'specialties:ortho_edit' case.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    {% if case.referral %}<a class="btn btn-outline-primary" href="{{ case.referral.get_absolute_url }}"><i class="bi bi-reply"></i> {% trans "Answer the referral" %}</a>{% endif %}
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  </div>
+</div>
+<div class="small text-muted mb-3">{{ case.dentist|default:"" }} · {% trans "records" %} {{ case.records_on|date:"d/m/Y" }}{% if case.bonded_on %} · {% trans "bonded" %} {{ case.bonded_on|date:"d/m/Y" }}{% endif %}{% if case.months_in_treatment is not None %} · {% blocktrans count n=case.months_in_treatment %}{{ n }} month in treatment{% plural %}{{ n }} months in treatment{% endblocktrans %}{% if case.months %} {% blocktrans with n=case.months %}of about {{ n }}{% endblocktrans %}{% endif %}{% endif %}</div>
+{% if case.months and case.months_in_treatment is not None %}<div class="progress mb-3 no-print" style="height: 8px" title="{% trans 'Time in treatment' %}"><div class="progress-bar" style="width: {% widthratio case.months_in_treatment case.months 100 %}%"></div></div>{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-person"></i> {% trans "The face" %}</div><div class="card-body small">
+    {% if case.chief_complaint %}<p>{{ case.chief_complaint|linebreaksbr }}</p>{% endif %}
+    <dl class="dl-grid">
+      <dt>{% trans "Profile" %}</dt><dd>{{ case.get_profile_display|default:"—" }}</dd>
+      <dt>{% trans "Symmetry" %}</dt><dd>{% if case.symmetric %}{% trans "Symmetric" %}{% else %}{% trans "Asymmetric" %}{% endif %}</dd>
+      <dt>{% trans "Lips" %}</dt><dd>{{ case.get_lips_display|default:"—" }}</dd>
+      <dt>{% trans "Smile line" %}</dt><dd>{{ case.get_smile_line_display|default:"—" }}</dd>
+      {% if case.habits %}<dt>{% trans "Habits" %}</dt><dd>{{ case.habits }}</dd>{% endif %}
+    </dl>
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-grid-3x2"></i> {% trans "The occlusion" %}</div><div class="card-body small">
+    <table class="table table-sm mb-2"><thead><tr><th></th><th>{% trans "Right" %}</th><th>{% trans "Left" %}</th></tr></thead>
+      <tbody><tr><th>{% trans "Molars" %}</th><td>{{ case.get_molar_right_display|default:"—" }}</td><td>{{ case.get_molar_left_display|default:"—" }}</td></tr>
+      <tr><th>{% trans "Canines" %}</th><td>{{ case.get_canine_right_display|default:"—" }}</td><td>{{ case.get_canine_left_display|default:"—" }}</td></tr></tbody></table>
+    <dl class="dl-grid">
+      <dt>{% trans "Overjet" %}</dt><dd>{% if case.overjet is not None %}{{ case.overjet }} mm{% else %}—{% endif %}</dd>
+      <dt>{% trans "Overbite" %}</dt><dd>{% if case.overbite is not None %}{{ case.overbite }} mm{% if case.overbite < 0 %} ({% trans "open bite" %}){% endif %}{% else %}—{% endif %}</dd>
+      <dt>{% trans "Crowding" %}</dt><dd>{% trans "upper" %} {{ case.crowding_upper|default:"—" }} · {% trans "lower" %} {{ case.crowding_lower|default:"—" }} mm</dd>
+      {% if case.crossbite %}<dt>{% trans "Crossbite" %}</dt><dd>{{ case.crossbite }}</dd>{% endif %}
+      {% if case.midline %}<dt>{% trans "Midlines" %}</dt><dd>{{ case.midline }}</dd>{% endif %}
+    </dl>
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-rulers"></i> {% trans "Cephalometric values" %}</div><div class="card-body small">
+    <table class="table table-sm mb-2 ceph-table"><thead><tr><th></th><th class="text-end">{% trans "Patient" %}</th><th class="text-end">{% trans "Usual" %}</th></tr></thead><tbody>
+      <tr><th>SNA</th><td class="text-end">{{ case.sna|default:"—" }}</td><td class="text-end text-muted">82 ± 2</td></tr>
+      <tr><th>SNB</th><td class="text-end">{{ case.snb|default:"—" }}</td><td class="text-end text-muted">80 ± 2</td></tr>
+      <tr><th>ANB</th><td class="text-end fw-bold">{{ case.anb|default:"—" }}</td><td class="text-end text-muted">2 ± 2</td></tr>
+      <tr><th>FMA / SN-MP</th><td class="text-end">{{ case.fma|default:"—" }}</td><td class="text-end text-muted">25 ± 4 / 32 ± 4</td></tr>
+      <tr><th>U1-SN</th><td class="text-end">{{ case.u1_sn|default:"—" }}</td><td class="text-end text-muted">103 ± 6</td></tr>
+      <tr><th>IMPA</th><td class="text-end">{{ case.impa|default:"—" }}</td><td class="text-end text-muted">90 ± 5</td></tr>
+      <tr><th>Wits</th><td class="text-end">{{ case.wits|default:"—" }}</td><td class="text-end text-muted">0 ± 2 mm</td></tr>
+    </tbody></table>
+    <div>{{ case.get_skeletal_display|default:"" }}{% if case.vertical %} · {{ case.get_vertical_display }}{% endif %}</div>
+  </div></div></div>
+</div>
+<div class="card mb-3"><div class="card-header"><i class="bi bi-clipboard2-check"></i> {% trans "Diagnosis and plan" %}</div><div class="card-body">
+  {% if case.diagnosis %}<p>{{ case.diagnosis|linebreaksbr }}</p>{% endif %}
+  <dl class="dl-grid">
+    <dt>{% trans "Appliance" %}</dt><dd>{{ case.get_appliance_display|default:"—" }}{% if case.prescription %} · {{ case.get_prescription_display }}{% endif %}</dd>
+    <dt>{% trans "Extractions" %}</dt><dd>{{ case.extraction|default:_("No extraction") }}</dd>
+    <dt>{% trans "Anchorage" %}</dt><dd>{{ case.anchorage_labels|join:", "|default:"—" }}</dd>
+    <dt>{% trans "Expected" %}</dt><dd>{% if case.months %}{% blocktrans count n=case.months %}{{ n }} month{% plural %}{{ n }} months{% endblocktrans %}{% else %}—{% endif %}</dd>
+    <dt>{% trans "Retention" %}</dt><dd>{{ case.get_retention_display|default:"—" }}</dd>
+  </dl>
+</div></div>
+<div class="card mb-3"><div class="card-header"><i class="bi bi-calendar-check"></i> {% trans "Adjustment visits" %}</div>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Upper wire" %}</th><th>{% trans "Lower wire" %}</th><th>{% trans "Aligner" %}</th><th>{% trans "Elastics" %}</th><th>{% trans "What was done" %}</th><th>{% trans "Hygiene" %}</th><th>{% trans "Next" %}</th></tr></thead>
+    <tbody>{% for v in visits %}<tr><td class="nowrap">{{ v.date|date:"d/m/Y" }}</td><td class="ltr-cell">{{ v.upper_wire|default:"—" }}</td><td class="ltr-cell">{{ v.lower_wire|default:"—" }}</td><td>{{ v.aligner|default:"—" }}</td><td>{{ v.elastics|default:"—" }}</td><td class="small">{{ v.done }}{% if v.notes %}<div class="text-muted">{{ v.notes }}</div>{% endif %}</td><td>{% if v.hygiene == "poor" %}<span class="badge text-bg-danger">{{ v.get_hygiene_display }}</span>{% else %}{{ v.get_hygiene_display|default:"—" }}{% endif %}</td><td>{% if v.next_weeks %}{% blocktrans count n=v.next_weeks %}{{ n }} week{% plural %}{{ n }} weeks{% endblocktrans %}{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="8" class="text-muted">{% trans "No visits yet." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="card-body border-top no-print"><div class="section-title mt-0">{% trans "Add a visit" %}{% if last %} <span class="small text-muted fw-normal">({% trans "the wires of the last visit are filled in" %})</span>{% endif %}</div>
+    <form method="post" novalidate>{% csrf_token %}{% with form=visit_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-primary mt-3"><i class="bi bi-plus-circle"></i> {% trans "Save the visit" %}</button></form>
+    <datalist id="ortho-wires">{% for w in wires %}<option value="{{ w }}">{% endfor %}</datalist></div>
+</div>
+{% if case.notes %}<div class="card mb-3"><div class="card-body"><b>{% trans "Notes" %}:</b> {{ case.notes|linebreaksbr }}</div></div>{% endif %}
+{% endblock %}

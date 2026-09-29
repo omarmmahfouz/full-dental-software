@@ -18,6 +18,7 @@ urlpatterns = [
     path("exam/<int:pk>/edit/", views.exam_edit, name="exam_edit"),
     path("plan/<int:pk>/", views.plan_detail, name="plan_detail"),
     path("plan/<int:pk>/edit/", views.plan_edit, name="plan_edit"),
+    path("plan/<int:pk>/print/", views.plan_print, name="plan_print"),
     path("plan/<int:pk>/action/", views.plan_action, name="plan_action"),
     path("photo/<int:pk>/delete/", views.photo_delete, name="photo_delete"),
     path("photo/<int:pk>/edit/", views.photo_edit, name="photo_edit"),

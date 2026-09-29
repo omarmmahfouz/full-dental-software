@@ -723,6 +723,10 @@ class SpeedTests(TestCase):
         ("secretary", "/schedule/whatsapp/", 60),
         ("owner", "/stock/", 40),
         ("owner", "/stock/categories/", 40),
+        ("secretary", "/schedule/day/?by=doctor", 40),
+        ("owner", "/specialists/", 40),
+        ("owner", "/specialists/referrals/", 40),
+        ("owner", "/clinics/prices/?place=CIC", 40),
     ]
 
     @classmethod

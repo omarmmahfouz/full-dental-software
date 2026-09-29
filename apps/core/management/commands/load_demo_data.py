@@ -55,7 +55,7 @@ from apps.surgery.views import complete_plan_for_surgery, update_chart_for_surge
 
 STOCK_LIST = Path(__file__).resolve().parents[3] / "stock" / "data" / "cia_material_instrument_list.csv"
 DEMO_USERS = ["owner", "headcia", "teamhead", "dentist1", "dentist2", "secretary", "secretary2", "stock", "moderator",
-              "cicdoctor"]
+              "cicdoctor", "amr", "khadem", "endo"]
 
 FIRST = ["محمد", "أحمد", "محمود", "مصطفى", "علي", "حسن", "إبراهيم", "يوسف", "سارة", "منى", "هبة", "فاطمة", "نادية", "سعاد", "أمل"]
 LAST = ["عبد الله", "السيد", "حسين", "عبد الرحمن", "إبراهيم", "مصطفى", "الشريف", "عثمان", "سليمان", "فؤاد"]
@@ -671,11 +671,15 @@ class Command(BaseCommand):
         self._round_cic(today, at, user, patients, booked_patients, cia_dentists, types, secretary, stock_user)
         self._round_speed(today, at, patients, secretary)
         self._round_seven(today, now, at, patients, booked_patients, cia_dentists, types, services, secretary, owner)
+        from apps.specialties.demo import load_khadem
+
+        load_khadem(today, at, user, secretary, stock_user, owner, {t.name_en: t for t in TreatmentStepType.objects.all()})
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
             "CIA dentists team), dentist1 and dentist2 (CIA dentists), secretary, secretary2 (reception without the "
-            "academy), stock (stock manager), moderator (CIC clinic manager), cicdoctor (a CIC doctor). "
+            "academy), stock (stock manager), moderator (CIC clinic manager), cicdoctor (a CIC doctor), amr (Dr. Amr "
+            "El Khadem), khadem (El Khadem's reception), endo (El Khadem's endodontist). "
             "Candidates, training dentists and supervisors have no login."
         ))
 

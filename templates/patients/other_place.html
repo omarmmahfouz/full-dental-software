@@ -3,12 +3,12 @@
 {% block title %}{% trans "Another place" %}{% endblock %}
 {% block content %}
 <div class="card mx-auto mt-4" style="max-width: 560px"><div class="card-body text-center p-4">
-  <div class="display-6 mb-2"><span class="place-badge place-{{ place.code }}">{{ place.code }}</span></div>
+  <div class="display-6 mb-2"><span class="place-badge place-{{ place.code }}">{{ place.badge }}</span></div>
   <p class="fs-5">{% blocktrans with place=place.name %}This patient's file is at {{ place }}.{% endblocktrans %}</p>
   <p class="text-muted">{% trans "Each place has its own patients. Switch to that place to open the file." %}</p>
   <form method="post" action="{% url 'core:switch_place' %}" data-no-leave-warning>{% csrf_token %}
     <input type="hidden" name="place" value="{{ place.code }}"><input type="hidden" name="next" value="{{ next }}">
-    <button class="btn btn-primary btn-lg"><i class="bi bi-arrow-left-right"></i> {% blocktrans with place=place.code %}Work at {{ place }} and open the file{% endblocktrans %}</button>
+    <button class="btn btn-primary btn-lg"><i class="bi bi-arrow-left-right"></i> {% blocktrans with place=place.badge %}Work at {{ place }} and open the file{% endblocktrans %}</button>
   </form>
 </div></div>
 {% endblock %}

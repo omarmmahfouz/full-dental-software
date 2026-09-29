@@ -64,9 +64,10 @@ LISTS = {
     "instruction_sheets": (gettext_lazy("Post-op instruction sheets"), InstructionSheet,
                            ["name_ar", "name_en", "procedures", "body_ar", "body_en", "sort_order", "is_active"],
                            ["name_en", "procedures"], None, gettext_lazy("Prescriptions")),
-    "places": (gettext_lazy("Places (CIA, CIC...): name, phone and address"), Branch,
-               ["name_ar", "name_en", "phone", "address", "has_cbct", "sort_order", "is_active"],
-               ["name_ar", "name_en", "phone", "has_cbct"],
+    "places": (gettext_lazy("Places (CIA, CIC, El Khadem...): name, look, hours and rooms"), Branch,
+               ["name_ar", "name_en", "file_prefix", "tagline", "phone", "address", "email", "theme", "color", "logo",
+                "opens_at", "closes_at", "closed_days", "rooms_shared", "has_cbct", "sort_order", "is_active"],
+               ["name_ar", "name_en", "file_prefix", "phone", "theme", "rooms_shared"],
                None, gettext_lazy("Reception")),
     "rooms": (gettext_lazy("Rooms"), Room, ["name", "name_en", "branch", "sort_order", "is_active", "notes"],
               ["name", "name_en"], None, gettext_lazy("Reception")),
@@ -76,9 +77,9 @@ LISTS = {
     "medical_conditions": (gettext_lazy("Medical conditions"), MedicalCondition,
                            ["name_ar", "name_en", "is_alert", "sort_order", "is_active"], ["name_ar", "name_en"], None,
                            gettext_lazy("Reception")),
-    "services": (gettext_lazy("Paid services and prices"), Service, ["name_ar", "name_en", "price", "branch",
+    "services": (gettext_lazy("Paid services and prices"), Service, ["name_ar", "name_en", "price", "cost", "branch",
                                                                    "quick_button", "sort_order", "is_active"],
-                 ["name_ar", "name_en", "price", "branch", "quick_button"], None,
+                 ["name_ar", "name_en", "price", "cost", "branch", "quick_button"], None,
                  gettext_lazy("Reception")),
     "fawry_machines": (gettext_lazy("Fawry machines"), FawryMachine, ["name", "terminal_id", "notes", "sort_order",
                                                                       "is_active"], ["name", "terminal_id"], None,
@@ -143,8 +144,9 @@ def list_edit(request, key, pk=None):
     if pk is None and key in NO_ADD:
         raise Http404
     obj = get_object_or_404(model, pk=pk) if pk else None
-    form_class = modelform_factory(model, form=StyledModelForm, fields=fields)
-    form = form_class(request.POST or None, instance=obj)
+    form_class = modelform_factory(model, form=StyledModelForm, fields=fields,
+                                   widgets={"closed_days": WeekdaysWidget} if "closed_days" in fields else None)
+    form = form_class(request.POST or None, request.FILES or None, instance=obj)
     formset = None
     if inline:
         inline_model, inline_fields = inline

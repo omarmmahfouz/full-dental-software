@@ -13,6 +13,7 @@ from apps.dentists.models import Dentist
 from apps.patients.forms import PatientLookupField, lookup_value
 
 from .models import Appointment, PatientRequest, Room, RoomShift, WaitingEntry
+from .rooms import free_room, room_clash, shared
 
 
 def limit_dentists_to_place(form, branch, names):
@@ -120,7 +121,8 @@ class AppointmentForm(StyledModelForm):
         if branch is not None:
             rooms = rooms.filter(branch=branch)
         self.fields["room"].queryset = rooms
-        self.fields["room"].help_text = _("Leave empty to use the room of the dentist's shift.")
+        self.fields["room"].help_text = _("Leave empty: a free room is chosen by itself.") if shared(branch) else \
+            _("Leave empty to use the room of the dentist's shift.")
         limit_dentists_to_place(self, branch, ["dentist", "second_dentist"])
         default = ClinicSettings.get().default_appointment_minutes
         self.fields["duration_minutes"].initial = default
@@ -168,6 +170,16 @@ class AppointmentForm(StyledModelForm):
                     _("This patient already has an appointment at %(time)s.")
                     % {"time": timezone.localtime(clash[0].scheduled_at).strftime("%H:%M")}
                 )
+            room = data.get("room")
+            if room is not None and shared(self.branch):
+                # Shared rooms: one doctor's patients in a room at a time.
+                other = room_clash(room, start, end, (data.get("dentist") or None) and data["dentist"].pk,
+                                   self.instance.pk)
+                if other is not None:
+                    self.add_error("room", _("%(room)s is taken at %(time)s by %(patient)s (%(dentist)s). Choose "
+                                             "another room, or leave it empty: a free room is chosen by itself.")
+                                   % {"room": room, "patient": other.patient.full_name, "dentist": other.dentist or "—",
+                                      "time": timezone.localtime(other.scheduled_at).strftime("%H:%M")})
         return data
 
     def save(self, commit=True):
@@ -175,7 +187,10 @@ class AppointmentForm(StyledModelForm):
         if "patient_lookup" in self.cleaned_data:
             appointment.patient = self.cleaned_data["patient_lookup"]
         appointment.dentist = self.cleaned_data.get("dentist")
-        if appointment.room_id is None:
+        if appointment.room_id is None and shared(self.branch):
+            appointment.room = free_room(self.branch, appointment.scheduled_at, appointment.scheduled_end,
+                                         appointment.dentist_id, appointment.pk)
+        elif appointment.room_id is None:
             shift = appointment.find_shift()
             if shift:
                 appointment.room = shift.room

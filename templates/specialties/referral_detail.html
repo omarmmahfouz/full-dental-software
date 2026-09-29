@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ referral.number }}{% endblock %}
+{% block content %}
+{% with r=referral %}
+<div class="page-header no-print">
+  <h1><i class="bi bi-send"></i> {% trans "Referral" %} {{ r.number }} <span class="badge {% if r.status == 'sent' %}text-bg-warning{% elif r.status == 'booked' %}text-bg-primary{% elif r.status == 'done' %}text-bg-success{% else %}text-bg-secondary{% endif %} fs-6">{{ r.get_status_display }}</span></h1>
+  <div class="d-flex flex-wrap gap-2">
+    {% if is_desk and book_url and r.status == "sent" %}<a class="btn btn-primary" href="{{ book_url }}"><i class="bi bi-calendar-plus"></i> {% blocktrans with doctor=r.to_dentist %}Book with {{ doctor }}{% endblocktrans %}</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="{% url 'specialties:patient' r.patient_id %}"><i class="bi bi-person-lines-fill"></i> {% trans "The patient's specialists" %}</a>
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print the letter" %}</button>
+    {% if r.is_open %}<form method="post" action="{% url 'specialties:referral_status' r.pk %}" class="d-flex gap-2" data-no-leave-warning>{% csrf_token %}
+      <button class="btn btn-outline-secondary" name="status" value="declined" data-confirm="{% trans 'The patient does not want this referral?' %}">{% trans "Patient declined" %}</button>
+      <button class="btn btn-outline-danger" name="status" value="cancelled" data-confirm="{% trans 'Cancel this referral?' %}">{% trans "Cancel" %}</button></form>{% endif %}
+  </div>
+</div>
+
+<div class="card referral-letter mx-auto mb-3"><div class="card-body p-4 p-lg-5">
+  {% include "includes/place_letterhead.html" with place=r.branch %}
+  <div class="d-flex flex-wrap justify-content-between gap-2 mt-3 mb-4">
+    <div class="doc-title">{% trans "Referral letter" %}</div>
+    <div class="text-end small"><b>{{ r.number }}</b><div>{{ r.created_at|date:"d/m/Y" }}</div>{% if r.urgency != "routine" %}<div class="text-danger fw-bold">{{ r.get_urgency_display }}</div>{% endif %}</div>
+  </div>
+  <p class="mb-3">{% if r.to_dentist %}{% blocktrans with doctor=r.to_dentist %}Dear {{ doctor }},{% endblocktrans %}{% if r.to_dentist.role_line %} <span class="text-muted small">({{ r.to_dentist.role_line }})</span>{% endif %}{% else %}{% blocktrans with doctor=r.to_outside %}To {{ doctor }},{% endblocktrans %}{% endif %}</p>
+  <p>{% blocktrans with patient=r.patient.full_name %}Kindly see our patient <b>{{ patient }}</b> for:{% endblocktrans %}</p>
+  <div class="letter-box mb-3">{{ r.reason|linebreaksbr }}{% if r.teeth %}<div class="mt-2"><b>{% trans "Teeth" %}:</b> {{ r.teeth }}</div>{% endif %}</div>
+  <dl class="dl-grid mb-3">
+    <dt>{% trans "Patient" %}</dt><dd>{{ r.patient.full_name }} · {{ r.patient.file_number }}{% if r.patient.age is not None %} · {% blocktrans with age=r.patient.age %}{{ age }} years{% endblocktrans %}{% endif %}{% if r.patient.gender %} · {{ r.patient.get_gender_display }}{% endif %}</dd>
+    <dt>{% trans "Mobile" %}</dt><dd><span class="ltr">{{ r.patient.preferred_number }}</span></dd>
+    {% if r.specialty %}<dt>{% trans "Specialty" %}</dt><dd>{{ r.get_specialty_display }}</dd>{% endif %}
+    <dt>{% trans "Medical alerts" %}</dt><dd>{% for c in conditions %}<span class="medical-alert">{{ c }}</span>{% empty %}—{% endfor %}
+      {% if exam.allergy_penicillin %}<span class="medical-alert">{% trans "allergic to penicillin" %}</span>{% endif %}{% if exam.allergy_other %}<span class="medical-alert">{{ exam.allergy_other }}</span>{% endif %}</dd>
+    {% if r.appointment %}<dt>{% trans "Appointment" %}</dt><dd>{{ r.appointment.scheduled_at|date:"l d/m/Y g:i A" }}</dd>{% endif %}
+  </dl>
+  <p class="mb-5">{% trans "Thank you for your kind cooperation." %}</p>
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div class="signature-block"><div class="fw-bold">{{ r.from_dentist|default:"" }}</div>{% if r.from_dentist.role_line %}<div class="small text-muted">{{ r.from_dentist.role_line }}</div>{% endif %}<div class="signature-line">{% trans "Signature" %}</div></div>
+  </div>
+  {% if r.reply %}
+  <hr>
+  <div class="doc-subtitle">{% blocktrans with doctor=r.to_name %}The answer of {{ doctor }}{% endblocktrans %} <span class="small text-muted">— {{ r.replied_at|date:"d/m/Y" }}</span></div>
+  <div class="letter-box">{{ r.reply|linebreaksbr }}</div>
+  {% endif %}
+</div></div>
+
+{% if can_reply %}
+<div class="card no-print"><div class="card-header"><i class="bi bi-reply"></i> {% if r.reply %}{% trans "Change the answer" %}{% else %}{% trans "Write the answer to the referring doctor" %}{% endif %}</div><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}{% include "includes/form_fields.html" %}
+    <button class="btn btn-primary mt-3"><i class="bi bi-send-check"></i> {% trans "Save and send the answer" %}</button></form>
+</div></div>
+{% endif %}
+{% endwith %}
+{% endblock %}

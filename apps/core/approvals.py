@@ -1,5 +1,7 @@
-"""Changes by the reception that wait for the head of CIA: a patient's data and a visit's
-times (arrived, entered the room, left). The owner and the head of CIA change directly."""
+"""Changes by the reception that wait for approval: a patient's data and a visit's times (arrived, entered the
+room, left). The owner and the head of CIA change directly; at a clinic (CIC, El Khadem) its manager (the
+moderator who works there, e.g. Dr. Amr at El Khadem) approves too. Each change is kept with its place, and
+each approver sees the changes of their own places only."""
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -15,15 +17,40 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from .mixins import role_required
-from .models import ChangeRequest, Notification
-from .notify import notify_roles, notify_users
-from .roles import HEAD_CIA, OWNER, has_role
+from .models import Branch, ChangeRequest, Notification, branch_for_user, current_place, staff_at, working_places
+from .notify import notify_users
+from .roles import HEAD_CIA, MODERATOR, OWNER, has_role, users_with_role
 
-APPROVERS = (OWNER, HEAD_CIA)
+APPROVERS = (OWNER, HEAD_CIA, MODERATOR)
+
+
+def _approver_roles(place):
+    """The heads who approve at a place: the head of CIA, and at a clinic its manager too."""
+    return (HEAD_CIA, MODERATOR) if place is not None and place.kind == Branch.Kind.CLINIC else (HEAD_CIA,)
+
+
+def approves_at(user, place):
+    if has_role(user, OWNER):
+        return True
+    if place is None:
+        return has_role(user, HEAD_CIA)
+    return has_role(user, *_approver_roles(place)) and working_places(user).filter(pk=place.pk).exists()
 
 
 def needs_approval(user):
-    return not has_role(user, *APPROVERS)
+    return not approves_at(user, branch_for_user(user))
+
+
+def changes_for(user):
+    """The changes this person may see and decide: every one for the owner, else those of their places."""
+    changes = ChangeRequest.objects.all()
+    if has_role(user, OWNER):
+        return changes
+    places = [place for place in working_places(user) if approves_at(user, place)]
+    q = models.Q(branch__in=places)
+    if has_role(user, HEAD_CIA):
+        q |= models.Q(branch__isnull=True)  # asked before the changes kept their place
+    return changes.filter(q)
 
 
 def _display(field, value):
@@ -71,12 +98,14 @@ def request_change(kind, obj, values, user, reason=""):
                         "new": _display(field, new), "value": _raw(field, new)})
     if not changes:
         return None
+    place = current_place() or branch_for_user(user)
     change = ChangeRequest.objects.create(
-        kind=kind, content_type=ContentType.objects.get_for_model(obj), object_id=obj.pk, title=str(obj)[:200],
-        changes=changes, reason=reason, requested_by=user,
+        kind=kind, branch=place, content_type=ContentType.objects.get_for_model(obj), object_id=obj.pk,
+        title=str(obj)[:200], changes=changes, reason=reason, requested_by=user,
     )
-    notify_roles(
-        (HEAD_CIA,), gettext_lazy("Change to approve: %(title)s"), gettext_lazy("%(kind)s, asked by %(user)s."),
+    approvers = list(staff_at(place, *_approver_roles(place))) or list(users_with_role(OWNER))
+    notify_users(
+        approvers, gettext_lazy("Change to approve: %(title)s"), gettext_lazy("%(kind)s, asked by %(user)s."),
         "/approvals/", Notification.Level.WARNING, exclude=user,
         params={"title": change.title, "kind": change.get_kind_display(), "user": user},
     )
@@ -111,17 +140,18 @@ def pending_for(obj):
 
 @role_required(*APPROVERS)
 def approval_list(request):
+    changes = changes_for(request.user)
     return render(request, "core/approvals.html", {
-        "pending": ChangeRequest.objects.filter(status=ChangeRequest.Status.PENDING).select_related("requested_by"),
-        "decided": ChangeRequest.objects.exclude(status=ChangeRequest.Status.PENDING)
-        .select_related("requested_by", "decided_by")[:30],
+        "pending": changes.filter(status=ChangeRequest.Status.PENDING).select_related("requested_by", "branch"),
+        "decided": changes.exclude(status=ChangeRequest.Status.PENDING)
+        .select_related("requested_by", "decided_by", "branch")[:30],
     })
 
 
 @role_required(*APPROVERS)
 @require_POST
 def approval_decide(request, pk):
-    change = get_object_or_404(ChangeRequest, pk=pk, status=ChangeRequest.Status.PENDING)
+    change = get_object_or_404(changes_for(request.user), pk=pk, status=ChangeRequest.Status.PENDING)
     approve = request.POST.get("action") == "approve"
     change.decision_note = request.POST.get("note", "").strip()[:255]
     if approve:

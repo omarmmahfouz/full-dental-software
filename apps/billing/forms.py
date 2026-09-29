@@ -79,6 +79,7 @@ class ChargeForm(StyledModelForm):
 
     def __init__(self, *args, branch=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.branch = branch
         self.fields["service"].queryset = Service.for_place(branch)
         self.fields["dentist"].queryset = self.fields["dentist"].queryset.working_at(branch)
         self.fields["price"].required = False
@@ -89,10 +90,13 @@ class ChargeForm(StyledModelForm):
         self.fields["discount_reason"].col = self.fields["notes"].col = "col-md-6"
 
     def clean(self):
+        from apps.clinics.prices import price_and_cost
+
         data = super().clean()
-        if data.get("price") is None and data.get("service"):
-            data["price"] = data["service"].price
-            self.instance.price = data["price"]
+        if data.get("service"):
+            usual, self.instance.cost = price_and_cost(data["service"], data.get("dentist"), self.branch)
+            if data.get("price") is None:
+                data["price"] = self.instance.price = usual
         if data.get("discount_percent") is None:
             data["discount_percent"] = 0
             self.instance.discount_percent = 0

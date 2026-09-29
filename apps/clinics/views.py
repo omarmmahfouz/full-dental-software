@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from apps.academy.models import PaymentMethod
-from apps.billing.models import Charge, PatientPayment
+from apps.billing.models import Charge, PatientPayment, Service
 from apps.core.mixins import role_required
 from apps.core.models import Branch, branch_for_user, working_places
 from apps.core.utils import minutes_between
@@ -21,8 +21,8 @@ from apps.dentists.models import Dentist
 from apps.patients.models import Patient
 from apps.scheduling.models import Appointment
 
-from .forms import FeeRuleForm, PayoutForm, PlacePeriodForm
-from .models import DoctorPayout, FeeRule
+from .forms import DoctorPriceForm, FeeRuleForm, PayoutForm, PlacePeriodForm
+from .models import DoctorPayout, DoctorPrice, FeeRule
 from .shares import ZERO, _bounds, owed, statement, summary
 
 
@@ -94,6 +94,8 @@ def statement_view(request, pk):
     data = statement(dentist, place, date_from, date_to)
     return render(request, "clinics/statement.html", {
         **data, "form": form, "place": place, "owed": owed(dentist, place, date_to), "manager": manager,
+        "deducts": any(rule.deduct_costs for rule in data["rules"]),
+        "sources": any(rule.patient_source for rule in data["rules"]),
         "payout_form": payout_form if manager else None, "query": _query(place, date_from, date_to),
     })
 
@@ -141,11 +143,11 @@ def rule_edit(request, pk=None):
         messages.success(request, _("Saved: %(rule)s.") % {"rule": saved})
         return redirect(reverse("clinics:rules") + f"?place={place.code}")
     return render(request, "includes/form_page.html", {
-        "form": form, "title": _("Doctor's fee rule") + f" — {place.code}", "title_icon": "bi-percent",
+        "form": form, "title": _("Doctor's fee rule") + f" — {place.badge}", "title_icon": "bi-percent",
         "cancel_url": reverse("clinics:rules") + f"?place={place.code}",
-        "intro": _("A rule for one service (e.g. implants) comes before the rule for every service. To change a "
-                   "doctor's percentage from a date, add a new rule from that date: the old services keep the old "
-                   "rule."),
+        "intro": _("A rule for one service (e.g. implants) comes before the rule for every service, and a rule for "
+                   "his own patients or the clinic's patients before a rule for every patient. To change a doctor's "
+                   "percentage from a date, add a new rule from that date: the old services keep the old rule."),
     })
 
 
@@ -214,4 +216,69 @@ def report(request):
         "new_files": Patient.objects.filter(branch=place, created_at__gte=start, created_at__lt=end).count(),
         "rows": rows, "totals": totals, "stock_used": stock_used, "left": collected - share - stock_used,
         "days": days,
+    })
+
+
+@role_required(*CLINIC_MANAGERS)
+@require_POST
+def charge_cost(request, pk):
+    """Correct the lab / implant cost of one service on a doctor's statement (taken off before his percentage)."""
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    from apps.core.utils import normalize_digits
+
+    charge = get_object_or_404(Charge.objects.filter(branch__in=working_places(request.user)), pk=pk)
+    try:
+        cost = Decimal(normalize_digits(request.POST.get("cost", "")).replace(",", "").strip() or "0")
+    except ArithmeticError:
+        cost = None
+    if cost is None or cost < 0:
+        messages.error(request, _("Write the cost as a number."))
+    else:
+        charge.cost = cost.quantize(Decimal("0.01"))
+        charge.save(update_fields=["cost", "updated_at"])
+        messages.success(request, _("Cost of %(service)s saved: %(cost)s.") % {"service": charge.service,
+                                                                              "cost": f"{charge.cost:,.2f}"})
+    target = request.POST.get("next") or "/"
+    if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
+        target = "/"
+    return redirect(target)
+
+
+@role_required(*CLINIC_MANAGERS)
+def prices(request):
+    """Each doctor's own prices at a place (e.g. the TMJ specialist's examination) and the usual lab / implant cost."""
+    places = list(working_places(request.user))
+    form, place, _date_from, _date_to = _filters(request, places)
+    rows = DoctorPrice.objects.filter(branch=place).select_related("dentist", "service") if place else []
+    by_doctor = defaultdict(list)
+    for row in rows:
+        by_doctor[row.dentist].append(row)
+    new_form = DoctorPriceForm(request.POST or None, place=place,
+                               initial={"dentist": request.GET.get("dentist")} if request.GET.get("dentist") else None)
+    if request.method == "POST" and place is not None and new_form.is_valid():
+        price = new_form.save(commit=False)
+        price.branch, price.created_by = place, request.user
+        price.save()
+        messages.success(request, _("Saved: %(price)s.") % {"price": price})
+        return redirect(reverse("clinics:prices") + f"?place={place.code}")
+    return render(request, "clinics/prices.html", {
+        "form": form, "place": place, "new_form": new_form,
+        "by_doctor": sorted(by_doctor.items(), key=lambda item: item[0].full_name),
+        "services": Service.for_place(place).order_by("sort_order", "name_ar") if place else [],
+    })
+
+
+@role_required(*CLINIC_MANAGERS)
+def price_edit(request, pk):
+    price = get_object_or_404(DoctorPrice, pk=pk, branch__in=list(working_places(request.user)))
+    form = DoctorPriceForm(request.POST or None, instance=price)
+    back = reverse("clinics:prices") + f"?place={price.branch.code}"
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, _("Saved: %(price)s.") % {"price": price})
+        return redirect(back)
+    return render(request, "includes/form_page.html", {
+        "form": form, "title": _("Doctor's price") + f" — {price.branch.badge}", "title_icon": "bi-tags",
+        "cancel_url": back,
     })

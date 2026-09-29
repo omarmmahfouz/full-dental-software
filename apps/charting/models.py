@@ -295,6 +295,14 @@ class TreatmentPlan(TimeStampedModel):
     )
     approved_at = models.DateTimeField(_("approved at"), null=True, blank=True)
     notes = models.TextField(_("notes"), blank=True)
+    # The printed plan given to the patient
+    comprehensive = models.BooleanField(
+        _("comprehensive case (several doctors)"), default=False,
+        help_text=_("The printed plan then shows the treatment team: each doctor with his part of the work."))
+    diagnosis = models.TextField(_("diagnosis, in words for the patient"), blank=True)
+    duration = models.CharField(_("expected duration"), max_length=100, blank=True, help_text=_("e.g. 4 to 6 months"))
+    alternatives = models.TextField(_("other options explained"), blank=True,
+                                    help_text=_("Printed on the plan, e.g. a removable denture instead of implants."))
 
     OPEN_STATUSES = (Status.PROPOSED, Status.APPROVED)
 
@@ -349,6 +357,10 @@ class PlanItem(models.Model):
     step_type = models.ForeignKey("clinical.TreatmentStepType", verbose_name=_("procedure"), on_delete=models.PROTECT)
     teeth = models.CharField(_("teeth"), max_length=100, blank=True)
     details = models.CharField(_("details"), max_length=255, blank=True)
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("by the doctor"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="+",
+                                help_text=_("Who does this part, e.g. the endodontist for the root canals."))
+    fee = models.DecimalField(_("expected fee"), max_digits=10, decimal_places=2, null=True, blank=True)
     status = models.CharField(_("status"), max_length=20, choices=Status.choices, default=Status.PLANNED)
     done_treatment = models.ForeignKey(
         "clinical.TreatmentStep", null=True, blank=True, on_delete=models.SET_NULL, related_name="plan_items"

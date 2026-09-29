@@ -90,3 +90,18 @@ In the sample data:
 29. CIC has its own 4 numbered **extra rooms**, closed until booked or given a shift.
 30. **End of the day at CIC**: "نهاية اليوم" shows CIC's receipts only; the day is closed for each place apart.
 31. A CIC doctor who writes a bill sends it to the CIC reception, which takes the payment.
+
+## I. New in this version (8): El Khadem, and what it adds for CIC
+The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist.md)**. For CIC:
+32. As **moderator**, *Clinics → Doctors' fee rules → Add*: a rule can now be **for his own patients** or **for the
+    patients of the clinic** (e.g. 40% / 30%), and can **take off the lab and implant cost first**. CIC's rules stay as
+    they were (every patient, nothing taken off), so CIC's shares do not change.
+33. *Clinics → Doctors' prices*: a CIC doctor can have **his own price** for a service; a bill with this doctor takes it
+    by itself. Each service can have a **usual lab / implant cost** (*Settings → Paid services*).
+34. Dr. Walid Hamdy's **statement** has a *lab / implant cost* column and says, for each service, *his own patient* or
+    *clinic's patient*.
+35. **Changes to approve**: when the CIC reception edits a patient's data or a visit's times, the **moderator** (who
+    works at CIC) can approve it too, besides the head of CIA and the owner. The changes list shows the place of each.
+36. As **secretary** (CIA and CIC): El Khadem's patients never show, and the place switch offers CIA and CIC only.
+37. Printed bills and papers of CIC keep CIC's name, phone and address; the place's look is set in *Settings → Places*
+    (CIC stays *standard*; a logo can be uploaded there).

@@ -182,6 +182,43 @@ class LabRequest(TimeStampedModel):
                      "3L1.5", "3L2.5", "3M1", "3M2", "3M3", "3R1.5", "3R2.5", "4L1.5", "4L2.5", "4M1", "4M2", "4M3",
                      "4R1.5", "4R2.5", "5M1", "5M2", "5M3"]
 
+    class Stage(models.TextChoices):
+        FINAL = "final", _("Final work")
+        FRAMEWORK = "framework", _("Framework try-in")
+        BISQUE = "bisque", _("Bisque try-in")
+        WAX = "wax", _("Wax try-in / wax-up")
+        TEMPORARY = "temporary", _("Temporary (PMMA)")
+        REPAIR = "repair", _("Repair / remake")
+
+    class Margin(models.TextChoices):
+        CHAMFER = "chamfer", _("Chamfer")
+        HEAVY_CHAMFER = "heavy_chamfer", _("Heavy chamfer")
+        SHOULDER = "shoulder", _("Shoulder")
+        FEATHER = "feather", _("Knife edge / feather")
+        VERTICAL = "vertical", _("Vertical (BOPT)")
+
+    class Pontic(models.TextChoices):
+        OVATE = "ovate", _("Ovate")
+        RIDGE_LAP = "ridge_lap", _("Modified ridge lap")
+        SANITARY = "sanitary", _("Sanitary (hygienic)")
+        CONICAL = "conical", _("Conical")
+
+    class Occlusion(models.TextChoices):
+        NORMAL = "normal", _("Normal contacts")
+        LIGHT = "light", _("Light contacts")
+        OUT = "out", _("Out of occlusion")
+
+    class Retention(models.TextChoices):
+        SCREW = "screw", _("Screw-retained")
+        CEMENT = "cement", _("Cement-retained")
+
+    ENCLOSURES = [("impression", _("Impression")), ("opposing", _("Opposing impression / model")),
+                  ("bite", _("Bite registration")), ("models", _("Models")), ("scan", _("Digital scan files")),
+                  ("photos", _("Photos")), ("shade_photo", _("Photo with the shade tab")), ("facebow", _("Face bow")),
+                  ("scan_bodies", _("Scan bodies")), ("analogs", _("Implant analogues")),
+                  ("abutments", _("Abutments / Ti-bases")), ("guide", _("Surgical guide")),
+                  ("old", _("The old prosthesis"))]
+
     number = models.CharField(_("request number"), max_length=20, unique=True, blank=True, editable=False)
     branch = models.ForeignKey(Branch, verbose_name=_("branch"), on_delete=models.PROTECT, related_name="lab_requests")
     patient = models.ForeignKey(
@@ -235,6 +272,19 @@ class LabRequest(TimeStampedModel):
     delivered_at = models.DateTimeField(_("delivered to patient at"), null=True, blank=True)
     remake_count = models.PositiveSmallIntegerField(_("times returned to lab"), default=0)
     lab_cost = models.DecimalField(_("lab cost"), max_digits=10, decimal_places=2, null=True, blank=True)
+    # The detailed prescription (the elite lab request of El Khadem, and every place)
+    stage = models.CharField(_("send for"), max_length=12, choices=Stage.choices, default=Stage.FINAL)
+    shade_cervical = models.CharField(_("cervical third"), max_length=10, blank=True)
+    shade_incisal = models.CharField(_("incisal third"), max_length=10, blank=True)
+    stump_shade = models.CharField(_("prepared tooth (stump) shade"), max_length=5, blank=True)
+    margin = models.CharField(_("finish line"), max_length=15, choices=Margin.choices, blank=True)
+    pontic = models.CharField(_("pontic design"), max_length=12, choices=Pontic.choices, blank=True)
+    occlusion = models.CharField(_("occlusion"), max_length=10, choices=Occlusion.choices, blank=True)
+    retention = models.CharField(_("on implants: retention"), max_length=10, choices=Retention.choices, blank=True)
+    implant_details = models.CharField(
+        _("on implants: system, platform and abutment"), max_length=150, blank=True,
+        help_text=_("e.g. Neodent GM 4.3, Ti-base, multi-unit 17°"))
+    enclosures = models.JSONField(_("sent with the work"), default=list, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -253,6 +303,10 @@ class LabRequest(TimeStampedModel):
             if not self.number:
                 self.number = f"LR-{self.pk:06d}"
                 type(self).objects.filter(pk=self.pk).update(number=self.number)
+
+    def enclosure_labels(self):
+        names = dict(self.ENCLOSURES)
+        return [names[code] for code in self.enclosures or [] if code in names]
 
     @property
     def is_overdue(self):

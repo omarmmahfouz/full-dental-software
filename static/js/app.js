@@ -1441,4 +1441,73 @@
     var row = event.detail && event.detail.row;
     if (row) row.querySelectorAll("[data-teeth-picker]").forEach(setupTeethPicker);
   });
+  // Shade guide: under each <select data-shade> the tabs of the chosen guide (VITA classical or 3D-Master, from
+  // the <select data-shade-guide> of the same form) and under <select data-stump> the stump tabs, in their colours
+  // (from <script id="shade-guides">). Tapping a tab chooses it; the list shows only the chosen guide's shades.
+  var guideData = document.getElementById("shade-guides");
+  var guides = guideData ? JSON.parse(guideData.textContent) : null;
+  function guideFor(form) {
+    var select = form && form.querySelector("select[data-shade-guide]");
+    return select ? select.value : "";
+  }
+  function drawTabs(select, tabs) {
+    var box = select._shadeTabs;
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "shade-tabs";
+      select.parentNode.insertBefore(box, select.nextSibling);
+      select._shadeTabs = box;
+    }
+    box.innerHTML = "";
+    tabs.forEach(function (tab) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "shade-tab" + (select.value === tab.name ? " is-chosen" : "");
+      button.style.setProperty("--shade", tab.colour);
+      button.textContent = tab.name;
+      button.title = tab.name;
+      button.addEventListener("click", function () {
+        select.value = select.value === tab.name && !select.required ? "" : tab.name;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      box.appendChild(button);
+    });
+  }
+  function setupShade(select) {
+    var form = select.form;
+    function refresh() {
+      var guide = guideFor(form);
+      var label = "";
+      var guideSelect = form && form.querySelector("select[data-shade-guide]");
+      if (guideSelect && guideSelect.value) label = guideSelect.options[guideSelect.selectedIndex].text;
+      Array.prototype.forEach.call(select.querySelectorAll("optgroup"), function (group) {
+        group.hidden = !!label && group.label !== label;
+        group.disabled = group.hidden;
+      });
+      var chosen = select.options[select.selectedIndex];
+      if (chosen && chosen.parentNode.disabled) select.value = "";
+      if (guides) drawTabs(select, guides.guides[guide] || []);
+    }
+    select.addEventListener("change", function () {
+      var guideSelect = form && form.querySelector("select[data-shade-guide]");
+      if (guideSelect && !guideSelect.value && select.value) {  // choosing a shade first picks its guide
+        var group = select.options[select.selectedIndex].parentNode;
+        Array.prototype.forEach.call(guideSelect.options, function (o) { if (o.text === group.label) guideSelect.value = o.value; });
+        form.querySelectorAll("select[data-shade]").forEach(function (other) { other._refreshShade && other._refreshShade(); });
+      }
+      refresh();
+    });
+    select._refreshShade = refresh;
+    refresh();
+  }
+  document.querySelectorAll("select[data-shade]").forEach(setupShade);
+  document.querySelectorAll("select[data-shade-guide]").forEach(function (guideSelect) {
+    guideSelect.addEventListener("change", function () {
+      (guideSelect.form || document).querySelectorAll("select[data-shade]").forEach(function (s) { s._refreshShade && s._refreshShade(); });
+    });
+  });
+  if (guides) document.querySelectorAll("select[data-stump]").forEach(function (select) {
+    drawTabs(select, guides.stump);
+    select.addEventListener("change", function () { drawTabs(select, guides.stump); });
+  });
 })();

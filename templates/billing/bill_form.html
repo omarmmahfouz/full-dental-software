@@ -25,7 +25,7 @@
         <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add a service" %}</button>
         <span class="fs-5">{% trans "Total" %}: <b data-bill-total>0</b> {{ CLINIC.CURRENCY }}</span>
       </div>
-      <p class="small text-muted mt-2 mb-0">{% trans "Leave the price empty to use the price of the list (Settings → Paid services)." %}</p>
+      <p class="small text-muted mt-2 mb-0">{% trans "Leave the price empty to use the price of the list (Settings → Paid services)." %}{% if doctor_prices %} {% trans "A doctor with his own prices (Clinics → Doctors' prices) gets his price." %}{% endif %}</p>
     </div>
   </div>
   {% if pay %}<div class="card mb-3"><div class="card-header"><i class="bi bi-cash"></i> {% trans "Payment now (optional)" %}</div><div class="card-body">{% with form=pay %}{% include "includes/form_fields.html" %}{% endwith %}</div></div>
@@ -35,10 +35,16 @@
 </form>
 {% endblock %}
 {% block extra_js %}
+{{ doctor_prices|json_script:"doctor-prices" }}
 <script>
   (function () {
     var box = document.querySelector('[data-formset="lines"]');
+    // A doctor's own price for a service (Clinics → Doctors' prices) comes before the price list.
+    var own = JSON.parse(document.getElementById("doctor-prices").textContent || "{}");
+    var doctor = document.querySelector("select[name='dentist']");
     function price(select) {
+      var mine = doctor && own[doctor.value];
+      if (mine && mine[select.value] !== undefined) return parseFloat(mine[select.value]);
       var option = select.options[select.selectedIndex];
       return option ? parseFloat(option.getAttribute("data-price") || "0") : 0;
     }
@@ -57,6 +63,7 @@
     }
     box.addEventListener("change", total);
     box.addEventListener("input", total);
+    if (doctor) doctor.addEventListener("change", total);
     document.querySelectorAll("[data-quick-service]").forEach(function (button) {
       button.addEventListener("click", function () {
         var empty = Array.prototype.filter.call(box.querySelectorAll("select[name$='-service']"), function (s) { return !s.value; })[0];

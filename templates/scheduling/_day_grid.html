@@ -3,23 +3,39 @@
   <div class="daygrid-head daygrid-axis"></div>
   {% for col in columns %}
   <div class="daygrid-head{% if col.surgery %} is-surgery{% endif %}">
+    {% if by == "doctor" %}
+    <div class="fw-bold text-truncate">{% if col.doctor %}{{ col.doctor }}{% else %}{% trans "No doctor yet" %}{% endif %}</div>
+    {% if col.doctor.specialty %}<div class="small text-muted text-truncate">{{ col.doctor.get_specialty_display }}</div>{% endif %}
+    {% if col.rooms_used %}<div class="small text-truncate"><i class="bi bi-door-open"></i> {{ col.rooms_used|join:" · " }}</div>{% endif %}
+    {% else %}
     <div class="fw-bold">{% if col.room %}{{ col.room }}{% else %}{% trans "No room yet" %}{% endif %}</div>
     {% for s in col.shifts %}<div class="small text-truncate">{% if s.day_type == "surgery" %}<i class="bi bi-implant text-danger" title="{% trans 'Surgery day' %}"></i> {% endif %}{{ s.dentist|default:"—" }}{% if s.second_dentist %} + {{ s.second_dentist }}{% endif %} <span class="text-muted">{{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</span></div>
-    {% empty %}{% if col.room %}<div class="small text-muted">{% trans "no dentist on the schedule" %}</div>{% endif %}{% endfor %}
+    {% empty %}{% if col.room %}<div class="small text-muted">{% if shared %}{% trans "shared: any doctor" %}{% else %}{% trans "no dentist on the schedule" %}{% endif %}</div>{% endif %}{% endfor %}
+    {% endif %}
   </div>
   {% endfor %}
   <div class="daygrid-axis daygrid-body" style="height: {{ height }}px">{% for m in marks %}<div class="daygrid-mark{% if m.hour %} is-hour{% endif %}" style="top: {{ m.top }}px">{{ m.label }}</div>{% endfor %}</div>
   {% for col in columns %}
-  <div class="daygrid-col daygrid-body" style="height: {{ height }}px">
-    {% if col.room %}{% for slot in col.slots %}<a class="daygrid-slot{% if slot.shift %} is-open{% endif %}" style="top: {{ slot.top }}px; height: {{ row_px }}px" href="{% url 'scheduling:appointment_create' %}?at={{ day|date:'Y-m-d' }}T{{ slot.time }}&amp;room={{ col.room.pk }}{% if slot.dentist_id %}&amp;dentist={{ slot.dentist_id }}{% endif %}" data-time="{{ slot.time }}" data-room="{{ col.room.pk }}" data-dentist="{{ slot.dentist_id }}" title="{% trans 'Book' %} {{ slot.time }}"></a>{% endfor %}{% endif %}
-    {% for b in col.blocks %}{% with a=b.appointment %}<a class="daygrid-block status-{{ a.status }}" style="top: {{ b.top }}px; height: {{ b.height }}px; inset-inline-start: {{ b.left }}%; width: {{ b.width }}%" href="{{ a.get_absolute_url }}"{% if in_form %} target="_blank"{% endif %} title="{{ a.scheduled_at|time:'g:i A' }} {{ a.patient.full_name }} — {{ a.dentist|default:'' }}{% if a.second_dentist %} + {{ a.second_dentist }}{% endif %} — {{ a.what }} — {{ a.get_status_display }}"><strong>{{ a.scheduled_at|time:"g:i" }}</strong> {{ a.patient.full_name }}{% if a.what %}<span class="d-block text-truncate opacity-75">{{ a.what }}</span>{% endif %}</a>{% endwith %}{% endfor %}
+  <div class="daygrid-col daygrid-body" style="height: {{ height }}px"{% if col.room and shared and not in_form %} data-drop-room="{{ col.room.pk }}"{% endif %}>
+    {% if not is_front_desk %}{% for slot in col.slots %}<span class="daygrid-slot{% if slot.open %} is-open{% endif %} is-view" style="top: {{ slot.top }}px; height: {{ row_px }}px"></span>{% endfor %}
+    {% elif col.room or col.doctor %}{% for slot in col.slots %}<a class="daygrid-slot{% if slot.open %} is-open{% endif %}" style="top: {{ slot.top }}px; height: {{ row_px }}px" href="{% url 'scheduling:appointment_create' %}?at={{ day|date:'Y-m-d' }}T{{ slot.time }}{% if col.room %}&amp;room={{ col.room.pk }}{% elif slot.room_id %}&amp;room={{ slot.room_id }}{% endif %}{% if slot.dentist_id %}&amp;dentist={{ slot.dentist_id }}{% endif %}" data-time="{{ slot.time }}" data-room="{% if col.room %}{{ col.room.pk }}{% else %}{{ slot.room_id }}{% endif %}" data-dentist="{{ slot.dentist_id }}" title="{% trans 'Book' %} {{ slot.time }}"></a>{% endfor %}{% endif %}
+    {% for b in col.blocks %}{% with a=b.appointment %}<div class="daygrid-block status-{{ a.status }}" style="top: {{ b.top }}px; height: {{ b.height }}px; inset-inline-start: {{ b.left }}%; width: {{ b.width }}%"{% if b.rooms %} draggable="true" data-appointment="{{ a.pk }}"{% endif %}>
+      <a class="daygrid-block-link" href="{{ a.get_absolute_url }}"{% if in_form %} target="_blank"{% endif %} title="{{ a.scheduled_at|time:'g:i A' }} {{ a.patient.full_name }} — {{ a.dentist|default:'' }}{% if a.second_dentist %} + {{ a.second_dentist }}{% endif %}{% if a.room %} — {{ a.room }}{% endif %} — {{ a.what }} — {{ a.get_status_display }}"><strong>{{ a.scheduled_at|time:"g:i" }}</strong> {{ a.patient.full_name }}{% if by == "doctor" and a.room %} <span class="room-chip">{{ a.room }}</span>{% elif shared and a.dentist %}<span class="d-block text-truncate">{{ a.dentist }}</span>{% endif %}{% if a.what %}<span class="d-block text-truncate opacity-75">{{ a.what }}</span>{% endif %}</a>
+      {% if b.rooms and is_front_desk %}<button type="button" class="daygrid-room-btn" data-room-choices="room-choices-{{ a.pk }}" title="{% trans 'Change the room' %}" aria-label="{% trans 'Change the room' %}"><i class="bi bi-arrow-left-right"></i></button>
+      <template id="room-choices-{{ a.pk }}"><div class="fw-semibold mb-2">{{ a.scheduled_at|time:"g:i A" }} {{ a.patient.full_name }}{% if a.room %} — {% trans "now in" %} {{ a.room }}{% endif %}</div>
+        <div class="d-grid gap-2">{% for choice in b.rooms %}<form method="post" action="{% url 'scheduling:appointment_room' a.pk %}" data-no-leave-warning><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><input type="hidden" name="room" value="{{ choice.room.pk }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+          {% if not choice.clash %}<button class="btn btn-outline-success w-100 text-start"><i class="bi bi-door-open"></i> {{ choice.room }} <span class="small">— {% trans "free" %}</span></button>
+          {% elif choice.swap %}<input type="hidden" name="swap" value="1"><button class="btn btn-outline-warning w-100 text-start"><i class="bi bi-arrow-left-right"></i> {{ choice.room }} <span class="small">— {% blocktrans with patient=choice.clash.patient.full_name %}swap rooms with {{ patient }}{% endblocktrans %}</span></button>
+          {% else %}<button class="btn btn-outline-secondary w-100 text-start" disabled><i class="bi bi-door-closed"></i> {{ choice.room }} <span class="small">— {% trans "taken" %}: {{ choice.clash.patient.full_name }}</span></button>{% endif %}
+        </form>{% endfor %}</div></template>{% endif %}
+    </div>{% endwith %}{% endfor %}
   </div>
   {% endfor %}
 </div>
 </div>
 <div class="small text-muted mt-2 d-flex flex-wrap gap-3">
   <span><span class="legend-box is-open"></span> {% trans "free: click to book" %}</span>
-  <span><span class="legend-box"></span> {% trans "no dentist on the schedule" %}</span>
+  {% if not shared %}<span><span class="legend-box"></span> {% trans "no dentist on the schedule" %}</span>{% endif %}
   <span><span class="legend-box status-scheduled"></span> {% trans "Booked" %}</span>
   <span><span class="legend-box status-arrived"></span> {% trans "Arrived - waiting" %}</span>
   <span><span class="legend-box status-in_room"></span> {% trans "In the room" %}</span>

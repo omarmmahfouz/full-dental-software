@@ -2,7 +2,7 @@
 {% load i18n clinic %}
 {% block title %}{% trans "End of the day" %}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><i class="bi bi-calendar-check"></i> {% trans "End of the day" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.code }}</span>{% endif %} <small class="text-muted fs-6">{{ day|date:"l d/m/Y" }}</small></h1>
+<div class="page-header"><h1><i class="bi bi-calendar-check"></i> {% trans "End of the day" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.badge }}</span>{% endif %} <small class="text-muted fs-6">{{ day|date:"l d/m/Y" }}</small></h1>
   <div class="d-flex flex-wrap gap-2 no-print">
     <a class="btn btn-outline-secondary" href="{% url 'billing:month' %}?month={{ day|date:'Y-m' }}{% if place %}&amp;place={{ place.code }}{% endif %}"><i class="bi bi-calendar3"></i> {% trans "The month" %}</a>
     <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>

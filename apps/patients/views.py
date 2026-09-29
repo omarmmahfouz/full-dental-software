@@ -361,6 +361,7 @@ def patient_detail(request, pk):
         "exam": patient.examinations.select_related("examined_by").prefetch_related("conditions").first(),
         "chart_missing": patient.tooth_states.filter(status="missing").exists(),
         "parts": file_parts(request.user),
+        "open_referrals": patient.referrals.filter(status__in=("sent", "booked")).count(),
     }
     if has_role(request.user, *CLINICAL):
         context["file_steps"] = file_steps(patient)

@@ -9,6 +9,7 @@ from .roles import (
     FRONT_DESK,
     HEAD_CIA,
     MANAGEMENT,
+    MODERATOR,
     OWNER,
     PATIENT_VIEWERS,
     PURCHASE_ROLES,
@@ -64,13 +65,22 @@ def app_context(request):
         context["read_only_here"] = (levels.get(area_of(request.path)) or levels.get("*")) == "read"
         context["can_stock"] = context["can_stock"] and "stock" not in context["hidden_areas"]
         context["can_purchase"] = context["can_purchase"] and "purchases" not in context["hidden_areas"]
+        if roles & {OWNER, HEAD_CIA, MODERATOR}:
+            from .approvals import changes_for
+
+            context["pending_approvals"] = changes_for(user).filter(status=ChangeRequest.Status.PENDING).count()
         if roles & {OWNER, HEAD_CIA}:
-            context["pending_approvals"] = ChangeRequest.objects.filter(status=ChangeRequest.Status.PENDING).count()
             context["new_problems"] = ProblemReport.objects.filter(status=ProblemReport.Status.NEW).count()
         from apps.scheduling.models import PatientRequest
 
         if roles & {OWNER, HEAD_CIA, TEAM_HEAD, SUPERVISOR}:
             context["requests_to_approve"] = PatientRequest.objects.filter(status=PatientRequest.Status.PROPOSED).count()
+        if context["is_front_desk"] or context["is_clinical"]:
+            from apps.specialties.models import Referral
+
+            context["referrals_to_book"] = Referral.objects.filter(
+                branch=context["current_branch"], status=Referral.Status.SENT).exclude(to_dentist=None).count() \
+                if context["is_front_desk"] else 0
         if context["is_front_desk"]:
             from apps.scheduling.models import WaitingEntry
 

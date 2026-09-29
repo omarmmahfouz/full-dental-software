@@ -46,6 +46,9 @@ from .forms import (
     AppointmentFilterForm, AppointmentForm, CancelForm, RescheduleForm, RoomShiftForm, VisitTimesForm, WalkInForm,
 )
 from .models import Appointment, MessageTemplate, Room, RoomShift, day_bounds
+from .rooms import doctor_elsewhere, free_room, shared
+from apps.specialties.services import link_booking as link_referral
+
 from .patient_requests import link_booking
 from .waiting import link_waiting, place_freed
 from .free_times import dentist_day, free_times
@@ -89,9 +92,24 @@ def tell_arrival(appointment, request):
 
 
 def off_schedule(appointment):
-    """A booked dentist with no room shift at that time (not his day or not his hours)."""
+    """A booked dentist with no room shift at that time (not his day or not his hours). Where the rooms are shared
+    (El Khadem) the doctors need no room schedule."""
+    if shared(appointment.branch):
+        return False
     return bool(appointment.dentist_id) and appointment.status in Appointment.BOOKED_STATUSES and \
         appointment.find_shift() is None
+
+
+def warn_doctor_busy(appointment, request):
+    """Shared rooms: the doctor already has a patient at that time in another room (allowed, but said)."""
+    if not shared(appointment.branch):
+        return
+    other = doctor_elsewhere(appointment.branch, appointment.dentist_id, appointment.scheduled_at,
+                             appointment.scheduled_end, appointment.pk)
+    if other is not None and other.room_id != appointment.room_id:
+        messages.warning(request, _("%(dentist)s also has %(patient)s at %(time)s in %(room)s.") % {
+            "dentist": appointment.dentist, "patient": other.patient.full_name, "room": other.room or "—",
+            "time": timezone.localtime(other.scheduled_at).strftime("%I:%M %p")})
 
 
 def _approver_roles(appointment):
@@ -185,11 +203,11 @@ def free_times_json(request):
             else None
     rows = []
     for item in free_times(branch_for_user(request.user), duration, dentist, start):
-        local, shift = timezone.localtime(item["at"]), item["shift"]
-        rows.append({"date": local.strftime("%d/%m/%Y"), "time": local.strftime("%H:%M"), "room": shift.room_id,
-                     "dentist": shift.dentist_id,
+        local, room, doctor = timezone.localtime(item["at"]), item["room"], item["dentist"]
+        rows.append({"date": local.strftime("%d/%m/%Y"), "time": local.strftime("%H:%M"),
+                     "room": room.pk if room else "", "dentist": doctor.pk if doctor else "",
                      "label": f"{date_format(local, 'D d/m')} {time_label(local.time())}",
-                     "who": f"{shift.dentist} · {shift.room}"})
+                     "who": " · ".join(str(part) for part in (doctor, room) if part)})
     return JsonResponse({"results": rows})
 
 
@@ -236,6 +254,15 @@ def today_board(request):
         if checked is not None:
             checked.others = list(checked.other_upcoming())
     appointments = list(appointments.prefetch_related("treatment_steps"))
+    rooms = list(rooms)
+    if shared(branch):
+        # Shared rooms: who is in each room now, and who comes next.
+        now = timezone.now()
+        for room in rooms:
+            here = [a for a in appointments if a.room_id == room.pk]
+            room.now_in = next((a for a in here if a.status == Appointment.Status.IN_ROOM), None)
+            room.next_in = next((a for a in here if a.status in Appointment.WAITING_STATUSES + (Appointment.Status.ARRIVED,)
+                                 and a.scheduled_end >= now), None)
     left_rows = _left_without_next(appointments) if day == timezone.localdate() else []
     just_left = next((row for row in left_rows if str(row["appointment"].pk) == request.GET.get("left")), None)
     from apps.billing.models import Bill, bill_totals
@@ -260,6 +287,7 @@ def today_board(request):
             "next_day": day + timedelta(days=1),
             "appointments": appointments,
             "rooms": rooms,
+            "shared": shared(branch),
             "walk_in_form": WalkInForm(),
             "late_threshold": ClinicSettings.get().late_threshold_minutes,
         },
@@ -290,6 +318,8 @@ def walk_in(request):
     )
     shift = appointment.find_shift()
     appointment.room = shift.room if shift else None
+    if appointment.room is None and shared(appointment.branch):
+        appointment.room = free_room(appointment.branch, now, appointment.scheduled_end, appointment.dentist_id)
     appointment.mark_arrived(now)
     appointment.save()
     tell_arrival(appointment, request)
@@ -472,8 +502,10 @@ def appointment_create(request):
                 place_freed(old, request)
             link_booking(request, appointment)
             link_waiting(request, appointment)
+            link_referral(request, appointment)
             tell_dentists(appointment, gettext_lazy("New appointment with you"), request)
             check_schedule(appointment, request)
+            warn_doctor_busy(appointment, request)
             message = _("Appointment booked. Send the confirmation on WhatsApp.")
             if cancel:
                 message += " " + _("%(n)s other appointments cancelled.") % {"n": len(cancel)}
@@ -497,6 +529,7 @@ def appointment_update(request, pk):
         if {"scheduled_at", "dentist", "room", "duration_minutes"} & set(form.changed_data):
             tell_dentists(appointment, gettext_lazy("Your appointment was changed"), request, before.dentist)
             check_schedule(appointment, request)
+            warn_doctor_busy(appointment, request)
         messages.success(request, _("Appointment updated."))
         return redirect(appointment)
     return render(
@@ -582,14 +615,16 @@ def appointment_times(request, pk):
 
 
 # ------------------------------------------------------------ day planner
-@role_required(*FRONT_DESK)
+@role_required(*FRONT_DESK, MODERATOR)
 def day_planner(request):
     """The day's appointments room by room in 15-minute steps; click a free place to book it."""
     day = _parse_day(request.GET.get("day"))
     branch = branch_for_user(request.user)
-    context = day_grid(branch, day)
+    by = "doctor" if request.GET.get("by") == "doctor" else "room"
+    context = day_grid(branch, day, by=by, room_choices=not request.GET.get("fragment"))
     if request.GET.get("fragment"):
         return render(request, "scheduling/_day_grid.html", {**context, "in_form": True})
+    context["by"] = by
     shown = {column["room"].pk for column in context["columns"] if column.get("room") is not None}
     context["closed_extra_rooms"] = Room.objects.filter(branch=branch, is_active=True, is_extra=True).exclude(pk__in=shown)
     start = week_start(day)
@@ -754,11 +789,12 @@ def whatsapp_list(request):
             rows.append((appointment, sent[0] if sent else None))
         return rows
 
-    waiting = Appointment.objects.filter(status__in=Appointment.WAITING_STATUSES)
+    here = branch_for_user(request.user)  # each place sends the messages of its own patients
+    waiting = Appointment.objects.filter(status__in=Appointment.WAITING_STATUSES, branch=here)
     new_bookings = waiting.filter(created_at__gte=timezone.now() - timedelta(days=3),
                                   scheduled_at__gte=timezone.now()).order_by("scheduled_at")
     reminders = waiting.filter(scheduled_at__gte=start, scheduled_at__lt=end).order_by("scheduled_at")
-    missed = Appointment.objects.filter(status=Appointment.Status.NO_SHOW,
+    missed = Appointment.objects.filter(status=Appointment.Status.NO_SHOW, branch=here,
                                         scheduled_at__gte=day_bounds(today - timedelta(days=7))[0]).order_by("-scheduled_at")
     moved = waiting.filter(rescheduled_at__gte=timezone.now() - timedelta(days=3),
                            scheduled_at__gte=timezone.now()).order_by("scheduled_at")
@@ -819,3 +855,20 @@ def visit(request, pk):
         "labs": appointment.lab_requests.select_related("work_type"),
         "has_notes": steps.exists() or surgeries.exists() or (exam is not None and exam.exam_date == day),
     })
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def appointment_room(request, pk):
+    """Move an appointment to another room in one click (the day planner and the reception board), or swap rooms
+    with the patient who is there."""
+    from .rooms import change_room
+
+    appointment = get_object_or_404(Appointment.objects.select_related("patient", "room", "branch", "dentist"), pk=pk,
+                                    branch=branch_for_user(request.user))
+    room = get_object_or_404(Room, pk=request.POST.get("room") or 0, branch=appointment.branch, is_active=True)
+    done, message = change_room(appointment, room, swap=request.POST.get("swap") == "1")
+    (messages.success if done else messages.error)(request, message)
+    if done:
+        tell_dentists(appointment, gettext_lazy("Your patient changed room"), request)
+    return redirect(_safe_next(request, reverse("scheduling:day_planner")))

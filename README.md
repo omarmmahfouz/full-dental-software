@@ -6,7 +6,7 @@ One system for the owner's connected places:
 |---|---|---|
 | **Cairo Implant Academy** — teaching institute, economic dental service, course candidates, dentists | `CIA` | **In use: secretary + dentists** |
 | **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report |
-| Private clinic (El Khadem dental clinic) — specialists and freelance doctors | `PVT` | next (the places, doctors' shares and stock already work for it) |
+| **El Khadem Dental Clinic** — Dr. Amr El Khadem's private clinic: specialists, doctors who bring their own patients, 4 shared rooms | `PVT` (files `EK-…`) | **In use** (new): its own reception, the specialists' charts, 40% / 30% shares, the elite look |
 | Dental lab — serves the clinics and outside clinics | `LAB` | next (lab requests already flow to it) |
 
 It runs **on your own PC or the clinic's own server**, with no cloud. Staff open it in a browser on the clinic network.
@@ -26,9 +26,12 @@ The language follows the person, not the PC:
 | Head of CIA | `head_cia` | everything except the money report; in the settings, the lists (implant companies, treatments, drugs…) but not logins or access |
 | Head of the CIA dentists team | `team_head` | what a CIA dentist sees, plus the follow-up report of the **CIA dentists** (not the candidates) and the treatment plan finder |
 | CIA dentists (full or part time) | `dentist` | every patient, the complaints about them, **only their own schedule**, and their cases. They record the clinical work: their own, and the course candidates' work, choosing the candidate's and the supervisor's names. In surgery they are usually the **assistant** |
-| Secretary (reception) | `secretary` | reception, patients, the **day planner**, WhatsApp messages, **patient payments** and the **end of the day**, lab send / receive, CBCT and blood test requests, complaints, academy (if allowed in Settings), purchases, and the **patients to call** lists. Not the dental chart, treatment log or surgeries: in the patient file she sees the data, the visits, the payments and a **medical summary**, and the parts the owner ticks in *Settings → Access* (new). She books; the dentists do not. Her edits of patient data and visit times wait for the head of CIA's approval |
+| Secretary (reception) | `secretary` | reception, patients, the **day planner**, WhatsApp messages, **patient payments** and the **end of the day**, lab send / receive, CBCT and blood test requests, complaints, academy (if allowed in Settings), purchases, and the **patients to call** lists. Not the dental chart, treatment log or surgeries: in the patient file she sees the data, the visits, the payments and a **medical summary**, and the parts the owner ticks in *Settings → Access*. She books; the dentists do not. Her edits of patient data and visit times wait for the head of CIA's approval (at El Khadem: Dr. Amr's) |
 | Stock manager | `stock` | the stock of materials, instruments, food and beverage, and purchases |
 | Clinic manager (moderator) | `moderator` | the **Clinics** menu: how each doctor of CIC (and later the other clinics) is paid, the doctors' shares, payments to the doctors, and the clinic report |
+| Dr. Amr El Khadem (new) | `amr` | owner and manager of El Khadem, and a doctor there (prosthodontist): its **Clinics** menu (fee rules, doctors' prices, shares, report), the specialists' charts, referrals, the day planner, and he **approves the changes of El Khadem's reception** |
+| El Khadem reception (new) | `khadem` | the reception work of El Khadem only (Arabic): its patients, bookings in the 4 shared rooms, bills, payments, the referrals to book. No academy, no CIA or CIC patients |
+| El Khadem specialists (new) | `endo`, or no login | the endodontist, TMJ specialist, orthodontist, oral surgeon and prosthodontist: each with his specialty, his own prices, and his charts |
 | CIC doctors | `dentist`, or no login | booked at CIC; the ones with a login see **My shares**. A doctor can work at CIA and CIC |
 | Supervisors | no login for now | chosen by name: on treatments, surgeries, plans and lab requests |
 | Course candidates | **no login** | followed through their dentist file: batch, payments, implants done and remaining, every case |
@@ -36,7 +39,64 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: bills, receipts, places and the file step by step (new)
+### New in this version: El Khadem Dental Clinic (new)
+Dr. Amr El Khadem's private clinic is the third place (`PVT`, files `EK-…`). Checklist:
+[docs/khadem-test-checklist.md](docs/khadem-test-checklist.md).
+- **Its own place and reception**: El Khadem has its own patients, its own reception (Arabic) and 4 rooms. Its reception
+  does not see CIA's or CIC's patients, nor the academy, and the other receptions do not see El Khadem's. **Dr. Amr** is
+  a doctor there and its manager: fee rules, prices, shares, the clinic report, and he **approves the changes of his
+  reception** (a patient's data, visit times) instead of the head of CIA.
+- **Specialties**: each doctor has a specialty (endodontist, TMJ specialist, orthodontist, oral surgeon,
+  prosthodontist, periodontist, pedodontist, general…) and a title, shown on bookings, letters and the printed papers.
+- **The doctor's own patients**: when a doctor brings his own patient, the reception chooses him under *Who referred
+  you → the doctor's own patient*. Otherwise the patient is the clinic's.
+- **Referrals**: Dr. Amr (or any doctor) refers a patient to a specialist of the clinic, with the reason, the teeth and
+  the urgency, or to a place outside (e.g. a radiology centre). The specialist and the reception are told; the reception
+  books it with one button (patient and doctor filled in); the specialist writes his **answer**, and the referring
+  doctor is told. The **letter** prints on the clinic's letterhead with the medical alerts and the signature.
+- **40% / 30% after the lab and implant cost**: a fee rule can be for *his own patients* or *the clinic's patients*,
+  and can **take off the lab / implant cost first**. Each service given keeps its cost (from the price list, the
+  doctor's price or typed on the bill; changed later on the doctor's statement). The statement shows, for each service,
+  own / clinic patient, the cost taken off and the share.
+- **Each doctor's own prices** (*Clinics → Doctors' prices*): e.g. the TMJ specialist's examination is 1,200 while
+  Dr. Amr's is 800. A new bill takes the doctor's price by itself.
+- **Interchangeable schedule**: the 4 rooms are **shared**: a doctor has no fixed room. A booking without a room gets a
+  **free room** by itself; a room taken at that time is refused; a doctor with another patient at that time is warned.
+  The **day planner** shows one column per room or **one per doctor**, and a patient can be moved to another room or
+  **swap rooms** with one tap (or dragged on a PC). *Nearest free times* looks for a free room and a free doctor.
+  *Reception today* shows who is in each room now and who is next. Opening hours and closed days are set per place.
+- **Endodontic chart**: the tooth, the pulpal and apical diagnosis (AAE terms), the **case difficulty** (AAE: minimal,
+  moderate, high, and why), the tests (cold, EPT, percussion, palpation, mobility, probing), each **canal** with its
+  reference point, **working length** and how it was measured, master apical file, master cone and curvature
+  (drawn as bars), the files, the irrigation and activation, the **intracanal medication** at each visit, the obturation and the restoration. Finishing
+  the case writes it in the treatment log and shows the root canal on the dental chart.
+- **TMJ examination**: the complaint, pain (0–10), **mouth opening** (with and without pain), protrusion and lateral
+  moves, the deviation, the **joint sounds** on each side, the tender **muscles**, the joints to the touch, bruxism, the
+  diagnosis (DC/TMD) and the plan (splint, physiotherapy, medicines…). Each follow-up adds the opening and the pain, and
+  the bars show the progress.
+- **Orthodontic case**: the molar and canine class on each side, overjet, overbite, crowding, midlines, crossbite, the
+  profile, the **cephalometric values** next to the usual ones (SNA, SNB, ANB, FMA, IMPA…), the appliance and bracket
+  system, the extractions and the time expected; each **adjustment visit** keeps the wires, elastics and what was done.
+- **Shade guide for the prosthodontist**: the shade of each third (cervical, middle, incisal) on the **VITA classical**
+  or **3D-Master** guide, tapped on coloured tabs, the **stump shade**, the translucency, the surface and the characters to copy, with a
+  drawing of the tooth; *Lab request with this shade* fills the lab request.
+- **The treatment plan printed for the patient**: an elite A4 page with the letterhead, the diagnosis, the chart, the
+  treatment **phase by phase** with the doctor and the fee of each step, the total and the expected duration, the
+  other options, the consent and the signatures. A **comprehensive case** shows **Your treatment team** (each doctor with
+  his specialty and his part). In English or Arabic, whatever the doctor's language.
+- **Detailed lab request**: the stage (final, framework try-in, bisque try-in…), the shades of the three thirds and the
+  stump, the finish line, the pontic, the occlusion, the implant retention and parts, and **what is sent with the work**.
+  Its **print** has the letterhead, the teeth on a small chart, the shade tabs in colour and three signatures.
+- **An elite look for a place** (*Settings → Places*): *the look of the screens* standard or **elite** (navy and gold
+  for El Khadem), a colour, a **logo** (top bar, login page and every printed paper), the file number prefix, a line
+  under the name and an e-mail.
+- **The login page of a PC**: `/login/?place=EK` shows the place's own login page, and the PC remembers it; logging in
+  there opens that place for someone who works in more than one. How the reception logs in stays the owner's choice
+  (see the report).
+- **Shared**: the stock (each take-out still names its place) and the **two Fawry machines**. The reception is not
+  shared: each place has its own.
+
+### Earlier: bills, receipts, places and the file step by step
 - **Doctors write the bill, the reception takes the money**: at CIA and CIC a dentist's bill has no payment; the
   reception is told, sees it under *Doctors' bills to collect* and records what was paid and how (big buttons).
 - **Receipts**: a green message after saving and the **80 mm receipt** opens; a Fawry payment shows *Fawry POS machine*
@@ -94,7 +154,7 @@ Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**:
 
 ### CIC — the Cairo Implant Center
 - **Places**: CIA and CIC share one system. People who work in both (e.g. the secretary) tick both in *Settings → People and logins*, and a coloured switch in the top bar (**CIA** green, **CIC** blue) chooses where they work now. The line under the top bar takes the place's colour, so nobody books or bills in the wrong place. Everything then works for that place: the reception board, the day planner, rooms and room schedule, bookings, free times, bills and payments, stock use.
-- **Each place has its own patients** (new): CIA and CIC do not see each other's patients, not even their names. New files opened at CIC are numbered `CIC-…`. A patient who moves (rare) gets a new file at the other place (*Move to another place*); the old file is closed as *out*, with a link to the new one.
+- **Each place has its own patients**: CIA and CIC do not see each other's patients, not even their names. New files opened at CIC are numbered `CIC-…`. A patient who moves (rare) gets a new file at the other place (*Move to another place*); the old file is closed as *out*, with a link to the new one.
 - **Doctors**: many doctors, some at CIA and CIC. Each dentist's *works at* places are set in *Academy → Dentists*; bookings and the room schedule of a place offer its own doctors only. CIC has 3 rooms to start (renamed or added in *Settings → Rooms*).
 - **How each doctor is paid** (*Clinics → Doctors' fee rules*, set by the moderator or the owner): a **percentage** of what the patient paid, a **fixed amount for each service** (for each tooth, e.g. 1,500 per implant), or a **fixed amount for each visit**. A rule for one service comes before the rule for every service (e.g. implants fixed, the rest 25%). To change a percentage from a date, add a new rule from that date.
 - **Doctors' shares** (*Clinics → Doctors' shares*): for a place and a period, each doctor's visits, **time in the chair**, patients, what was billed and **paid**, their **share**, what was **paid to them** and what is **still owed**. Each doctor's **statement** lists every service with its rule and share, every visit, and the payments to the doctor, with a form to record a new payment. A doctor with a login sees his own statement (*My shares*).
@@ -222,7 +282,7 @@ The people who treat patients are all **dentists**, of these types:
 | Training dentist | helps without paying |
 | CIA dentist (full / part time) | staff dentist; the only type that logs in |
 | Supervisor | supervises regular days and surgery days; chosen by name |
-| Specialist / freelance dentist | for the private clinic later |
+| Specialist / freelance dentist | the doctors of El Khadem and CIC, each with a **specialty** (endodontist, TMJ specialist, orthodontist, oral surgeon, prosthodontist…) and a title |
 
 What dentists do:
 - **Home page**: **my week** (my shifts and patients for the next 7 days), the **latest changes** to my appointments (new, moved, cancelled, did not come), and complaints waiting for my answer.
@@ -365,7 +425,7 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (now also **X-rays and two CBCTs kept on the server and on a centre's viewer** for one patient, and a **backup history** with one failed night; **CIC**: three doctors paid in three ways, a month of CIC visits with bills and payments, some on the second Fawry machine, a payment to a doctor, CIC's own implants and drapes in stock, and each place's use of the shared stock; hints are on for every sample login; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
+This makes a **practice copy on your PC** with sample data (now also **El Khadem**: Dr. Amr, its reception, six specialists with their own prices and the 40% / 30% rules, eight `EK-…` patients (two brought by Dr. Tarek), a month of visits in the 4 shared rooms and today's and tomorrow's bookings, referrals, two endodontic cases, a TMJ examination with its follow-ups, an orthodontic case, a shade record and its lab request, and a full-rehabilitation treatment plan; also **X-rays and two CBCTs kept on the server and on a centre's viewer** for one patient, and a **backup history** with one failed night; **CIC**: three doctors paid in three ways, a month of CIC visits with bills and payments, some on the second Fawry machine, a payment to a doctor, CIC's own implants and drapes in stock, and each place's use of the shared stock; hints are on for every sample login; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
 
 **Windows**
 1. Install **Python 3.12 or newer** from https://www.python.org/downloads/. On the first installer screen, tick **"Add python.exe to PATH"**.
@@ -388,10 +448,14 @@ This makes a **practice copy on your PC** with sample data (now also **X-rays an
    | `stock` | stock manager | Arabic |
    | `moderator` | CIC clinic manager: doctors' fee rules, shares, payments to doctors, clinic report | English |
    | `cicdoctor` | Dr. Walid Hamdy, a CIC doctor paid 1,500 per implant and 25% of the rest | English |
+   | `amr` | Dr. Amr El Khadem: a doctor at El Khadem and its manager | English |
+   | `khadem` | El Khadem's reception (El Khadem only) | Arabic |
+   | `endo` | Dr. Yasser Hamed, El Khadem's endodontist | English |
 
    The 4 course candidates (batch IMP-2026-A), the training dentist and the supervisors have no login, as agreed.
 
 5. Follow the checklists step by step:
+   - **[docs/khadem-test-checklist.md](docs/khadem-test-checklist.md)** for El Khadem: its reception, Dr. Amr, the specialists and the printed papers
    - **[docs/cic-test-checklist.md](docs/cic-test-checklist.md)** for CIC: the secretary, the moderator, the owner and a CIC doctor
    - **[docs/secretary-test-checklist.md](docs/secretary-test-checklist.md)** for the secretary
    - **[docs/dentist-test-checklist.md](docs/dentist-test-checklist.md)** for the CIA dentists, the heads and the owner, including the settings
@@ -445,10 +509,17 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   - `prescriptions`: drug groups, ready prescriptions, post-op instruction sheets
   - `stock`: stock items, movements, low stock, import
   - `complaints`, `academy`, `purchasing`, `reports`
-  - `clinics`: how the doctors of a clinic are paid (fee rules), their shares, payments to them, and the clinic report
+  - `clinics`: how the doctors of a clinic are paid (fee rules by patient source, the cost taken off first), their
+    shares, payments to them, the doctors' own prices (`clinics/prices.py`) and the clinic report
+  - `specialties`: referrals and the specialists' charts (endodontic, TMJ, orthodontic, shade); `shades.py` has the
+    shade guides; `demo.py` fills El Khadem
 - Places: `branch_for_user(user)` is the place the person works in now (the switch in the top bar keeps it in the session,
   `WorkingPlaceMiddleware`); `working_places(user)` lists the places they can choose. Bills, services given, payments,
-  appointments, rooms and stock movements carry their place.
+  appointments, rooms and stock movements carry their place. A place with **shared rooms** (`Branch.rooms_shared`)
+  books by free room (`scheduling/rooms.py`: `free_room`, `room_clash`, `change_room`); its hours and closed days
+  are on the place. The look of a place (`Branch.theme`, colour, logo) sets `theme-elite` on `<body>` and the
+  letterhead of the printed papers (`includes/place_letterhead.html`). `/login/?place=EK` keeps the place of a PC in
+  a cookie (`core.views.PlaceLoginView`).
 - The look (no build step):
   - `static/css/app.css` starts with the colours, lines, shadows and motion as CSS variables. Each part of the system
     has an accent colour (`.sec-patients`, `.sec-scheduling`…), set on `<body>` from the page's address and on each menu entry.

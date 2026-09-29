@@ -20,7 +20,7 @@ from apps.stock.models import StockCategory
 BRANCHES = [
     # code, kind, Arabic name, English name
     ("CIA", Branch.Kind.ACADEMY, "أكاديمية القاهرة لزراعة الأسنان", "Cairo Implant Academy"),
-    ("PVT", Branch.Kind.CLINIC, "العيادة الخاصة", "Private Clinic"),
+    ("PVT", Branch.Kind.CLINIC, "عيادة الخادم لطب الأسنان", "El Khadem Dental Clinic"),
     ("LAB", Branch.Kind.LAB, "معمل الأسنان", "Dental Lab"),
     ("CIC", Branch.Kind.CLINIC, "مركز القاهرة لزراعة الأسنان", "Cairo Implant Center"),
 ]
@@ -28,6 +28,10 @@ BRANCHES = [
 ROOM_COUNT = 5
 EXTRA_ROOM_COUNT = 4
 CIC_ROOM_COUNT = 3  # a start: the owner renames, adds or stops rooms in Settings → Rooms
+KHADEM_ROOM_COUNT = 4  # shared: any doctor in any free room
+# El Khadem's own look: the first time only (the owner changes it in Settings → Places).
+KHADEM = {"file_prefix": "EK", "theme": Branch.Theme.ELITE, "rooms_shared": True,
+          "tagline": "Specialist dental care · Dr. Amr El Khadem"}
 
 REFERRAL_SOURCES = [
     # Arabic, English, asks_for_patient
@@ -125,6 +129,13 @@ TREATMENT_STEPS = [
     ("طقم متحرك على زرعات (Overdenture)", "Overdenture on implants", "delivery", "", ""),
     ("فشل الزرعة / إزالتها", "Implant failure / removal", "implant_failed", "", ""),
     ("متابعة", "Follow-up", "none", "", ""),
+    # The specialists of El Khadem
+    ("إعادة علاج عصب", "Root canal retreatment", "rct", "", ""),
+    ("كشف مفصل الفك", "TMJ examination", "none", "", ""),
+    ("جبيرة إطباق (Splint)", "Occlusal splint", "none", "", ""),
+    ("تركيب تقويم", "Orthodontic bonding", "none", "", ""),
+    ("متابعة تقويم", "Orthodontic adjustment", "none", "", ""),
+    ("تحديد لون التركيبة", "Shade taking", "none", "", ""),
     ("أخرى", "Other", "none", "", ""),
 ]
 
@@ -138,6 +149,12 @@ def _step_category(effect, procedure):
 
 # Plain Arabic explanations of the treatments, for the reception (by English name).
 TREATMENT_EXPLANATIONS = {
+    "Root canal retreatment": "إعادة علاج عصب سن سبق علاجه: فك الحشو القديم وتنظيف القنوات وحشوها من جديد.",
+    "TMJ examination": "كشف على مفصل الفك وعضلات المضغ: الفتح والطقطقة والألم.",
+    "Occlusal splint": "جبيرة شفافة تُلبس على الأسنان (غالبًا بالليل) لراحة المفصل والعضلات ومنع الضغط على الأسنان.",
+    "Orthodontic bonding": "تركيب التقويم (الأقواس والسلك) على الأسنان.",
+    "Orthodontic adjustment": "زيارة متابعة التقويم: تغيير السلك أو الأستك وضبط التقويم.",
+    "Shade taking": "اختيار لون التركيبة ليطابق لون الأسنان الطبيعية.",
     "Treatment plan": "الطبيب كشف على المريض وكتب خطة العلاج المطلوبة.",
     "Scaling": "تنظيف الأسنان من الجير والرواسب.",
     "Composite restoration": "حشو أبيض بلون السن لسد التسوس.",
@@ -350,8 +367,16 @@ class Command(BaseCommand):
 
         for order, (code, kind, name_ar, name_en) in enumerate(BRANCHES, start=1):
             Branch.objects.get_or_create(
-                code=code, defaults={"kind": kind, "name_ar": name_ar, "name_en": name_en, "sort_order": order}
+                code=code, defaults={"kind": kind, "name_ar": name_ar, "name_en": name_en, "sort_order": order,
+                                     **(KHADEM if code == "PVT" else {})}
             )
+        # The private clinic opened as El Khadem Dental Clinic (an older system still has the first name).
+        khadem = Branch.objects.get(code="PVT")
+        if khadem.name_en in ("", "Private Clinic"):
+            Branch.objects.filter(pk=khadem.pk).update(name_ar=BRANCHES[1][2], name_en=BRANCHES[1][3], **KHADEM)
+        if not Room.objects.filter(branch=khadem).exists():
+            for number in range(1, KHADEM_ROOM_COUNT + 1):
+                Room.objects.create(branch=khadem, name=f"غرفة {number}", name_en=f"Room {number}", sort_order=number)
         academy = Branch.objects.get(code="CIA")
         for number in range(1, ROOM_COUNT + 1):
             room, _created = Room.objects.get_or_create(branch=academy, name=f"غرفة {number}", defaults={"sort_order": number})

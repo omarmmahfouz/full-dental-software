@@ -16,10 +16,13 @@
       <dt>{% trans "Patient" %}</dt><dd><a href="{{ lr.patient.get_absolute_url }}">{{ lr.patient }}</a></dd>
       <dt>{% trans "Doctor" %}</dt><dd>{{ lr.dentist|default:"—" }}</dd>
       <dt>{% trans "Lab" %}</dt><dd>{{ lr.lab }}</dd>
-      <dt>{% trans "Work" %}</dt><dd>{{ lr.work_type }} — {% blocktrans with n=lr.units %}{{ n }} unit(s){% endblocktrans %}</dd>
+      <dt>{% trans "Work" %}</dt><dd>{{ lr.work_type }} — {% blocktrans with n=lr.units %}{{ n }} unit(s){% endblocktrans %}{% if lr.stage != "final" %} · <b>{{ lr.get_stage_display }}</b>{% endif %}</dd>
       <dt>{% trans "Teeth" %}</dt><dd>{{ lr.teeth }}</dd>
       <dt>{% trans "The work goes as" %}</dt><dd>{{ lr.get_work_form_display }}</dd>
-      <dt>{% trans "Shade" %}</dt><dd>{{ lr.shade|default:"—" }}{% if lr.shade_guide %} <span class="text-muted">({{ lr.get_shade_guide_display }})</span>{% endif %}</dd>
+      <dt>{% trans "Shade" %}</dt><dd>{% if lr.shade %}<span class="shade-chip" style="--shade: {{ lr.shade|shade_colour }}"></span> {% endif %}{{ lr.shade|default:"—" }}{% if lr.shade_guide %} <span class="text-muted">({{ lr.get_shade_guide_display }})</span>{% endif %}
+        {% if lr.shade_cervical or lr.shade_incisal or lr.stump_shade %}<div class="small">{% if lr.shade_cervical %}{% trans "cervical" %} {{ lr.shade_cervical }} · {% endif %}{% if lr.shade_incisal %}{% trans "incisal" %} {{ lr.shade_incisal }} · {% endif %}{% if lr.stump_shade %}{% trans "stump" %} {{ lr.stump_shade }}{% endif %}</div>{% endif %}</dd>
+      {% if lr.margin or lr.pontic or lr.occlusion or lr.retention or lr.implant_details %}<dt>{% trans "Design" %}</dt><dd>{% if lr.margin %}{{ lr.get_margin_display }}{% endif %}{% if lr.pontic %} · {% trans "pontic" %}: {{ lr.get_pontic_display }}{% endif %}{% if lr.occlusion %} · {{ lr.get_occlusion_display }}{% endif %}{% if lr.retention %} · {{ lr.get_retention_display }}{% endif %}{% if lr.implant_details %}<div class="small">{{ lr.implant_details }}</div>{% endif %}</dd>{% endif %}
+      {% if lr.enclosures %}<dt>{% trans "Sent with the work" %}</dt><dd>{{ lr.enclosure_labels|join:", " }}</dd>{% endif %}
       <dt>{% trans "Material" %}</dt><dd>{{ lr.material|default:"—" }}</dd>
       <dt>{% trans "Needed by" %}</dt><dd>{{ lr.due_date|date:"l d/m/Y"|default:"—" }}</dd>
       <dt>{% trans "Instructions" %}</dt><dd>{{ lr.instructions|linebreaksbr|default:"—" }}</dd>

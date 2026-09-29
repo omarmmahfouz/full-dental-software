@@ -1,4 +1,5 @@
 from django import forms
+from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 
 from apps.charting.teeth import format_teeth, parse_surfaces, parse_teeth
@@ -133,35 +134,49 @@ class LabRequestForm(_PatientScopedForm):
     dentist = DentistChoiceField(label=_("dentist"))
     supervisor = DentistChoiceField(kinds=(Dentist.Kind.SUPERVISOR,), label=_("reviewed by supervisor"), required=False)
 
+    enclosures = forms.MultipleChoiceField(label=_("sent with the work"), choices=LabRequest.ENCLOSURES,
+                                           required=False, widget=forms.CheckboxSelectMultiple)
+
     fieldsets = [
-        ("", ["patient_lookup", "dentist", "supervisor", "lab", "work_type", "work_form", "teeth", "units",
-              "shade_guide", "shade", "material", "due_date"]),
-        ("", ["instructions", "lab_cost"]),
+        ("", ["patient_lookup", "dentist", "supervisor", "lab", "work_type", "stage", "work_form", "teeth", "units",
+              "material", "due_date"]),
+        (_("The shade"), ["shade_guide", "shade", "shade_cervical", "shade_incisal", "stump_shade"]),
+        (_("The design"), ["margin", "pontic", "occlusion", "retention", "implant_details"]),
+        (_("Sent with the work, and instructions"), ["enclosures", "instructions", "lab_cost"]),
     ]
 
     class Meta:
         model = LabRequest
         fields = [
-            "dentist", "supervisor", "lab", "work_type", "work_form", "teeth", "units", "shade_guide", "shade",
-            "material", "due_date", "instructions", "lab_cost",
+            "dentist", "supervisor", "lab", "work_type", "stage", "work_form", "teeth", "units", "shade_guide",
+            "shade", "shade_cervical", "shade_incisal", "stump_shade", "material", "due_date", "margin", "pontic",
+            "occlusion", "retention", "implant_details", "enclosures", "instructions", "lab_cost",
         ]
 
     def __init__(self, *args, **kwargs):
+        from apps.specialties import shades
+
         super().__init__(*args, **kwargs)
         self.fields["lab"].queryset = Lab.objects.filter(is_active=True)
         self.fields["work_type"].queryset = LabWorkType.objects.filter(is_active=True)
         self.fields["teeth"].widget.attrs["data-teeth-picker"] = "multi"
-        # The shade from the guide's own list (the page shows the list of the chosen guide).
-        guides = [(str(LabRequest.ShadeGuide.CLASSICAL.label), [(v, v) for v in LabRequest.CLASSICAL_SHADES]),
-                  (str(LabRequest.ShadeGuide.MASTER.label), [(v, v) for v in LabRequest.MASTER_SHADES])]
-        current = self.instance.shade if self.instance.pk else ""
-        known = set(LabRequest.CLASSICAL_SHADES) | set(LabRequest.MASTER_SHADES)
-        extra = [(current, current)] if current and current not in known else []
-        self.fields["shade"] = forms.ChoiceField(
-            label=_("shade"), required=False, choices=[("", "—")] + extra + guides,
-            widget=forms.Select(attrs={"class": "form-select", "data-shade": "1"}))
+        # The shade from the guide's own list (the page shows the tabs of the chosen guide).
+        for name, label in (("shade", _("shade (middle third)")), ("shade_cervical", _("cervical third")),
+                            ("shade_incisal", _("incisal third"))):
+            current = getattr(self.instance, name) if self.instance.pk else self.initial.get(name, "")
+            self.fields[name] = forms.ChoiceField(
+                label=capfirst(label), required=False, choices=shades.shade_choices(current),
+                widget=forms.Select(attrs={"class": "form-select", "data-shade": "1"}))
+        self.fields["stump_shade"] = forms.ChoiceField(
+            label=capfirst(_("prepared tooth (stump) shade")), required=False, choices=shades.stump_choices(),
+            widget=forms.Select(attrs={"class": "form-select", "data-stump": "1"}),
+            help_text=_("For all-ceramic crowns and veneers."))
         self.fields["shade_guide"].widget.attrs["data-shade-guide"] = "1"
+        for name in ("shade_guide", "shade", "shade_cervical", "shade_incisal", "stump_shade"):
+            self.fields[name].col = "col-md-6 col-lg"
+        self.fields["enclosures"].col = "col-12"
         self.fields["work_form"].required = False
+        self.fields["stage"].required = False
         self.fields["due_date"].help_text = _("Leave empty: set from the usual days of the work type when sent.")
         if not has_role(self.user, *FRONT_DESK):
             del self.fields["lab_cost"]
@@ -175,14 +190,18 @@ class LabRequestForm(_PatientScopedForm):
         shade, guide = data.get("shade"), data.get("shade_guide")
         lists = {LabRequest.ShadeGuide.CLASSICAL: LabRequest.CLASSICAL_SHADES,
                  LabRequest.ShadeGuide.MASTER: LabRequest.MASTER_SHADES}
-        if shade and guide and shade in set(LabRequest.CLASSICAL_SHADES) | set(LabRequest.MASTER_SHADES) \
-                and shade not in lists[guide]:
-            self.add_error("shade", _("This shade is not in the chosen shade guide."))
+        known = set(LabRequest.CLASSICAL_SHADES) | set(LabRequest.MASTER_SHADES)
+        for name in ("shade", "shade_cervical", "shade_incisal"):
+            value = data.get(name)
+            if value and guide and value in known and value not in lists[guide]:
+                self.add_error(name, _("This shade is not in the chosen shade guide."))
         if shade and not guide:
             data["shade_guide"] = next((g for g, values in lists.items() if shade in values), "")
         if not data.get("work_form"):
             data["work_form"] = LabRequest.WorkForm.PHYSICAL
             self.instance.work_form = LabRequest.WorkForm.PHYSICAL
+        if not data.get("stage"):
+            data["stage"] = self.instance.stage = LabRequest.Stage.FINAL
         return data
 
 

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Referrals" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-send"></i> {% trans "Referrals" %}</h1></div>
+<ul class="nav nav-pills small mb-3 no-print">
+  <li class="nav-item"><a class="nav-link {% if show == 'open' %}active{% endif %}" href="?show=open">{% trans "Open" %}</a></li>
+  {% if is_desk %}<li class="nav-item"><a class="nav-link {% if show == 'to_book' %}active{% endif %}" href="?show=to_book">{% trans "To book" %}{% if to_book %} <span class="badge text-bg-warning">{{ to_book }}</span>{% endif %}</a></li>{% endif %}
+  {% if me %}<li class="nav-item"><a class="nav-link {% if show == 'to_me' %}active{% endif %}" href="?show=to_me">{% trans "Referred to me" %}</a></li>
+  <li class="nav-item"><a class="nav-link {% if show == 'from_me' %}active{% endif %}" href="?show=from_me">{% trans "I referred" %}</a></li>{% endif %}
+  <li class="nav-item"><a class="nav-link {% if show == 'all' %}active{% endif %}" href="?show=all">{% trans "All" %}</a></li>
+</ul>
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+  <thead><tr><th>{% trans "Number" %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "From" %}</th><th>{% trans "To" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Status" %}</th></tr></thead>
+  <tbody>{% for r in page_obj %}<tr>
+    <td><a class="fw-semibold" href="{{ r.get_absolute_url }}">{{ r.number }}</a>{% if r.urgency == "urgent" %} <span class="badge text-bg-danger">{% trans "urgent" %}</span>{% elif r.urgency == "soon" %} <span class="badge text-bg-warning">{% trans "soon" %}</span>{% endif %}</td>
+    <td class="nowrap">{{ r.created_at|date:"d/m/Y" }}</td>
+    <td>{{ r.patient.full_name }} <span class="small text-muted">{{ r.patient.file_number }}</span></td>
+    <td>{{ r.from_dentist|default:"—" }}</td>
+    <td>{{ r.to_name }}{% if r.specialty %}<div class="small text-muted">{{ r.get_specialty_display }}</div>{% endif %}</td>
+    <td>{{ r.teeth|default:"—" }}</td>
+    <td><span class="badge {% if r.status == 'sent' %}text-bg-warning{% elif r.status == 'booked' %}text-bg-primary{% elif r.status == 'done' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ r.get_status_display }}</span>{% if r.appointment %}<div class="small">{{ r.appointment.scheduled_at|date:"d/m g:i A" }}</div>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="7" class="text-muted text-center py-4">{% trans "No referrals here." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

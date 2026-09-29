@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="El Khadem Dental Clinic">
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1D3A66"/>
+      <stop offset="1" stop-color="#0B1B35"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E7CC8F"/>
+      <stop offset=".55" stop-color="#C9A55C"/>
+      <stop offset="1" stop-color="#9C7A36"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="116" height="116" rx="26" fill="url(#navy)"/>
+  <rect x="8.5" y="8.5" width="103" height="103" rx="20" fill="none" stroke="url(#gold)" stroke-width="1.6" opacity=".85"/>
+  <!-- A molar drawn as one line -->
+  <path d="M60 27c-5.2-4.6-12.5-6.4-18.6-3.8-8.3 3.5-11.4 13.6-9.3 24.2 1.5 7.6 5 13.2 6.5 20.6 1.3 6.6 1.7 15.9 5.4 20.3 3.5 4.1 7.6 1.3 8.7-3.9 1.1-5.3 1.5-12.9 7.3-12.9s6.2 7.6 7.3 12.9c1.1 5.2 5.2 8 8.7 3.9 3.7-4.4 4.1-13.7 5.4-20.3 1.5-7.4 5-13 6.5-20.6 2.1-10.6-1-20.7-9.3-24.2C72.5 20.6 65.2 22.4 60 27z"
+        fill="none" stroke="url(#gold)" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M47 33.5c3.8-1.4 8.2-.6 13 3.2 4.8-3.8 9.2-4.6 13-3.2" fill="none" stroke="url(#gold)" stroke-width="2.2"
+        stroke-linecap="round" opacity=".8"/>
+  <text x="60" y="60" text-anchor="middle" font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif"
+        font-size="21" font-weight="700" letter-spacing="1.5" fill="#F4E6C2">EK</text>
+</svg>

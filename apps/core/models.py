@@ -3,6 +3,7 @@ from contextvars import ContextVar
 from datetime import time
 
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import get_language
@@ -69,6 +70,36 @@ class Branch(LookupModel):
         _("has a CBCT machine"), default=False,
         help_text=_("A CBCT asked by a dentist here can then be marked as done in the clinic."))
 
+    class Theme(models.TextChoices):
+        STANDARD = "standard", _("Standard (light)")
+        ELITE = "elite", _("Elite (navy and gold)")
+
+    # The look of the place and its printed papers (bills, plans, lab requests, receipts).
+    file_prefix = models.CharField(
+        _("file number prefix"), max_length=10, blank=True,
+        help_text=_("Empty = the code. e.g. EK gives the new files EK-00001."))
+    tagline = models.CharField(_("line under the name"), max_length=150, blank=True,
+                               help_text=_("Printed under the name, e.g. Specialist dental care."))
+    email = models.EmailField(_("e-mail"), blank=True)
+    theme = models.CharField(_("look of the screens"), max_length=10, choices=Theme.choices, default=Theme.STANDARD,
+                             help_text=_("The top bar, the buttons and the printed papers of this place."))
+    color = models.CharField(_("colour"), max_length=7, blank=True,
+                             validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$", _("Write the colour as # and 6 letters "
+                                                                               "or digits, e.g. #1F6FB2."))],
+                             help_text=_("e.g. #1F6FB2. Empty = the usual colour of the place."))
+    logo = models.ImageField(_("logo"), upload_to="places/", blank=True,
+                             help_text=_("On the top bar, the login page and the printed papers of this place."))
+    # Hours and rooms
+    opens_at = models.TimeField(_("opens at"), null=True, blank=True,
+                                help_text=_("Empty = the hours in the clinic options."))
+    closes_at = models.TimeField(_("closes at"), null=True, blank=True)
+    closed_days = models.CharField(_("closed on"), max_length=20, blank=True,
+                                   help_text=_("The days the place is closed: no free times are offered on them."))
+    rooms_shared = models.BooleanField(
+        _("rooms are shared"), default=False,
+        help_text=_("Any doctor works in any free room: bookings need no room schedule, the room is chosen by "
+                    "itself and can be changed in one click."))
+
     class Meta(LookupModel.Meta):
         verbose_name = _("branch")
         verbose_name_plural = _("branches")
@@ -77,6 +108,34 @@ class Branch(LookupModel):
     def default(cls):
         branch = cls.objects.filter(code=settings.CLINIC["DEFAULT_BRANCH_CODE"]).first()
         return branch or cls.objects.filter(is_active=True).first()
+
+    @property
+    def badge(self):
+        """The short label of the place on badges and the place switch (EK, CIC...)."""
+        return self.file_prefix or self.code
+
+    @property
+    def is_elite(self):
+        return self.theme == self.Theme.ELITE
+
+    @property
+    def closed_weekdays(self):
+        return {int(day) for day in self.closed_days.split(",") if day.strip().isdigit()}
+
+    def hours(self):
+        """(opens, closes) of the place: its own hours, else those of the clinic options."""
+        options = ClinicSettings.get()
+        return self.opens_at or options.day_start, self.closes_at or options.day_end
+
+    @property
+    def mark_url(self):
+        """The logo shown on the top bar and the login page: the one uploaded, else the place's own mark."""
+        from django.templatetags.static import static
+        from django.urls import reverse
+
+        if self.logo:
+            return reverse("core:place_logo", args=[self.code])
+        return static({"PVT": "img/khadem-mark.svg"}.get(self.code, "img/cia-mark.png"))
 
 
 class UserProfile(models.Model):
@@ -302,6 +361,8 @@ class ChangeRequest(models.Model):
         REJECTED = "rejected", _("Rejected")
 
     kind = models.CharField(_("change of"), max_length=20, choices=Kind.choices)
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), null=True, blank=True, on_delete=models.SET_NULL,
+                               related_name="+", help_text=_("Where it was asked: the heads of that place approve it."))
     content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     title = models.CharField(_("record"), max_length=200)

@@ -6,7 +6,7 @@
 <p class="text-muted small">{% trans "Edits of patient data and corrections of visit times made by the reception wait here. Nothing changes until you approve." %}</p>
 {% for c in pending %}
 <div class="card mb-3 border-warning"><div class="card-header d-flex flex-wrap justify-content-between gap-2">
-  <span><span class="badge text-bg-warning">{{ c.get_kind_display }}</span> <a class="fw-semibold" href="{{ c.target.get_absolute_url }}">{{ c.title }}</a></span>
+  <span>{% if c.branch %}<span class="place-badge place-{{ c.branch.code }}">{{ c.branch.badge }}</span> {% endif %}<span class="badge text-bg-warning">{{ c.get_kind_display }}</span> <a class="fw-semibold" href="{{ c.target.get_absolute_url }}">{{ c.title }}</a></span>
   <span class="small text-muted">{{ c.requested_by|default:"—" }} — {{ c.requested_at|date:"d/m/Y g:i A" }}</span>
 </div>
 <div class="table-responsive"><table class="table table-sm mb-0">

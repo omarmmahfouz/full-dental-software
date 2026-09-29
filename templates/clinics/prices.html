@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Doctors' prices" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-tags"></i> {% trans "Doctors' prices" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.badge }}</span>{% endif %}</h1>
+  {% if place %}<div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'clinics:rules' %}?place={{ place.code }}"><i class="bi bi-percent"></i> {% trans "Doctors' fee rules" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'clinics:doctors' %}?place={{ place.code }}"><i class="bi bi-people"></i> {% trans "Doctors' shares" %}</a>
+  </div>{% endif %}
+</div>
+<form class="card card-body mb-3 no-print" data-no-leave-warning><div class="row g-2 align-items-end">
+  <div class="col-md-4"><label class="form-label small">{{ form.place.label }}</label>{{ form.place }}</div>
+  <div class="col-md-3"><button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Show" %}</button></div>
+</div></form>
+<p class="small text-muted"><i class="bi bi-info-circle"></i> {% trans "Each doctor can have his own price for a service at this place, e.g. the TMJ specialist's examination. A bill made for this doctor takes his price by itself (the reception can still change it). The usual lab or implant cost is written on the bill line and taken off before his percentage when his fee rule says so." %}</p>
+
+<div class="row g-3 mb-3">
+  {% for dentist, rows in by_doctor %}
+  <div class="col-md-6 col-xl-4"><div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center gap-2"><span><i class="bi bi-person-badge"></i> {{ dentist }}</span>{% if dentist.specialty %}<span class="small text-muted">{{ dentist.get_specialty_display }}</span>{% endif %}</div>
+    <div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th>{% trans "Service" %}</th><th class="text-end">{% trans "His price" %}</th><th class="text-end">{% trans "Usual cost" %}</th><th></th></tr></thead>
+      <tbody>{% for row in rows %}<tr class="{% if not row.is_active %}text-muted text-decoration-line-through{% endif %}">
+        <td>{{ row.service }}{% if row.notes %}<div class="small text-muted">{{ row.notes }}</div>{% endif %}</td>
+        <td class="text-end fw-semibold">{{ row.price|money }}<div class="small text-muted">{% trans "list" %} {{ row.service.price|money }}</div></td>
+        <td class="text-end">{% if row.cost is not None %}{{ row.cost|money }}{% else %}<span class="text-muted">{{ row.service.cost|money }}</span>{% endif %}</td>
+        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{% url 'clinics:price_edit' row.pk %}" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></a></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="card-footer small"><a href="?place={{ place.code }}&amp;dentist={{ dentist.pk }}#new-price"><i class="bi bi-plus"></i> {% trans "Another price for this doctor" %}</a></div>
+  </div></div>
+  {% empty %}<div class="col-12"><div class="card card-body text-muted">{% trans "No doctor has his own price here yet: every bill uses the price list (Settings → Paid services)." %}</div></div>{% endfor %}
+</div>
+
+{% if place %}
+<div class="card" id="new-price"><div class="card-header"><i class="bi bi-plus-circle"></i> {% trans "Add a doctor's price" %}</div><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}
+    {% with form=new_form %}{% include "includes/form_fields.html" %}{% endwith %}
+    <button class="btn btn-primary mt-3"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+  </form>
+</div></div>
+<div class="section-title">{% trans "The price list of this place" %}</div>
+<div class="card"><div class="table-responsive"><table class="table table-sm mb-0">
+  <thead><tr><th>{% trans "Service" %}</th><th class="text-end">{% trans "Price" %}</th><th class="text-end">{% trans "Usual lab / implant cost (each tooth)" %}</th></tr></thead>
+  <tbody>{% for service in services %}<tr><td>{{ service }}</td><td class="text-end">{{ service.price|money }}</td><td class="text-end">{{ service.cost|money }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

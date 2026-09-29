@@ -26,6 +26,11 @@ class Service(LookupModel):
     branch = models.ForeignKey(
         Branch, verbose_name=_("only at"), null=True, blank=True, on_delete=models.PROTECT, related_name="services",
         help_text=_("Empty = offered at every place. For a price list of one place (e.g. CIC), choose it here."))
+    cost = models.DecimalField(
+        _("usual lab / implant cost (each tooth)"), max_digits=10, decimal_places=2, default=0,
+        validators=[MinValueValidator(0)],
+        help_text=_("e.g. the lab's price of a zirconia crown, or the implant's price. Taken off before a doctor's "
+                    "percentage when his rule says so; each bill line can be corrected."))
 
     class Meta(LookupModel.Meta):
         verbose_name = _("paid service")
@@ -140,6 +145,9 @@ class Charge(TimeStampedModel):
         _("discount %"), max_digits=5, decimal_places=2, default=0,
         validators=[MinValueValidator(0), MaxValueValidator(100)], help_text=_("0 to 100 (100 = free)."))
     discount_reason = models.CharField(_("why the discount"), max_length=200, blank=True)
+    cost = models.DecimalField(
+        _("lab / implant cost"), max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)],
+        help_text=_("Taken off what the patient paid before the doctor's percentage, when his rule says so."))
     notes = models.CharField(_("notes"), max_length=255, blank=True)
 
     class Meta:
@@ -429,6 +437,8 @@ def create_bill(patient, lines, user, billed_on=None, appointment=None, dentist=
     """A bill with one service given per line: {"service", "teeth", "price", "discount_percent",
     "discount_reason"}. An empty price takes the service's price. The bill is for ``branch`` (the place
     worked in; else the visit's place, else the patient's)."""
+    from apps.clinics.prices import price_and_cost
+
     billed_on = billed_on or timezone.localdate()
     branch = branch or (appointment.branch if appointment is not None else None) or patient.branch
     with transaction.atomic():
@@ -436,11 +446,14 @@ def create_bill(patient, lines, user, billed_on=None, appointment=None, dentist=
                                    source=source, notes=notes, created_by=user, branch=branch)
         for line in lines:
             service = line["service"]
+            doctor = line.get("dentist") or dentist
+            usual_price, cost = price_and_cost(service, doctor, branch, line.get("teeth", ""))
             price = line.get("price")
             Charge.objects.create(
                 patient=patient, bill=bill, service=service, teeth=line.get("teeth", ""), charged_on=billed_on,
-                branch=branch, dentist=line.get("dentist") or dentist,
-                price=service.price if price is None else price, discount_percent=line.get("discount_percent") or 0,
+                branch=branch, dentist=doctor, price=usual_price if price is None else price,
+                cost=cost if line.get("cost") is None else line["cost"],
+                discount_percent=line.get("discount_percent") or 0,
                 discount_reason=line.get("discount_reason", ""), created_by=user,
             )
     return bill

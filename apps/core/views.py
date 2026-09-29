@@ -5,6 +5,7 @@ from datetime import timedelta
 from urllib.parse import quote
 
 from django.conf import settings
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_not_required
 
 from django.contrib import messages
@@ -32,7 +33,9 @@ from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
 from . import previews
 from .access import area_levels
-from .models import AreaAccess, ClinicSettings, Notification, UserProfile, branch_for_user, working_places
+from .models import (
+    AreaAccess, Branch, ClinicSettings, Notification, UserProfile, branch_for_user, working_places,
+)
 from .roles import (
     CLINIC_MANAGERS,
     CLINICAL,
@@ -120,10 +123,10 @@ def dashboard(request):
         remind_start, remind_end = day_bounds(remind_day)
         context["whatsapp_to_send"] = (
             Appointment.objects.filter(status__in=Appointment.WAITING_STATUSES, scheduled_at__gte=remind_start,
-                                       scheduled_at__lt=remind_end)
+                                       scheduled_at__lt=remind_end, branch=branch)
             .exclude(messages__kind="reminder").count()
             + Appointment.objects.filter(status__in=Appointment.WAITING_STATUSES, scheduled_at__gte=timezone.now(),
-                                         created_at__gte=timezone.now() - timedelta(days=3))
+                                         created_at__gte=timezone.now() - timedelta(days=3), branch=branch)
             .exclude(messages__kind="confirmation").count()
         )
         from apps.scheduling.models import WhatsAppRequest
@@ -137,7 +140,7 @@ def dashboard(request):
         context["here_now"] = todays.filter(status=Appointment.Status.ARRIVED).select_related("patient", "dentist")\
             .order_by("arrived_at")[:6]
         context["call_lists"] = (
-            CallList.objects.filter(entries__outcome=CallListEntry.Outcome.PENDING)
+            CallList.objects.filter(branch=branch, entries__outcome=CallListEntry.Outcome.PENDING)
             .annotate(pending=Count("entries", filter=Q(entries__outcome=CallListEntry.Outcome.PENDING)))
             .order_by("-created_at")[:6]
         )
@@ -219,6 +222,68 @@ def clinic_cards(user, today):
         cards.append({"place": place, "rows": rows, **{k: totals.get(k, 0) for k in
                                                         ("collected", "share", "owed", "visit_count", "chair_minutes")}})
     return cards
+
+
+# ------------------------------------------------------------ the place of this device, the login page
+DEVICE_PLACE_COOKIE = "device_place"
+
+
+def login_place(request):
+    """The place whose look the login page takes: ``?place=EK`` in the address, else the place this device was
+    last used for (a cookie kept for a year)."""
+    code = (request.GET.get("place") or request.COOKIES.get(DEVICE_PLACE_COOKIE) or "").strip()
+    if not code or len(code) > 10:
+        return None
+    return (Branch.objects.filter(is_active=True).exclude(kind=Branch.Kind.LAB)
+            .filter(Q(code__iexact=code) | Q(file_prefix__iexact=code)).first())
+
+
+def remember_device_place(response, place):
+    if place is not None:
+        response.set_cookie(DEVICE_PLACE_COOKIE, place.code, max_age=365 * 24 * 3600, samesite="Lax")
+    return response
+
+
+class PlaceLoginView(auth_views.LoginView):
+    """The login page takes the look of the place of this device (El Khadem's reception PC shows El Khadem).
+    Someone who works in that place starts working there; a person with one place makes it this device's place."""
+
+    def get_form_class(self):
+        from .forms import LoginForm
+
+        return LoginForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["login_place"] = login_place(self.request)
+        return context
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if request.GET.get("place"):
+            remember_device_place(response, login_place(request))
+        return response
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        place, user = login_place(self.request), form.get_user()
+        mine = list(working_places(user))
+        if place is not None and place in mine:
+            self.request.session["place"] = place.pk
+        elif len(mine) == 1:
+            place = mine[0]
+        else:
+            place = None
+        return remember_device_place(response, place)
+
+
+@login_not_required
+def place_logo(request, code):
+    """A place's logo, shown on the login page too: it opens without logging in (it is not patient data)."""
+    place = get_object_or_404(Branch, code=code)
+    if not place.logo:
+        raise Http404
+    return send_file(request, place.logo.name)
 
 
 @login_not_required

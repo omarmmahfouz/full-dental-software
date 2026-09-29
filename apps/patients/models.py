@@ -220,6 +220,11 @@ class Patient(TimeStampedModel):
         on_delete=models.SET_NULL, related_name="referred_patients",
     )
     referral_notes = models.CharField(_("referral details"), max_length=255, blank=True)
+    brought_by = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("the doctor's own patient (brought by)"), null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="brought_patients",
+        help_text=_("A doctor who brought his own patient to the clinic. His work on this patient is paid as his own "
+                    "patient (e.g. 40%); every other patient is the clinic's (e.g. 30%)."))
     assigned_dentist = models.ForeignKey(
         "dentists.Dentist", verbose_name=_("responsible dentist"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="assigned_patients",
@@ -267,7 +272,7 @@ class Patient(TimeStampedModel):
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.file_number:
-                self.file_number = f"{self.branch.code}-{self.pk:05d}"
+                self.file_number = f"{self.branch.badge}-{self.pk:05d}"
                 type(self).objects.filter(pk=self.pk).update(file_number=self.file_number)
 
     @property

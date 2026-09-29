@@ -6,8 +6,10 @@
   so the share grows as the patient pays.
 - A fixed amount is for each service, times the number of teeth written on it (1 when none are written).
 - A fixed amount for each visit counts the doctor's finished visits at the place (patient left).
-- A rule for one service comes before the rule for every service; among rules of the same kind, the
-  newest one that applies on the day counts."""
+- A rule for one service comes before the rule for every service; a rule for the doctor's own patients (the
+  patient's file says he brought him) or for the clinic's patients comes before a rule for every patient; among
+  rules of the same kind, the newest one that applies on the day counts.
+- A percentage can be taken after the lab and implant cost of the service (the cost on the bill line)."""
 
 from collections import defaultdict
 from datetime import datetime, time, timedelta
@@ -27,12 +29,22 @@ ZERO = Decimal("0")
 M = FeeRule.Method
 
 
-def pick_rule(rules, service_id, day):
-    """The rule that pays for ``service_id`` on ``day`` (None when no rule applies)."""
+def source_of(dentist_id, brought_by_id):
+    """Whose patient it is for this doctor: his own (he brought him) or the clinic's."""
+    return FeeRule.OWN if brought_by_id is not None and brought_by_id == dentist_id else FeeRule.CLINIC
+
+
+def pick_rule(rules, service_id, day, source=""):
+    """The rule that pays for ``service_id`` on ``day`` for a patient of ``source`` (None when no rule applies)."""
     live = [rule for rule in rules if rule.applies_on(day)]
-    own = [rule for rule in live if service_id is not None and rule.service_id == service_id]
-    pool = own or [rule for rule in live if rule.service_id is None]
-    return max(pool, key=lambda rule: (rule.starts_on, rule.pk), default=None)
+    pools = ([[rule for rule in live if rule.service_id == service_id]] if service_id is not None else []) + \
+        [[rule for rule in live if rule.service_id is None]]
+    for pool in pools:
+        for wanted in ((source, "") if source else ("",)):
+            found = [rule for rule in pool if rule.patient_source == wanted]
+            if found:
+                return max(found, key=lambda rule: (rule.starts_on, rule.pk))
+    return None
 
 
 def teeth_count(teeth):
@@ -45,17 +57,18 @@ def units(charge):
     return teeth_count(charge.teeth)
 
 
-def line_share(rule, paid, teeth):
-    """The doctor's share of one service under ``rule``."""
+def line_share(rule, paid, teeth, cost=ZERO):
+    """The doctor's share of one service under ``rule`` (after its lab / implant ``cost`` when the rule says so)."""
     if rule is not None and rule.method == M.PERCENT:
-        return (paid * rule.value / 100).quantize(CENT)
+        base = max(paid - (cost or ZERO), ZERO) if rule.deduct_costs else paid
+        return (base * rule.value / 100).quantize(CENT)
     if rule is not None and rule.method == M.PER_UNIT:
         return rule.value * teeth_count(teeth)
     return ZERO
 
 
-def visit_share(rules, day):
-    rule = pick_rule([r for r in rules if r.service_id is None], None, day)
+def visit_share(rules, day, source=""):
+    rule = pick_rule([r for r in rules if r.service_id is None], None, day, source)
     return rule.value if rule is not None and rule.method == M.PER_VISIT else ZERO
 
 
@@ -84,9 +97,11 @@ def statement(dentist, branch, date_from, date_to, accounts=None):
     accounts.update(paid_by_charge({charge.patient_id for charge in charges} - set(accounts)))
     for charge in charges:
         paid = accounts[charge.patient_id].get(charge.pk, ZERO)
-        rule = pick_rule(rules, charge.service_id, charge.charged_on)
-        lines.append({"charge": charge, "net": charge.net, "paid": paid, "rule": rule,
-                      "share": line_share(rule, paid, charge.teeth), "units": units(charge)})
+        source = source_of(dentist.pk, charge.patient.brought_by_id)
+        rule = pick_rule(rules, charge.service_id, charge.charged_on, source)
+        lines.append({"charge": charge, "net": charge.net, "paid": paid, "rule": rule, "source": source,
+                      "cost": charge.cost if rule is not None and rule.deduct_costs else ZERO,
+                      "share": line_share(rule, paid, charge.teeth, charge.cost), "units": units(charge)})
 
     start, end = _bounds(date_from, date_to)
     visits = []
@@ -95,7 +110,8 @@ def statement(dentist, branch, date_from, date_to, accounts=None):
                     .select_related("patient").order_by("scheduled_at"))
     for visit in appointments:
         day = timezone.localtime(visit.scheduled_at).date()
-        visits.append({"visit": visit, "minutes": visit.chair_minutes or 0, "share": visit_share(rules, day)})
+        source = source_of(dentist.pk, visit.patient.brought_by_id)
+        visits.append({"visit": visit, "minutes": visit.chair_minutes or 0, "share": visit_share(rules, day, source)})
 
     payouts = list(DoctorPayout.objects.filter(dentist=dentist, branch=branch, paid_on__range=(date_from, date_to)))
     services_share = sum((line["share"] for line in lines), ZERO)
@@ -106,6 +122,7 @@ def statement(dentist, branch, date_from, date_to, accounts=None):
         "lines": lines, "visits": visits, "payouts": payouts,
         "billed": sum((line["net"] for line in lines), ZERO),
         "collected": sum((line["paid"] for line in lines), ZERO),
+        "costs": sum((line["cost"] for line in lines), ZERO),
         "services_share": services_share, "visits_share": visits_share, "share": services_share + visits_share,
         "paid_out": sum((p.amount for p in payouts), ZERO),
         "visit_count": len(visits), "chair_minutes": sum(row["minutes"] for row in visits),
@@ -125,27 +142,30 @@ def totals(dentist, branch, date_from, date_to, accounts=None, rules=None):
         charges = charges.filter(charged_on__gte=date_from)
         appointments = appointments.filter(scheduled_at__gte=_bounds(date_from, date_from)[0])
     charges = list(charges.order_by().values_list("pk", "patient_id", "service_id", "charged_on", "teeth", "price",
-                                                  "discount_percent"))
+                                                  "discount_percent", "cost", "patient__brought_by_id"))
     accounts.update(paid_by_charge({row[1] for row in charges} - set(accounts)))
-    billed = collected = services_share = visits_share = ZERO
+    billed = collected = services_share = visits_share = costs = ZERO
     patients = set()
-    for pk, patient_id, service_id, day, teeth, price, percent in charges:
+    for pk, patient_id, service_id, day, teeth, price, percent, cost, brought_by in charges:
         paid = accounts[patient_id].get(pk, ZERO)
         billed += price - (price * percent / 100).quantize(CENT)
         collected += paid
-        services_share += line_share(pick_rule(rules, service_id, day), paid, teeth)
+        rule = pick_rule(rules, service_id, day, source_of(dentist.pk, brought_by))
+        services_share += line_share(rule, paid, teeth, cost)
+        if rule is not None and rule.deduct_costs:
+            costs += cost
         patients.add(patient_id)
     visit_count = chair_minutes = 0
     per_visit = any(rule.method == M.PER_VISIT for rule in rules)
-    for patient_id, scheduled_at, entered, left in appointments.order_by().values_list(
-            "patient_id", "scheduled_at", "entered_room_at", "left_at"):
+    for patient_id, scheduled_at, entered, left, brought_by in appointments.order_by().values_list(
+            "patient_id", "scheduled_at", "entered_room_at", "left_at", "patient__brought_by_id"):
         visit_count += 1
         chair_minutes += minutes_between(entered, left) or 0
         patients.add(patient_id)
         if per_visit:
-            visits_share += visit_share(rules, timezone.localtime(scheduled_at).date())
+            visits_share += visit_share(rules, timezone.localtime(scheduled_at).date(), source_of(dentist.pk, brought_by))
     return {"dentist": dentist, "branch": branch, "rules": rules, "billed": billed, "collected": collected,
-            "services_share": services_share, "visits_share": visits_share, "share": services_share + visits_share,
+            "costs": costs, "services_share": services_share, "visits_share": visits_share, "share": services_share + visits_share,
             "visit_count": visit_count, "chair_minutes": chair_minutes, "patient_count": len(patients)}
 
 

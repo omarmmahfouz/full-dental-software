@@ -1,30 +1,83 @@
-{% extends "base.html" %}
-{% load i18n static %}
-{% block title %}{{ lab_request.number }}{% endblock %}
-{% block content %}
+{% load static i18n clinic %}<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as RTL %}
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if RTL %}rtl{% else %}ltr{% endif %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ lab_request.number }} — {% trans "Lab prescription" %}</title>
+  {% if RTL %}<link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.rtl.min.css' %}">{% else %}<link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">{% endif %}
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'vendor/cairo/cairo.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+</head>
+<body class="paper-page place-{{ place.code }} theme-{{ place.theme }}"{% if place.color %} style="--place: {{ place.color }}; --place-light: color-mix(in srgb, {{ place.color }} 55%, #fff)"{% endif %}>
 {% with lr=lab_request %}
-<div class="card mx-auto" style="max-width: 800px"><div class="card-body p-4">
-  <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-    <div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA"><div><h1 class="h4 fw-bold mb-0">{% trans "Lab prescription" %}</h1><div class="text-muted">{{ lr.branch }}</div></div></div>
-    <div class="text-end"><div class="fs-5 fw-bold">{{ lr.number }}</div><div>{{ lr.created_at|date:"d/m/Y" }}</div></div>
+<div class="paper-toolbar no-print">
+  <a class="btn btn-outline-secondary btn-sm" href="{{ lr.get_absolute_url }}"><i class="bi bi-arrow-{% if RTL %}right{% else %}left{% endif %}"></i> {% trans "Back" %}</a>
+  <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+</div>
+<main class="paper lab-paper">
+  {% include "includes/place_letterhead.html" with place=place %}
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+    <div class="flex-grow-1" style="min-width: 0"><div class="doc-title">{% trans "Lab prescription" %}</div>
+      <span class="lab-stage">{{ lr.get_stage_display }}</span><div class="small text-muted mt-1">{{ lr.get_work_form_display }}</div></div>
+    <div class="text-end ms-auto"><div class="fs-5 fw-bold">{{ lr.number }}</div><div class="small">{{ lr.created_at|date:"d/m/Y" }}</div>
+      {% if lr.due_date %}<div class="lab-due"><i class="bi bi-calendar-event"></i> {% trans "Needed back by" %} <b>{{ lr.due_date|date:"l d/m/Y" }}</b></div>{% endif %}</div>
   </div>
-  <dl class="dl-grid fs-6">
-    <dt>{% trans "Lab" %}</dt><dd>{{ lr.lab }}</dd>
-    <dt>{% trans "Patient" %}</dt><dd>{{ lr.patient.full_name }} ({{ lr.patient.file_number }})</dd>
-    <dt>{% trans "Doctor" %}</dt><dd>{{ lr.dentist|default:"—" }}</dd>
-    <dt>{% trans "Work" %}</dt><dd>{{ lr.work_type }} — {% blocktrans with n=lr.units %}{{ n }} unit(s){% endblocktrans %}</dd>
-    <dt>{% trans "Teeth" %}</dt><dd>{{ lr.teeth }}</dd>
-    <dt>{% trans "Shade" %}</dt><dd>{{ lr.shade|default:"—" }}</dd>
-    <dt>{% trans "Material" %}</dt><dd>{{ lr.material|default:"—" }}</dd>
-    <dt>{% trans "Needed by" %}</dt><dd>{{ lr.due_date|date:"l d/m/Y"|default:"—" }}</dd>
-    <dt>{% trans "Instructions" %}</dt><dd>{{ lr.instructions|linebreaksbr|default:"—" }}</dd>
-  </dl>
-  <div class="row mt-5 text-center">
-    <div class="col">{% trans "Doctor signature" %}<br><br>__________________</div>
-    <div class="col">{% trans "Reviewed by" %}: {{ lr.reviewed_by|default:"" }}<br><br>__________________</div>
-    <div class="col">{% trans "Received by (lab)" %}<br><br>__________________</div>
+
+  <div class="lab-parties mb-3">
+    <div><span class="text-muted small">{% trans "To the lab" %}</span><div class="fw-bold">{{ lr.lab }}</div>{% if lr.lab.phone %}<div class="small ltr">{{ lr.lab.phone }}</div>{% endif %}</div>
+    <div><span class="text-muted small">{% trans "From" %}</span><div class="fw-bold">{{ lr.dentist|default:"—" }}</div>{% if lr.dentist.role_line %}<div class="small">{{ lr.dentist.role_line }}</div>{% endif %}</div>
+    <div><span class="text-muted small">{% trans "Patient" %}</span><div class="fw-bold">{{ lr.patient.full_name }}</div><div class="small">{{ lr.patient.file_number }}{% if lr.patient.age is not None %} · {% blocktrans with age=lr.patient.age %}{{ age }} years{% endblocktrans %}{% endif %}{% if lr.patient.gender %} · {{ lr.patient.get_gender_display }}{% endif %}</div></div>
   </div>
-</div></div>
-<div class="text-center mt-3 no-print"><button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button></div>
+
+  <div class="row g-3 mb-2">
+    <div class="col-7">
+      <div class="doc-subtitle">{% trans "The work" %}</div>
+      <dl class="dl-grid">
+        <dt>{% trans "Work" %}</dt><dd class="fw-bold">{{ lr.work_type }}</dd>
+        <dt>{% trans "Units" %}</dt><dd>{{ lr.units }}</dd>
+        <dt>{% trans "Teeth" %}</dt><dd class="ltr-cell fw-bold">{{ lr.teeth }}</dd>
+        <dt>{% trans "Material" %}</dt><dd>{{ lr.material|default:"—" }}</dd>
+        {% if lr.margin %}<dt>{% trans "Finish line" %}</dt><dd>{{ lr.get_margin_display }}</dd>{% endif %}
+        {% if lr.pontic %}<dt>{% trans "Pontic design" %}</dt><dd>{{ lr.get_pontic_display }}</dd>{% endif %}
+        {% if lr.occlusion %}<dt>{% trans "Occlusion" %}</dt><dd>{{ lr.get_occlusion_display }}</dd>{% endif %}
+        {% if lr.retention or lr.implant_details %}<dt>{% trans "On implants" %}</dt><dd>{{ lr.get_retention_display }}{% if lr.retention and lr.implant_details %} · {% endif %}{{ lr.implant_details }}</dd>{% endif %}
+      </dl>
+    </div>
+    <div class="col-5">
+      <div class="doc-subtitle">{% trans "The teeth" %}</div>
+      <div class="lab-teeth" aria-hidden="true">
+        <div class="lab-teeth-row">{% for tooth, on in upper %}<span class="{% if on %}is-on{% endif %}">{{ tooth }}</span>{% endfor %}</div>
+        <div class="lab-teeth-row">{% for tooth, on in lower %}<span class="{% if on %}is-on{% endif %}">{{ tooth }}</span>{% endfor %}</div>
+      </div>
+    </div>
+  </div>
+
+  {% if shade_colours %}
+  <div class="paper-section">
+    <div class="doc-subtitle">{% trans "The shade" %}{% if lr.shade_guide %} <span class="small text-muted fw-normal">— {{ lr.get_shade_guide_display }}</span>{% endif %}</div>
+    <div class="d-flex flex-wrap gap-3">{% for label, value, colour in shade_colours %}<div class="text-center"><div class="shade-tab is-chosen mx-auto" style="--shade: {{ colour|default:'#EEE9DD' }}">{{ value }}</div><div class="small text-muted mt-1">{{ label }}</div></div>{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  <div class="paper-section">
+    <div class="doc-subtitle">{% trans "Sent with the work" %}</div>
+    <div class="lab-enclosures">{% for code, label in lr.ENCLOSURES %}<span class="{% if code in lr.enclosures %}is-on{% endif %}"><i class="bi {% if code in lr.enclosures %}bi-check-square-fill{% else %}bi-square{% endif %}"></i> {{ label }}</span>{% endfor %}</div>
+  </div>
+
+  <div class="paper-section">
+    <div class="doc-subtitle">{% trans "Instructions" %}</div>
+    <div class="letter-box" style="min-height: 4.5rem">{{ lr.instructions|linebreaksbr|default:"" }}</div>
+  </div>
+
+  <div class="signature-row mt-4">
+    <div class="signature-block"><div class="fw-bold">{{ lr.dentist|default:"" }}</div><div class="signature-line">{% trans "Doctor signature" %}</div></div>
+    <div class="signature-block"><div class="fw-bold">{{ lr.supervisor|default:lr.reviewed_by|default:"" }}</div><div class="signature-line">{% trans "Reviewed by" %}</div></div>
+    <div class="signature-block"><div class="fw-bold">&nbsp;</div><div class="signature-line">{% trans "Received by (lab)" %}</div></div>
+  </div>
+</main>
 {% endwith %}
-{% endblock %}
+</body>
+</html>

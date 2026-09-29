@@ -16,6 +16,7 @@
     {% endif %}
   </div>
 </div>
+{% if current_branch.rooms_shared %}<div class="alert alert-info py-2 small no-print"><i class="bi bi-door-open"></i> {% trans "The rooms are shared at this place: any doctor books any free room, and no room schedule is needed. Use it only to keep a visiting doctor's fixed days: the nearest free times then offer his days only." %} <a href="{% url 'scheduling:day_planner' %}?by=doctor">{% trans "The day by doctor" %}</a></div>{% endif %}
 {% if can_edit %}<p class="small text-muted no-print mb-2"><i class="bi bi-info-circle"></i> {% trans "“Same as last week” copies last week’s shifts (who works in which room, the hours and the supervisor) into this week, so a weekly timetable is typed only once. A surgery day is set per room: one room can have a surgery while the others work a regular day." %}</p>{% endif %}
 {% if can_edit and extra_rooms %}<div class="small mb-2 no-print"><i class="bi bi-door-open"></i> {% trans "Extra rooms (open on busy days):" %}
   {% for room in extra_rooms %}<a class="btn btn-sm btn-outline-secondary ms-1" href="{% url 'scheduling:shift_create' %}?room={{ room.pk }}"><i class="bi bi-plus-lg"></i> {{ room }}</a>{% endfor %}</div>{% endif %}

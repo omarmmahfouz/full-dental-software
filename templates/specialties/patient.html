@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Specialists" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% if clinical %}{% with active="specialists" %}{% include "includes/patient_nav.html" %}{% endwith %}
+{% else %}<div class="page-header"><h1><i class="bi bi-person-lines-fill"></i> {% trans "Referrals" %} — <a href="{{ patient.get_absolute_url }}">{{ patient.full_name }}</a> <small class="text-muted fs-6">{{ patient.file_number }}</small></h1></div>{% endif %}
+
+{% if clinical %}
+<div class="specialist-tiles mb-3">
+  <a class="specialist-tile" href="{% url 'specialties:referral_create' %}?patient={{ patient.pk }}"><i class="bi bi-send"></i><span>{% trans "Refer to a specialist" %}</span></a>
+  <a class="specialist-tile" href="{% url 'specialties:endo_create' %}?patient={{ patient.pk }}"><i class="bi bi-bullseye"></i><span>{% trans "Endodontic chart" %}</span></a>
+  <a class="specialist-tile" href="{% url 'specialties:tmj_create' %}?patient={{ patient.pk }}"><i class="bi bi-person-bounding-box"></i><span>{% trans "TMJ examination" %}</span></a>
+  <a class="specialist-tile" href="{% url 'specialties:ortho_create' %}?patient={{ patient.pk }}"><i class="bi bi-distribute-horizontal"></i><span>{% trans "Orthodontic case" %}</span></a>
+  <a class="specialist-tile" href="{% url 'specialties:shade_create' %}?patient={{ patient.pk }}"><i class="bi bi-palette2"></i><span>{% trans "Take the shade" %}</span></a>
+</div>
+{% if specialists %}<div class="small text-muted mb-3"><i class="bi bi-people"></i> {% trans "Our specialists" %}:
+  {% for d in specialists %}<a class="badge text-bg-light text-decoration-none" href="{% url 'specialties:referral_create' %}?patient={{ patient.pk }}&amp;to={{ d.pk }}" data-tip="{% trans 'Refer to this doctor' %}">{{ d }} · {{ d.get_specialty_display }}</a> {% endfor %}</div>{% endif %}
+{% endif %}
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-send"></i> {% trans "Referrals" %} ({{ records.referrals|length }})</div>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>{% trans "Number" %}</th><th>{% trans "Date" %}</th><th>{% trans "From" %}</th><th>{% trans "To" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Status" %}</th></tr></thead>
+    <tbody>{% for r in records.referrals %}<tr>
+      <td><a href="{{ r.get_absolute_url }}">{{ r.number }}</a>{% if r.urgency == "urgent" %} <span class="badge text-bg-danger">{% trans "urgent" %}</span>{% endif %}</td>
+      <td class="nowrap">{{ r.created_at|date:"d/m/Y" }}</td><td>{{ r.from_dentist|default:"—" }}</td>
+      <td>{{ r.to_name }}{% if r.specialty %}<div class="small text-muted">{{ r.get_specialty_display }}</div>{% endif %}</td>
+      <td>{{ r.teeth|default:"—" }}</td>
+      <td><span class="badge {% if r.status == 'sent' %}text-bg-warning{% elif r.status == 'booked' %}text-bg-primary{% elif r.status == 'done' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ r.get_status_display }}</span>{% if r.appointment %} <span class="small">{{ r.appointment.scheduled_at|date:"d/m g:i A" }}</span>{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="6" class="text-muted">{% trans "No referrals." %}</td></tr>{% endfor %}</tbody>
+  </table></div></div>
+
+{% if clinical %}
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><i class="bi bi-bullseye"></i> {% trans "Endodontics" %} ({{ records.endo|length }})</div>
+    <ul class="list-group list-group-flush">{% for c in records.endo %}<a class="list-group-item list-group-item-action d-flex justify-content-between gap-2" href="{{ c.get_absolute_url }}">
+      <span><b>{{ c.tooth }}</b> — {{ c.get_treatment_display }}<div class="small text-muted">{{ c.get_pulpal_diagnosis_display|default:"" }}{% if c.apical_diagnosis %} · {{ c.get_apical_diagnosis_display }}{% endif %}</div></span>
+      <span class="text-end small">{{ c.started_on|date:"d/m/Y" }}<div><span class="badge {% if c.status == 'obturated' %}text-bg-success{% elif c.status == 'open' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">{{ c.get_status_display }}</span></div></span></a>
+    {% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><i class="bi bi-person-bounding-box"></i> {% trans "TMJ" %} ({{ records.tmj|length }})</div>
+    <ul class="list-group list-group-flush">{% for e in records.tmj %}<a class="list-group-item list-group-item-action d-flex justify-content-between gap-2" href="{{ e.get_absolute_url }}">
+      <span>{% for d in e.diagnosis_labels %}{{ d }}{% if not forloop.last %}, {% endif %}{% empty %}{% trans "TMJ examination" %}{% endfor %}<div class="small text-muted">{% if e.opening %}{% blocktrans with mm=e.opening %}opening {{ mm }} mm{% endblocktrans %}{% endif %}{% if e.pain_vas is not None %} · {% blocktrans with n=e.pain_vas %}pain {{ n }}/10{% endblocktrans %}{% endif %}</div></span>
+      <span class="small">{{ e.exam_date|date:"d/m/Y" }}</span></a>
+    {% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><i class="bi bi-distribute-horizontal"></i> {% trans "Orthodontics" %} ({{ records.ortho|length }})</div>
+    <ul class="list-group list-group-flush">{% for c in records.ortho %}<a class="list-group-item list-group-item-action d-flex justify-content-between gap-2" href="{{ c.get_absolute_url }}">
+      <span>{{ c.get_appliance_display|default:_("Orthodontic case") }}<div class="small text-muted">{% if c.molar_right %}{% trans "molars" %} {{ c.get_molar_right_display }} / {{ c.get_molar_left_display|default:"—" }}{% endif %}</div></span>
+      <span class="text-end small">{{ c.records_on|date:"d/m/Y" }}<div><span class="badge text-bg-light">{{ c.get_status_display }}</span></div></span></a>
+    {% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><i class="bi bi-palette2"></i> {% trans "Shades taken" %} ({{ records.shades|length }})</div>
+    <ul class="list-group list-group-flush">{% for s in records.shades %}<a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2" href="{{ s.get_absolute_url }}">
+      <span><span class="shade-chip" style="--shade: {{ s|shade_colour }}"></span> <b>{{ s.shade }}</b>{% if s.stump %} · {% trans "stump" %} {{ s.stump }}{% endif %} — {{ s.teeth }}<div class="small text-muted">{{ s.prosthesis }}</div></span>
+      <span class="small">{{ s.taken_on|date:"d/m/Y" }}</span></a>
+    {% empty %}<li class="list-group-item text-muted">{% trans "None." %}</li>{% endfor %}</ul></div></div>
+</div>
+{% endif %}
+{% endblock %}

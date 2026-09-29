@@ -42,6 +42,18 @@ class Dentist(TimeStampedModel):
         SPECIALIST = "specialist", _("Specialist")
         FREELANCER = "freelancer", _("Freelance dentist")
 
+    class Specialty(models.TextChoices):
+        GENERAL = "general", _("General dentist")
+        PROSTHODONTIST = "prosthodontist", _("Prosthodontist")
+        ENDODONTIST = "endodontist", _("Endodontist")
+        ORAL_SURGEON = "oral_surgeon", _("Oral surgeon")
+        TMJ = "tmj", _("TMJ specialist (oral surgeon)")
+        ORTHODONTIST = "orthodontist", _("Orthodontist")
+        PERIODONTIST = "periodontist", _("Periodontist")
+        PEDODONTIST = "pedodontist", _("Paediatric dentist")
+        IMPLANTOLOGIST = "implantologist", _("Implantologist")
+        COSMETIC = "cosmetic", _("Cosmetic dentist")
+
     full_name = models.CharField(_("full name"), max_length=150, db_index=True)
     name_ar = models.CharField(
         _("name in Arabic"), max_length=150, blank=True,
@@ -63,6 +75,10 @@ class Dentist(TimeStampedModel):
         Branch, verbose_name=_("works at"), blank=True, related_name="place_dentists",
         help_text=_("The places this dentist works in, e.g. CIA and CIC. They are offered on the bookings and "
                     "the room schedule of these places."))
+    specialty = models.CharField(_("specialty"), max_length=20, choices=Specialty.choices, blank=True, db_index=True)
+    title = models.CharField(
+        _("title on printed papers"), max_length=150, blank=True,
+        help_text=_("e.g. Consultant of prosthodontics — printed under the name on treatment plans and referrals."))
     phone = models.CharField(_("mobile"), max_length=20, blank=True)
     is_active = models.BooleanField(
         _("working now"), default=True, help_text=_("Untick when they leave, so they no longer appear in the lists.")
@@ -92,12 +108,19 @@ class Dentist(TimeStampedModel):
 
     @property
     def label(self):
-        """Name with its type (and batch for candidates), for drop-down lists."""
+        """Name with its type (and batch for candidates), or its specialty, for drop-down lists."""
         if self.kind == self.Kind.CANDIDATE and self.candidate_id:
             enrollment = self.candidate.current_enrollment
             if enrollment:
                 return f"{self} — {enrollment.course.code}"
+        if self.specialty and self.specialty != self.Specialty.GENERAL:
+            return f"{self} — {self.get_specialty_display()}"
         return f"{self} — {self.get_kind_display()}"
+
+    @property
+    def role_line(self):
+        """What is printed under the doctor's name: the title, else the specialty."""
+        return self.title or (self.get_specialty_display() if self.specialty else "")
 
     @classmethod
     def for_user(cls, user):

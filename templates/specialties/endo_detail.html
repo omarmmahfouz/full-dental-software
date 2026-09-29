@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load i18n clinic l10n %}
+{% block title %}{% trans "Endodontics" %} {{ case.tooth }} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% include "specialties/_head.html" with place=case.branch clinical_nav=True %}
+<div class="page-header">
+  <h1><i class="bi bi-bullseye"></i> {% trans "Endodontics" %} <span class="tooth-badge">{{ case.tooth }}</span>
+    <span class="badge {% if case.status == 'obturated' %}text-bg-success{% elif case.status == 'open' %}text-bg-primary{% else %}text-bg-secondary{% endif %} fs-6">{{ case.get_status_display }}</span></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'specialties:endo_edit' case.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    {% if case.status == "open" %}<form method="post">{% csrf_token %}<button class="btn btn-success" name="action" value="finish" data-confirm="{% trans 'The tooth is obturated? The dental chart will show the root canal and it is written in the treatment log.' %}"><i class="bi bi-check2-circle"></i> {% trans "Obturated: finish the case" %}</button></form>
+    {% elif case.status == "obturated" %}<form method="post">{% csrf_token %}<button class="btn btn-outline-secondary" name="action" value="reopen">{% trans "Reopen" %}</button></form>{% endif %}
+    {% if case.referral %}<a class="btn btn-outline-primary" href="{{ case.referral.get_absolute_url }}"><i class="bi bi-reply"></i> {% trans "Answer the referral" %}</a>{% endif %}
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print the report" %}</button>
+  </div>
+</div>
+<div class="small text-muted mb-3">{{ case.dentist|default:"" }} · {% trans "first visit" %} {{ case.started_on|date:"d/m/Y" }}{% if case.obturated_on %} · {% trans "obturated on" %} {{ case.obturated_on|date:"d/m/Y" }}{% endif %}{% if case.treatment_step %} · <a href="{{ case.treatment_step.get_absolute_url }}">{% trans "in the treatment log" %}</a>{% endif %}</div>
+{% if medicated and case.status == "open" %}<div class="alert alert-warning py-2"><i class="bi bi-capsule"></i> {% blocktrans with medication=medicated.get_medication_display day=medicated.date|date:"d/m/Y" %}{{ medication }} in the canals since {{ day }}.{% endblocktrans %}</div>{% endif %}
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-clipboard2-pulse"></i> {% trans "Diagnosis (AAE)" %}</div><div class="card-body">
+    <div class="diag-line"><span class="text-muted small">{% trans "Pulp" %}</span><b>{{ case.get_pulpal_diagnosis_display|default:"—" }}</b></div>
+    <div class="diag-line"><span class="text-muted small">{% trans "Apical tissues" %}</span><b>{{ case.get_apical_diagnosis_display|default:"—" }}</b></div>
+    <div class="diag-line"><span class="text-muted small">{% trans "Treatment" %}</span><b>{{ case.get_treatment_display }}</b></div>
+    {% if case.difficulty %}<div class="mt-2"><span class="badge {% if case.difficulty == 'high' %}text-bg-danger{% elif case.difficulty == 'moderate' %}text-bg-warning{% else %}text-bg-success{% endif %}">{{ case.get_difficulty_display }}</span></div>
+    <ul class="small mb-0 mt-1">{% for f in case.factor_labels %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
+    {% if case.prognosis %}<div class="mt-2 small">{% trans "Prognosis" %}: <b>{{ case.get_prognosis_display }}</b></div>{% endif %}
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-thermometer-half"></i> {% trans "History and tests" %}</div><div class="card-body small">
+    {% if case.chief_complaint %}<p class="mb-2">{{ case.chief_complaint|linebreaksbr }}</p>{% endif %}
+    <dl class="dl-grid">
+      <dt>{% trans "Pain" %}</dt><dd>{{ case.get_pain_display|default:"—" }}{% if case.pain_kinds %}<div>{{ case.pain_labels|join:", " }}</div>{% endif %}</dd>
+      <dt>{% trans "Cold" %}</dt><dd>{{ case.get_cold_test_display|default:"—" }}</dd>
+      {% if case.heat_test %}<dt>{% trans "Heat" %}</dt><dd>{{ case.get_heat_test_display }}</dd>{% endif %}
+      {% if case.ept %}<dt>EPT</dt><dd>{{ case.ept }}</dd>{% endif %}
+      <dt>{% trans "Percussion" %}</dt><dd>{{ case.get_percussion_display|default:"—" }}</dd>
+      <dt>{% trans "Palpation" %}</dt><dd>{{ case.get_palpation_display|default:"—" }}</dd>
+      {% if case.mobility is not None %}<dt>{% trans "Mobility" %}</dt><dd>{{ case.get_mobility_display }}</dd>{% endif %}
+      {% if case.probing %}<dt>{% trans "Probing" %}</dt><dd>{{ case.probing }}</dd>{% endif %}
+      <dt>{% trans "Swelling" %}</dt><dd>{{ case.get_swelling_display|default:"—" }}{% if case.sinus_tract %} · {% trans "sinus tract" %}{% endif %}</dd>
+    </dl>
+    {% if case.radiographic %}<div class="mt-2"><b>{% trans "X-ray / CBCT" %}:</b> {{ case.radiographic|linebreaksbr }}</div>{% endif %}
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-tools"></i> {% trans "How it is treated" %}</div><div class="card-body small">
+    <dl class="dl-grid">
+      <dt>{% trans "Anaesthesia" %}</dt><dd>{{ case.anaesthesia|default:"—" }}</dd>
+      <dt>{% trans "Isolation" %}</dt><dd>{% if case.rubber_dam %}{% trans "Rubber dam" %}{% else %}{% trans "No rubber dam" %}{% endif %}{% if case.magnification %} · {{ case.magnification }}{% endif %}</dd>
+      <dt>{% trans "Files" %}</dt><dd>{{ case.instruments|default:"—" }}</dd>
+      <dt>{% trans "Irrigation" %}</dt><dd>{{ case.irrigant_labels|join:", "|default:"—" }}{% if case.activation %} · {{ case.get_activation_display }}{% endif %}</dd>
+      <dt>{% trans "Obturation" %}</dt><dd>{{ case.get_obturation_display|default:"—" }}{% if case.sealer %} · {{ case.get_sealer_display }}{% endif %}</dd>
+      <dt>{% trans "Then" %}</dt><dd>{{ case.get_restoration_display|default:"—" }}</dd>
+      {% if case.recall %}<dt>{% trans "Recall" %}</dt><dd>{{ case.recall }}</dd>{% endif %}
+    </dl>
+  </div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-rulers"></i> {% trans "The canals" %}</div>
+  <div class="card-body">
+    {% if canals %}
+    <div class="canal-chart mb-3" aria-hidden="true">{% for c in canals %}<div class="canal-col"><div class="canal-bar" style="--wl: {{ c.working_length|default:0|unlocalize }}"><span>{{ c.working_length|default:"?" }}</span></div><div class="canal-name">{{ c.name }}</div></div>{% endfor %}<div class="canal-scale"><span>30</span><span>20</span><span>10</span><span>0 mm</span></div></div>
+    <div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th>{% trans "Canal" %}</th><th>{% trans "Reference point" %}</th><th class="text-end">{% trans "Working length" %}</th><th>{% trans "Measured by" %}</th><th>{% trans "Master apical file" %}</th><th>{% trans "Master cone" %}</th><th>{% trans "Curvature" %}</th><th>{% trans "Notes" %}</th></tr></thead>
+      <tbody>{% for c in canals %}<tr><td class="fw-bold">{{ c.name }}</td><td>{{ c.reference|default:"—" }}</td><td class="text-end fw-semibold">{% if c.working_length %}{{ c.working_length }} mm{% else %}—{% endif %}</td><td>{{ c.get_method_display|default:"—" }}</td><td>{{ c.master_file|default:"—" }}</td><td>{{ c.master_cone|default:"—" }}</td><td>{{ c.get_curvature_display|default:"—" }}</td><td class="small">{{ c.notes }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="text-muted mb-0">{% trans "No canals written yet: Edit → The canals." %}</p>{% endif %}
+  </div></div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-calendar-check"></i> {% trans "Visits" %} ({{ visits|length }})</div>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>#</th><th>{% trans "Date" %}</th><th>{% trans "Done at this visit" %}</th><th>{% trans "Intracanal medication" %}</th><th>{% trans "Temporary filling" %}</th><th>{% trans "Pain before" %}</th><th>{% trans "Notes" %}</th></tr></thead>
+    <tbody>{% for v in visits %}<tr><td>{{ forloop.counter }}</td><td class="nowrap">{{ v.date|date:"d/m/Y" }}</td><td class="small">{{ v.work_labels|join:", "|default:"—" }}</td><td>{{ v.get_medication_display|default:"—" }}</td><td>{{ v.get_temporary_display|default:"—" }}</td><td>{% if v.pain is not None %}{{ v.pain }}/10{% else %}—{% endif %}</td><td class="small">{{ v.notes }}</td></tr>
+    {% empty %}<tr><td colspan="7" class="text-muted">{% trans "No visits yet." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if case.status == "open" %}<div class="card-body border-top no-print">
+    <div class="section-title mt-0">{% trans "Add a visit" %}</div>
+    <form method="post" novalidate>{% csrf_token %}{% with form=visit_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-primary mt-3"><i class="bi bi-plus-circle"></i> {% trans "Save the visit" %}</button></form>
+  </div>{% endif %}
+</div>
+{% if case.notes %}<div class="card mb-3"><div class="card-body"><b>{% trans "Notes" %}:</b> {{ case.notes|linebreaksbr }}</div></div>{% endif %}
+<div class="d-none d-print-flex justify-content-end mt-5"><div class="signature-block"><div class="fw-bold">{{ case.dentist|default:"" }}</div>{% if case.dentist.role_line %}<div class="small text-muted">{{ case.dentist.role_line }}</div>{% endif %}<div class="signature-line">{% trans "Signature" %}</div></div></div>
+{% endblock %}

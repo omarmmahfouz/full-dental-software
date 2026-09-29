@@ -74,9 +74,10 @@ def has_role(user, *roles):
 
 def is_only_dentist(user):
     """True for CIA dentists without a desk, management or team-head role: in the
-    schedule and work lists they see only their own shifts, visits and work."""
+    schedule and work lists they see only their own shifts, visits and work. A doctor who also
+    manages a clinic (e.g. Dr. Amr at El Khadem) sees everything there."""
     roles = user_roles(user)
-    return DENTIST in roles and not roles & set(FRONT_DESK + (TEAM_HEAD,))
+    return DENTIST in roles and not roles & set(FRONT_DESK + (TEAM_HEAD, MODERATOR))
 
 
 def users_with_role(*roles):

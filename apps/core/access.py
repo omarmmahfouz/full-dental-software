@@ -32,6 +32,8 @@ AREAS = [
     ("stock", gettext_lazy("Stock"), ["/stock/"]),
     ("reports", gettext_lazy("Reports"), ["/reports/"]),
     ("clinics", gettext_lazy("Clinics: doctors' shares and clinic report"), ["/clinics/"]),
+    ("specialists", gettext_lazy("Specialists: referrals, endodontics, TMJ, orthodontics, shades"),
+     ["/specialists/"]),
 ]
 AREA_LABELS = {code: label for code, label, _prefixes in AREAS}
 _PREFIXES = sorted(((prefix, code) for code, _label, prefixes in AREAS for prefix in prefixes), key=lambda p: -len(p[0]))
@@ -71,6 +73,12 @@ def area_levels(user):
                 levels.pop(rule.area, None)
             else:
                 levels[rule.area] = rule.level
+        # The academy (candidates, courses, installments) is for the people who work at the academy: the reception
+        # of El Khadem or CIC alone does not see it.
+        from .models import Branch, working_places
+
+        if not working_places(user).filter(kind=Branch.Kind.ACADEMY).exists():
+            levels["academy"] = AreaAccess.Level.HIDDEN
         profile = getattr(user, "profile", None)
         if profile is not None and profile.read_only:
             for code, _label, _prefixes in AREAS:

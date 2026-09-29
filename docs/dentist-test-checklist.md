@@ -222,3 +222,29 @@ Delete the `data` folder and run `trial-windows.bat` again to get the new sample
 104. **Edit a photo before the log book**: *Photos* → the crop button 🔲 under a photo: draw a frame (4:3 fits the log book), turn, mirror (mirror shots), lighter / contrast / colour, then *Save the photo*. The original is kept: *Put back the original* undoes it. (The trial copy has no photos: upload one first.)
 105. **Bookings to approve**: as `dentist2` (Dr. Sherif), the home page shows **Bookings to approve**: a booking on a Friday, not his day. Open it: *Approve* or *Refuse* (the reception is told).
 106. **Owner / head**: a booking outside a dentist's days also waits for the head of CIA; the owner sees a receipt's changes and every cancelled or refunded receipt in the notifications.
+
+## R. New in this version (8): El Khadem Dental Clinic and the specialists
+The whole of El Khadem is in **[khadem-test-checklist.md](khadem-test-checklist.md)** (log in as `amr` or `endo`). For
+the CIA dentists, the heads and the owner:
+107. **Specialty and title**: *Academy → Dentists → a dentist → Edit*: choose his **specialty** (endodontist, TMJ
+     specialist, orthodontist, oral surgeon, prosthodontist…) and write his **title** (e.g. *Lecturer of endodontics*).
+     They show on the dentist list, the letters and the printed plan.
+108. **Specialists** tab on a patient's file (at every place): refer the patient to a specialist, or open an
+     **endodontic chart**, a **TMJ examination**, an **orthodontic case** or a **shade**. *Clinical → Specialist cases*
+     lists them.
+109. **The treatment plan for the patient**: open a plan → **Plan for the patient**: an A4 page with the place's
+     letterhead, the diagnosis, the chart, the phases with the doctor and the fee of each step, the total and the
+     duration, the other options and the consent. *Edit* a plan: the diagnosis, the duration, the other options, and on
+     each item **By the doctor** and **Fee**; tick **Comprehensive case** to print the treatment team. **العربية**
+     prints it in Arabic for the patient.
+110. **The lab request asks for more**: the stage (final, framework try-in, bisque try-in…), the **shade of the three
+     thirds** tapped on the coloured tabs of the guide, the **stump shade**, the finish line, the pontic, the occlusion,
+     the retention and parts on implants, and **what is sent with the work** (impression, scan, bite, photos…).
+     **Print lab form**: the letterhead, the teeth on a small chart, the shades in colour and three signatures.
+111. **Owner, the look of a place**: *Settings → Places → El Khadem*: the file prefix (EK), the line under the name,
+     the e-mail, the **look of the screens** (standard / elite), a colour, a **logo**, the opening hours, the closed
+     days and *rooms are shared*. Switch the top bar to **EK**: the screens become navy and gold.
+112. **Owner, a PC's login page**: open `http://localhost:8000/login/?place=EK` once: that PC then shows El Khadem's
+     login page, and logging in there opens El Khadem. `?place=CIA` puts it back.
+113. **Owner, approvals**: *Changes to approve* shows the place of each change. The changes of El Khadem's reception are
+     approved by Dr. Amr (`amr`), and the owner sees all of them.

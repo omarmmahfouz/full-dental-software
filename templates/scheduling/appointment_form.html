@@ -69,7 +69,7 @@
         dayBox.hidden = !data.text;
         dayBox.textContent = data.text;
         dayBox.className = "alert py-2 small mb-2 " + (data.working ? "alert-success" : "alert-warning");
-        if (data.working && roomSelect) {
+        if (data.working && roomSelect && data.shifts.length) {
           var rooms = data.shifts.map(function (s) { return String(s.room_id); });
           if (rooms.indexOf(roomSelect.value) < 0) roomSelect.value = rooms[0];  // the room of his shift; it can still be changed
         }

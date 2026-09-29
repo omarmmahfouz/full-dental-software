@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% with active="specialists" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="page-header"><h1><i class="bi {% if form.guide %}bi-palette2{% elif form.molar_right %}bi-distribute-horizontal{% else %}bi-person-bounding-box{% endif %}"></i> {{ title }}</h1></div>
+{% if referral %}<div class="alert alert-info py-2"><i class="bi bi-send"></i> {% blocktrans with number=referral.number doctor=referral.from_dentist %}For the referral {{ number }} from {{ doctor }}{% endblocktrans %}: {{ referral.reason|truncatechars:120 }}</div>{% endif %}
+{% if form.guide %}<p class="small text-muted"><i class="bi bi-info-circle"></i> {% trans "Take the shade in daylight or under a shade lamp, before the preparation and before the teeth dry. Tap a tab to choose it: the colours on a screen are close to the real guide, not exact." %}</p>{% endif %}
+<div class="card"><div class="card-body">
+  <form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+    <input type="hidden" name="patient" value="{{ patient.pk }}">{% if referral %}<input type="hidden" name="referral" value="{{ referral.pk }}">{% endif %}
+    {% include "includes/form_fields.html" %}
+    <div class="form-actions mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+      <a class="btn btn-outline-secondary" href="{% if record %}{{ record.get_absolute_url }}{% else %}{% url 'specialties:patient' patient.pk %}{% endif %}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% if form.guide %}{% include "specialties/_shade_data.html" %}{% endif %}
+{% endblock %}

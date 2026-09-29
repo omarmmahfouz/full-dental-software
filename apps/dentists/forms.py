@@ -28,7 +28,7 @@ class DentistChoiceField(forms.ModelChoiceField):
 class DentistForm(StyledModelForm):
     class Meta:
         model = Dentist
-        fields = ["full_name", "name_ar", "kind", "phone", "places", "user", "is_active", "notes"]
+        fields = ["full_name", "name_ar", "kind", "specialty", "title", "phone", "places", "user", "is_active", "notes"]
         widgets = {"places": forms.CheckboxSelectMultiple}
 
     def __init__(self, *args, **kwargs):

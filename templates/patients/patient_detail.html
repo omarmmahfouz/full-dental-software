@@ -6,7 +6,7 @@
   <div>
     <h1>{{ patient.full_name }} <small class="text-muted fs-6">{{ patient.file_number }}</small> {% status_badge patient %}</h1>
     {% if patient.status == "out" %}<div class="alert alert-danger py-1 px-2 small d-inline-block mb-1"><i class="bi bi-box-arrow-right"></i> {% trans "Out" %}: {{ patient.out_reason|default:"" }}{% if patient.out_notes %} — {{ patient.out_notes }}{% endif %}
-      {% if moved_to %}· {% if moved_to_opens %}<a href="{{ moved_to.get_absolute_url }}" class="alert-link">{% blocktrans with place=moved_to.branch.code file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}</a>{% else %}{% blocktrans with place=moved_to.branch.code file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}{% endif %}{% endif %}</div>{% endif %}
+      {% if moved_to %}· {% if moved_to_opens %}<a href="{{ moved_to.get_absolute_url }}" class="alert-link">{% blocktrans with place=moved_to.branch.badge file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}</a>{% else %}{% blocktrans with place=moved_to.branch.badge file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}{% endif %}{% endif %}</div>{% endif %}
     <div class="mt-1">
       {% for lr in open_labs %}<span class="lab-flag"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}: {{ lr.work_type }} — {{ lr.get_status_display }}</span> {% endfor %}
       {% for c in complaints %}{% if c.is_open %}<span class="complaint-flag"><i class="bi bi-exclamation-circle"></i> {% trans "Open complaint" %} {{ c.number }}</span> {% endif %}{% endfor %}
@@ -17,6 +17,7 @@
     <a class="btn btn-success" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a>
     <a class="btn btn-outline-success" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-implant"></i> {% trans "New surgery chart" %}</a>
     <a class="btn btn-outline-secondary" href="{% url 'charting:case_report' patient.pk %}"><i class="bi bi-journal-medical"></i> {% trans "Case report" %}</a>
+    {% if "specialists" not in hidden_areas %}<a class="btn btn-outline-primary" href="{% url 'specialties:patient' patient.pk %}"><i class="bi bi-person-lines-fill"></i> {% trans "Specialists" %}{% if open_referrals %} <span class="badge text-bg-warning">{{ open_referrals }}</span>{% endif %}</a>{% endif %}
     <div class="btn-group">
       <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> {% trans "Export the file" %}</button>
       <ul class="dropdown-menu">
@@ -33,11 +34,12 @@
     <a class="btn btn-outline-success" href="{% url 'billing:account' patient.pk %}"><i class="bi bi-wallet2"></i> {% trans "Account & payments" %}</a>{% endif %}
     <a class="btn btn-primary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}{% if working_places %} ({{ current_branch.code }}){% endif %}</a>
     <a class="btn btn-outline-warning" href="{% url 'complaints:create' %}?patient={{ patient.pk }}"><i class="bi bi-chat-left-dots"></i> {% trans "Record complaint" %}</a>
+    {% if not is_clinical and open_referrals and "specialists" not in hidden_areas %}<a class="btn btn-warning" href="{% url 'specialties:patient' patient.pk %}"><i class="bi bi-send"></i> {% trans "Referrals to book" %} <span class="badge text-bg-light">{{ open_referrals }}</span></a>{% endif %}
     {% if move_places %}<div class="btn-group">
       <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-arrow-left-right"></i> {% trans "Move to another place" %}</button>
       <ul class="dropdown-menu">{% for place in move_places %}<li>
         <form method="post" action="{% url 'patients:transfer' patient.pk %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="place" value="{{ place.code }}">
-          <button class="dropdown-item" data-confirm="{% blocktrans with place=place.name %}Move this patient to {{ place }}? A new file is opened there with a new number, this file is closed (out), and the coming visits here are cancelled. The visits, charts and bills stay in this file.{% endblocktrans %}"><span class="place-badge place-{{ place.code }}">{{ place.code }}</span> {{ place.name }}</button></form>
+          <button class="dropdown-item" data-confirm="{% blocktrans with place=place.name %}Move this patient to {{ place }}? A new file is opened there with a new number, this file is closed (out), and the coming visits here are cancelled. The visits, charts and bills stay in this file.{% endblocktrans %}"><span class="place-badge place-{{ place.code }}">{{ place.badge }}</span> {{ place.name }}</button></form>
       </li>{% endfor %}</ul>
     </div>{% endif %}
     {% endif %}
@@ -94,6 +96,7 @@
           <dt>{% trans "Mobile 2" %}</dt><dd><span class="ltr">{{ patient.phone_secondary|default:"—" }}</span>{% if patient.preferred_phone == "secondary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
           <dt>{% trans "Address" %}</dt><dd>{{ patient.get_governorate_display }}{% if patient.governorate and patient.city %} — {% endif %}{{ patient.city }} {{ patient.address }}</dd>
           <dt>{% trans "Responsible dentist" %}</dt><dd class="fw-bold">{{ patient.assigned_dentist|default:"—" }}</dd>
+          {% if patient.brought_by %}<dt>{% trans "The doctor's own patient" %}</dt><dd><span class="badge text-bg-warning">{% blocktrans with doctor=patient.brought_by %}brought by {{ doctor }}{% endblocktrans %}</span></dd>{% endif %}
           <dt>{% trans "Registered" %}</dt><dd class="small text-muted">{{ patient.created_at|date:"d/m/Y" }} — {{ patient.created_by|default:"" }}</dd>
           <dt>{% trans "Notes" %}</dt><dd>{{ patient.notes|linebreaksbr|default:"—" }}</dd>
         </dl></div>
@@ -120,7 +123,7 @@
       <tbody>
       {% for a in appointments %}
       <tr>
-        <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|date:"d/m/Y g:i A" }}</a>{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}{% if a.branch_id != patient.branch_id %} <span class="place-badge place-{{ a.branch.code }}">{{ a.branch.code }}</span>{% endif %}</td>
+        <td class="nowrap"><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|date:"d/m/Y g:i A" }}</a>{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}{% if a.branch_id != patient.branch_id %} <span class="place-badge place-{{ a.branch.code }}">{{ a.branch.badge }}</span>{% endif %}</td>
         <td>{{ a.room|default:"—" }}</td><td>{{ a.dentist|default:"—" }}</td>
         <td>{{ a.arrived_at|time:"g:i A"|default:"—" }}</td>
         <td>{% if a.is_late %}<span class="text-danger fw-bold">{{ a.late_minutes|minutes }}</span>{% elif a.late_minutes is not None %}{{ a.late_minutes|minutes }}{% else %}—{% endif %}</td>

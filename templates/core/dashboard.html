@@ -29,7 +29,7 @@
 <div class="row g-3 mb-3">{% for card in clinic_cards %}
   <div class="col-lg-6"><a class="card clinic-card h-100 text-decoration-none place-{{ card.place.code }}" href="{% url 'clinics:report' %}?place={{ card.place.code }}">
     <div class="card-body">
-      <div class="d-flex align-items-center gap-2 mb-2"><span class="place-letterhead-code small-code">{{ card.place.code }}</span>
+      <div class="d-flex align-items-center gap-2 mb-2"><span class="place-letterhead-code small-code">{{ card.place.badge }}</span>
         <div><div class="fw-bold text-body">{{ card.place }}</div><div class="small text-muted">{% trans "This month" %}</div></div></div>
       <div class="clinic-card-stats">
         <div><b>{{ card.visit_count }}</b><span>{% trans "visits" %}</span></div>
@@ -117,9 +117,9 @@
           {% for d in my_week %}
           <div class="my-week-day{% if forloop.first %} is-today{% endif %}">
             <div class="fw-bold">{{ d.day|date:"l" }} <span class="fw-normal text-muted small">{{ d.day|date:"d/m" }}</span></div>
-            {% for s in d.shifts %}<div class="small">{% if s.day_type == "surgery" %}<i class="bi bi-implant text-danger"></i> {% endif %}{{ s.room }} · {{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</div>{% empty %}<div class="small text-muted">{% trans "no shift" %}</div>{% endfor %}
+            {% for s in d.shifts %}<div class="small">{% if s.day_type == "surgery" %}<i class="bi bi-implant text-danger"></i> {% endif %}{{ s.room }} · {{ s.start_time|time:"g:i A" }}–{{ s.end_time|time:"g:i A" }}</div>{% empty %}{% if not current_branch.rooms_shared %}<div class="small text-muted">{% trans "no shift" %}</div>{% endif %}{% endfor %}
             <ul class="list-unstyled small mb-0 mt-1">
-              {% for a in d.appointments %}<li>{% if a.other_place %}{% if a.can_open %}<a href="{% url 'scheduling:visit' a.pk %}" class="text-muted">{% else %}<span class="text-muted">{% endif %}<b>{{ a.scheduled_at|time:"g:i" }}</b> <span class="place-badge place-{{ a.branch.code }}">{{ a.branch.code }}</span>{% if a.can_open %}</a>{% else %}</span>{% endif %}{% else %}<a href="{% url 'scheduling:visit' a.pk %}"><b>{{ a.scheduled_at|time:"g:i" }}</b> {{ a.patient.full_name }}</a>{% endif %}{% if a.status == "no_show" %} <span class="badge text-bg-danger">{% trans "did not come" %}</span>{% elif a.rescheduled_from %} <span class="badge text-bg-warning" title="{% trans 'Moved' %}"><i class="bi bi-arrow-left-right"></i></span>{% endif %}</li>
+              {% for a in d.appointments %}<li>{% if a.other_place %}{% if a.can_open %}<a href="{% url 'scheduling:visit' a.pk %}" class="text-muted">{% else %}<span class="text-muted">{% endif %}<b>{{ a.scheduled_at|time:"g:i" }}</b> <span class="place-badge place-{{ a.branch.code }}">{{ a.branch.badge }}</span>{% if a.can_open %}</a>{% else %}</span>{% endif %}{% else %}<a href="{% url 'scheduling:visit' a.pk %}"><b>{{ a.scheduled_at|time:"g:i" }}</b> {{ a.patient.full_name }}</a>{% endif %}{% if a.status == "no_show" %} <span class="badge text-bg-danger">{% trans "did not come" %}</span>{% elif a.rescheduled_from %} <span class="badge text-bg-warning" title="{% trans 'Moved' %}"><i class="bi bi-arrow-left-right"></i></span>{% endif %}</li>
               {% empty %}<li class="text-muted">{% trans "No appointments." %}</li>{% endfor %}
             </ul>
           </div>

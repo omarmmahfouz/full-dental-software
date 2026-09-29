@@ -74,3 +74,9 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
 33. On an item, the category list is **grouped** by group (easy to find).
 34. "حركات المخزن": a filter by group, and **what was taken out of each group** in the period, with its value (tap a group to see its movements).
 35. The sample data has items in every group: tea and paper cups, A4 paper and receipt rolls, sterilisation pouches, sutures, bone graft and membranes, alginate, K-files.
+
+## M. New in this version (8): El Khadem uses the same stock
+36. El Khadem Dental Clinic (**EK**) is a third place. It has **no stock of its own**: it takes from the shared stock,
+    and every take-out for it says **El Khadem**.
+37. "حركات المخزن": El Khadem's take-outs have the place badge **EK**, and **what each place used** shows El Khadem too.
+38. A new item can still **belong to** one place ("يخص"): leave it empty to share it with El Khadem.

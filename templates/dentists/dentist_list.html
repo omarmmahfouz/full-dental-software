@@ -18,7 +18,7 @@
   {% for d in page_obj %}
   <tr>
     <td><a class="fw-semibold" href="{{ d.get_absolute_url }}">{{ d.full_name }}</a>{% if not d.is_active %} <span class="badge text-bg-secondary">{% trans "left" %}</span>{% endif %}</td>
-    <td>{{ d.get_kind_display }}</td>
+    <td>{{ d.get_kind_display }}{% if d.specialty %}<div class="small text-muted">{{ d.get_specialty_display }}</div>{% endif %}</td>
     <td>{% if d.candidate %}{% with e=d.candidate.current_enrollment %}{{ e.course.code|default:"—" }}{% endwith %}{% else %}—{% endif %}</td>
     <td><span class="ltr">{{ d.phone|default:"—" }}</span></td>
     <td>{{ d.surgeries }}</td><td class="fw-bold">{{ d.implants }}</td><td>{{ d.treatments }}</td>
