@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Count, Q
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -21,7 +22,9 @@ from apps.patients.sequence import after_step, file_steps
 from apps.patients.access import get_clinical_patient_or_403
 
 from . import odontogram, photo_files
-from .forms import ExaminationForm, PhotoUploadForm, PlanItemFormSet, ToothForm, TreatmentPlanForm
+from .forms import (
+    HISTORY_FIELDSETS, ExaminationForm, PhotoUploadForm, PlanItemFormSet, ToothForm, TreatmentPlanForm,
+)
 from .models import ClinicalPhoto, Examination, PhotoStage, PhotoType, PlanItem, ToothChange, ToothState, TreatmentPlan
 from .plans import planned_by_tooth
 from .rules import DEFAULT, apply_changes, current_states, exam_changes, plan_changes, state_label
@@ -180,6 +183,10 @@ def exam_edit(request, patient_pk=None, pk=None):
         else:
             initial["conditions"] = list(patient.medical_conditions.all())
     form = ExaminationForm(request.POST or None, instance=exam, initial=initial)
+    histories = patient.examinations.aggregate(medical=Count("pk", filter=Q(medical_taken=True)),
+                                               dental=Count("pk", filter=Q(dental_taken=True)))
+    if histories["medical"] and histories["dental"]:  # taken just before: the examination itself comes first
+        form.folded = [title for title, _names in HISTORY_FIELDSETS]
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             obj = form.save(commit=False)

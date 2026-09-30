@@ -42,7 +42,7 @@ from .forms import (
     duplicate_phone_error,
 )
 from .models import Lead, LeadCall, Patient, PatientDocument, PatientRelation
-from .sequence import file_steps
+from .sequence import file_steps, next_step
 
 
 def _text_search(qs, q, name_field="full_name", extra=()):
@@ -334,6 +334,8 @@ class PatientUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
 
 
 def patient_detail(request, pk):
+    from .medical import clearance
+
     # A file of another place this person works at (e.g. opened from a notification): switch place first.
     switch = other_place_page(request, Patient.objects.filter(pk=pk).values_list("branch", flat=True).first())
     if switch is not None:
@@ -365,6 +367,8 @@ def patient_detail(request, pk):
     }
     if has_role(request.user, *CLINICAL):
         context["file_steps"] = file_steps(patient)
+        context["next_step"] = next_step(context["file_steps"])
+    context["clearance"] = clearance(patient)
     if context["can_edit"]:
         context["document_form"] = PatientDocumentForm()
         context["relation_form"] = PatientRelationForm(patient=patient)
@@ -445,6 +449,12 @@ def medical_history(request, pk):
             if "conditions" not in form.fields and draft is None:
                 history.conditions.set(initial["conditions"])
             sync_medical_history(history)
+        if part in (None, "medical"):
+            from .medical import reading_flags
+
+            for _code, text in reading_flags(history):
+                messages.warning(request, _("%(reading)s: a physician's opinion is needed before surgery "
+                                            "(the medical follow-up).") % {"reading": text})
         if part == "medical":
             messages.success(request, _("Medical history saved."))
         elif part == "dental":
@@ -460,6 +470,39 @@ def medical_history(request, pk):
         "cancel_url": patient.get_absolute_url(),
         "file_steps": file_steps(patient, current=part) if dentist else None,
         "flow": request.GET.get("flow"),
+    })
+
+
+@role_required(*CLINICAL)
+def records_step(request, pk):
+    """Two steps of the file: the primary impression or diagnostic scan, and the CBCT. The dentist taps what was
+    done (a treatment step is written for today) or skips it; going through the file ("flow") it goes on to the
+    next step."""
+    from apps.clinical.models import TreatmentStep, TreatmentStepType
+    from apps.dentists.models import Dentist
+
+    from .sequence import after_step
+
+    patient = get_visible_patient_or_403(request.user, pk)
+    step = request.GET.get("step") if request.GET.get("step") in ("impression", "cbct") else "impression"
+    types = TreatmentStepType.objects.filter(is_active=True, journey_step=step)
+    if request.method == "POST":
+        chosen = request.POST.get("type", "")
+        if chosen != "skip":
+            step_type = get_object_or_404(types, pk=chosen) if chosen.isdigit() else None
+            if step_type is None:
+                raise PermissionDenied
+            TreatmentStep.objects.create(
+                patient=patient, step_type=step_type, operator=Dentist.for_user(request.user) or patient.assigned_dentist,
+                notes=request.POST.get("notes", "")[:500], created_by=request.user)
+            messages.success(request, _("Recorded: %(what)s.") % {"what": step_type})
+        return redirect(after_step(request, patient, step) or patient.get_absolute_url())
+    return render(request, "patients/records_step.html", {
+        "patient": patient, "step": step, "types": types, "flow": request.GET.get("flow"),
+        "file_steps": file_steps(patient, current=step),
+        "recorded": patient.treatment_steps.filter(step_type__journey_step=step).select_related("step_type", "operator"),
+        "cbct_requests": patient.outside_requests.filter(kind="cbct").select_related("dentist") if step == "cbct" else (),
+        "cbct_files": patient.documents.filter(kind=PatientDocument.Kind.XRAY) if step == "cbct" else (),
     })
 
 

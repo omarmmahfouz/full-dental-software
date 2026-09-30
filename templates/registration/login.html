@@ -7,7 +7,7 @@
   <section class="login-brand" aria-hidden="true">
     <span class="login-bubble b1"></span><span class="login-bubble b2"></span><span class="login-bubble b3"></span>
     {% if login_place and login_place.code != "CIA" %}
-    {% if login_place.logo or login_place.is_elite %}<img class="login-mark" src="{{ login_place.mark_url }}" alt="">{% else %}<div class="login-place-code">{{ login_place.badge }}</div>{% endif %}
+    {% if login_place.has_mark %}<img class="login-mark" src="{{ login_place.mark_url }}" alt="">{% else %}<div class="login-place-code">{{ login_place.badge }}</div>{% endif %}
     <div class="login-brand-name">{{ login_place.name }}</div>
     <div class="login-brand-sub">{% firstof login_place.tagline _("Dental system") %}</div>
     {% else %}
@@ -24,7 +24,7 @@
   <section class="login-panel">
     <div class="login-box">
       <div class="text-center mb-3">
-        {% if login_place and login_place.code != "CIA" %}{% if login_place.logo or login_place.is_elite %}<img class="login-logo" style="width: 96px" src="{{ login_place.mark_url }}" alt="{{ login_place.name }}">{% else %}<span class="place-badge place-{{ login_place.code }} fs-5">{{ login_place.badge }}</span>{% endif %}
+        {% if login_place and login_place.code != "CIA" %}{% if login_place.has_mark %}<img class="login-logo" style="width: 96px" src="{{ login_place.mark_url }}" alt="{{ login_place.name }}">{% else %}<span class="place-badge place-{{ login_place.code }} fs-5">{{ login_place.badge }}</span>{% endif %}
         {% else %}<img class="login-logo" src="{% static 'img/cia-logo.png' %}" alt="Cairo Implant Academy">{% endif %}
       </div>
       <h1 class="h4 fw-bold mb-1 text-center">{% trans "Welcome" %}</h1>
@@ -32,7 +32,7 @@
       {% if login_places|length > 1 %}
       <nav class="place-tiles" aria-label="{% trans 'Your place' %}">
         {% for place in login_places %}<a class="place-tile place-{{ place.code }} theme-{{ place.theme }}{% if place.pk == login_place.pk %} is-chosen{% endif %}" href="?place={{ place.code }}{% if next %}&amp;next={{ next|urlencode }}{% endif %}"{% if place.pk == login_place.pk %} aria-current="true"{% endif %}{% if place.color %} style="--place: {{ place.color }}"{% endif %}>
-          <span class="tile-mark">{% if place.logo or place.is_elite or place.code == "CIA" %}<img src="{{ place.mark_url }}" alt="">{% else %}{{ place.badge }}{% endif %}</span>
+          <span class="tile-mark">{% if place.has_mark or place.code == "CIA" %}<img src="{{ place.mark_url }}" alt="">{% else %}{{ place.badge }}{% endif %}</span>
           <span class="tile-text"><b>{{ place.badge }}</b><span>{{ place.name }}</span></span>
           {% if place.pk == login_place.pk %}<i class="bi bi-check-circle-fill tile-check"></i>{% endif %}
         </a>{% endfor %}

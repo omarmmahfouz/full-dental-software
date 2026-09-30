@@ -1,0 +1,9 @@
+{% load i18n %}{% comment %}The visit after the surgery (surgery/followup.py). Context: follow_up, surgery.{% endcomment %}{% if follow_up %}
+<div class="alert alert-info d-flex flex-wrap align-items-center gap-2 no-print follow-up-box"><i class="bi bi-calendar-check"></i>
+  <span><b>{% trans "Next visit" %}:</b> {{ follow_up.reason }} — {{ follow_up.on|date:"l d/m/Y" }} ({% blocktrans count days=follow_up.days %}after {{ days }} day{% plural %}after {{ days }} days{% endblocktrans %})</span>
+  <span class="ms-auto d-flex flex-wrap gap-2">
+    {% if is_front_desk %}<a class="btn btn-sm btn-primary" href="{% url 'scheduling:appointment_create' %}?patient={{ surgery.patient_id }}&amp;purpose={{ follow_up.reason|urlencode }}"><i class="bi bi-calendar-plus"></i> {% trans "Book it" %}</a>{% endif %}
+    {% if is_clinical %}<form method="post" action="{% url 'surgery:follow_up' surgery.pk %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="btn btn-sm btn-outline-primary"><i class="bi bi-telephone-forward"></i> {% trans "Ask the reception to book it" %}</button></form>{% endif %}
+  </span>
+</div>{% endif %}

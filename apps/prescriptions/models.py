@@ -7,7 +7,8 @@ from apps.core.models import LookupModel, TimeStampedModel
 
 PROCEDURE_HELP = _(
     "Surgery procedures this fits, comma separated: extraction, flap, simple_implant, immediate_implant, "
-    "guided, expansion, splitting, closed_sinus, open_sinus, gbr, soft_tissue. Empty = every surgery."
+    "guided, expansion, splitting, closed_sinus, open_sinus, gbr, soft_tissue; delivery = the day the teeth on the "
+    "implants are delivered. Empty = every surgery."
 )
 
 

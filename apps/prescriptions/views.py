@@ -9,6 +9,7 @@ from apps.core.models import branch_for_user
 from apps.core.roles import CLINICAL, PATIENT_VIEWERS, has_role
 from apps.dentists.models import Dentist
 from apps.patients.access import get_visible_patient_or_403
+from apps.surgery.followup import follow_up
 from apps.surgery.models import Surgery
 
 from .forms import LineFormSet, PrescriptionForm
@@ -74,7 +75,8 @@ def prescription_print(request, pk):
     get_visible_patient_or_403(request.user, prescription.patient_id)
     return render(request, "prescriptions/prescription_print.html", {
         "prescription": prescription, "patient": prescription.patient,
-        "lines": prescription.lines.select_related("drug"), "branch": branch_for_user(request.user),
+        "lines": prescription.lines.select_related("drug"),
+        "branch": prescription.patient.branch or branch_for_user(request.user),
     })
 
 
@@ -96,6 +98,7 @@ def instructions(request, patient_pk):
     return render(request, "prescriptions/instructions_print.html", {
         "patient": patient, "surgery": surgery, "sheets": sheets, "chosen": chosen,
         "chosen_ids": {s.pk for s in chosen}, "language": language,
-        "blocks": [(s, s.lines(language)) for s in chosen], "branch": branch_for_user(request.user),
+        "blocks": [(s, s.lines(language)) for s in chosen], "branch": patient.branch or branch_for_user(request.user),
         "surgeries": patient.surgeries.all()[:10], "today": timezone.localdate(),
+        "follow_up": follow_up(surgery) if surgery else None,
     })

@@ -27,8 +27,20 @@ HINTS = {
     "core:approvals": _("Changes made at the reception wait here. Compare the old and the new values, then approve or refuse."),
     "patients:list": _("Type part of a name, a mobile or a file number. Tap a row to open the patient's file."),
     "patients:create": _("Type the national ID first: the date of birth and the gender fill in by themselves. "
-                         "Fields with a red * are needed."),
-    "patients:detail": _("Everything about this patient is on this page. The buttons at the top book, bill and print."),
+                         "Fields with a red * are needed. The medical history is the dentist's: skip it if you like."),
+    "patients:detail": {
+        "dentist": _("The file step by step: the yellow button opens the next step. Record opens a treatment, a "
+                     "surgery chart, a request or a prescription."),
+        "default": _("Everything about this patient is on this page. The buttons at the top book, bill and print."),
+    },
+    "patients:medical_followup": _("Patients whose readings need a physician's opinion before surgery, the letters "
+                                   "waiting for an answer, and the surgeries postponed for a medical reason."),
+    "patients:consult_create": _("The letter is written from the medical history: tick the procedure, check the "
+                                 "medicines, then save and print it for the patient."),
+    "patients:consult_detail": _("Print the letter for the patient. When he brings the answer back, record it with "
+                                 "a photo of the paper: the dentist is told."),
+    "patients:records": _("Tap what you did today: the impression, the scan or the CBCT. Or skip it: it is not "
+                          "needed for every patient."),
     "patients:lead_list": _("People who called but have no file yet. When one comes in, open the call and turn it "
                             "into a patient file in one click."),
     "patients:calllist_list": _("Lists of patients to call, sent by the dentists or the heads. Open a list, call each "
@@ -57,7 +69,10 @@ HINTS = {
     "scheduling:requests_reception": _("Call the patients in order. Book fills the booking form in one step; "
                                        "if one cannot come, the page says who to call instead."),
     "clinical:step_list": _("Every treatment recorded. Filter by dentist or date, and tap a row for the details."),
-    "clinical:step_create": _("Write the teeth and choose the treatment. Check how the chart will change before saving."),
+    "clinical:step_create": _("Tap the kind of work, then the step (e.g. Endodontics, then Obturation). Write the "
+                              "teeth and check how the chart will change before saving."),
+    "clinical:step_detail": _("Take the photos and periapical X-rays this step needs: each box opens the tablet's "
+                              "camera."),
     "clinical:lab_list": _("Each lab work from the request to the fitting. Late work is marked in red."),
     "clinical:visits_missing_notes": _("Visits with nothing written in the patient's file. Open each one and "
                                        "record what was done."),
@@ -65,8 +80,11 @@ HINTS = {
                         "the plan and the photos."),
     "charting:plan_finder": _("Choose the filters, then send the patients found to the reception to call them."),
     "surgery:list": _("Every surgery chart. Tap one to open it, or start a new surgery chart."),
-    "surgery:create": _("Fill in the team first, then one card per tooth. An implant chosen from stock fills in "
-                        "its size and lot."),
+    "surgery:create": _("Choose a tool (implant, pontic, extraction...) and tap the teeth, like on a scanner. Choose "
+                        "the implant company once, then the sizes and lots implant by implant."),
+    "surgery:update": _("Tap the teeth to change the design; each tooth's details are in the list below it."),
+    "surgery:delivery_check": _("Tap each point as you do it and write the torque. Save it as delivered at the end: "
+                                "the implants become loaded on the chart."),
     "surgery:finder": _("Choose filters, then group by one or two columns for the statistics. "
                         "Export to Excel for publications."),
     "complaints:list": _("Open complaints come first. Tap one to follow it up or to write what was done."),

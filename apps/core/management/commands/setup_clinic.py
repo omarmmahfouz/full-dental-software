@@ -21,7 +21,7 @@ BRANCHES = [
     # code, kind, Arabic name, English name
     ("CIA", Branch.Kind.ACADEMY, "أكاديمية القاهرة لزراعة الأسنان", "Cairo Implant Academy"),
     ("PVT", Branch.Kind.CLINIC, "عيادة الخادم لطب الأسنان", "El Khadem Dental Clinic"),
-    ("LAB", Branch.Kind.LAB, "معمل الأسنان", "Dental Lab"),
+    ("LAB", Branch.Kind.LAB, "معمل GDIL للأسنان", "GDIL Dental Lab"),
     ("CIC", Branch.Kind.CLINIC, "مركز القاهرة لزراعة الأسنان", "Cairo Implant Center"),
 ]
 
@@ -137,7 +137,52 @@ TREATMENT_STEPS = [
     ("متابعة تقويم", "Orthodontic adjustment", "none", "", ""),
     ("تحديد لون التركيبة", "Shade taking", "none", "", ""),
     ("أخرى", "Other", "none", "", ""),
+    # Round 10: the records of a new patient and the steps of a root canal treatment
+    ("طبعة أولية (موديل دراسة)", "Primary impression (study models)", "none", "", ""),
+    ("مسح رقمي تشخيصي", "Diagnostic intraoral scan", "none", "", ""),
+    ("أشعة مقطعية (CBCT) في العيادة", "CBCT taken here", "none", "", ""),
+    ("فتح العصب", "Endo: access opening", "none", "", ""),
+    ("فتح وتنظيف وتشكيل القنوات", "Endo: access, cleaning and shaping", "none", "", ""),
+    ("حشو القنوات (Obturation)", "Endo: obturation", "rct", "", ""),
+    ("علاج عصب كامل في جلسة واحدة", "Endo: all in a single visit", "rct", "", ""),
+    ("بتر العصب / تغطية العصب", "Endo: pulpotomy / pulp capping", "none", "", ""),
+    ("وتد وقلب", "Post and core", "none", "", ""),
+    ("تنظيف عميق وكحت اللثة", "Deep scaling and root planing", "none", "", ""),
 ]
+
+# Round 10: the kind of work of each step (by English name), the file's step it ticks, and the photos and periapical
+# X-rays it should have. Older installations get them once (a step the owner changed keeps his choice).
+STEP_GROUPS = {
+    "records": ["Examination & diagnosis", "X-ray (panoramic / CBCT)", "Treatment plan", "Primary impression (study models)",
+                "Diagnostic intraoral scan", "CBCT taken here"],
+    "surgery": ["Extraction", "Immediate implant", "Implant placement", "Guided implant surgery", "Bone graft",
+                "Sinus lift", "Closed sinus lift", "Ridge expansion / splitting", "Suture removal",
+                "Second stage / healing abutment", "Implant failure / removal"],
+    "implant_teeth": ["Impression", "Digital scan", "Bite registration", "Try-in", "Final prosthesis delivery",
+                      "Temporary prosthesis", "Bridge on implants", "Full arch fixed on implants (All-on-X)",
+                      "Overdenture on implants"],
+    "endo": ["Root canal treatment", "Root canal retreatment", "Endo: access opening", "Endo: access, cleaning and shaping",
+             "Endo: obturation", "Endo: all in a single visit", "Endo: pulpotomy / pulp capping"],
+    "fillings": ["Composite restoration", "Amalgam restoration", "Glass ionomer restoration", "Temporary filling"],
+    "fixed": ["Crown preparation", "Crown cementation (natural tooth)", "Shade taking", "Post and core"],
+    "gums": ["Scaling", "Deep scaling and root planing"],
+    "ortho": ["TMJ examination", "Occlusal splint", "Orthodontic bonding", "Orthodontic adjustment"],
+}
+STEP_JOURNEY = {"Primary impression (study models)": "impression", "Diagnostic intraoral scan": "impression",
+                "CBCT taken here": "cbct"}
+STEP_SHOTS = {
+    "Root canal treatment": "pa_before,pa_after", "Root canal retreatment": "pa_before,pa_after",
+    "Endo: access opening": "pa_before", "Endo: access, cleaning and shaping": "pa_before,pa_working",
+    "Endo: obturation": "pa_cone,pa_after", "Endo: all in a single visit": "pa_before,pa_working,pa_cone,pa_after",
+    "Endo: pulpotomy / pulp capping": "pa_before,pa_after",
+    "Composite restoration": "photo_before,photo_after", "Amalgam restoration": "photo_before,photo_after",
+    "Glass ionomer restoration": "photo_before,photo_after",
+    "Crown preparation": "photo_before,photo_after", "Crown cementation (natural tooth)": "photo_after,pa_after",
+    "Shade taking": "photo_shade", "Post and core": "pa_after",
+    "Final prosthesis delivery": "photo_after,pa_after", "Bridge on implants": "photo_after,pa_after",
+    "Full arch fixed on implants (All-on-X)": "photo_after,pa_after", "Scaling": "photo_before,photo_after",
+    "Deep scaling and root planing": "photo_before,photo_after",
+}
 
 
 
@@ -157,6 +202,16 @@ TREATMENT_EXPLANATIONS = {
     "Shade taking": "اختيار لون التركيبة ليطابق لون الأسنان الطبيعية.",
     "Treatment plan": "الطبيب كشف على المريض وكتب خطة العلاج المطلوبة.",
     "Scaling": "تنظيف الأسنان من الجير والرواسب.",
+    "Primary impression (study models)": "طبعة أولى للأسنان لعمل موديل لدراسة الحالة قبل التخطيط.",
+    "Diagnostic intraoral scan": "تصوير الأسنان بالماسح الرقمي لدراسة الحالة قبل التخطيط.",
+    "CBCT taken here": "أشعة مقطعية على الفك في العيادة لتخطيط الزرع.",
+    "Endo: access opening": "أول جلسة علاج عصب: فتح السن للوصول للعصب.",
+    "Endo: access, cleaning and shaping": "جلسة علاج عصب: فتح السن وتنظيف القنوات وتشكيلها.",
+    "Endo: obturation": "آخر جلسة علاج عصب: حشو القنوات.",
+    "Endo: all in a single visit": "علاج العصب كله في جلسة واحدة.",
+    "Endo: pulpotomy / pulp capping": "علاج جزء من العصب أو تغطيته للحفاظ عليه.",
+    "Post and core": "وتد داخل السن المعالج عصبه لتقوية السن قبل الطربوش.",
+    "Deep scaling and root planing": "تنظيف عميق للجير تحت اللثة.",
     "Composite restoration": "حشو أبيض بلون السن لسد التسوس.",
     "Amalgam restoration": "حشو فضي (معدني) لسد التسوس.",
     "Glass ionomer restoration": "حشو أبيض بسيط، غالبًا للأسنان الصغيرة أو كحشو مبدئي.",
@@ -397,6 +452,10 @@ class Command(BaseCommand):
         if not Room.objects.filter(branch=khadem).exists():
             for number in range(1, KHADEM_ROOM_COUNT + 1):
                 Room.objects.create(branch=khadem, name=f"غرفة {number}", name_en=f"Room {number}", sort_order=number)
+        # The lab opened as GDIL (its logo is in static/img): an older system still has the first name.
+        Branch.objects.filter(code="LAB", name_en__in=("", "Dental Lab")).update(
+            name_ar=BRANCHES[2][2], name_en=BRANCHES[2][3])
+        Branch.objects.filter(code="LAB", tagline="").update(tagline="The art of dentistry")
         academy = Branch.objects.get(code="CIA")
         for number in range(1, ROOM_COUNT + 1):
             room, _created = Room.objects.get_or_create(branch=academy, name=f"غرفة {number}", defaults={"sort_order": number})
@@ -446,6 +505,12 @@ class Command(BaseCommand):
             LabWorkType.objects.filter(name_en=name_en, default_days__isnull=True).update(default_days=days)
         if not Service.objects.filter(quick_button=True).exists():  # one-click buttons on a new bill
             Service.objects.filter(name_en__in=("Consultation", "CBCT")).update(quick_button=True)
+        for group, names in STEP_GROUPS.items():
+            TreatmentStepType.objects.filter(name_en__in=names, group="other").update(group=group)
+        for name_en, step in STEP_JOURNEY.items():
+            TreatmentStepType.objects.filter(name_en=name_en, journey_step="").update(journey_step=step)
+        for name_en, shots in STEP_SHOTS.items():
+            TreatmentStepType.objects.filter(name_en=name_en, shots="").update(shots=shots)
         for name_en, explanation in TREATMENT_EXPLANATIONS.items():
             TreatmentStepType.objects.filter(name_en=name_en, description_ar="").update(description_ar=explanation)
         for company, line in IMPLANT_SYSTEMS:

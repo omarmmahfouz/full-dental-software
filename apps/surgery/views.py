@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -11,12 +11,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone, translation
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_POST
 
-from apps.charting.models import ToothChange
+from apps.charting.models import ToothChange, ToothState
 from apps.charting.plans import complete_plan_items
-from apps.charting.rules import apply_changes, plan_changes
+from apps.charting.rules import Change, _snapshot, apply_changes, current_states, plan_changes, state_label
 from apps.charting.sync import missing_teeth
 from apps.charting.teeth import format_teeth
 from apps.clinical.models import ChartEffect, TreatmentStepType
@@ -25,15 +25,65 @@ from apps.core.mixins import role_required
 from apps.core.models import ChangeRequest, branch_for_user
 from apps.core.roles import CLINICAL, HEAD_CIA, MANAGEMENT, OWNER, has_role, is_only_dentist
 from apps.dentists.models import Dentist
+from apps.patients.medical import clearance
+from apps.prescriptions.models import InstructionSheet
 from apps.patients.sequence import file_steps
 from apps.patients.access import get_clinical_patient_or_403, visible_patients
 from apps.scheduling.models import Appointment
 from apps.stock.implants import lot_choices, take_implants
 
 from .finder import FinderForm, SiteFacts, export_csv, filter_sites, procedure_totals, prosthesis_totals, statistics
-from .forms import ImplantUpdateForm, ProsthesisForm, SurgeryForm, SurgerySiteFormSet
-from .models import Prosthesis, SavedSearch, Surgery, SurgerySite
-from .prostheses import apply_stage
+from .forms import DeliveryCheckForm, ImplantUpdateForm, ProsthesisForm, SurgeryForm, SurgerySiteFormSet
+from .models import DeliveryCheck, ImplantSystem, Prosthesis, SavedSearch, Surgery, SurgerySite
+from .followup import follow_up
+from .prostheses import apply_stage, plan_from_surgery
+
+
+# The design of the surgery chart (templates/surgery/_arch_designer.html): what can be added to a tooth, and the
+# usual implant sizes offered as buttons (any other size is typed).
+ARCH_ADDONS = [(name, label) for name, label in SurgerySite.PROCEDURES
+               if name in ("closed_sinus", "open_sinus", "gbr", "expansion", "splitting", "flap")]
+IMPLANT_DIAMETERS = ["3.0", "3.3", "3.5", "3.75", "4.0", "4.2", "4.5", "4.8", "5.0", "5.5", "6.0"]
+IMPLANT_LENGTHS = ["6", "7", "8", "8.5", "10", "11.5", "12", "13", "14", "16"]
+
+
+def arch_view(sites, pontics):
+    """The design of a saved surgery, drawn like the designer: {"upper": [...], "lower": [...]}, one cell per tooth
+    with its role (implant / immediate / extraction), pontic, size, add-ons and its place in a bridge bar."""
+    from apps.charting.teeth import LOWER, UPPER
+
+    by_tooth = {site.tooth: site for site in sites}
+    addons = dict(ARCH_ADDONS)
+    rows = {}
+    for jaw, arch in (("upper", UPPER), ("lower", LOWER)):
+        cells = []
+        for index, tooth in enumerate(arch):
+            site = by_tooth.get(tooth)
+            role = ""
+            if site is not None:
+                if site.has_implant:
+                    role = "immediate" if site.immediate_implant or site.extraction else "implant"
+                elif site.extraction:
+                    role = "extraction"
+            cells.append({
+                "tooth": tooth, "role": role, "pontic": tooth in pontics, "d": 7 - index if index < 8 else index - 8,
+                "size": f"{site.diameter_mm}×{site.length_mm}" if site is not None and site.implant_diameter
+                and site.implant_length else "",
+                "addons": "".join(str(addons[name])[:1] for name in addons if site is not None and getattr(site, name)),
+                "bar": "", "midline": index == 8,
+            })
+        # A bar under the teeth of a bridge or full arch (implants and pontics side by side, with a pontic).
+        run = []
+        for cell in cells + [None]:
+            if cell is not None and (cell["pontic"] or cell["role"] in ("implant", "immediate")):
+                run.append(cell)
+                continue
+            if len(run) > 1 and any(c["pontic"] for c in run):
+                for position, member in enumerate(run):
+                    member["bar"] = "bar-start" if position == 0 else "bar-end" if position == len(run) - 1 else "bar-mid"
+            run = []
+        rows[jaw] = cells
+    return rows if (by_tooth or pontics) else None
 
 
 def _surgery_time(surgery):
@@ -52,11 +102,35 @@ def update_chart_for_surgery(surgery, user):
             changes += plan_changes(patient, ChartEffect.IMPLANT, [site.tooth], sites={site.tooth: site})
         elif site.extraction:
             changes += plan_changes(patient, ChartEffect.EXTRACTION, [site.tooth])
+    changes += pontic_changes(patient, surgery, changes)
     changed = apply_changes(patient, changes, user, ToothChange.Source.SURGERY, surgery=surgery,
                             when=_surgery_time(surgery))
     if changed:
         Surgery.objects.filter(pk=surgery.pk).update(chart_updated=True)
     return changed
+
+
+def pontic_changes(patient, surgery, changes):
+    """The pontics of the design show on the chart as pontics, not missing (an extracted tooth left as a pontic
+    too). A tooth that has an implant is left as it is."""
+    S = ToothState.Status
+    by_tooth = {change.tooth: change for change in changes}
+    states = current_states(patient)
+    added = []
+    for tooth in surgery.pontic_teeth:
+        change = by_tooth.get(tooth)
+        if change is not None:
+            if change.after.get("status") == S.MISSING:  # extracted in this surgery, kept as a pontic
+                change.after = dict(change.after, status=S.PONTIC)
+                change.summary = f"{state_label(change.before)} → {state_label(change.after)}"
+            continue
+        before = _snapshot(states.get(tooth))
+        if before["status"] in (S.IMPLANT, S.PONTIC):
+            continue
+        after = dict(before, status=S.PONTIC, implant_site_id=None)
+        added.append(Change(tooth=tooth, before=before, after=after,
+                            summary=f"{state_label(before)} → {state_label(after)}"))
+    return added
 
 
 def complete_plan_for_surgery(surgery):
@@ -164,14 +238,21 @@ def surgery_edit(request, pk=None):
             obj.save()
             formset.instance = obj
             formset.save()
+            implant_teeth = {site.tooth for site in obj.sites.all() if site.has_implant}
+            if implant_teeth & set(obj.pontic_teeth):  # a tooth with an implant is not a pontic
+                obj.pontics = format_teeth(set(obj.pontic_teeth) - implant_teeth)
+                obj.save(update_fields=["pontics"])
             take_implants(obj, request.user)
             changed = update_chart_for_surgery(obj, request.user) if form.cleaned_data.get("update_chart") else 0
             done = complete_plan_for_surgery(obj)
+            planned = plan_from_surgery(obj, request.user)
         message = _("Surgery %(number)s saved.") % {"number": obj.number}
         if changed:
             message += " " + _("Dental chart updated for %(n)s teeth.") % {"n": changed}
         if done:
             message += " " + _("%(n)s treatment plan items marked as done.") % {"n": len(done)}
+        if planned:
+            message += " " + _("Planned on the implants: %(what)s.") % {"what": "; ".join(p.label for p in planned)}
         messages.success(request, message)
         for target, values in operator_requests:
             request_change(ChangeRequest.Kind.OPERATOR, target, values, request.user,
@@ -186,9 +267,12 @@ def surgery_edit(request, pk=None):
     return render(request, "surgery/surgery_form.html", {
         "form": form, "formset": formset, "surgery": surgery,
         "title": _("Edit surgery chart") if surgery else _("New surgery chart"),
-        "procedures": SurgerySite.PROCEDURES,
+        "procedures": SurgerySite.PROCEDURES, "addons": ARCH_ADDONS,
+        "implant_systems": ImplantSystem.objects.filter(is_active=True),
+        "diameters": IMPLANT_DIAMETERS, "lengths": IMPLANT_LENGTHS,
         "missing": format_teeth(missing_teeth(chart_patient)) if chart_patient else "",
         "file_steps": file_steps(patient, current="surgery") if patient is not None else None,
+        "clearance": clearance(patient) if patient is not None else None, "patient": chart_patient,
     })
 
 
@@ -209,10 +293,29 @@ def surgery_detail(request, pk):
     sites = list(surgery.sites.select_related("implant_system"))
     return render(request, "surgery/surgery_detail.html", {
         "surgery": surgery, "sites": sites, "procedures": SurgerySite.PROCEDURES,
+        "arch": arch_view(sites, surgery.pontic_teeth), "follow_up": follow_up(surgery),
         "photos": surgery.photos.select_related("photo_type"),
         "can_edit": _can_edit_surgery(request.user, surgery),
         "print": request.GET.get("print") == "1",
     })
+
+
+@require_POST
+def follow_up_ask(request, pk):
+    """The dentist asks the reception to book the visit after the surgery (see followup.py)."""
+    from .followup import ask_reception
+
+    surgery = get_object_or_404(Surgery.objects.select_related("patient"), pk=pk)
+    if not has_role(request.user, *CLINICAL):
+        raise PermissionDenied
+    get_clinical_patient_or_403(request.user, surgery.patient_id)
+    patient_request, created = ask_reception(surgery, request.user)
+    if created:
+        messages.success(request, _("The reception will call %(name)s to book the visit (%(date)s).") % {
+            "name": surgery.patient.full_name, "date": patient_request.wanted_from.strftime("%d/%m/%Y")})
+    else:
+        messages.info(request, _("This visit is already on the reception's list."))
+    return redirect(request.POST.get("next") or surgery.get_absolute_url())
 
 
 # ------------------------------------------------------------ implants
@@ -279,6 +382,59 @@ def prosthesis_delete(request, pk):
     prosthesis.delete()
     messages.success(request, _("Prosthesis deleted. The implant stages stay as they are."))
     return redirect("charting:chart", patient_pk=patient.pk)
+
+
+def delivery_check(request, pk):
+    """The delivery checklist of a prosthesis on implants: tap each point, write the torque, then "delivered"
+    (the implants become loaded and the pontics show on the chart)."""
+    if not has_role(request.user, *CLINICAL):
+        raise PermissionDenied
+    prosthesis = get_object_or_404(Prosthesis.objects.prefetch_related("implants__implant_system"), pk=pk)
+    patient = get_clinical_patient_or_403(request.user, prosthesis.patient_id)
+    check = getattr(prosthesis, "delivery_check", None)
+    if check is None:
+        check = DeliveryCheck(prosthesis=prosthesis, dentist=prosthesis.dentist or Dentist.for_user(request.user),
+                              follow_up_on=timezone.localdate() + timedelta(days=7))
+        if prosthesis.lab_request_id and prosthesis.lab_request.shade:
+            check.shade = prosthesis.lab_request.shade
+    groups = DeliveryCheck.items_for(prosthesis)
+    form = DeliveryCheckForm(request.POST or None, instance=check)
+    if request.method == "POST" and form.is_valid():
+        allowed = {code for _group, rows in groups for code, _label, _optional in rows}
+        check = form.save(commit=False)
+        check.ticked = [code for code in request.POST.getlist("tick") if code in allowed]
+        if check.pk is None:
+            check.created_by = request.user
+        deliver = request.POST.get("action") == "deliver"
+        with transaction.atomic():
+            check.save()
+            changed = 0
+            if deliver:
+                prosthesis.status, prosthesis.delivered_on = Prosthesis.Status.DELIVERED, check.date
+                prosthesis.dentist = prosthesis.dentist or check.dentist
+                prosthesis.save(update_fields=["status", "delivered_on", "dentist", "updated_at"])
+                changed = apply_stage(prosthesis, request.user)
+        if deliver:
+            message = _("Delivered: %(what)s.") % {"what": prosthesis.label}
+            if changed:
+                message += " " + _("Implants and chart updated (%(n)s).") % {"n": changed}
+            messages.success(request, message)
+            missing = len(check.missing())
+            if missing:
+                messages.warning(request, ngettext(
+                    "%(n)s point of the checklist is not ticked (in red).",
+                    "%(n)s points of the checklist are not ticked (in red).", missing) % {"n": missing})
+        else:
+            messages.success(request, _("Checklist saved."))
+        return redirect("surgery:delivery_check", pk=prosthesis.pk)
+    done = set(check.ticked)
+    return render(request, "surgery/delivery_check.html", {
+        "patient": patient, "prosthesis": prosthesis, "check": check, "form": form, "done": done,
+        "groups": [(group, [(code, label, optional, code in done) for code, label, optional in rows])
+                   for group, rows in groups],
+        "progress": check.progress(), "sheet": InstructionSheet.objects.filter(
+            is_active=True, procedures__contains="delivery").first(),
+    })
 
 
 # ------------------------------------------------------------ case finder

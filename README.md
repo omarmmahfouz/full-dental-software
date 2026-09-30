@@ -5,9 +5,9 @@ One system for the owner's connected places:
 | Place | Code | Status |
 |---|---|---|
 | **Cairo Implant Academy** — teaching institute, economic dental service, course candidates, dentists | `CIA` | **In use: secretary + dentists** |
-| **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report |
+| **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report; **its own logo** (new) |
 | **El Khadem Dental Clinic** — Dr. Amr El Khadem's private clinic: specialists, doctors who bring their own patients, 4 shared rooms | `PVT` (files `EK-…`) | **In use**: its own reception, the specialists' charts, 40% / 30% shares, the elite look |
-| **Dental lab** — works for CIA, CIC, El Khadem and outside clinics, each with its own prices | `LAB` (cases `LAB-…`) | **In use** (new): its secretary, manager, designers and head; every case step by step, blocks, receipts, WhatsApp answers, the lab report |
+| **GDIL Dental Lab** — works for CIA, CIC, El Khadem and outside clinics, each with its own prices; **its GDIL logo** (new) | `LAB` (cases `LAB-…`) | **In use**: its secretary, manager, designers and head; every case step by step, blocks, receipts, WhatsApp answers, the lab report |
 
 It runs **on your own PC or the clinic's own server**, with no cloud. Staff open it in a browser on the clinic network.
 Everything works offline, including fonts, icons and styles.
@@ -32,10 +32,10 @@ The language follows the person, not the PC:
 | Dr. Amr El Khadem | `amr` | owner and manager of El Khadem, and a doctor there (prosthodontist): its **Clinics** menu (fee rules, doctors' prices, shares, report), the specialists' charts, referrals, the day planner, and he **approves the changes of El Khadem's reception** |
 | El Khadem reception | `khadem` | the reception work of El Khadem only (Arabic): its patients, bookings in the 4 shared rooms, bills, payments, the referrals to book. No academy, no CIA or CIC patients |
 | El Khadem specialists | `endo`, or no login | the endodontist, TMJ specialist, orthodontist, oral surgeon and prosthodontist: each with his specialty, his own prices, and his charts |
-| Head of the lab (new) | `lab_head` | the whole lab: every case, the **prices** of each client, the receipts and their cancelling, the costs, the **lab report** with the money, the lab's options |
-| Lab manager (new) | `lab_manager` | gives out the work (who designs, mills, finishes…), moves any case, sends work to another lab, the lab report without the money, the lab staff |
-| Lab secretary (new) | `lab_secretary` | the lab's reception (Arabic): receives the cases and prints their labels, checks in the work of our clinics, WhatsApp to the doctors and the **answer with the real status**, deliveries, receipts, the clients' accounts |
-| Lab designers (new) | `lab_designer` (e.g. CIA doctors), or no login | **My lab work**: the cases given to them; they finish their step and the case goes on. Technicians without a login are recorded by the manager |
+| Head of the lab | `lab_head` | the whole lab: every case, the **prices** of each client, the receipts and their cancelling, the costs, the **lab report** with the money, the lab's options |
+| Lab manager | `lab_manager` | gives out the work (who designs, mills, finishes…), moves any case, sends work to another lab, the lab report without the money, the lab staff |
+| Lab secretary | `lab_secretary` | the lab's reception (Arabic): receives the cases and prints their labels, checks in the work of our clinics, WhatsApp to the doctors and the **answer with the real status**, deliveries, receipts, the clients' accounts |
+| Lab designers | `lab_designer` (e.g. CIA doctors), or no login | **My lab work**: the cases given to them; they finish their step and the case goes on. Technicians without a login are recorded by the manager |
 | CIC doctors | `dentist`, or no login | booked at CIC; the ones with a login see **My shares**. A doctor can work at CIA and CIC |
 | Supervisors | no login for now | chosen by name: on treatments, surgeries, plans and lab requests |
 | Course candidates | **no login** | followed through their dentist file: batch, payments, implants done and remaining, every case |
@@ -43,7 +43,59 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: the dental lab, the dashboard, an easier system (new)
+### New in this version: the medical follow-up, the surgery design, the delivery checklist, the file step by step (new)
+Checklists: [docs/dentist-test-checklist.md](docs/dentist-test-checklist.md) section T, and the new sections of the
+others.
+1. **Medical follow-up and the fitness for surgery** (CIA, CIC and every place):
+   - The readings of the day come first in the medical history: **blood pressure, random blood sugar, HbA1c**. A reading
+     above the limits (HbA1c above **7%**, random sugar above 200 mg/dl, blood pressure from 160/100: the owner changes
+     them in *Settings → Clinic options*) puts the patient on the **Medical follow-up** list (*Patients → Medical
+     follow-up*), with a yellow box on the file and on the surgery chart.
+   - **The ready consultation letter** (English, for the physician): the reasons (HbA1c, sugar, pressure, heart, blood
+     thinners, bone drugs, other), the history, medicines and readings written from the file, **the procedure** (tick
+     it), the duration and bleeding, **the anaesthesia (Artinibsa 4%: articaine 4% with epinephrine 1:100,000)** and
+     **the medicines after the surgery** (from the prescription that fits the procedure, allergy-safe), and the question
+     *is he fit?* Printed on the place's paper with a reply part: fit / fit with precautions / postpone / not fit.
+   - **The answer**: the reception or the dentist records what the physician wrote, with **a photo of the paper**; the
+     dentist is told. Postponed patients come back on the list on the date to check again. A dentist can also note
+     *no consultation needed*.
+2. **The delivery checklist of a prosthesis on implants**: from the dental chart (*Deliver: the checklist*), big points
+   to tap: before the patient sits, seating (passive fit, periapical X-ray, contacts, occlusion, torque, screw holes
+   sealed or cement removed, attachments for an overdenture), and the patient (satisfied, photos, cleaning, the printed
+   instructions, the next check). Only the points that fit the prosthesis are shown. **Save: delivered** loads the
+   implants and marks the pontics on the chart.
+3. **The surgery chart designed like a scanner's order form**: choose a tool (**implant**, **extraction + immediate
+   implant**, **pontic**, extraction, or add a sinus lift, GBR, expansion… to a tooth) and tap the teeth on the arch.
+   **Pontics in the gaps** fills a full arch between the implants. Choose the **implant company once**. Then **sizes
+   and lots, implant by implant**: tap the diameter and length, tap the implant used **from our stock** (its lot is
+   filled in), or type the lot or **take a photo of the sticker** with the tablet; torque and ISQ; *Same as the implant
+   before*. Saved, the chart shows the **pontics as pontics** (not missing), the saved surgery shows the arch drawn,
+   and the **prosthesis is planned by itself** (a full arch, a bridge, or a crown for each implant).
+4. **The patient's file, the way the dentist works**:
+   - The registration of the reception is shorter: the teeth and medical history *as told by the patient* are folded
+     (optional); the dentist takes the history.
+   - **The file step by step**: medical history and readings → dental history and habits → dental examination (the
+     histories just taken are folded) → **impression or diagnostic scan** → **CBCT** (taken here or asked from a centre)
+     → **planning on the CBCT and the treatment plan** (two ticks: *planned on the CBCT*, *chart checked again*) →
+     **fit for surgery** (when needed) → surgery → **restorative work** (how many steps are left) → **delivery on the
+     implants**. The yellow **Next** button opens the next step; the impression and the CBCT can be skipped.
+   - **Fewer buttons** on the patient's page: *Next*, *Dental chart*, **Record** (treatment, surgery chart, lab, CBCT,
+     medical tests, consultation, prescription, instructions) and **The file** (photos, case report, specialists,
+     Word / Excel / PDF); for the reception *Book*, *New bill* and **More**.
+   - **Treatments by kind, then step**: tap the kind of work (diagnosis, surgery, teeth on implants, **endodontics**,
+     fillings, crowns and bridges, dentures, gums, orthodontics…) then the step, e.g. endodontics → **access**, **access,
+     cleaning and shaping**, **obturation**, **all in a single visit**, pulpotomy. Each step asks for its **photos and
+     periapical X-rays** (before, working length, master cone, after…), taken with the tablet's camera on the step's
+     page. The list and the shots of each step are in *Settings → Treatments*.
+   - **After the surgery**: the prescription, the instructions, and **the next visit by what was done**: after a sinus
+     lift a check after 2 days, after a graft a week, otherwise **suture removal after a week** (days in *Settings →
+     Clinic options*). It is printed on the instructions; the dentist taps *Ask the reception to book it* (the patient
+     goes on the reception's list) or the reception books it.
+5. **The logos of CIC and the lab**: CIC's logo and the lab's **GDIL — The art of dentistry** logo (the lab is now *GDIL
+   Dental Lab*) show on the login page, the top bar and every printed paper (bills, receipts, prescriptions,
+   instructions, CBCT requests, surgery charts, case reports, lab papers).
+
+### Earlier: the dental lab, the dashboard, an easier system
 The dental lab opens as the fourth place. Checklist: [docs/lab-test-checklist.md](docs/lab-test-checklist.md).
 - **The login page with the four places** (the owner's choice): one login page for every PC; tap your place (CIA,
   CIC, El Khadem or the lab), the page takes its look and that place opens after logging in. The PC remembers the
@@ -172,7 +224,8 @@ Dr. Amr El Khadem's private clinic is the third place (`PVT`, files `EK-…`). C
   sharpness, distance), the card is cut out of the table, and the **ID number is read** from it (offline) and written
   in the form, to be checked.
 - **The file step by step** for the dentist: medical history → dental history → examination → treatment plan →
-  surgery chart, each saved page going on to the next. The medical history is taken by the dentist; the reception
+  surgery chart, each saved page going on to the next (round 10 adds the impression, the CBCT, the fitness for surgery,
+  the restorative work and the delivery). The medical history is taken by the dentist; the reception
   sees a **summary**. The owner chooses what else the reception sees in a file (*Settings → Access*).
 - **CBCT**: ticking *CBCT requested* opens the CBCT request; it is marked **done in our clinic** (where there is a CBCT
   machine) or at the centre, with the folder of the scan, which then opens from the examination.
@@ -360,8 +413,10 @@ What dentists do:
 - **Implant surgery chart**: the CIA surgery chart, field by field:
   - The team: instructor, operator 1, operator 2 and assistant.
   - The case difficulty.
+  - **The design** (like a scanner): tap the teeth with a tool (implant, immediate implant, pontic, extraction, sinus,
+    GBR…), the implant company once, then the sizes and lots implant by implant (from stock, typed, or the sticker's
+    photo).
   - Per tooth: extraction, flap, simple / immediate / guided implant, expansion, splitting, closed / open sinus and GBR.
-  - **Same procedures on several teeth**: tick the procedures, choose the teeth, and a card is made for each tooth.
   - Per implant: company and line, diameter × length, lot, sticker photo, torque, ISQ and subcrestal.
   - GBR (block graft, donor site, particles, % autogenous), membrane and tacks, soft tissue, suture, temporary and X-ray.
 - **Implant life**: placed → uncovered → impression / scan → loaded, or failed, with the dates.

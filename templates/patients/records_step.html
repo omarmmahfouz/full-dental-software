@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if step == "cbct" %}{% trans "CBCT" %}{% else %}{% trans "Impression or diagnostic scan" %}{% endif %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi {% if step == 'cbct' %}bi-radioactive{% else %}bi-upc-scan{% endif %}"></i> {% if step == "cbct" %}{% trans "CBCT" %}{% else %}{% trans "Impression or diagnostic scan" %}{% endif %} <small class="text-muted fs-6">{{ patient.full_name }} — {{ patient.file_number }}</small></h1></div>
+{% include "patients/_file_steps.html" %}
+<p class="text-muted">{% if step == "cbct" %}{% trans "The CBCT for the planning: taken here, or asked from a centre (the patient brings it back and the reception keeps it in the file)." %}{% else %}{% trans "After the examination: a primary impression for the study models, or a diagnostic scan. Tap what you did." %}{% endif %}</p>
+<form method="post" class="card mb-3" data-no-leave-warning>{% csrf_token %}
+  {% if flow %}<input type="hidden" name="flow" value="1">{% endif %}
+  <div class="card-body">
+    <div class="journey-tiles">
+      {% for t in types %}<button class="journey-tile" name="type" value="{{ t.pk }}"><i class="bi {% if step == 'cbct' %}bi-radioactive{% elif 'scan' in t.name_en|lower %}bi-upc-scan{% else %}bi-droplet{% endif %}"></i><span>{{ t }}</span><small>{% trans "done today" %}</small></button>{% endfor %}
+      {% if step == "cbct" %}<a class="journey-tile" href="{% url 'clinical:outside_create' %}?patient={{ patient.pk }}&amp;kind=cbct"><i class="bi bi-send"></i><span>{% trans "Ask a CBCT from a centre" %}</span><small>{% trans "the printed request" %}</small></a>
+      {% else %}<a class="journey-tile" href="{% url 'charting:photos' patient.pk %}?stage=diagnostic"><i class="bi bi-camera"></i><span>{% trans "Diagnostic photos" %}</span><small>{% trans "the first visit's photos" %}</small></a>{% endif %}
+    </div>
+    <label class="form-label mt-3" for="records-notes">{% trans "Notes" %}</label>
+    <input class="form-control" id="records-notes" name="notes" maxlength="500">
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <button class="btn btn-outline-secondary" name="type" value="skip"><i class="bi bi-skip-forward"></i> {% if flow %}{% trans "Not needed: next step" %}{% else %}{% trans "Not needed" %}{% endif %}</button>
+      <a class="btn btn-outline-secondary" href="{{ patient.get_absolute_url }}">{% trans "Patient file" %}</a>
+    </div>
+  </div>
+</form>
+{% if recorded or cbct_requests or cbct_files %}
+<div class="card"><div class="card-header">{% trans "Already in the file" %}</div>
+  <ul class="list-group list-group-flush small">
+    {% for r in recorded %}<li class="list-group-item"><i class="bi bi-check2 text-success"></i> {{ r.step_type }} — {{ r.performed_at|date:"d/m/Y" }}{% if r.operator %} · {{ r.operator }}{% endif %}{% if r.notes %} · {{ r.notes }}{% endif %}</li>{% endfor %}
+    {% for o in cbct_requests %}<li class="list-group-item"><i class="bi bi-send"></i> <a href="{{ o.get_absolute_url }}">{{ o.get_kind_display }}</a> — {{ o.created_at|date:"d/m/Y" }}{% if o.dentist %} · {{ o.dentist }}{% endif %}</li>{% endfor %}
+    {% for d in cbct_files %}<li class="list-group-item"><i class="bi bi-file-earmark-medical"></i> {{ d.get_kind_display }} — {{ d.created_at|date:"d/m/Y" }}{% if d.file %} · <a href="{{ d.file.url }}" target="_blank">{% trans "open" %}</a>{% endif %}{% if d.location %} · <span class="ltr">{{ d.location }}</span>{% endif %}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

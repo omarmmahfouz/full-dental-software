@@ -1,11 +1,11 @@
-{% load i18n %}{% comment %}The five steps of a new patient's file (apps/patients/sequence.py). Context: file_steps.{% endcomment %}
+{% load i18n %}{% comment %}The journey of the patient's file (apps/patients/sequence.py). Context: file_steps.{% endcomment %}
 <nav class="file-steps no-print" aria-label="{% trans 'The file, step by step' %}">
   <span class="file-steps-title">{% trans "The file, step by step" %}</span>
   <ol>{% for step in file_steps %}
-    <li class="{% if step.done %}is-done{% endif %}{% if step.optional %} is-optional{% endif %}{% if step.current %} is-current{% elif step.next %} is-next{% endif %}">
+    <li class="{% if step.done %}is-done{% endif %}{% if step.optional %} is-optional{% endif %}{% if step.skipped %} is-skipped{% endif %}{% if step.current %} is-current{% elif step.next %} is-next{% endif %}">
       <a href="{{ step.url }}"{% if step.current %} aria-current="step"{% endif %}>
         <span class="file-step-mark">{% if step.done %}<i class="bi bi-check-lg"></i>{% else %}{{ step.number }}{% endif %}</span>
-        <span class="file-step-text"><i class="bi {{ step.icon }}"></i> {{ step.label }}{% if step.next and not step.current %}<small>{% trans "next" %}</small>{% elif step.optional %}<small>{% trans "when an implant is planned" %}</small>{% endif %}</span>
+        <span class="file-step-text"><i class="bi {{ step.icon }}"></i> {{ step.label }}{% if step.next and not step.current %}<small>{% trans "next" %}</small>{% elif step.note %}<small>{{ step.note }}</small>{% elif step.skipped %}<small>{% trans "skipped" %}</small>{% elif step.optional %}<small>{% trans "when an implant is planned" %}</small>{% endif %}</span>
       </a>
     </li>{% endfor %}
   </ol>

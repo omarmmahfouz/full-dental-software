@@ -202,12 +202,14 @@ class AccessAndSettingsTests(TestCase):
             "o-day_start": "09:00", "o-day_end": "17:00", "o-surgery_days": ["3", "4"], "o-dicom_email": "ciapts@gmail.com",
             "o-late_threshold_minutes": 15, "o-default_appointment_minutes": 45, "o-complaint_follow_up_days": 3,
             "o-stock_expiry_days": 30, "o-reminder_days_before": 2, "o-whatsapp_country_code": "20",
-            "o-fawry_fee_percent": "1.5",
+            "o-fawry_fee_percent": "1.5", "o-hba1c_limit": "7.5", "o-glucose_limit": 200, "o-systolic_limit": 160,
+            "o-diastolic_limit": 100, "o-follow_up_sinus_days": 3, "o-follow_up_graft_days": 7, "o-follow_up_days": 7,
             "b-name_ar": "أكاديمية القاهرة لزراعة الأسنان", "b-name_en": "Cairo Implant Academy", "b-phone": "0223456789",
             "b-address": "Cairo",
         })
         self.assertEqual(ClinicSettings.get().late_threshold_minutes, 15)
         self.assertEqual(ClinicSettings.get().fawry_fee_percent, Decimal("1.5"))
+        self.assertEqual((ClinicSettings.get().hba1c_limit, ClinicSettings.get().follow_up_sinus_days), (Decimal("7.5"), 3))
         make_user("head", "head_cia")
         self.client.login(username="head", password=PASSWORD)
         self.assertEqual(self.client.get("/settings/users/").status_code, 403)
@@ -737,6 +739,8 @@ class SpeedTests(TestCase):
         ("owner", "/lab/clients/", 40),
         ("owner", "/lab/whatsapp/", 40),
         ("owner", "/lab/blocks/", 40),
+        ("dentist", "/patients/medical-follow-up/?mine=0", 40),
+        ("secretary", "/patients/medical-follow-up/", 40),
     ]
 
     @classmethod
@@ -782,7 +786,8 @@ class SpeedTests(TestCase):
         pages = self.PAGES + [("secretary", f"/patients/{patient.pk}/", 60),
                               ("secretary", f"/billing/patient/{patient.pk}/", 60),
                               ("dentist", f"/chart/patient/{patient.pk}/photos/", 60),
-                              ("owner", f"/lab/cases/{lab_case.pk}/", 40)]
+                              ("owner", f"/lab/cases/{lab_case.pk}/", 40),
+                              ("dentist", f"/patients/{patient.pk}/", 80)]
         for username, url, budget in pages:
             with self.subTest(user=username, page=url):
                 self.client.login(username=username, password=PASSWORD)
@@ -918,3 +923,21 @@ class ForgottenPasswordTests(TestCase):
         make_user("head", "head_cia")
         self.client.login(username="head", password=PASSWORD)
         self.assertEqual(self.client.post(f"/settings/users/password/{asked.pk}/give/").status_code, 403)
+
+
+class PlaceLogoTests(TestCase):
+    """Round 10: CIC and the lab (GDIL) have their own logos: the login page, the top bar and the printed papers."""
+
+    def test_the_logos_of_the_places(self):
+        from apps.core.models import Branch
+
+        setup_clinic()
+        cic, lab, cia = (Branch.objects.get(code=code) for code in ("CIC", "LAB", "CIA"))
+        self.assertTrue(cic.has_mark and lab.has_mark)
+        self.assertFalse(cia.has_mark)  # CIA prints its own full logo
+        self.assertIn("img/cic-logo.jpg", cic.mark_url)
+        self.assertIn("img/gdil-logo.jpg", lab.mark_url)
+        self.assertEqual((lab.name_en, lab.tagline), ("GDIL Dental Lab", "The art of dentistry"))
+        page = self.client.get("/login/?place=CIC")
+        self.assertContains(page, "img/cic-logo.jpg")
+        self.assertContains(self.client.get("/login/"), "img/gdil-logo.jpg")  # the lab's tile

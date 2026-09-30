@@ -25,9 +25,11 @@
 </div></div>
 <div class="card mx-auto" style="max-width: 800px"><div class="card-body p-4">
   <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-    <div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+    {% if branch.has_mark %}{% include "includes/place_letterhead.html" with place=branch %}
+    <div class="text-end"><h1 class="h4 fw-bold mb-0">{{ o.get_kind_display }}</h1><div>{{ o.requested_on|date:"d/m/Y" }}</div></div>
+    {% else %}<div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
       <div><h1 class="h4 fw-bold mb-0">{{ o.get_kind_display }}</h1><div class="text-muted">{{ branch.name }}{% if branch.phone %} — <span class="ltr">{{ branch.phone }}</span>{% endif %}</div></div></div>
-    <div class="text-end"><div>{{ o.requested_on|date:"d/m/Y" }}</div></div>
+    <div class="text-end"><div>{{ o.requested_on|date:"d/m/Y" }}</div></div>{% endif %}
   </div>
   <dl class="dl-grid fs-6">
     <dt>{% trans "Patient" %}</dt><dd class="fw-bold">{{ p.full_name }} <span class="fw-normal text-muted">({{ p.file_number }})</span></dd>

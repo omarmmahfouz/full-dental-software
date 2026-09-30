@@ -400,3 +400,117 @@ class ProsthesisTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.sites[12].refresh_from_db()
         self.assertEqual(self.sites[12].implant_status, "impression")
+
+
+class DesignTests(TestCase):
+    """Round 10: the surgery chart designed like a scanner's order form: implants and pontics, a full arch planned
+    by itself, the delivery checklist, and the visit after the surgery."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+        self.system = ImplantSystem.objects.get(company="Osstem")
+        for tooth in (15, 13, 11, 21, 23, 25):
+            ToothState.objects.create(patient=self.patient, tooth=tooth, status=ToothState.Status.MISSING)
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def implant(self, tooth, **extra):
+        site = {"tooth": tooth, "simple_implant": True, "implant_system": self.system.pk, "implant_diameter": "3.75",
+                "implant_length": "11.5"}
+        site.update(extra)
+        return site
+
+    def test_the_page_offers_the_designer(self):
+        page = self.client.get(f"/surgery/new/?patient={self.patient.pk}")
+        self.assertContains(page, "data-arch-designer")
+        self.assertContains(page, 'id="implant-sequence"')
+        self.assertContains(page, "data-arch-pontics")  # the hidden field of the pontics
+        self.assertIn("3.75", page.context["diameters"])
+
+    def test_full_arch_with_pontics(self):
+        sites = [self.implant(t) for t in (16, 14, 12, 22, 24, 26)]
+        sites[0]["closed_sinus"] = True
+        response = self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, sites,
+                                                                  pontics="25, 23, 21, 11, 13, 15, 14"))
+        surgery = Surgery.objects.get()
+        self.assertRedirects(response, surgery.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual(surgery.pontics, "15, 13, 11, 21, 23, 25")  # 14 has an implant: not a pontic
+        self.assertEqual(SurgerySite.objects.get(tooth=12).implant_diameter, Decimal("3.75"))
+        states = dict(ToothState.objects.filter(patient=self.patient).values_list("tooth", "status"))
+        self.assertEqual(states[15], ToothState.Status.PONTIC)  # no longer "missing"
+        self.assertEqual(states[16], ToothState.Status.IMPLANT)
+        from apps.surgery.models import Prosthesis
+
+        arch = Prosthesis.objects.get()
+        self.assertEqual((arch.kind, arch.jaw, arch.status), ("full_fixed", "upper", "planned"))
+        self.assertEqual(arch.pontics, [15, 13, 11, 21, 23, 25])
+        self.assertEqual(len(arch.implant_teeth), 6)
+        page = self.client.get(surgery.get_absolute_url())
+        self.assertContains(page, "arch-view")
+        self.assertContains(page, "bar-start")  # the bar under the full arch
+        self.assertEqual(page.context["follow_up"]["days"], 2)  # a sinus lift: checked after 2 days
+        # Saving again plans nothing twice.
+        from apps.surgery.prostheses import plan_from_surgery
+
+        self.assertEqual(plan_from_surgery(surgery, None), [])
+
+    def test_bridges_singles_and_an_extraction_kept_as_a_pontic(self):
+        from apps.surgery.models import Prosthesis
+
+        ToothState.objects.create(patient=self.patient, tooth=45)
+        sites = [self.implant(46), self.implant(44), {"tooth": 45, "extraction": True}, self.implant(36),
+                 self.implant(37)]
+        self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, sites, pontics="45"))
+        self.assertEqual(ToothState.objects.get(patient=self.patient, tooth=45).status, ToothState.Status.PONTIC)
+        kinds = sorted((p.kind, p.teeth) for p in Prosthesis.objects.all())
+        self.assertEqual(kinds, [("bridge", "46, 45, 44"), ("single", "36"), ("single", "37")])
+        surgery = Surgery.objects.get()
+        self.assertEqual(self.client.get(surgery.get_absolute_url()).context["follow_up"]["days"], 7)
+
+    def test_the_delivery_checklist(self):
+        from apps.surgery.models import DeliveryCheck, Prosthesis
+
+        self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, [self.implant(36)]))
+        crown = Prosthesis.objects.get()
+        Prosthesis.objects.filter(pk=crown.pk).update(retention=Prosthesis.Retention.SCREW)
+        crown.refresh_from_db()
+        page = self.client.get(f"/surgery/prostheses/{crown.pk}/delivery/")
+        codes = [code for _group, rows in page.context["groups"] for code, *_rest in rows]
+        self.assertIn("torque", codes)
+        self.assertIn("contacts", codes)
+        self.assertNotIn("cement_cleaned", codes)  # screw-retained
+        self.assertNotIn("attachments", codes)  # not removable
+        response = self.client.post(f"/surgery/prostheses/{crown.pk}/delivery/", {
+            "tick": ["lab_match", "shade", "torque", "not-a-point"], "date": "01/09/2026", "torque_ncm": "35",
+            "action": "save"})
+        self.assertRedirects(response, f"/surgery/prostheses/{crown.pk}/delivery/", fetch_redirect_response=False)
+        check = DeliveryCheck.objects.get()
+        self.assertEqual(check.ticked, ["lab_match", "shade", "torque"])
+        crown.refresh_from_db()
+        self.assertEqual(crown.status, "planned")  # only saved
+        self.client.post(f"/surgery/prostheses/{crown.pk}/delivery/", {
+            "tick": codes, "date": "01/09/2026", "torque_ncm": "35", "action": "deliver"})
+        crown.refresh_from_db()
+        self.assertEqual((crown.status, crown.delivered_on.isoformat()), ("delivered", "2026-09-01"))
+        self.assertEqual(SurgerySite.objects.get().implant_status, SurgerySite.ImplantStatus.LOADED)
+        self.assertEqual(DeliveryCheck.objects.get().missing(), [])
+        overdenture = Prosthesis(kind=Prosthesis.Kind.OVERDENTURE, retention=Prosthesis.Retention.LOCATOR)
+        codes = [code for _group, rows in DeliveryCheck.items_for(overdenture) for code, *_rest in rows]
+        self.assertIn("attachments", codes)
+        self.assertNotIn("xray", codes)
+
+    def test_the_visit_after_the_surgery_goes_to_the_reception(self):
+        from apps.scheduling.models import PatientRequest
+
+        self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, [self.implant(36)]))
+        surgery = Surgery.objects.get()
+        response = self.client.post(f"/surgery/{surgery.pk}/follow-up/")
+        self.assertRedirects(response, surgery.get_absolute_url(), fetch_redirect_response=False)
+        self.client.post(f"/surgery/{surgery.pk}/follow-up/")  # asked twice: one request
+        request = PatientRequest.objects.get()
+        self.assertEqual(request.status, PatientRequest.Status.APPROVED)
+        self.assertEqual(request.step_type.name_en, "Suture removal")
+        self.assertEqual(request.wanted_from, surgery.date + timedelta(days=7))
+        page = self.client.get(f"/prescriptions/patient/{self.patient.pk}/instructions/?surgery={surgery.pk}")
+        self.assertContains(page, "follow-up-print")

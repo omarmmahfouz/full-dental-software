@@ -45,6 +45,7 @@ class FieldsetsMixin:
     """Group long forms into titled sections: ``fieldsets = [(title, [names])]``."""
 
     fieldsets = ()
+    folded = ()  # titles of sections shown closed (optional, or filled before): a tap opens them
 
     def bound_fieldsets(self):
         used, sections = set(), []

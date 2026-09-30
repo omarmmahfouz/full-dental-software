@@ -57,10 +57,11 @@
     <div class="card mb-3"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-bricks"></i> {% trans "Prostheses on implants" %}</span>{% if can_edit %}<a class="small" href="{% url 'surgery:prosthesis_create' patient.pk %}">{% trans "Add" %}</a>{% endif %}</div>
       <div class="list-group list-group-flush">
         {% for pr in prostheses %}
-        <a class="list-group-item list-group-item-action" href="{% if can_edit %}{% url 'surgery:prosthesis_update' pr.pk %}{% else %}#{% endif %}">
-          <div class="d-flex justify-content-between gap-2"><strong>{{ pr.label }}</strong><span class="badge {% if pr.status == 'delivered' %}text-bg-success{% else %}text-bg-light border{% endif %}">{{ pr.get_status_display }}{% if pr.is_temporary %} · {% trans "temporary" %}{% endif %}</span></div>
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between gap-2">{% if can_edit %}<a href="{% url 'surgery:prosthesis_update' pr.pk %}" class="fw-bold">{{ pr.label }}</a>{% else %}<strong>{{ pr.label }}</strong>{% endif %}<span class="badge {% if pr.status == 'delivered' %}text-bg-success{% else %}text-bg-light border{% endif %}">{{ pr.get_status_display }}{% if pr.is_temporary %} · {% trans "temporary" %}{% endif %}</span></div>
           <div class="small text-muted">{% trans "on implants" %} {{ pr.implant_teeth|join:", " }}{% if pr.pontics %} · {% trans "pontics" %} {{ pr.pontics|join:", " }}{% endif %}{% if pr.material %} · {{ pr.get_material_display }}{% endif %}{% if pr.retention %} · {{ pr.get_retention_display }}{% endif %}{% if pr.delivered_on %} · {{ pr.delivered_on|date:"d/m/Y" }}{% endif %}</div>
-        </a>
+          {% if can_edit %}<a class="btn btn-sm {% if pr.status == 'delivered' %}btn-outline-secondary{% else %}btn-outline-success{% endif %} mt-1" href="{% url 'surgery:delivery_check' pr.pk %}"><i class="bi bi-clipboard2-check"></i> {% if pr.status == 'delivered' %}{% trans "Delivery checklist" %}{% else %}{% trans "Deliver: the checklist" %}{% endif %}</a>{% endif %}
+        </div>
         {% empty %}<div class="list-group-item text-muted small">{% trans "None yet: single crowns, bridges and full arches on implants are written here." %}</div>{% endfor %}
       </div>
     </div>

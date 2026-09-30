@@ -1,0 +1,43 @@
+{% load i18n %}{% comment %}The surgery chart's design, like a scanner's order form: choose a tool, tap the teeth (implants, pontics,
+extractions...), choose the implant company once, then the sizes and lots implant by implant (static/js/surgery-arch.js).
+It fills the tooth cards below; the pontics go in the hidden "pontics" field.{% endcomment %}
+<div class="arch-designer" data-arch-designer data-missing="{{ missing }}" data-lots-url="{% url 'surgery:implant_lots' %}">
+  <ol class="arch-howto">
+    <li>{% trans "Choose a tool and tap the teeth" %}</li>
+    <li>{% trans "The implant company, once" %}</li>
+    <li>{% trans "Sizes and lots, implant by implant" %}</li>
+  </ol>
+  <div class="arch-tools" role="toolbar" aria-label="{% trans 'Tools' %}">
+    <button type="button" class="arch-tool is-active" data-tool="implant"><span class="arch-swatch sw-implant"><i class="bi bi-implant"></i></span> {% trans "Implant" %}</button>
+    <button type="button" class="arch-tool" data-tool="immediate"><span class="arch-swatch sw-immediate"><i class="bi bi-implant"></i></span> {% trans "Extraction + immediate implant" %}</button>
+    <button type="button" class="arch-tool" data-tool="pontic"><span class="arch-swatch sw-pontic">P</span> {% trans "Pontic" %}</button>
+    <button type="button" class="arch-tool" data-tool="extraction"><span class="arch-swatch sw-extraction"><i class="bi bi-x-lg"></i></span> {% trans "Extraction" %}</button>
+    <button type="button" class="arch-tool" data-tool="clear"><span class="arch-swatch sw-clear"><i class="bi bi-eraser"></i></span> {% trans "Clear" %}</button>
+    <span class="arch-tools-sep" aria-hidden="true"></span>
+    <span class="arch-tools-label">{% trans "Add to a tooth" %}:</span>
+    {% for name, label in addons %}<button type="button" class="arch-tool arch-addon" data-tool="{{ name }}"><span class="arch-swatch sw-addon">{{ label|slice:":1" }}</span> {{ label }}</button>{% endfor %}
+  </div>
+  <div class="arch-board" role="group" aria-label="{% trans 'The teeth' %}">
+    <div class="arch-side"><span>{% trans "Right" %}</span><span>{% trans "Upper" %}</span><span>{% trans "Left" %}</span></div>
+    <div class="arch-row" data-jaw="upper"></div>
+    <div class="arch-row" data-jaw="lower"></div>
+    <div class="arch-side"><span>{% trans "Right" %}</span><span>{% trans "Lower" %}</span><span>{% trans "Left" %}</span></div>
+  </div>
+  <div class="arch-summary" data-arch-summary aria-live="polite"></div>
+  <div class="arch-actions">
+    <button type="button" class="btn btn-outline-primary" data-arch-fill><i class="bi bi-bricks"></i> {% trans "Pontics in the gaps between the implants" %}</button>
+    <div class="arch-company">
+      <label class="form-label mb-0" for="arch-system">{% trans "Implant company (for all)" %}</label>
+      <select class="form-select" id="arch-system" data-arch-system>
+        <option value="">—</option>{% for system in implant_systems %}<option value="{{ system.pk }}">{{ system }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" id="arch-guided" data-arch-guided><label class="form-check-label" for="arch-guided">{% trans "Guided surgery (all the implants)" %}</label></div>
+    <button type="button" class="btn btn-primary ms-auto" data-arch-sequence><i class="bi bi-list-ol"></i> {% trans "Sizes and lots: implant by implant" %}</button>
+  </div>
+  <div class="arch-legend small text-muted">
+    <span><span class="arch-swatch sw-missing"></span> {% trans "missing on the chart" %}</span>
+    <span><span class="arch-swatch sw-done"></span> {% trans "size written" %}</span>
+    <span><span class="arch-bar-key"></span> {% trans "one bridge / full arch" %}</span>
+  </div>
+</div>

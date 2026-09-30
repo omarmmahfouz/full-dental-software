@@ -127,6 +127,14 @@ class Branch(LookupModel):
         options = ClinicSettings.get()
         return self.opens_at or options.day_start, self.closes_at or options.day_end
 
+    # The places' own marks, until a logo is uploaded in Settings → Places.
+    MARKS = {"PVT": "img/khadem-mark.svg", "CIC": "img/cic-logo.jpg", "LAB": "img/gdil-logo.jpg"}
+
+    @property
+    def has_mark(self):
+        """True when the place has a logo of its own (uploaded, or one of the marks above)."""
+        return bool(self.logo) or self.code in self.MARKS
+
     @property
     def mark_url(self):
         """The logo shown on the top bar and the login page: the one uploaded, else the place's own mark."""
@@ -135,7 +143,7 @@ class Branch(LookupModel):
 
         if self.logo:
             return reverse("core:place_logo", args=[self.code])
-        return static({"PVT": "img/khadem-mark.svg"}.get(self.code, "img/cia-mark.png"))
+        return static(self.MARKS.get(self.code, "img/cia-mark.png"))
 
 
 class UserProfile(models.Model):
@@ -273,6 +281,19 @@ class ClinicSettings(models.Model):
     # The parts of a patient's file the reception sees (apps/patients/access.py FILE_PARTS); dentists see them all.
     reception_sees = models.JSONField(_("the reception sees in a patient's file"), default=reception_default,
                                       blank=True)
+    # A reading above these puts the patient on the medical follow-up (apps/patients/medical.py).
+    hba1c_limit = models.DecimalField(_("HbA1c above (%) needs a physician's opinion"), max_digits=4,
+                                      decimal_places=1, default=7)
+    glucose_limit = models.PositiveSmallIntegerField(
+        _("random blood sugar above (mg/dl) needs a physician's opinion"), default=200)
+    systolic_limit = models.PositiveSmallIntegerField(
+        _("blood pressure from (systolic, mmHg) needs a physician's opinion"), default=160)
+    diastolic_limit = models.PositiveSmallIntegerField(
+        _("blood pressure from (diastolic, mmHg) needs a physician's opinion"), default=100)
+    # The visit after a surgery (apps/surgery/followup.py).
+    follow_up_sinus_days = models.PositiveSmallIntegerField(_("check after a sinus lift (days)"), default=2)
+    follow_up_graft_days = models.PositiveSmallIntegerField(_("check after a bone or gum graft (days)"), default=7)
+    follow_up_days = models.PositiveSmallIntegerField(_("suture removal after other surgeries (days)"), default=7)
 
     class Meta:
         verbose_name = _("clinic options")

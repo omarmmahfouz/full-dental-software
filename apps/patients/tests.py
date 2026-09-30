@@ -591,3 +591,167 @@ class FileStepsTests(TestCase):
         self.assertIn(self.patient.file_number, [row[1] for row in book["Personal data"].iter_rows(values_only=True)])
         self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/excel/").status_code, 403)
+
+
+class MedicalFollowUpTests(TestCase):
+    """Round 10: readings above the limits put the patient on the medical follow-up; the dentist writes a ready
+    consultation letter; the answer is recorded and the dentist is told."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from apps.charting.models import Examination
+
+        self.branch = setup_clinic()
+        self.patient = make_patient(self.branch)
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient.assigned_dentist = self.dentist
+        self.patient.save()
+        make_user("sec", "secretary")
+        self.exam = Examination.objects.create(patient=self.patient, history_only=True, hba1c=Decimal("8.2"),
+                                               bp_clinic_systolic=150, bp_clinic_diastolic=90, allergy_penicillin=True)
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def test_the_readings_put_the_patient_on_the_list(self):
+        from apps.patients.medical import clearance, reading_flags
+
+        self.assertEqual([code for code, _text in reading_flags(self.exam)], ["hba1c"])  # 150/90 is under 160/100
+        self.assertEqual(clearance(self.patient)["state"], "needed")
+        page = self.client.get("/patients/medical-follow-up/?mine=0")
+        self.assertEqual([exam.patient for exam, _flags in page.context["needing"]], [self.patient])
+        self.assertContains(self.client.get(f"/patients/{self.patient.pk}/"), "clearance-box")
+        # Another place never sees this patient.
+        from apps.core.models import Branch
+
+        other = make_patient(Branch.objects.get(code="CIC"), name="مريض آخر", nid="29001011234568", phone="01001234568")
+        self.assertNotIn(other, [e.patient for e, _f in page.context["needing"]])
+
+    def test_the_letter_is_ready_made(self):
+        page = self.client.get(f"/patients/{self.patient.pk}/consult/")
+        form = page.context["form"]
+        self.assertIn("Artinibsa 4%", form.initial.get("anesthesia") or form.instance.anesthesia)
+        self.assertEqual(form.initial["reasons"], ["hba1c"])
+        self.assertIn("HbA1c 8.2%", form.initial["findings"])
+        self.assertIn("Clindamycin", form.initial["medications"])  # allergic to penicillin
+        medicines = self.client.get(f"/patients/{self.patient.pk}/consult/medicines/?procedure=sinus").json()
+        self.assertIn("Xylometazoline", medicines["medications"])
+        response = self.client.post(f"/patients/{self.patient.pk}/consult/", {
+            "reasons": ["hba1c"], "findings": form.initial["findings"], "physician": "Adel Sami",
+            "specialty": "Endocrinology (diabetes)", "procedures": ["implants", "sinus"], "procedure_details": "16",
+            "duration": "About 1 hour", "bleeding": "minor", "anesthesia": form.instance.anesthesia,
+            "medications": "Clindamycin 300 mg", "question": "Fit?", "sent_on": "01/09/2026",
+            "dentist": self.dentist.pk})
+        from apps.patients.models import MedicalConsult
+
+        consult = MedicalConsult.objects.get()
+        self.assertRedirects(response, consult.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual(consult.bleeding, "moderate")  # a sinus lift
+        self.assertEqual(consult.procedure_labels(), ["Implant placement", "Sinus lift"])
+        page = self.client.get(consult.get_absolute_url())
+        self.assertContains(page, "Dr. Adel Sami")
+        self.assertContains(page, "Medical consultation before dental surgery")
+        from apps.patients.medical import clearance
+
+        self.assertEqual(clearance(self.patient)["state"], "waiting")
+        # The reception copies the answer the patient brought back; the dentist is told.
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/consult/").status_code, 403)
+        response = self.client.post(f"/patients/consults/{consult.pk}/answer/", {"answer": "precautions"})
+        self.assertEqual(response.status_code, 200)  # the precautions must be written
+        self.client.post(f"/patients/consults/{consult.pk}/answer/", {
+            "answer": "precautions", "answer_notes": "Stop aspirin 5 days before", "answered_by": "Dr. Adel Sami",
+            "answered_on": "05/09/2026"})
+        consult.refresh_from_db()
+        self.assertEqual((consult.status, consult.answer), ("answered", "precautions"))
+        self.assertEqual(clearance(self.patient)["state"], "fit")
+        from apps.core.models import Notification
+
+        self.assertTrue(Notification.objects.filter(recipient=self.dentist.user, url=consult.get_absolute_url()).exists())
+
+    def test_not_needed_and_postponed(self):
+        from apps.patients.medical import clearance
+        from apps.patients.models import MedicalConsult
+
+        self.client.post(f"/patients/{self.patient.pk}/consult/not-needed/", {"note": "HbA1c of last year"})
+        self.assertEqual(clearance(self.patient)["state"], "cleared")
+        page = self.client.get("/patients/medical-follow-up/?mine=0")
+        self.assertEqual(list(page.context["needing"]), [])
+        MedicalConsult.objects.all().delete()
+        held = MedicalConsult.objects.create(patient=self.patient, dentist=self.dentist, status="answered",
+                                             answer="postpone", recheck_on=timezone.localdate())
+        self.assertEqual(clearance(self.patient)["state"], "not_fit")
+        page = self.client.get("/patients/medical-follow-up/?mine=0")
+        self.assertEqual(page.context["held"], [held])
+
+
+class JourneyTests(TestCase):
+    """Round 10: the file follows the dentist's day: histories and readings, examination, impression or scan,
+    CBCT, planning and plan, then surgery, restorative work and delivery."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.patient = make_patient(self.branch)
+        make_dentist("dentist", kind="fulltime")
+        make_user("sec", "secretary")
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def steps(self):
+        return {s["code"]: s for s in self.client.get(f"/patients/{self.patient.pk}/").context["file_steps"]}
+
+    def test_the_steps_in_the_dentists_order(self):
+        from apps.charting.models import Examination
+
+        codes = list(self.steps())
+        self.assertEqual(codes, ["medical", "dental", "exam", "impression", "cbct", "plan", "surgery"])
+        page = self.client.get(f"/patients/{self.patient.pk}/history/?part=medical&flow=1")
+        fields = list(page.context["form"].fields)
+        self.assertEqual(fields[:3], ["bp_clinic_systolic", "bp_clinic_diastolic", "glucose_random_clinic"])
+        Examination.objects.create(patient=self.patient, history_only=True)
+        Examination.objects.create(patient=self.patient, teeth_missing="36")
+        steps = self.steps()
+        self.assertTrue(steps["impression"]["next"])
+        self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/").context["next_step"]["code"], "impression")
+        # The examination page folds the histories taken before.
+        self.assertTrue(self.client.get(f"/chart/patient/{self.patient.pk}/exam/new/").context["form"].folded)
+
+    def test_impression_and_cbct(self):
+        from apps.charting.models import Examination
+        from apps.clinical.models import TreatmentStep, TreatmentStepType
+
+        Examination.objects.create(patient=self.patient, teeth_missing="36")
+        scan = TreatmentStepType.objects.get(name_en="Diagnostic intraoral scan")
+        page = self.client.get(f"/patients/{self.patient.pk}/records/?step=impression&flow=1")
+        self.assertIn(scan, list(page.context["types"]))
+        response = self.client.post(f"/patients/{self.patient.pk}/records/?step=impression&flow=1",
+                                    {"type": scan.pk, "flow": "1"})
+        self.assertRedirects(response, f"/patients/{self.patient.pk}/records/?step=cbct&flow=1",
+                             fetch_redirect_response=False)
+        self.assertEqual(TreatmentStep.objects.get().step_type, scan)
+        self.assertTrue(self.steps()["impression"]["done"])
+        response = self.client.post(f"/patients/{self.patient.pk}/records/?step=cbct&flow=1", {"type": "skip",
+                                                                                              "flow": "1"})
+        self.assertRedirects(response, f"/chart/patient/{self.patient.pk}/plan/new/?flow=1",
+                             fetch_redirect_response=False)
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/records/").status_code, 403)
+
+    def test_later_steps_show_when_they_are_needed(self):
+        from decimal import Decimal
+
+        from apps.charting.models import Examination, PlanItem, TreatmentPlan
+        from apps.clinical.models import TreatmentStepType
+
+        Examination.objects.create(patient=self.patient, hba1c=Decimal("9.1"))
+        plan = TreatmentPlan.objects.create(patient=self.patient)
+        PlanItem.objects.create(plan=plan, step_type=TreatmentStepType.objects.get(name_en="Composite restoration"),
+                                teeth="16")
+        steps = self.steps()
+        self.assertIn("fitness", steps)
+        self.assertIn("restorative", steps)
+        self.assertTrue(steps["impression"]["skipped"])  # the plan is written: the impression was not needed
+        self.assertEqual(steps["restorative"]["note"], "1 left")
+
+    def test_registration_folds_the_history(self):
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/patients/new/")
+        self.assertContains(page, 'class="form-fold')

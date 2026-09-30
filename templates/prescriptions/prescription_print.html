@@ -17,8 +17,9 @@
 {% language "ar" %}
 <div class="card mx-auto patient-print prescription-a5" id="prescription" dir="rtl" lang="ar"><div class="card-body p-4">
   <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-    <div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
-      <div><div class="fw-bold fs-5">{{ branch.name_ar|default:"أكاديمية القاهرة لزراعة الأسنان" }}</div><div class="small text-muted">{{ branch.address }} {% if branch.phone %}— <span class="ltr">{{ branch.phone }}</span>{% endif %}</div></div></div>
+    {% if branch.has_mark %}{% include "includes/place_letterhead.html" with place=branch %}
+    {% else %}<div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+      <div><div class="fw-bold fs-5">{{ branch.name_ar|default:"أكاديمية القاهرة لزراعة الأسنان" }}</div><div class="small text-muted">{{ branch.address }} {% if branch.phone %}— <span class="ltr">{{ branch.phone }}</span>{% endif %}</div></div></div>{% endif %}
     <div class="text-start"><div class="fw-bold">{{ prescription.prescribed_on|date:"d/m/Y" }}</div><div class="small text-muted">{{ patient.file_number }}</div></div>
   </div>
   <div class="row mb-3">

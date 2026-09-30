@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Delivery checklist" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% with active="chart" %}{% include "includes/patient_nav.html" %}{% endwith %}
+<div class="page-header">
+  <h1><i class="bi bi-clipboard2-check"></i> {% trans "Delivery checklist" %}</h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+    <a class="btn btn-outline-secondary" href="{% url 'surgery:prosthesis_update' prosthesis.pk %}"><i class="bi bi-pencil"></i> {% trans "The prosthesis" %}</a>
+  </div>
+</div>
+
+<div class="card mb-3 delivery-head"><div class="card-body d-flex flex-wrap gap-3 align-items-center">
+  <div class="flex-grow-1">
+    <div class="fw-bold fs-5">{{ prosthesis.label }}</div>
+    <div class="small text-muted">{% trans "on implants" %} {% for site in prosthesis.implants.all %}<span class="badge text-bg-light border">{{ site.tooth }} · {{ site.implant_label }}</span> {% endfor %}
+      {% if prosthesis.pontics %}· {% trans "pontics" %} {{ prosthesis.pontics|join:", " }}{% endif %}
+      {% if prosthesis.material %}· {{ prosthesis.get_material_display }}{% endif %}{% if prosthesis.retention %} · {{ prosthesis.get_retention_display }}{% endif %}</div>
+  </div>
+  <div class="text-center">
+    {% if prosthesis.status == "delivered" %}<span class="badge text-bg-success fs-6"><i class="bi bi-check2-all"></i> {% trans "Delivered" %} {{ prosthesis.delivered_on|date:"d/m/Y" }}</span>
+    {% else %}<span class="badge text-bg-light border fs-6">{{ prosthesis.get_status_display }}</span>{% endif %}
+    <div class="small text-muted mt-1" data-tick-count>{% blocktrans with done=progress.0 total=progress.1 %}{{ done }} of {{ total }} done{% endblocktrans %}</div>
+  </div>
+</div></div>
+
+<form method="post" novalidate id="delivery-form">{% csrf_token %}
+  <div class="row g-3">
+    {% for group, rows in groups %}
+    <div class="col-lg-4"><div class="card h-100"><div class="card-header fw-semibold">{{ forloop.counter }}. {{ group }}</div>
+      <div class="card-body p-2 tick-list">
+        {% for code, label, optional, ticked in rows %}
+        <label class="tick-item{% if ticked %} is-done{% elif prosthesis.status == "delivered" and not optional and check.pk %} is-missing{% endif %}">
+          <input type="checkbox" name="tick" value="{{ code }}" {% if ticked %}checked{% endif %}>
+          <span class="tick-box"><i class="bi bi-check-lg"></i></span>
+          <span class="tick-text">{{ label }}{% if optional %} <small class="text-muted">({% trans "optional" %})</small>{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div></div>
+    {% endfor %}
+  </div>
+  <div class="card mt-3"><div class="card-body">
+    {% include "includes/form_fields.html" %}
+    <div class="d-flex flex-wrap gap-2 mt-3 no-print">
+      <button type="button" class="btn btn-outline-primary" data-tick-all><i class="bi bi-check2-all"></i> {% trans "Tick all" %}</button>
+      <button class="btn btn-outline-primary" name="action" value="save"><i class="bi bi-save"></i> {% trans "Save" %}</button>
+      {% if prosthesis.status != "delivered" %}<button class="btn btn-success px-4" name="action" value="deliver" data-confirm="{% trans 'Deliver the prosthesis? The implants become loaded and the pontics show on the chart.' %}"><i class="bi bi-check2-circle"></i> {% trans "Save: delivered" %}</button>{% endif %}
+    </div>
+  </div></div>
+</form>
+
+<div class="d-flex flex-wrap gap-2 mt-3 no-print">
+  <a class="btn btn-outline-secondary" href="{% url 'charting:photos' patient.pk %}?stage=delivery"><i class="bi bi-camera"></i> {% trans "Delivery photos" %}</a>
+  <a class="btn btn-outline-secondary" href="{% url 'prescriptions:instructions' patient.pk %}{% if sheet %}?sheet={{ sheet.pk }}{% endif %}"><i class="bi bi-card-checklist"></i> {% trans "Instructions for the patient" %}</a>
+  <a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book the next check" %}</a>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+(function () {
+  var form = document.getElementById("delivery-form"), count = document.querySelector("[data-tick-count]");
+  var template = "{% filter escapejs %}{% trans "{done} of {total} done" %}{% endfilter %}";
+  function update() {
+    var boxes = form.querySelectorAll("[name=tick]"), done = 0;
+    boxes.forEach(function (box) { box.closest(".tick-item").classList.toggle("is-done", box.checked); if (box.checked) done++; });
+    if (count) count.textContent = template.replace("{done}", done).replace("{total}", boxes.length);
+  }
+  form.addEventListener("change", update);
+  var all = form.querySelector("[data-tick-all]");
+  if (all) all.addEventListener("click", function () {
+    form.querySelectorAll("[name=tick]").forEach(function (box) { box.checked = true; });
+    update();
+    form.dispatchEvent(new Event("input", {bubbles: true}));
+  });
+})();
+</script>{% endblock %}

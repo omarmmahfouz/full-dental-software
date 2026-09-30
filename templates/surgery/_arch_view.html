@@ -1,0 +1,12 @@
+{% load i18n %}{% comment %}A saved surgery's design (surgery/views.py arch_view): the same look as the designer, to read and print.{% endcomment %}
+<div class="arch-board arch-view mb-3" aria-label="{% trans 'The design' %}">
+  {% for jaw, cells in arch.items %}
+  <div class="arch-row" data-jaw="{{ jaw }}">{% for c in cells %}{% if c.midline %}<span class="arch-midline"></span>{% endif %}
+    <span class="arch-tooth{% if c.role %} is-{{ c.role }}{% endif %}{% if c.pontic %} is-pontic{% endif %}{% if c.size %} is-sized{% endif %} {{ c.bar }}" style="--d: {{ c.d }}">
+      <span class="arch-num">{{ c.tooth }}</span>
+      <span class="arch-icon">{% if c.role == "implant" %}<i class="bi bi-implant"></i>{% elif c.role == "immediate" %}<i class="bi bi-x-lg"></i><i class="bi bi-implant"></i>{% elif c.role == "extraction" %}<i class="bi bi-x-lg"></i>{% endif %}{% if c.pontic %}<b class="arch-p">P</b>{% endif %}</span>
+      <span class="arch-size">{{ c.size }}</span>{% if c.addons %}<span class="arch-addons">{{ c.addons }}</span>{% endif %}<span class="arch-bar"></span>
+    </span>{% endfor %}
+  </div>
+  {% endfor %}
+</div>

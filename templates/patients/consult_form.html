@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Medical consultation" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-envelope-paper-heart"></i> {% trans "Medical consultation" %} <small class="text-muted fs-6">{{ patient.full_name }} — {{ patient.file_number }}</small></h1></div>
+{% if flags %}<div class="alert alert-warning py-2"><i class="bi bi-exclamation-triangle"></i> {% for code, text in flags %}<span class="medical-alert py-0">{{ text }}</span> {% endfor %}</div>{% endif %}
+<p class="small text-muted">{% trans "The letter is ready from the medical history: check it, choose the procedure (the usual medicines after it are written for you), then save and print it. The letter is in English, for the physician." %}</p>
+<div class="card"><div class="card-body">
+  <form method="post" novalidate data-medicines-url="{{ medications_url }}" id="consult-form">
+    {% csrf_token %}
+    {% include "includes/form_fields.html" %}
+    <div class="form-actions mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-printer"></i> {% trans "Save and print the letter" %}</button>
+      <a class="btn btn-outline-secondary" href="{% if consult.pk %}{{ consult.get_absolute_url }}{% else %}{{ patient.get_absolute_url }}{% endif %}" data-back>{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}
+{% block extra_js %}<script>
+(function () {
+  // A new procedure ticked: write the usual medicines after it (unless the dentist already changed them).
+  var form = document.getElementById("consult-form");
+  if (!form) return;
+  var box = form.querySelector("[name=medications]"), written = box ? box.value : "";
+  form.querySelectorAll("[name=procedures]").forEach(function (tick) {
+    tick.addEventListener("change", function () {
+      if (!box || box.value !== written) return;
+      var query = Array.prototype.map.call(form.querySelectorAll("[name=procedures]:checked"), function (t) {
+        return "procedure=" + encodeURIComponent(t.value);
+      }).join("&");
+      fetch(form.dataset.medicinesUrl + "?" + query, {credentials: "same-origin"}).then(function (r) { return r.json(); })
+        .then(function (data) { box.value = written = data.medications; });
+    });
+  });
+})();
+</script>{% endblock %}

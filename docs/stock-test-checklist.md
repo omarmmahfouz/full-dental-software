@@ -88,3 +88,8 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
     the lab takes them out itself (*Blocks and lab stock*), and every take-out says **LAB** in "حركات المخزن".
 41. When the lab **opens a block**, one piece is taken out by itself, with its lot. The category *blocks and discs*
     is ticked **followed one by one** (in *Settings → Stock categories*).
+
+## O. New in this version (10): implant sizes
+42. An implant's diameter and length take **two decimals** (e.g. **3.75 x 11.5**): add one in "صنف جديد" and it is offered on
+    the surgery chart. On the new surgery design the dentist taps the implant used **from stock**; saving takes it out
+    with its lot, as before.

@@ -26,15 +26,63 @@ class ChartEffect(models.TextChoices):
     SOUND = "sound", _("Tooth sound (clear findings)")
 
 
+class StepGroup(models.TextChoices):
+    """The kinds of work a treatment step belongs to: the dentist taps the kind, then the step itself (e.g.
+    Endodontics → access / access and cleaning / obturation / all in a single visit)."""
+
+    RECORDS = "records", _("Diagnosis and records")
+    SURGERY = "surgery", _("Surgery and implants")
+    IMPLANT_TEETH = "implant_teeth", _("Teeth on implants")
+    ENDO = "endo", _("Endodontics (root canal)")
+    FILLINGS = "fillings", _("Fillings")
+    FIXED = "fixed", _("Crowns and bridges")
+    REMOVABLE = "removable", _("Dentures")
+    GUMS = "gums", _("Gums and cleaning")
+    ORTHO = "ortho", _("Orthodontics and TMJ")
+    OTHER = "other", _("Other")
+
+
+STEP_GROUP_ICONS = {
+    "records": "bi-clipboard2-pulse", "surgery": "bi-implant", "implant_teeth": "bi-bricks", "endo": "bi-droplet-half",
+    "fillings": "bi-circle-half", "fixed": "bi-gem", "removable": "bi-emoji-smile", "gums": "bi-stars",
+    "ortho": "bi-arrows-collapse", "other": "bi-three-dots",
+}
+
+# The photos and periapical X-rays a step should have (TreatmentStepType.shots), kept on the step
+# (ClinicalPhoto.treatment_step and .shot).
+STEP_SHOTS = [
+    ("pa_before", _("Periapical X-ray before")),
+    ("pa_working", _("Periapical X-ray: working length")),
+    ("pa_cone", _("Periapical X-ray: master cone")),
+    ("pa_after", _("Periapical X-ray after")),
+    ("photo_before", _("Photo before")),
+    ("photo_after", _("Photo after")),
+    ("photo_shade", _("Photo with the shade tab")),
+]
+
+
 class TreatmentStepType(LookupModel):
     class Category(models.TextChoices):
         IMPLANT = "implant", _("Implant and surgery")
         RESTORATIVE = "restorative", _("Restorative and other")
 
+    class Journey(models.TextChoices):
+        IMPRESSION = "impression", _("Primary impression / diagnostic scan")
+        CBCT = "cbct", _("CBCT")
+
     IMPLANT_EFFECTS = ("implant", "uncover", "implant_failed")
 
     category = models.CharField(_("plan section"), max_length=20, choices=Category.choices,
                                 default=Category.RESTORATIVE)
+    group = models.CharField(_("kind of work"), max_length=20, choices=StepGroup.choices, default=StepGroup.OTHER,
+                             help_text=_("The dentist taps the kind of work, then this step."))
+    journey_step = models.CharField(
+        _("counts as the file's step"), max_length=12, choices=Journey.choices, blank=True,
+        help_text=_("Recording it ticks this step of the patient's file (e.g. a primary impression)."))
+    shots = models.CharField(
+        _("photos and X-rays to take"), max_length=120, blank=True,
+        help_text=_("Comma separated: pa_before, pa_working, pa_cone, pa_after, photo_before, photo_after, "
+                    "photo_shade."))
     description_ar = models.CharField(
         _("simple explanation (Arabic)"), max_length=255, blank=True,
         help_text=_("Plain words for the reception and the patient, e.g. حشو أبيض بلون السن لسد التسوس."),
@@ -58,6 +106,12 @@ class TreatmentStepType(LookupModel):
     class Meta(LookupModel.Meta):
         verbose_name = _("treatment step type")
         verbose_name_plural = _("treatment step types")
+
+    def shot_list(self):
+        """[(code, label)] of the photos and X-rays this step should have."""
+        wanted = [code.strip() for code in self.shots.split(",") if code.strip()]
+        labels = dict(STEP_SHOTS)
+        return [(code, labels[code]) for code in wanted if code in labels]
 
 
 class TreatmentStep(TimeStampedModel):

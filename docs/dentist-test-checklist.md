@@ -267,3 +267,47 @@ For the CIA dentists, the heads and the owner:
      The browser's own back button, too, does not show the saved form again.
 119. **Saving once**: on a slow network, tap *Save* twice: the button says *Saving…* and only one record is made.
 120. **Owner**: the place button in the top bar has **LAB** too: the lab's home page, board and report.
+
+## T. New in this version (10): medical follow-up, the surgery design, delivery checklist, the file step by step
+Log in as `dentist1` (Dr. Mona) unless written otherwise.
+121. **Medical follow-up** (*Patients → Medical follow-up*, tap **All the patients here**): *Readings above the limits*
+     shows **CIA-00025** (HbA1c 8.4%, above 7%); *Waiting for the physician* shows **CIA-00026** (blood pressure
+     172/104, letter sent 6 days ago); *Postponed* shows **CIA-00028** (HbA1c 9.8%, check again in 5 days). CIA-00027 is
+     **cleared** (fit with precautions).
+122. On CIA-00025 press **Write the consultation**: the reason (HbA1c), the history and readings, the anaesthesia
+     (**Artinibsa 4%**) and the medicines after the surgery are already written. Tick *Implant placement* and *Sinus
+     lift*: the medicines change (nose drops added). **Save and print the letter**: an A4 letter in English with the
+     place's logo and the physician's reply part (fit / precautions / postpone / not fit).
+123. As `secretary`, open the letter (from the patient's file or the follow-up list) → **Record the physician's
+     answer**: *Fit, with precautions*, write the precautions, take a photo of the paper. Dr. Mona gets a notification;
+     the patient's file shows a green box.
+124. Take a medical history with **HbA1c 8** or blood pressure **170/100** on any patient: after saving, a yellow message
+     says a physician's opinion is needed, and the patient is on the follow-up list. *Not needed* takes him off.
+125. **The surgery design**: open **CIA-00029** → its surgery chart **SUR-00015**: the upper arch drawn with 6 implants,
+     the teeth between them **P** (pontics) and a blue bar (a full arch). The dental chart shows those teeth as
+     **pontics**, not missing, and *Prostheses on implants* has the **full arch planned** by itself.
+126. **A new surgery chart** (on a tablet if you can): tool **Implant**, tap 16, 14, 24, 26; tool **Extraction** on 46;
+     **Extraction + immediate implant** on 36; add **Closed sinus** to 16; press **Pontics in the gaps**: 15 to 25
+     become pontics. Choose the **implant company** once. Press **Sizes and lots: implant by implant**: tap 4.0 and 10,
+     tap a lot **from our stock** (or type one, or **Take a photo of the sticker**), torque, **Next implant**… *Same as
+     the implant before* copies the size. Save: the chart, the planned prosthesis, and the message.
+127. After the surgery the flow goes to the **prescription**, then the **instructions**: the box says the **next
+     visit** (after a sinus lift: 2 days; otherwise suture removal after 7 days) and it is printed on the sheet. Press
+     **Ask the reception to book it**: the patient is on the reception's list (*Patients the dentists asked for*).
+128. **Delivery checklist**: on **CIA-00014**'s dental chart, *Prostheses on implants* → **Deliver: the checklist**:
+     three points are ticked already. Tap the others (a screw-retained crown shows *torque* and *screw holes sealed*,
+     not *cement*), write the torque, **Save: delivered**: the implant becomes **loaded**. CIA-00005 shows a finished
+     checklist.
+129. **The patient's page**: few buttons now: the yellow **Next: …**, *Dental chart*, **Record** (treatment, surgery
+     chart, lab, CBCT, tests, consultation, prescription, instructions) and **The file** (photos, case report,
+     specialists, Word / Excel / PDF).
+130. **The file step by step** on **CIA-00031**: medical history and readings ✓, dental history ✓, examination ✓,
+     **impression or diagnostic scan** ✓ (a scan was taken), **CBCT** is next: tap it: *CBCT taken here* or *Ask a CBCT
+     from a centre*, or *Not needed: next step* → the **plan** (with the two ticks *planned on the CBCT* and *dental
+     chart checked again*). A new patient's medical history starts with **today's blood pressure and blood sugar**;
+     the examination page folds the histories taken just before.
+131. **Treatments by kind**: *Record → Treatment step*: tap **Endodontics (root canal)**, then **Access, cleaning and
+     shaping**, tooth 36, save: the step's page asks for the **periapical X-rays** (before, working length): each box
+     opens the tablet's camera. **CIA-00030** has a root canal in two steps with its X-rays (one still to take).
+132. **Logos**: the login page tiles and the top bar of **CIC** and the **lab (GDIL)** show their logos; a CIC bill,
+     prescription or CBCT request prints CIC's logo.

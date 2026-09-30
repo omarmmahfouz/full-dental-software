@@ -95,9 +95,38 @@ def fill(patients=10_000, visits_per_patient=6, bills_per_patient=3, photos_per_
                                         file=f"Patient photos/test/{rng.randint(1, 10**9)}.jpg",
                                         taken_on=today - timedelta(days=rng.randint(0, days))))
         ClinicalPhoto.objects.bulk_create(photos, batch_size=2000)
+        histories, consults = fill_histories(rng, people, moment)
         lab_cases = fill_lab(rng, patients // 5, today, days)
     return {"patients": len(new), "visits": len(visits), "bills": len(bills), "services": len(charges),
-            "payments": len(payments), "photos": len(photos), "lab cases": lab_cases}
+            "payments": len(payments), "photos": len(photos), "histories": histories, "consults": consults,
+            "lab cases": lab_cases}
+
+
+def fill_histories(rng, people, moment):
+    """A medical history with the readings of the day for each patient (some above the limits), and letters to the
+    physicians for one patient in ten (the medical follow-up)."""
+    from apps.charting.models import Examination
+    from apps.patients.models import MedicalConsult
+
+    exams = []
+    for patient in people:
+        day, _when = moment()
+        exams.append(Examination(
+            patient_id=patient.pk, exam_date=day, history_only=True,
+            hba1c=Decimal(rng.choice(["5.6", "6.4", "6.9", "7.4", "8.8"])) if rng.random() < 0.4 else None,
+            bp_clinic_systolic=rng.choice([115, 125, 135, 150, 170]), bp_clinic_diastolic=rng.choice([75, 80, 90, 105]),
+            glucose_random_clinic=rng.choice([95, 120, 150, 180, 240])))
+    Examination.objects.bulk_create(exams, batch_size=2000)
+    letters = []
+    for patient in rng.sample(people, len(people) // 10):
+        day, _when = moment()
+        answered = rng.random() < 0.6
+        letters.append(MedicalConsult(
+            patient_id=patient.pk, branch_id=patient.branch_id, reasons="hba1c", procedures="implants", sent_on=day,
+            status="answered" if answered else "waiting",
+            answer=rng.choice(["fit", "precautions", "postpone"]) if answered else "", answered_on=day if answered else None))
+    MedicalConsult.objects.bulk_create(letters, batch_size=2000)
+    return len(exams), len(letters)
 
 
 def fill_lab(rng, count, today, days):

@@ -1,0 +1,27 @@
+{% load i18n %}{% comment %}Fit for surgery? (apps/patients/medical.py clearance). Context: clearance, patient, is_clinical.{% endcomment %}
+{% with c=clearance.consult %}
+{% if clearance.state == "needed" %}
+<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 clearance-box"><i class="bi bi-heart-pulse"></i>
+  <span><b>{% trans "A physician's opinion is needed before surgery" %}{% if is_clinical %}:{% endif %}</b> {% if is_clinical %}{% for code, text in clearance.flags %}<span class="medical-alert py-0">{{ text }}</span> {% endfor %}{% endif %}</span>
+  {% if is_clinical %}<span class="ms-auto d-flex gap-2 no-print"><a class="btn btn-sm btn-warning" href="{% url 'patients:consult_create' patient.pk %}"><i class="bi bi-envelope-paper-heart"></i> {% trans "Write the consultation" %}</a>
+    <form method="post" action="{% url 'patients:consult_not_needed' patient.pk %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="btn btn-sm btn-outline-secondary" data-confirm="{% trans 'No physician opinion is needed for this patient? The patient leaves this list until new readings are above the limits.' %}">{% trans "Not needed" %}</button></form></span>{% endif %}
+</div>
+{% elif clearance.state == "waiting" %}
+<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 clearance-box"><i class="bi bi-hourglass-split"></i>
+  <span>{% blocktrans with date=c.sent_on|date:"d/m/Y" %}Medical consultation sent on {{ date }}: waiting for the physician's answer.{% endblocktrans %} <span class="small">{{ c.reason_labels|join:", " }}</span></span>
+  <a class="btn btn-sm btn-outline-dark ms-auto no-print" href="{{ c.get_absolute_url }}"><i class="bi bi-envelope-paper-heart"></i> {% trans "The letter and the answer" %}</a>
+</div>
+{% elif clearance.state == "not_fit" %}
+<div class="alert alert-danger d-flex flex-wrap align-items-center gap-2 py-2 clearance-box"><i class="bi bi-x-octagon"></i>
+  <span><b>{{ c.get_answer_display }}</b> — {{ c.answered_by|default:"" }} {{ c.answered_on|date:"d/m/Y" }}{% if c.recheck_on %} · {% trans "check again on" %} {{ c.recheck_on|date:"d/m/Y" }}{% endif %}{% if c.answer_notes %} <span class="small">— {{ c.answer_notes|truncatechars:140 }}</span>{% endif %}</span>
+  <span class="ms-auto d-flex gap-2 no-print"><a class="btn btn-sm btn-outline-dark" href="{{ c.get_absolute_url }}">{% trans "The letter and the answer" %}</a>
+  {% if is_clinical %}<a class="btn btn-sm btn-danger" href="{% url 'patients:consult_create' patient.pk %}"><i class="bi bi-envelope-paper-heart"></i> {% trans "New consultation" %}</a>{% endif %}</span>
+</div>
+{% elif clearance.state == "fit" %}
+<div class="alert alert-success d-flex flex-wrap align-items-center gap-2 py-2 clearance-box"><i class="bi bi-check-circle"></i>
+  <span><b>{{ c.get_answer_display }}</b> — {{ c.answered_by|default:"" }} {{ c.answered_on|date:"d/m/Y" }}{% if c.answer_notes %}: {{ c.answer_notes|truncatechars:160 }}{% endif %}</span>
+  <a class="btn btn-sm btn-outline-success ms-auto no-print" href="{{ c.get_absolute_url }}">{% trans "The letter and the answer" %}</a>
+</div>
+{% endif %}
+{% endwith %}

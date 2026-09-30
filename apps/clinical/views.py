@@ -1,3 +1,4 @@
+import os
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -30,7 +31,10 @@ from .forms import (
     LabActionForm, LabFilterForm, LabRequestForm, OutsideDoneForm, OutsideRequestForm, StepFilterForm,
     StepOperatorForm, StepReviewForm, TreatmentStepForm,
 )
-from .models import LabRequest, LabRequestEvent, OutsideRequest, TreatmentStep, TreatmentStepType
+from .models import (
+    STEP_GROUP_ICONS, STEP_SHOTS, LabRequest, LabRequestEvent, OutsideRequest, StepGroup, TreatmentStep,
+    TreatmentStepType,
+)
 from .services import ACTION_LABELS, TRANSITIONS, available_actions, perform_lab_action
 
 ANY_STAFF = PATIENT_VIEWERS
@@ -154,11 +158,26 @@ def step_create(request):
         messages.success(request, message)
         if "add_another" in request.POST:
             return redirect(f"{reverse('clinical:step_create')}?patient={step.patient_id}")
+        if step.step_type.shots:  # then its photos and periapical X-rays
+            messages.info(request, _("Now take the photos and X-rays of this step."))
+            return redirect(step)
         return redirect(reverse("charting:chart", args=[step.patient_id]))
     return render(
         request, "clinical/step_form.html",
-        {"form": form, "title": _("Record treatment"), "appointment": appointment, "patient": patient},
+        {"form": form, "title": _("Record treatment"), "appointment": appointment, "patient": patient,
+         "step_groups": step_groups(), "chosen_group": request.GET.get("group", "")},
     )
+
+
+def step_groups():
+    """The kinds of work with their steps, for the picker of the treatment form (only the kinds that have steps)."""
+    types = list(TreatmentStepType.objects.filter(is_active=True))
+    groups = []
+    for code, label in StepGroup.choices:
+        rows = [{"id": t.pk, "name": str(t), "shots": len(t.shot_list())} for t in types if t.group == code]
+        if rows:
+            groups.append({"code": code, "label": label, "icon": STEP_GROUP_ICONS.get(code, "bi-dot"), "types": rows})
+    return groups
 
 
 def step_detail(request, pk):
@@ -181,12 +200,50 @@ def step_detail(request, pk):
             step.save()
             messages.success(request, _("Treatment checked."))
             return redirect("clinical:step_detail", pk=step.pk)
+    photos = list(step.photos.all())
+    shots = [{"code": code, "label": label, "photos": [p for p in photos if p.shot == code]}
+             for code, label in step.step_type.shot_list()]
     return render(
         request, "clinical/step_detail.html",
-        {"step": step, "review_form": form, "chart_changes": step.tooth_changes.all(),
+        {"step": step, "review_form": form, "chart_changes": step.tooth_changes.all(), "shots": shots,
+         "other_photos": [p for p in photos if p.shot not in {s["code"] for s in shots}],
+         "can_upload": has_role(request.user, *CLINICAL),
          "operator_form": StepOperatorForm(instance=step) if has_role(request.user, *CLINICAL) else None,
          "pending_changes": pending_for(step)},
     )
+
+
+@require_POST
+def step_photo(request, pk):
+    """A photo or a periapical X-ray of a treatment step (taken with the tablet's camera or chosen), kept with the
+    patient's photos under "Treatment steps"."""
+    from apps.charting.models import ClinicalPhoto, PhotoStage
+    from apps.charting.views import ALLOWED_MEDIA, MAX_PHOTO_MB
+    from apps.core import previews
+
+    step = get_object_or_404(TreatmentStep.objects.select_related("step_type"), pk=pk)
+    if not has_role(request.user, *CLINICAL):
+        raise PermissionDenied
+    get_clinical_patient_or_403(request.user, step.patient_id)
+    shot = request.POST.get("shot", "")
+    if shot and shot not in dict(STEP_SHOTS):
+        shot = ""
+    saved = 0
+    for upload in request.FILES.getlist("file"):
+        ext = os.path.splitext(upload.name)[1].lower()
+        if ext not in ALLOWED_MEDIA or ext in ClinicalPhoto.VIDEO_EXTENSIONS or upload.size > MAX_PHOTO_MB * 1024 * 1024:
+            messages.error(request, _("%(name)s: only photos or PDF up to %(mb)s MB.") % {"name": upload.name,
+                                                                                       "mb": MAX_PHOTO_MB})
+            continue
+        photo = ClinicalPhoto.objects.create(
+            patient=step.patient, stage=PhotoStage.TREATMENT, treatment_step=step, shot=shot, file=upload,
+            teeth=step.teeth, taken_on=timezone.localtime(step.performed_at).date(),
+            notes=str(step.step_type)[:255], created_by=request.user)
+        previews.make_previews(photo.file.name)
+        saved += 1
+    if saved:
+        messages.success(request, _("%(n)s files uploaded.") % {"n": saved})
+    return redirect(step)
 
 
 @require_POST
@@ -443,7 +500,8 @@ def outside_print(request, pk):
     get_visible_patient_or_403(request.user, outside.patient_id)
     nxt = request.GET.get("next", "")
     return render(request, "clinical/outside_print.html", {
-        "outside": outside, "dicom_email": ClinicSettings.get().dicom_email, "branch": branch_for_user(request.user),
+        "outside": outside, "dicom_email": ClinicSettings.get().dicom_email,
+        "branch": outside.patient.branch or branch_for_user(request.user),
         "next": nxt if nxt.startswith("/") and not nxt.startswith("//") else "",
     })
 

@@ -9,6 +9,7 @@ urlpatterns = [
     path("steps/new/", views.step_create, name="step_create"),
     path("steps/<int:pk>/", views.step_detail, name="step_detail"),
     path("steps/<int:pk>/operator/", views.step_operator, name="step_operator"),
+    path("steps/<int:pk>/photo/", views.step_photo, name="step_photo"),
     path("visits-without-notes/", views.visits_missing_notes, name="visits_missing_notes"),
     path("lab/", views.LabListView.as_view(), name="lab_list"),
     path("lab/new/", views.lab_create, name="lab_create"),

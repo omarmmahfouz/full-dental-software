@@ -16,12 +16,13 @@ from apps.core.forms import (
 )
 from apps.core.models import current_place
 from apps.core.utils import normalize_phone, parse_egyptian_national_id
-from apps.core.widgets import AutocompleteInput
+from apps.core.widgets import AutocompleteInput, ChoiceButtons, DatalistInput
 
 from apps.dentists.forms import DentistChoiceField
 
 from .models import (
-    Lead, LeadCall, MedicalCondition, OutReason, Patient, PatientDocument, PatientRelation, ReferralSource,
+    Lead, LeadCall, MedicalCondition, MedicalConsult, OutReason, Patient, PatientDocument, PatientRelation,
+    ReferralSource,
 )
 
 
@@ -205,6 +206,8 @@ class PatientForm(StyledModelForm):
         (_("Relatives or friends among our patients"), ["relative_lookup", "relative_relation"]),
         (_("Follow-up"), ["registered_on", "assigned_dentist", "status", "out_reason", "out_notes", "notes"]),
     ]
+    # Optional at the desk: the dentist takes the medical and dental history (round 10).
+    folded = [_("Teeth and medical history (as told by the patient)"), _("Relatives or friends among our patients")]
 
     class Meta:
         model = Patient
@@ -384,3 +387,91 @@ class PatientFilterForm(StyledForm):
     dentist = DentistChoiceField(label=_("dentist"), required=False, empty_label=_("All"))
     lab = forms.BooleanField(label=_("has open lab work"), required=False)
     mine = forms.BooleanField(label=_("only my patients"), required=False)
+
+
+ANESTHESIA_CHOICES = [
+    MedicalConsult.DEFAULT_ANESTHESIA,
+    "Articaine 4% with epinephrine 1:200,000, local infiltration, 2 to 4 cartridges",
+    "Mepivacaine 3% without epinephrine, local infiltration, 2 to 4 cartridges",
+    "Lidocaine 2% with epinephrine 1:80,000, local infiltration and nerve block, 2 to 4 cartridges",
+]
+SPECIALTY_CHOICES = ["Internal medicine", "Cardiology", "Endocrinology (diabetes)", "Hematology", "Nephrology",
+                     "Oncology", "Rheumatology", "Neurology"]
+
+
+class CommaChoicesField(forms.MultipleChoiceField):
+    """Ticks kept in the model as "code,code"."""
+
+    def __init__(self, **kwargs):
+        super().__init__(widget=forms.CheckboxSelectMultiple, **kwargs)
+
+    def prepare_value(self, value):
+        if isinstance(value, str):
+            return [code for code in value.split(",") if code]
+        return value
+
+
+class MedicalConsultForm(StyledModelForm):
+    """The ready consultation letter: the reason, the procedure, the anaesthesia and the medicines after it."""
+
+    reasons = CommaChoicesField(label=_("why"), choices=MedicalConsult.Reason.choices)
+    procedures = CommaChoicesField(label=_("planned procedure"), choices=MedicalConsult.Procedure.choices)
+    dentist = DentistChoiceField(label=_("dentist"), required=False)
+
+    fieldsets = [
+        (_("Why we ask"), ["reasons", "findings"]),
+        (_("To"), ["physician", "specialty"]),
+        (_("The surgery"), ["procedures", "procedure_details", "duration", "bleeding", "anesthesia", "medications"]),
+        (_("The letter"), ["question", "sent_on", "dentist"]),
+    ]
+
+    class Meta:
+        model = MedicalConsult
+        fields = ["reasons", "findings", "physician", "specialty", "procedures", "procedure_details", "duration",
+                  "bleeding", "anesthesia", "medications", "question", "sent_on", "dentist"]
+        widgets = {"findings": forms.Textarea(attrs={"rows": 4}), "medications": forms.Textarea(attrs={"rows": 4}),
+                   "question": forms.Textarea(attrs={"rows": 3}),
+                   "anesthesia": DatalistInput(ANESTHESIA_CHOICES),
+                   "specialty": DatalistInput(SPECIALTY_CHOICES)}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("physician", "specialty", "procedure_details", "duration", "bleeding", "sent_on", "dentist"):
+            self.fields[name].col = "col-md-6"
+        self.fields["procedure_details"].col = "col-md-12"
+
+    def clean_reasons(self):
+        return ",".join(self.cleaned_data["reasons"])
+
+    def clean_procedures(self):
+        return ",".join(self.cleaned_data["procedures"])
+
+
+class ConsultAnswerForm(StyledModelForm):
+    """What the physician answered, copied from the paper the patient brought back (with its photo)."""
+
+    class Meta:
+        model = MedicalConsult
+        fields = ["answer", "answer_notes", "answered_by", "answered_on", "recheck_on", "answer_file"]
+        widgets = {"answer": ChoiceButtons(icons={
+            "fit": "bi-check-circle", "precautions": "bi-exclamation-circle", "postpone": "bi-hourglass-split",
+            "not_fit": "bi-x-circle"}), "answer_notes": forms.Textarea(attrs={"rows": 3}),
+                   "answer_file": forms.ClearableFileInput(attrs={"accept": "image/*,application/pdf",
+                                                                  "capture": "environment"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["answer"].required = True
+        self.fields["answer"].choices = MedicalConsult.Answer.choices
+        self.fields["answered_on"].initial = timezone.localdate()
+        for name in ("answered_by", "answered_on", "recheck_on", "answer_file"):
+            self.fields[name].col = "col-md-6"
+
+    def clean_answer_file(self):
+        return validate_upload(self.cleaned_data.get("answer_file"))
+
+    def clean(self):
+        data = super().clean()
+        if data.get("answer") == MedicalConsult.Answer.PRECAUTIONS and not data.get("answer_notes"):
+            self.add_error("answer_notes", _("Write the precautions the physician asked for."))
+        return data

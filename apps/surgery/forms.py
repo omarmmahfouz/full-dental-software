@@ -10,7 +10,7 @@ from apps.dentists.models import Dentist
 from apps.patients.access import visible_patients
 from apps.patients.forms import PatientLookupField, lookup_value
 
-from .models import ImplantSystem, Prosthesis, Surgery, SurgerySite
+from .models import DeliveryCheck, ImplantSystem, Prosthesis, Surgery, SurgerySite
 
 
 class SurgeryForm(StyledModelForm):
@@ -57,6 +57,7 @@ class SurgeryForm(StyledModelForm):
     class Meta:
         model = Surgery
         exclude = ["branch", "patient", "appointment", "number", "created_by", "chart_updated"]
+        widgets = {"pontics": forms.HiddenInput(attrs={"data-arch-pontics": ""})}
 
     def __init__(self, *args, user=None, patient=None, **kwargs):
         self.user = user
@@ -75,6 +76,11 @@ class SurgeryForm(StyledModelForm):
         if not visible_patients(self.user).filter(pk=patient.pk).exists():
             raise forms.ValidationError(_("This patient is not one of your patients."))
         return patient
+
+    def clean_pontics(self):
+        from apps.charting.teeth import format_teeth, parse_teeth
+
+        return format_teeth(parse_teeth(self.cleaned_data.get("pontics")))
 
     def clean_augmentation_sites(self):
         return ",".join(self.cleaned_data.get("augmentation_sites") or [])
@@ -115,7 +121,7 @@ class SurgerySiteForm(BootstrapFormMixin, forms.ModelForm):
         self.fields["sticker"].validators.append(validate_upload)
         self.fields["sticker"].widget.attrs["accept"] = "image/*"
         for name in ("implant_diameter", "implant_length"):
-            self.fields[name].widget.attrs.update({"step": "0.1", "min": "2", "max": "20"})
+            self.fields[name].widget.attrs.update({"step": "any", "min": "2", "max": "20"})
         self._stock_choices()
 
     def _stock_choices(self):
@@ -316,3 +322,20 @@ class ProsthesisForm(StyledModelForm):
         if data.get("status") == Prosthesis.Status.DELIVERED and not data.get("delivered_on"):
             data["delivered_on"] = timezone.localdate()
         return data
+
+
+class DeliveryCheckForm(StyledModelForm):
+    """The written part of the delivery checklist (the points themselves are ticks on the page)."""
+
+    dentist = DentistChoiceField(label=_("dentist"), required=False)
+
+    class Meta:
+        model = DeliveryCheck
+        fields = ["date", "dentist", "torque_ncm", "shade", "follow_up_on", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 2})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("date", "dentist", "torque_ncm", "shade", "follow_up_on"):
+            self.fields[name].col = "col-6 col-md-4"
+        self.fields["torque_ncm"].widget.attrs.update({"inputmode": "numeric", "placeholder": "35"})

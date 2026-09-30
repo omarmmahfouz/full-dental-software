@@ -140,3 +140,13 @@ In the sample data:
 3. As **amr**, **Dashboard** (menu *Dashboard*, or the button on his home page): El Khadem this month, with a column for
    each day.
 4. **Back** goes up one page (never to a saved form), and *Save* works once even when tapped twice.
+
+## K. New in this version (10)
+1. As **amr** or **endo**: *Record → Treatment step*: tap **Endodontics (root canal)**, then the step (access /
+   access, cleaning and shaping / obturation / all in a single visit / pulpotomy): the step's page asks for its
+   **periapical X-rays**, taken with the tablet's camera.
+2. The patient's file shows the **steps of the file** (histories and readings, examination, impression or scan, CBCT,
+   plan…) and a yellow **Next** button; the readings above the limits put the patient on **Medical follow-up**, with a
+   ready consultation letter on El Khadem's paper.
+3. A surgery chart at El Khadem is drawn like a scanner's order form (implants, pontics, extractions), with the
+   **delivery checklist** of the teeth on the implants (see the dentists' checklist, section T).

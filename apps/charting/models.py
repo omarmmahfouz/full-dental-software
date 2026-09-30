@@ -295,6 +295,9 @@ class TreatmentPlan(TimeStampedModel):
     )
     approved_at = models.DateTimeField(_("approved at"), null=True, blank=True)
     notes = models.TextField(_("notes"), blank=True)
+    # Before the plan is written: the implants planned on the CBCT and the dental chart checked again.
+    cbct_planned = models.BooleanField(_("planned on the CBCT"), default=False)
+    chart_checked = models.BooleanField(_("dental chart checked again"), default=False)
     # The printed plan given to the patient
     comprehensive = models.BooleanField(
         _("comprehensive case (several doctors)"), default=False,
@@ -388,6 +391,7 @@ class PhotoStage(models.TextChoices):
     SECOND_STAGE = "second_stage", _("2nd stage surgery")
     IMPRESSION = "impression", _("Impression")
     DELIVERY = "delivery", _("Try-in & delivery")
+    TREATMENT = "treatment", _("Treatment steps: photos and X-rays")
 
 
 class PhotoType(LookupModel):
@@ -423,6 +427,10 @@ class ClinicalPhoto(TimeStampedModel):
         "surgery.Surgery", verbose_name=_("surgery"), null=True, blank=True, on_delete=models.SET_NULL,
         related_name="photos",
     )
+    treatment_step = models.ForeignKey(
+        "clinical.TreatmentStep", verbose_name=_("treatment step"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="photos")
+    shot = models.CharField(_("photo / X-ray of the step"), max_length=20, blank=True)
     teeth = models.CharField(_("teeth"), max_length=100, blank=True)
     file = models.FileField(_("photo / video"), upload_to=photo_path, max_length=400)
     original = models.FileField(_("original photo"), upload_to=photo_path, max_length=400, blank=True,

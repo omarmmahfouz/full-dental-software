@@ -102,6 +102,19 @@ A few drops of blood from the nose in the first two days are normal."""),
      """Do not press on the graft with your tongue or fingers.
 Do not wear a removable denture over the area until the dentist adjusts it.
 You may notice small sand-like granules in the first days; this is normal."""),
+    ("تعليمات بعد تركيب الأسنان على الزرعات", "Instructions after the teeth on your implants", "delivery",
+     """امضغ بلطف في الأسبوع الأول، وتجنب الأكل الصلب جدًا (مثل العظم والمكسرات الصلبة) على الأسنان الجديدة.
+نظف حول الزرعات مرتين يوميًا: بالفرشاة، والخيط الخاص (سوبر فلوس) أو فرشاة ما بين الأسنان أو الدش المائي.
+إذا كانت التركيبة متحركة: اخلعها ونظفها بعد كل وجبة، ولا تنم بها إلا إذا طلب الطبيب ذلك.
+إذا شعرت أن الأسنان تتحرك، أو سمعت صوتًا، أو شعرت بألم، أو انكسر شيء: اتصل بنا فورًا.
+إذا كنت تضغط على أسنانك أو تجز عليها ليلًا: البس الواقي الليلي.
+موعد الكشف بعد أسبوع، ثم كل ٦ أشهر لتنظيف الزرعات ومتابعتها.""",
+     """Chew gently for the first week and avoid very hard food (bones, hard nuts) with the new teeth.
+Clean around the implants twice a day: brush, superfloss or an interdental brush, or a water flosser.
+A removable prosthesis: take it out and clean it after every meal; do not sleep in it unless told to.
+If the teeth feel loose, click, hurt, or something breaks: call us at once.
+If you clench or grind at night: wear the night guard.
+Your check is after one week, then every 6 months for cleaning and checking the implants."""),
     ("تعليمات بعد ترقيع اللثة", "Instructions after soft tissue graft", "soft_tissue",
      """لا تشد الشفة لترى مكان العملية.
 لا تستخدم الفرشاة على مكان الترقيع حتى يسمح الطبيب.

@@ -442,3 +442,140 @@ class CallListEntry(models.Model):
         verbose_name = _("patient to call")
         verbose_name_plural = _("patients to call")
         constraints = [models.UniqueConstraint(fields=["call_list", "patient"], name="unique_patient_per_call_list")]
+
+
+def consult_answer_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()[:10]
+    return f"patients/{instance.patient_id}/consults/{uuid.uuid4().hex}{ext}"
+
+
+class MedicalConsult(TimeStampedModel):
+    """A letter to the patient's physician before a surgery ("is he fit for it?"): the medical reason (HbA1c above
+    7%, a high blood sugar or pressure, another disease), the procedure, the anaesthesia and the medicines after it,
+    then the physician's answer. The follow-up of these letters is in medical.py."""
+
+    class Reason(models.TextChoices):
+        HBA1C = "hba1c", _("HbA1c above the limit")
+        GLUCOSE = "glucose", _("High blood sugar")
+        PRESSURE = "pressure", _("High blood pressure")
+        HEART = "heart", _("Heart disease")
+        BLOOD_THINNER = "blood_thinner", _("Blood thinners")
+        BONE_DRUGS = "bone_drugs", _("Bisphosphonates or other bone drugs")
+        OTHER = "other", _("Other medical issue")
+
+    class Procedure(models.TextChoices):
+        IMPLANTS = "implants", _("Implant placement")
+        FULL_ARCH = "full_arch", _("Full arch implants (All-on-X)")
+        IMMEDIATE = "immediate", _("Extraction with immediate implants")
+        EXTRACTION = "extraction", _("Extraction")
+        SINUS = "sinus", _("Sinus lift")
+        BONE_GRAFT = "bone_graft", _("Bone graft (GBR / block)")
+        SOFT_TISSUE = "soft_tissue", _("Soft tissue graft")
+        OTHER = "other", _("Other dental surgery")
+
+    class Bleeding(models.TextChoices):
+        MINOR = "minor", _("Minor")
+        MODERATE = "moderate", _("Moderate")
+
+    class Status(models.TextChoices):
+        WAITING = "waiting", _("Waiting for the physician's answer")
+        ANSWERED = "answered", _("Answered")
+        NOT_NEEDED = "not_needed", _("No consultation needed (the dentist's decision)")
+
+    class Answer(models.TextChoices):
+        FIT = "fit", _("Fit for the surgery")
+        PRECAUTIONS = "precautions", _("Fit, with precautions")
+        POSTPONE = "postpone", _("Postpone: control first, then check again")
+        NOT_FIT = "not_fit", _("Not fit for the surgery")
+
+    CLEARED = (Answer.FIT, Answer.PRECAUTIONS)
+    DEFAULT_ANESTHESIA = "Artinibsa 4% (articaine 4% with epinephrine 1:100,000), local infiltration, 2 to 4 cartridges"
+    # The surgery-chart procedure codes each one stands for (to choose the usual medicines, prescriptions/services.py).
+    SURGERY_CODES = {
+        "implants": {"simple_implant"}, "full_arch": {"simple_implant", "gbr"},
+        "immediate": {"extraction", "immediate_implant"}, "extraction": {"extraction"}, "sinus": {"open_sinus"},
+        "bone_graft": {"gbr"}, "soft_tissue": {"soft_tissue"},
+    }
+
+    patient = models.ForeignKey(Patient, verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="medical_consults")
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), null=True, blank=True, on_delete=models.SET_NULL,
+                               related_name="+")
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="medical_consults")
+    status = models.CharField(_("status"), max_length=12, choices=Status.choices, default=Status.WAITING,
+                              db_index=True)
+    reasons = models.CharField(_("why"), max_length=200, blank=True)
+    findings = models.TextField(_("medical history and readings"), blank=True,
+                                help_text=_("Written in the letter: the diseases, the medicines and the readings."))
+    physician = models.CharField(_("to the physician"), max_length=120, blank=True,
+                                 help_text=_("The name, if the patient knows it."))
+    specialty = models.CharField(_("specialty"), max_length=80, blank=True, default="Internal medicine")
+    procedures = models.CharField(_("planned procedure"), max_length=200, blank=True)
+    procedure_details = models.CharField(_("details of the procedure"), max_length=255, blank=True,
+                                         help_text=_("e.g. 4 implants in the lower jaw with a bone graft"))
+    duration = models.CharField(_("expected duration"), max_length=60, blank=True, default="About 1 hour")
+    bleeding = models.CharField(_("expected bleeding"), max_length=10, choices=Bleeding.choices,
+                                default=Bleeding.MINOR)
+    anesthesia = models.CharField(_("anaesthesia"), max_length=200, blank=True, default=DEFAULT_ANESTHESIA)
+    medications = models.TextField(_("medicines after the surgery"), blank=True, help_text=_("One per line."))
+    question = models.TextField(_("our question"), blank=True)
+    sent_on = models.DateField(_("date of the letter"), default=timezone.localdate)
+    answer = models.CharField(_("the physician's answer"), max_length=12, choices=Answer.choices, blank=True)
+    answer_notes = models.TextField(_("precautions / what the physician wrote"), blank=True)
+    answered_by = models.CharField(_("answered by (physician)"), max_length=120, blank=True)
+    answered_on = models.DateField(_("answered on"), null=True, blank=True)
+    answer_file = models.FileField(_("photo of the answer"), upload_to=consult_answer_path, blank=True)
+    recheck_on = models.DateField(_("check again on"), null=True, blank=True,
+                                  help_text=_("For a surgery postponed: when to see the patient's readings again."))
+    answer_recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, editable=False,
+                                           on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = ["-sent_on", "-pk"]
+        verbose_name = _("medical consultation")
+        verbose_name_plural = _("medical consultations")
+
+    def __str__(self):
+        return f"{self.patient.full_name} — {self.sent_on:%d/%m/%Y}"
+
+    def get_absolute_url(self):
+        return reverse("patients:consult_detail", args=[self.pk])
+
+    @property
+    def number(self):
+        return f"MC-{self.pk:05d}"
+
+    @property
+    def reason_codes(self):
+        return [code for code in self.reasons.split(",") if code]
+
+    def reason_labels(self):
+        labels = dict(self.Reason.choices)
+        return [str(labels[code]) for code in self.reason_codes if code in labels]
+
+    @property
+    def procedure_codes(self):
+        return [code for code in self.procedures.split(",") if code]
+
+    def procedure_labels(self):
+        labels = dict(self.Procedure.choices)
+        return [str(labels[code]) for code in self.procedure_codes if code in labels]
+
+    def surgery_codes(self):
+        codes = set()
+        for code in self.procedure_codes:
+            codes |= self.SURGERY_CODES.get(code, set())
+        return codes
+
+    def medication_lines(self):
+        return [line.strip() for line in self.medications.splitlines() if line.strip()]
+
+    @property
+    def is_cleared(self):
+        return self.status == self.Status.NOT_NEEDED or (
+            self.status == self.Status.ANSWERED and self.answer in self.CLEARED)
+
+    @property
+    def days_waiting(self):
+        return (timezone.localdate() - self.sent_on).days if self.status == self.Status.WAITING else None

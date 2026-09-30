@@ -15,12 +15,14 @@
   </div>
   <div class="small text-muted mt-2">{% trans "The sheets that fit the surgery are chosen automatically." %}</div>
 </form>
+{% include "surgery/_follow_up.html" %}
 <div class="d-flex flex-wrap gap-2 justify-content-center mb-3 no-print">{% include "includes/send_to_patient.html" with kind="instructions" target="#instructions" name="instructions-"|add:patient.file_number text="تعليمات بعد العملية — "|add:patient.full_name %}</div>
 {% language language %}
 <div class="card mx-auto patient-print" id="instructions" style="max-width: 760px" {% if language == "ar" %}dir="rtl" lang="ar"{% else %}dir="ltr" lang="en"{% endif %}><div class="card-body p-4">
   <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-    <div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
-      <div><div class="fw-bold fs-5">{% if language == "ar" %}{{ branch.name_ar }}{% else %}{{ branch.name_en|default:branch.name_ar }}{% endif %}</div><div class="small text-muted">{{ branch.address }} {% if branch.phone %}— <span class="ltr">{{ branch.phone }}</span>{% endif %}</div></div></div>
+    {% if branch.has_mark %}{% include "includes/place_letterhead.html" with place=branch %}
+    {% else %}<div class="d-flex align-items-center gap-3"><img class="print-logo" src="{% static 'img/cia-logo.png' %}" alt="CIA">
+      <div><div class="fw-bold fs-5">{% if language == "ar" %}{{ branch.name_ar }}{% else %}{{ branch.name_en|default:branch.name_ar }}{% endif %}</div><div class="small text-muted">{{ branch.address }} {% if branch.phone %}— <span class="ltr">{{ branch.phone }}</span>{% endif %}</div></div></div>{% endif %}
     <div><div class="fw-bold">{{ today|date:"d/m/Y" }}</div><div class="small text-muted">{{ patient.file_number }}</div></div>
   </div>
   <h1 class="h4 fw-bold text-center mb-3">{% if language == "ar" %}تعليمات ما بعد العملية{% else %}Instructions after your surgery{% endif %}</h1>
@@ -36,6 +38,7 @@
   <h2 class="h6 fw-bold mt-3" style="color: var(--brand-green-dark)">{{ sheet }}</h2>
   <ul class="instruction-list">{% for line in lines %}<li>{{ line }}</li>{% endfor %}</ul>
   {% empty %}<p class="text-muted no-print">{% trans "Choose at least one sheet." %}</p>{% endfor %}
+  {% if follow_up %}<div class="border rounded p-2 mt-3 fw-bold follow-up-print"><i class="bi bi-calendar-check"></i> {% if language == "ar" %}موعد الزيارة القادمة{% else %}Your next visit{% endif %}: {{ follow_up.reason }} — {{ follow_up.on|date:"l d/m/Y" }}</div>{% endif %}
   {% if branch.phone %}<div class="border-top pt-2 mt-3 small fw-bold">{% if language == "ar" %}في حالة الطوارئ اتصل بنا:{% else %}In an emergency call us:{% endif %} <span class="ltr">{{ branch.phone }}</span></div>{% endif %}
 </div></div>
 {% endlanguage %}

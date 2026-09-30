@@ -250,6 +250,10 @@
   document.querySelectorAll("form").forEach(function (form) {
     if (watched(form) && form.querySelector(".errorlist, .is-invalid")) dirtyForm = form;
   });
+  // A closed part of a form (optional, or filled before) opens when it holds an error.
+  document.querySelectorAll("form details").forEach(function (part) {
+    if (part.querySelector(".errorlist, .is-invalid")) part.open = true;
+  });
   var nativeSubmit = HTMLFormElement.prototype.submit;
   HTMLFormElement.prototype.submit = function () {
     if (this === dirtyForm || !dirtyForm) { dirtyForm = null; leaving = true; }

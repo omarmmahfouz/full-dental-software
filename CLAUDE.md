@@ -73,12 +73,16 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 ## Code map and conventions
 - Apps are in `apps/`:
   - `core`: settings, notifications, approvals, backups
-  - `patients`
+  - `patients`: the file's steps (`sequence.py`, the dentist's order), the medical follow-up (`medical.py`: the
+    readings above the limits of `ClinicSettings`; `MedicalConsult` = the letter to the physician, `consults.py`)
   - `dentists`
   - `scheduling`: board, day grid, free times, waiting list, WhatsApp
-  - `clinical`: treatment log, lab cycle, visit notes
+  - `clinical`: treatment log (`TreatmentStepType.group` = the kind of work, `shots` = the photos and X-rays a step
+    asks for, kept as `ClinicalPhoto.treatment_step`/`shot`), lab cycle, visit notes
   - `charting`: examination, tooth chart rules, plans, photos
-  - `surgery`: surgery chart, implants, prostheses, case finder
+  - `surgery`: surgery chart (the design like a scanner: `templates/surgery/_arch_designer.html`,
+    `static/js/surgery-arch.js`, `Surgery.pontics`, `prostheses.plan_from_surgery`), implants, prostheses and their
+    `DeliveryCheck`, the visit after a surgery (`followup.py`), case finder; `demo.py` = the round 10 sample data
   - `prescriptions`
   - `billing`: services, charges, bills, payments, **Fawry ledger** in `billing/fawry.py`; receipts are never deleted:
     `billing/receipts.py` corrects, cancels (`PatientPayment.every` still has them) or refunds (a negative receipt),
@@ -124,7 +128,8 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - **Notifications** use `apps/core/notify.py` (`notify_users`, `notify_roles`) with `gettext_lazy` text and
   `params`, so each person reads them in their own language. The page polls for new ones every 30 s and plays a sound.
 - Forms:
-  - Use `StyledForm` / `StyledModelForm`, with `fieldsets` and `field.col`.
+  - Use `StyledForm` / `StyledModelForm`, with `fieldsets` and `field.col`; titles in `folded` are shown closed
+    (optional parts, or parts filled before).
   - Dates are **dd/mm/yyyy** (flatpickr), and times are in 15-minute steps.
   - Patients are chosen with `PatientLookupField`; `lookup_value(patient)` gives `"FILE — name"`.
 - The look: `static/css/app.css` opens with CSS variables (colours, lines, shadows, motion). Each app has an accent
@@ -214,8 +219,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - There is no freehand pen drawing or on-screen signature yet.
   - A doctor's percentage is taken of what the patient has paid so far, counted on the date the service was given;
     nothing is taken off first (e.g. lab or implant cost) unless the owner asks for it.
-  - CIC has no logo of its own yet: its bills print its name, phone and address. El Khadem's mark is a placeholder
-    drawing until the real logo is uploaded in Settings → Places.
+  - CIC and the lab (GDIL) use the logos the owner sent (`static/img/cic-logo.jpg`, `gdil-logo.jpg`, on their grey
+    backgrounds); a sharper file can be uploaded in Settings → Places. El Khadem's mark is a placeholder drawing until
+    the real logo is uploaded there.
   - The lab / implant cost taken off a doctor's share is the usual cost of the service (or the doctor's price), which
     can be corrected on the bill line or the statement; it is not read from the lab's invoices.
   - The shade tabs on screen are close to the VITA colours, not exact: the shade is always taken with the real guide.
@@ -225,3 +231,11 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - The lab's automatic WhatsApp answer needs Meta's WhatsApp Business platform and the server reachable from the
     internet (HTTPS); without it the secretary answers in one click. Design files (exocad) stay on the design PC: the
     case keeps screenshots, scans or photos only. Lab machines (mills, printers, furnaces) are not connected.
+  - The medical consultation is a printed letter the patient carries (or a PDF sent on WhatsApp); the physician's
+    answer is typed and its paper photographed: it is not sent to the physician by e-mail. The limits (HbA1c 7%...) and
+    the medicines in the letter need a doctor's review.
+  - The implant sticker is kept as a photo: the lot is chosen from stock or typed, the photo is not read by itself.
+  - The photos and X-rays of a treatment step are asked for, not required: a step can be saved without them. The
+    periapical X-ray is photographed or uploaded; the X-ray sensor is not connected.
+  - The planned prosthesis made from a surgery's design is a best guess (a full arch from 10 units, a bridge when a
+    pontic is between implants, else a crown for each implant): the dentist corrects it on the dental chart.

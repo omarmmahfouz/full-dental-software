@@ -3,10 +3,17 @@
 {% if form.fieldsets %}
   <div class="form-sections">
   {% for title, fields in form.bound_fieldsets %}
+  {% if title and title in form.folded %}
+  <details class="form-fold mb-3">
+    <summary class="form-section-title">{{ title }} <i class="bi bi-chevron-down form-fold-icon" aria-hidden="true"></i></summary>
+    <div class="row g-3 pt-2">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div>
+  </details>
+  {% else %}
   <fieldset class="mb-4">
     {% if title %}<legend class="form-section-title">{{ title }}</legend>{% endif %}
     <div class="row g-3">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div>
   </fieldset>
+  {% endif %}
   {% endfor %}
   </div>
 {% else %}

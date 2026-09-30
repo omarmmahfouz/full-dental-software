@@ -112,3 +112,12 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
     for today, 7 days or this month, with the money paid and a column for each day.
 40. The lab has **CIC's own price list** (*Lab prices*, as `labhead`): CIC's lab requests sent to our lab take it, and
     it becomes the request's **lab cost**. See [lab-test-checklist.md](lab-test-checklist.md), section F.
+
+## K. New in this version (10): CIC's logo and the medical follow-up
+41. **CIC's logo** (the one the owner sent): on the login page (tap **CIC**), the top bar, the home page card, and every
+    printed paper of CIC: bills, receipts, prescriptions, instructions, CBCT requests, case reports.
+42. **Medical follow-up at CIC**: switch to CIC, *Patients → Medical follow-up* (*All the patients here*): **CIC-00115**
+    has HbA1c 8.1% and needs a consultation. CIA's patients never show here.
+43. As `cicdoctor`, the surgery chart **design** (tap the teeth, the company once, sizes and lots one by one), the
+    **delivery checklist** and the treatment steps by kind work at CIC the same way (see the dentists' checklist,
+    section T). Implants bought for CIC are the ones offered from stock.

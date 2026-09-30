@@ -22,6 +22,15 @@ def wa_number(phone):
 
 
 @register.filter
+def doctor(name):
+    """ "Dr. " before a doctor's name, unless it is already written ("Dr. Mona", "د. منى")."""
+    name = str(name or "").strip()
+    if not name or name.lower().startswith(("dr", "prof")) or name.startswith(("د.", "د/", "أ.د")):
+        return name
+    return f"Dr. {name}"
+
+
+@register.filter
 def preview(file, size="small"):
     """The address of a picture's small copy: {{ photo.file|preview }} for grids, {{ photo.file|preview:"medium" }}
     for large photos. Files that are not pictures (PDF, video) keep their own address."""

@@ -677,6 +677,10 @@ class Command(BaseCommand):
         from apps.lab.demo import load_lab
 
         load_lab(today, at, user, owner)
+        from apps.surgery.demo import load_round_ten
+
+        load_round_ten(today, at, patients, cia_dentists, {t.name_en: t for t in TreatmentStepType.objects.all()},
+                       secretary, owner, demo_photo)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "

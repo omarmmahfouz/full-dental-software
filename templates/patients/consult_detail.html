@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Medical consultation" %} — {{ patient.full_name }}{% endblock %}
+{% block extra_head %}<style>@media print { @page { size: A4; margin: 12mm; } main { max-width: none !important; } }</style>{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap gap-2 justify-content-center mb-3 no-print">
+  <a class="btn btn-outline-secondary" href="{{ patient.get_absolute_url }}" data-back><i class="bi bi-arrow-left"></i> {% trans "Patient file" %}</a>
+  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print (A4)" %}</button>
+  <button class="btn btn-outline-primary" data-save-as="pdf" data-page="a4" data-save-target="#consult-letter" data-save-name="consult-{{ patient.file_number }}-{{ consult.sent_on|date:'Y-m-d' }}"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
+  {% include "includes/send_to_patient.html" with kind="other" target="#consult-letter" name="consult-"|add:patient.file_number text="خطاب استشارة طبية — "|add:patient.full_name %}
+  {% if can_write and consult.status == "waiting" %}<a class="btn btn-outline-secondary" href="{% url 'patients:consult_update' consult.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit the letter" %}</a>{% endif %}
+</div>
+
+{% if consult.status == "waiting" %}
+<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 no-print"><i class="bi bi-hourglass-split"></i>
+  {% blocktrans with date=consult.sent_on|date:"d/m/Y" %}Waiting for the physician's answer since {{ date }}. Give the letter to the patient; when he brings the answer back, record it below.{% endblocktrans %}
+  <button class="btn btn-warning ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#answer-form"><i class="bi bi-reply"></i> {% trans "Record the physician's answer" %}</button>
+</div>
+{% elif consult.status == "not_needed" %}
+<div class="alert alert-secondary no-print"><i class="bi bi-check2"></i> {% blocktrans with dentist=consult.dentist|default:"" date=consult.answered_on|date:"d/m/Y" %}No consultation needed: the decision of {{ dentist }} on {{ date }}.{% endblocktrans %} {{ consult.answer_notes }}</div>
+{% else %}
+<div class="alert {% if consult.is_cleared %}alert-success{% else %}alert-danger{% endif %} no-print">
+  <div class="d-flex flex-wrap gap-2 align-items-center"><i class="bi {% if consult.is_cleared %}bi-check-circle{% else %}bi-x-octagon{% endif %}"></i>
+    <b>{{ consult.get_answer_display }}</b> — {{ consult.answered_by|default:"" }} {{ consult.answered_on|date:"d/m/Y" }}
+    {% if consult.recheck_on %}· {% trans "check again on" %} <b>{{ consult.recheck_on|date:"d/m/Y" }}</b>{% endif %}
+    <button class="btn btn-sm btn-outline-dark ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#answer-form"><i class="bi bi-pencil"></i> {% trans "Correct the answer" %}</button></div>
+  {% if consult.answer_notes %}<div class="mt-1">{{ consult.answer_notes|linebreaksbr }}</div>{% endif %}
+  {% if consult.answer_file %}<div class="mt-2"><a href="{{ consult.answer_file.url }}" target="_blank">{% if consult.answer_file.name|lower|slice:"-4:" == ".pdf" %}<i class="bi bi-filetype-pdf"></i> {% trans "The physician's answer" %}{% else %}<img src="{{ consult.answer_file|preview }}" alt="{% trans "The physician's answer" %}" class="consult-answer-photo" loading="lazy">{% endif %}</a></div>{% endif %}
+</div>
+{% endif %}
+
+{% if consult.status != "not_needed" %}
+<div class="collapse{% if open_answer %} show{% endif %} no-print mb-3" id="answer-form"><div class="card border-warning"><div class="card-header"><i class="bi bi-reply"></i> {% trans "The physician's answer" %}</div><div class="card-body">
+  <form method="post" action="{% url 'patients:consult_answer' consult.pk %}" enctype="multipart/form-data" novalidate>{% csrf_token %}
+    {% include "includes/form_fields.html" %}
+    <button class="btn btn-primary px-4 mt-3"><i class="bi bi-check2-circle"></i> {% trans "Save the answer" %}</button>
+  </form>
+</div></div></div>
+{% endif %}
+
+{% language "en" %}
+<div class="card mx-auto patient-print consult-letter" id="consult-letter" dir="ltr" lang="en"><div class="card-body p-4">
+  <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3 gap-3">
+    {% include "includes/place_letterhead.html" %}
+    <div class="text-end small"><div class="fw-bold">{{ consult.sent_on|date:"d/m/Y" }}</div><div class="text-muted">{{ consult.number }} · {{ patient.file_number }}</div></div>
+  </div>
+  <h1 class="h4 fw-bold text-center mb-3">Medical consultation before dental surgery</h1>
+  <p class="mb-1"><b>To:</b> {% if consult.physician %}<bdi>{{ consult.physician|doctor }}</bdi>{% else %}Dr. ______________________{% endif %}{% if consult.specialty %} — {{ consult.specialty }}{% endif %}</p>
+  <p><b>Patient:</b> <bdi>{{ patient.full_name }}</bdi>{% if patient.age is not None %}, {{ patient.age }} years{% endif %}{% if patient.gender %}, {{ patient.get_gender_display|lower }}{% endif %}</p>
+  <p>Dear Doctor,<br>Our patient is planned for the dental surgery below{% if consult.reason_labels %}. Because of <b>{{ consult.reason_labels|join:", "|lower }}</b>{% endif %}, we kindly ask for your medical opinion before we go ahead.</p>
+  {% if consult.findings %}<h2 class="h6 fw-bold mt-3">Medical history</h2><p class="consult-findings">{{ consult.findings|linebreaksbr }}</p>{% endif %}
+  <h2 class="h6 fw-bold mt-3">The planned surgery</h2>
+  <table class="table table-sm consult-table">
+    <tr><th>Procedure</th><td>{{ consult.procedure_labels|join:", " }}{% if consult.procedure_details %}<div>{{ consult.procedure_details }}</div>{% endif %}</td></tr>
+    <tr><th>Expected duration</th><td>{{ consult.duration|default:"—" }}</td></tr>
+    <tr><th>Expected bleeding</th><td>{{ consult.get_bleeding_display }}</td></tr>
+    <tr><th>Anaesthesia</th><td>{{ consult.anesthesia|default:"—" }}</td></tr>
+    <tr><th>Medicines after the surgery</th><td>{% for line in consult.medication_lines %}<div>{{ line }}</div>{% empty %}—{% endfor %}</td></tr>
+  </table>
+  {% if consult.question %}<p>{{ consult.question|linebreaksbr }}</p>{% endif %}
+  <p class="mb-4">Thank you for your cooperation.<br><b><bdi>{{ consult.dentist|doctor }}</bdi></b>{% if place %} — {{ place.name }}{% if place.phone %}, <span class="ltr">{{ place.phone }}</span>{% endif %}{% endif %}</p>
+  <div class="consult-reply">
+    <div class="fw-bold mb-2">The physician's reply</div>
+    <div class="consult-tick">☐ Fit for the surgery</div>
+    <div class="consult-tick">☐ Fit, with these precautions: ...............................................................................................</div>
+    <div class="consult-tick">☐ Postpone until: .............................................................................................................</div>
+    <div class="consult-tick">☐ Not fit for the surgery</div>
+    <div class="consult-lines">Notes: ...............................................................................................................................<br>.......................................................................................................................................................</div>
+    <div class="d-flex justify-content-between flex-wrap gap-3 mt-3"><span>Name: ................................................</span><span>Signature and stamp: ................................</span><span>Date: ..... / ..... / ..........</span></div>
+  </div>
+</div></div>
+{% endlanguage %}
+{% endblock %}

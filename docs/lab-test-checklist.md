@@ -19,7 +19,7 @@ In the sample data:
 
 ## A. The login page with the places
 1. Open `http://localhost:8000/login/`: under *Welcome* there are **four places**: CIA, El Khadem (EK), CIC and the
-   lab (LAB). Tap **LAB**: the page turns purple with the LAB mark; this PC remembers it next time.
+   lab (LAB). Tap **LAB**: the page turns teal-blue with the GDIL logo; this PC remembers it next time.
 2. Log in as **labsec**: the lab opens (LAB in the top bar, Arabic). Log out, tap **CIA** and log in as **labsec**
    again: a message says she does not work at CIA, and the lab opens.
 3. As **owner**, the place button in the top bar now has **LAB — the dental lab** too.
@@ -103,3 +103,8 @@ In the sample data:
 8. The universal lab request to print (section E27).
 9. The clinics' lab requests go to our lab and show its steps (section F).
 10. The login page with the four places (section A).
+
+## H. New in this version (10)
+1. **GDIL**: the lab is now **GDIL Dental Lab — The art of dentistry**, with its logo on the login page (tap **LAB**:
+   the page turns teal-blue), the top bar, the case sheet, the label, the receipts, the statements and the blank lab
+   request. An older system gets the new name when `setup_clinic` runs (the update does it).

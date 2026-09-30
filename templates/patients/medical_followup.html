@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Medical follow-up" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-heart-pulse"></i> {% trans "Medical follow-up" %}</h1>
+  {% if has_dentist %}<div class="btn-group no-print" role="group">
+    <a class="btn btn-sm {% if mine %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?mine=1">{% trans "My patients" %}</a>
+    <a class="btn btn-sm {% if not mine %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?mine=0">{% trans "All the patients here" %}</a>
+  </div>{% endif %}
+</div>
+
+<div class="row g-2 mb-3">
+  <div class="col-6 col-md-3"><div class="card stat-card h-100 {% if needing_count %}border-warning{% endif %}"><div class="card-body p-2"><div class="stat-value text-warning">{{ needing_count }}</div><div class="stat-label">{% trans "need a consultation" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ waiting|length }}</div><div class="stat-label">{% trans "waiting for the physician" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card h-100 {% if held %}border-danger{% endif %}"><div class="card-body p-2"><div class="stat-value text-danger">{{ held|length }}</div><div class="stat-label">{% trans "postponed / not fit" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{{ cleared|length }}</div><div class="stat-label">{% trans "cleared (30 days)" %}</div></div></div></div>
+</div>
+
+<div class="card mb-3 border-warning"><div class="card-header"><i class="bi bi-exclamation-triangle text-warning"></i> {% trans "Readings above the limits: write a consultation" %}</div>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Why" %}</th><th>{% trans "History of" %}</th><th>{% trans "Dentist" %}</th><th class="no-print"></th></tr></thead>
+    <tbody>{% for exam, flags in needing %}
+    <tr>
+      <td><a href="{{ exam.patient.get_absolute_url }}">{{ exam.patient.full_name }}</a> <span class="small text-muted">{{ exam.patient.file_number }}</span></td>
+      <td>{% for code, text in flags %}<span class="medical-alert py-0">{{ text }}</span> {% endfor %}</td>
+      <td class="nowrap">{{ exam.exam_date|date:"d/m/Y" }}</td>
+      <td>{{ exam.patient.assigned_dentist|default:exam.examined_by|default:"—" }}</td>
+      <td class="no-print text-end nowrap">{% if is_clinical %}
+        <a class="btn btn-sm btn-warning" href="{% url 'patients:consult_create' exam.patient_id %}"><i class="bi bi-envelope-paper-heart"></i> {% trans "Write the consultation" %}</a>
+        <form method="post" action="{% url 'patients:consult_not_needed' exam.patient_id %}" class="d-inline" data-no-leave-warning>{% csrf_token %}
+          <button class="btn btn-sm btn-outline-secondary" data-confirm="{% trans 'No physician opinion is needed for this patient? The patient leaves this list until new readings are above the limits.' %}">{% trans "Not needed" %}</button></form>
+      {% endif %}</td>
+    </tr>
+    {% empty %}<tr><td colspan="5" class="text-muted text-center py-3">{% trans "No patient with readings above the limits." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if needing.has_other_pages %}<div class="px-3 pt-2">{% include "includes/pagination.html" with page_obj=needing %}</div>{% endif %}
+  <div class="card-footer small text-muted">{% trans "The limits are in Settings → Clinic options (usually HbA1c above 7%, random blood sugar above 200 mg/dl, blood pressure from 160/100). For another disease, open the patient's file and write the consultation from there." %}</div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-hourglass-split"></i> {% trans "Waiting for the physician's answer" %}</div>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "Why" %}</th><th>{% trans "Procedure" %}</th><th>{% trans "Sent" %}</th><th>{% trans "Dentist" %}</th></tr></thead>
+    <tbody>{% for c in waiting %}
+    <tr>
+      <td><a href="{{ c.get_absolute_url }}">{{ c.patient.full_name }}</a> <span class="small text-muted">{{ c.patient.file_number }}</span></td>
+      <td class="small">{{ c.reason_labels|join:", " }}</td>
+      <td class="small">{{ c.procedure_labels|join:", " }}</td>
+      <td class="nowrap">{{ c.sent_on|date:"d/m/Y" }} {% if c.days_waiting > 14 %}<span class="badge text-bg-danger">{% blocktrans count days=c.days_waiting %}{{ days }} day{% plural %}{{ days }} days{% endblocktrans %}</span>{% elif c.days_waiting %}<span class="badge text-bg-light">{% blocktrans count days=c.days_waiting %}{{ days }} day{% plural %}{{ days }} days{% endblocktrans %}</span>{% endif %}</td>
+      <td>{{ c.dentist|default:"—" }}</td>
+    </tr>
+    {% empty %}<tr><td colspan="5" class="text-muted text-center py-3">{% trans "No letter waiting." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+<div class="card mb-3 border-danger"><div class="card-header"><i class="bi bi-x-octagon text-danger"></i> {% trans "Postponed or not fit: check again" %}</div>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>{% trans "Patient" %}</th><th>{% trans "The physician's answer" %}</th><th>{% trans "Check again on" %}</th><th>{% trans "Mobile" %}</th></tr></thead>
+    <tbody>{% for c in held %}
+    <tr>
+      <td><a href="{{ c.get_absolute_url }}">{{ c.patient.full_name }}</a> <span class="small text-muted">{{ c.patient.file_number }}</span></td>
+      <td><span class="badge text-bg-danger">{{ c.get_answer_display }}</span> <span class="small">{{ c.answer_notes|truncatechars:90 }}</span></td>
+      <td class="nowrap">{% if c.recheck_on %}<span class="{% if c.recheck_on <= today %}text-danger fw-bold{% endif %}">{{ c.recheck_on|date:"d/m/Y" }}</span>{% else %}—{% endif %}</td>
+      <td><span class="ltr">{{ c.patient.preferred_number }}</span></td>
+    </tr>
+    {% empty %}<tr><td colspan="4" class="text-muted text-center py-3">{% trans "No surgery postponed for a medical reason." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+{% if cleared %}<div class="card mb-3 border-success"><div class="card-header"><i class="bi bi-check2-circle text-success"></i> {% trans "Cleared in the last 30 days" %}</div>
+  <div class="list-group list-group-flush small">{% for c in cleared %}
+    <a class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-2" href="{{ c.get_absolute_url }}">
+      <span><b>{{ c.patient.full_name }}</b> <span class="text-muted">{{ c.patient.file_number }}</span></span>
+      <span>{% if c.status == "not_needed" %}<span class="badge text-bg-light">{% trans "No consultation needed" %}</span>{% else %}<span class="badge text-bg-success">{{ c.get_answer_display }}</span>{% endif %} {{ c.answered_on|date:"d/m/Y" }}</span>
+    </a>{% endfor %}</div>
+</div>{% endif %}
+{% endblock %}

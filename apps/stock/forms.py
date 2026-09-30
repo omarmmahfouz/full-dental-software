@@ -52,7 +52,7 @@ class StockItemForm(StyledModelForm):
         for name in ("implant_system", "implant_diameter", "implant_length"):
             self.fields[name].col = "col-md-4"
         for name in ("implant_diameter", "implant_length"):
-            self.fields[name].widget.attrs.update({"step": "0.1", "min": "2", "max": "20"})
+            self.fields[name].widget.attrs.update({"step": "any", "min": "2", "max": "20"})
         if self.instance.pk:
             del self.fields["opening_quantity"]
 

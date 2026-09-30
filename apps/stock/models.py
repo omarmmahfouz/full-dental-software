@@ -77,8 +77,8 @@ class StockItem(TimeStampedModel):
         "surgery.ImplantSystem", verbose_name=_("implant company / type"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="stock_items",
         help_text=_("For implants only: the surgery chart then takes them out of stock by lot."))
-    implant_diameter = models.DecimalField(_("implant diameter (mm)"), max_digits=3, decimal_places=1, null=True, blank=True)
-    implant_length = models.DecimalField(_("implant length (mm)"), max_digits=3, decimal_places=1, null=True, blank=True)
+    implant_diameter = models.DecimalField(_("implant diameter (mm)"), max_digits=4, decimal_places=2, null=True, blank=True)
+    implant_length = models.DecimalField(_("implant length (mm)"), max_digits=4, decimal_places=2, null=True, blank=True)
 
     class Meta:
         ordering = ["category__sort_order", "name"]

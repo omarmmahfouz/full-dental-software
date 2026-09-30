@@ -1,0 +1,41 @@
+{% load i18n %}{% comment %}The sizes and lots of the implants, one after the other (static/js/surgery-arch.js).{% endcomment %}
+<div class="modal fade" id="implant-sequence" tabindex="-1" aria-labelledby="implant-sequence-title" aria-hidden="true" data-no-leave-warning>
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down"><div class="modal-content">
+    <div class="modal-header gap-2">
+      <h5 class="modal-title" id="implant-sequence-title"><i class="bi bi-implant"></i> <span data-seq-title></span></h5>
+      <span class="badge text-bg-light border" data-seq-count></span>
+      <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+    </div>
+    <div class="modal-body">
+      <div class="seq-teeth" data-seq-teeth></div>
+      <div class="row g-3">
+        <div class="col-md-7"><label class="form-label" for="seq-system">{% trans "Implant company" %}</label>
+          <select class="form-select" id="seq-system" data-seq-field="implant_system"><option value="">—</option>{% for system in implant_systems %}<option value="{{ system.pk }}">{{ system }}</option>{% endfor %}</select></div>
+        <div class="col-md-5 d-flex align-items-end"><button type="button" class="btn btn-outline-secondary w-100" data-seq-same><i class="bi bi-copy"></i> {% trans "Same as the implant before" %}</button></div>
+        <div class="col-12"><div class="form-label">{% trans "Diameter (mm)" %}</div>
+          <div class="seq-chips" data-seq-chips="implant_diameter">{% for d in diameters %}<button type="button" class="seq-chip" data-value="{{ d }}">{{ d }}</button>{% endfor %}
+            <input class="form-control seq-other" type="number" step="0.1" min="2" max="9" inputmode="decimal" data-seq-field="implant_diameter" aria-label="{% trans 'Diameter (mm)' %}"></div></div>
+        <div class="col-12"><div class="form-label">{% trans "Length (mm)" %}</div>
+          <div class="seq-chips" data-seq-chips="implant_length">{% for l in lengths %}<button type="button" class="seq-chip" data-value="{{ l }}">{{ l }}</button>{% endfor %}
+            <input class="form-control seq-other" type="number" step="0.5" min="4" max="20" inputmode="decimal" data-seq-field="implant_length" aria-label="{% trans 'Length (mm)' %}"></div></div>
+        <div class="col-12"><div class="form-label"><i class="bi bi-box-seam"></i> {% trans "From our stock: tap the implant used" %}</div>
+          <div class="seq-lots" data-seq-lots><span class="text-muted small">{% trans "Choose the company first." %}</span></div></div>
+        <div class="col-md-6"><label class="form-label" for="seq-lot">{% trans "Lot / ref number" %}</label>
+          <input class="form-control" id="seq-lot" data-seq-field="lot_number" autocomplete="off" spellcheck="false"></div>
+        <div class="col-md-6"><div class="form-label">{% trans "The sticker" %}</div>
+          <div class="d-flex align-items-center gap-2"><button type="button" class="btn btn-outline-primary" data-seq-photo><i class="bi bi-camera"></i> {% trans "Take a photo of the sticker" %}</button>
+            <img class="seq-sticker" data-seq-sticker alt="" hidden></div></div>
+        <div class="col-4"><label class="form-label" for="seq-torque">{% trans "Torque (Ncm)" %}</label>
+          <input class="form-control" id="seq-torque" type="number" min="0" max="100" inputmode="numeric" data-seq-field="insertion_torque"></div>
+        <div class="col-4"><label class="form-label" for="seq-isq">ISQ</label>
+          <input class="form-control" id="seq-isq" type="number" min="0" max="100" inputmode="numeric" data-seq-field="isq"></div>
+        <div class="col-4 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" id="seq-subcrestal" data-seq-field="subcrestal"><label class="form-check-label" for="seq-subcrestal">{% trans "subcrestal" %}</label></div></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" data-seq-prev><i class="bi bi-arrow-left"></i> {% trans "Previous" %}</button>
+      <button type="button" class="btn btn-primary" data-seq-next data-last-text="{% trans 'Done' %}"><span>{% trans "Next implant" %}</span> <i class="bi bi-arrow-right"></i></button>
+    </div>
+  </div></div>
+</div>
+<script type="application/json" id="arch-texts">{"implants": "{{ _('implants')|escapejs }}", "pontics": "{{ _('pontics')|escapejs }}", "extractions": "{{ _('extractions')|escapejs }}", "implantOf": "{% filter escapejs %}{% trans "Implant {n} of {total}" %}{% endfilter %}", "tooth": "{{ _('tooth')|escapejs }}", "noImplant": "{{ _('Tap the teeth that get an implant first.')|escapejs }}", "noneInStock": "{{ _('None of this size in stock: type the lot or take a photo of the sticker.')|escapejs }}", "left": "{{ _('left')|escapejs }}", "fullArch": "{{ _('full arch')|escapejs }}", "bridge": "{{ _('bridge')|escapejs }}", "nothing": "{{ _('Nothing chosen yet.')|escapejs }}"}</script>

@@ -17,25 +17,36 @@ SURFACE_CHOICES = [(s, s) for s in SURFACES]
 
 # The medical and dental history of the paper chart, asked by the dentist or at the reception.
 HISTORY_FIELDSETS = [
+    (_("Today in the clinic: blood pressure and blood sugar"), [
+        "bp_clinic_systolic", "bp_clinic_diastolic", "glucose_random_clinic", "hba1c", "hba1c_date",
+    ]),
     (_("Medical health"), [
         "general_health", "pregnant", "lactating", "under_treatment", "recent_surgery", "medical_comment",
         "conditions", "other_condition", "conditions_comment",
     ]),
-    (_("Blood pressure and glucose"), [
-        "bp_last_systolic", "bp_last_diastolic", "bp_last_when", "bp_drug", "bp_clinic_systolic",
-        "bp_clinic_diastolic", "glucose_level", "glucose_last", "glucose_last_when", "glucose_random_clinic",
-        "hba1c", "hba1c_date",
+    (_("Blood pressure and sugar: what the patient tells"), [
+        "bp_last_systolic", "bp_last_diastolic", "bp_last_when", "bp_drug", "glucose_level", "glucose_last",
+        "glucose_last_when",
     ]),
     (_("Allergies, bleeding and drugs"), [
         "allergy_penicillin", "allergy_sulfa", "allergy_other", "bleeding_or_aspirin", "digestion_problem",
         "illegal_drugs", "illegal_drugs_notes", "drugs_taken", "operator_comments",
     ]),
-    (_("Dental history"), [
-        "sensitive_hot_cold", "sensitive_sweets", "sensitive_biting", "bruxism", "smoker",
-        "cigarettes_per_day", "mouth_injury", "satisfied_appearance", "cooperation_score",
-        "implant_willingness_score",
+    (_("Dental history and habits"), [
+        "smoker", "cigarettes_per_day", "bruxism", "sensitive_hot_cold", "sensitive_sweets", "sensitive_biting",
+        "mouth_injury", "satisfied_appearance", "cooperation_score", "implant_willingness_score",
     ]),
 ]
+READINGS = ("bp_clinic_systolic", "bp_clinic_diastolic", "glucose_random_clinic", "hba1c", "hba1c_date")
+
+
+def compact_readings(form):
+    """The readings of the day side by side, with the number pad on a tablet."""
+    for name in READINGS:
+        if name in form.fields:
+            form.fields[name].col = "col-6 col-md-4 col-xl"
+            if name != "hba1c_date":
+                form.fields[name].widget.attrs["inputmode"] = "decimal" if name == "hba1c" else "numeric"
 HISTORY_FIELDS = [name for _title, names in HISTORY_FIELDSETS for name in names]
 
 
@@ -135,20 +146,24 @@ class TreatmentPlanForm(StyledModelForm):
         help_text=_("Supervisors do not log in: choose who approved the plan."),
     )
 
-    fieldsets = [("", ["title", "difficulty", "dentist", "approved_by", "notes"]),
+    fieldsets = [(_("Before writing the plan"), ["cbct_planned", "chart_checked"]),
+                 ("", ["title", "difficulty", "dentist", "approved_by", "notes"]),
                  (_("The plan printed for the patient"), ["comprehensive", "diagnosis", "duration", "alternatives"])]
 
     class Meta:
         model = TreatmentPlan
-        fields = ["title", "difficulty", "dentist", "approved_by", "notes", "comprehensive", "diagnosis", "duration",
-                  "alternatives"]
+        fields = ["cbct_planned", "chart_checked", "title", "difficulty", "dentist", "approved_by", "notes",
+                  "comprehensive", "diagnosis", "duration", "alternatives"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name in ("notes", "diagnosis", "alternatives"):
             self.fields[name].widget.attrs["rows"] = 2
-        for name in ("title", "difficulty", "dentist", "approved_by", "comprehensive", "duration"):
+        for name in ("title", "difficulty", "dentist", "approved_by", "comprehensive", "duration", "cbct_planned",
+                     "chart_checked"):
             self.fields[name].col = "col-md-6"
+        self.fields["cbct_planned"].help_text = _("The implants planned on the CBCT: their places, sizes and the bone.")
+        self.fields["chart_checked"].help_text = _("The missing, filled and hopeless teeth checked again on the CBCT.")
 
     def save(self, commit=True):
         plan = super().save(commit=False)
@@ -232,7 +247,7 @@ class MedicalHistoryForm(StyledModelForm):
     allows it). ``part`` shows only the medical history ("medical") or only the dental history ("dental")."""
 
     fieldsets = HISTORY_FIELDSETS
-    PARTS = {"medical": HISTORY_FIELDSETS[:3], "dental": HISTORY_FIELDSETS[3:]}
+    PARTS = {"medical": HISTORY_FIELDSETS[:4], "dental": HISTORY_FIELDSETS[4:]}
 
     class Meta:
         model = Examination
@@ -249,6 +264,7 @@ class MedicalHistoryForm(StyledModelForm):
                     del self.fields[name]
         if "conditions" in self.fields:
             self.fields["conditions"].queryset = MedicalCondition.objects.filter(is_active=True)
+        compact_readings(self)
         for name in ("medical_comment", "conditions_comment", "drugs_taken", "operator_comments"):
             if name in self.fields:
                 self.fields[name].widget.attrs["rows"] = 2

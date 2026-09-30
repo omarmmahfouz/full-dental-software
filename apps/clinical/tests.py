@@ -207,7 +207,8 @@ class TreatmentStepTests(TestCase):
         item = PlanItem.objects.create(plan=plan, step_type=self.composite, teeth="12, 22")
         self.client.login(username="dentist", password=PASSWORD)
         response = self.post_step(step_type=self.composite.pk, teeth="12", surfaces="mo")
-        self.assertRedirects(response, f"/chart/patient/{self.patient.pk}/", fetch_redirect_response=False)
+        step = TreatmentStep.objects.get()  # a filling asks for its photos before and after (round 10)
+        self.assertRedirects(response, f"/clinical/steps/{step.pk}/", fetch_redirect_response=False)
         state = ToothState.objects.get(patient=self.patient, tooth=12)
         self.assertEqual((state.caries, state.filled, state.filling_surfaces, state.filling_material),
                          (False, True, "MO", "composite"))
@@ -295,7 +296,8 @@ class OutsideRequestTests(TestCase):
         cbct = OutsideRequest.objects.get()
         self.assertIn(f"/clinical/requests/{cbct.pk}/?next=", response.url)
         page = self.client.get(response.url)
-        self.assertContains(page, f"/chart/patient/{patient.pk}/plan/new/?flow=1")  # "print it, then go on"
+        # "print it, then go on": the next step of the file, the impression or diagnostic scan (round 10)
+        self.assertContains(page, f"/patients/{patient.pk}/records/?step=impression&amp;flow=1")
         self.assertNotContains(page, "?where=done_here")  # no CBCT machine at this place
         branch.has_cbct = True
         branch.save()
@@ -310,3 +312,64 @@ class OutsideRequestTests(TestCase):
         self.assertContains(exam_page, "CIA-SERVER")
         self.assertContains(exam_page, cbct.get_absolute_url())
         self.assertContains(self.client.get(f"/patients/{patient.pk}/"), "CIA-SERVER")
+
+
+class StepKindsTests(TestCase):
+    """Round 10: the steps grouped by the kind of work (endodontics: access, cleaning, obturation, single visit...),
+    each with the photos and periapical X-rays it should have."""
+
+    def setUp(self):
+        import tempfile
+
+        from django.test import override_settings
+
+        self.media = override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+        self.media.enable()
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def tearDown(self):
+        import shutil
+
+        from django.conf import settings
+
+        root = settings.MEDIA_ROOT
+        self.media.disable()
+        shutil.rmtree(root, ignore_errors=True)
+
+    def test_the_kinds_and_their_steps(self):
+        endo = {t.name_en for t in TreatmentStepType.objects.filter(group="endo")}
+        self.assertTrue({"Endo: access opening", "Endo: access, cleaning and shaping", "Endo: obturation",
+                         "Endo: all in a single visit"} <= endo)
+        single = TreatmentStepType.objects.get(name_en="Endo: all in a single visit")
+        self.assertEqual([code for code, _label in single.shot_list()], ["pa_before", "pa_working", "pa_cone", "pa_after"])
+        self.assertEqual(single.chart_effect, "rct")
+        page = self.client.get(f"/clinical/steps/new/?patient={self.patient.pk}&group=endo")
+        groups = {g["code"]: g for g in page.context["step_groups"]}
+        self.assertIn(single.pk, [t["id"] for t in groups["endo"]["types"]])
+        self.assertContains(page, 'data-chosen-group="endo"')
+
+    def test_the_xrays_of_a_step(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from apps.charting.models import ClinicalPhoto
+
+        access = TreatmentStepType.objects.get(name_en="Endo: access, cleaning and shaping")
+        response = self.client.post("/clinical/steps/new/", {
+            "patient_lookup": self.patient.file_number, "performed_at": "2026-09-25T11:00", "operator": self.dentist.pk,
+            "step_type": access.pk, "teeth": "36"})
+        step = TreatmentStep.objects.get()
+        self.assertRedirects(response, f"/clinical/steps/{step.pk}/", fetch_redirect_response=False)
+        page = self.client.get(f"/clinical/steps/{step.pk}/")
+        self.assertEqual([s["code"] for s in page.context["shots"]], ["pa_before", "pa_working"])
+        picture = SimpleUploadedFile("pa.png", b"\x89PNG\r\n\x1a\n" + b"0" * 100, content_type="image/png")
+        self.client.post(f"/clinical/steps/{step.pk}/photo/", {"shot": "pa_working", "file": picture})
+        photo = ClinicalPhoto.objects.get()
+        self.assertEqual((photo.treatment_step, photo.shot, photo.stage, photo.teeth), (step, "pa_working", "treatment", "36"))
+        page = self.client.get(f"/clinical/steps/{step.pk}/")
+        self.assertEqual([len(s["photos"]) for s in page.context["shots"]], [0, 1])
+        text = SimpleUploadedFile("notes.txt", b"hello", content_type="text/plain")
+        self.client.post(f"/clinical/steps/{step.pk}/photo/", {"shot": "pa_before", "file": text})
+        self.assertEqual(ClinicalPhoto.objects.count(), 1)  # only photos or PDF

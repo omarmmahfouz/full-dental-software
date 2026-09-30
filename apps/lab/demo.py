@@ -75,7 +75,7 @@ def load_lab(today, at, make_user, owner):
     now = timezone.now()
     lab_place = Branch.objects.get(kind=Branch.Kind.LAB)
     Branch.objects.filter(pk=lab_place.pk).update(phone="01099998888", address="Nasr City, Cairo",
-                                                  tagline="Digital dental lab")
+                                                  tagline="The art of dentistry")
     lab_place.refresh_from_db()
 
     # People: the head, the manager and the secretary of the lab; Dr. Sherif (CIA) designs too.

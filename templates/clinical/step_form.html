@@ -13,6 +13,11 @@
       <form method="post" novalidate id="step-form">{% csrf_token %}
         <input type="hidden" name="patient" value="{% firstof request.GET.patient request.POST.patient %}">
         <input type="hidden" name="appointment" value="{% firstof request.GET.appointment request.POST.appointment %}">
+        <div class="step-picker mb-3" data-step-picker data-chosen-group="{{ chosen_group }}">
+          <div class="form-label fw-semibold">{% trans "What did you do? Tap the kind of work, then the step" %}</div>
+          <div class="step-groups">{% for g in step_groups %}<button type="button" class="step-group" data-group="{{ g.code }}"><i class="bi {{ g.icon }}"></i> {{ g.label }}</button>{% endfor %}</div>
+          {% for g in step_groups %}<div class="step-types" data-types="{{ g.code }}" hidden>{% for t in g.types %}<button type="button" class="step-type" data-type="{{ t.id }}">{{ t.name }}{% if t.shots %} <i class="bi bi-camera small" title="{% trans 'photos and X-rays to take' %}"></i>{% endif %}</button>{% endfor %}</div>{% endfor %}
+        </div>
         {% include "includes/form_fields.html" %}
         <div id="chart-preview" class="alert alert-light border mt-3 d-none">
           <div class="fw-semibold mb-1"><i class="bi bi-diagram-3"></i> {% trans "The dental chart will change like this:" %}</div>
@@ -39,6 +44,33 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+  // The picker: a kind of work shows its steps; a step chooses it in the list below (the list still works alone).
+  (function () {
+    var picker = document.querySelector("[data-step-picker]");
+    var select = document.querySelector("#step-form [name=step_type]");
+    if (!picker || !select) return;
+    function showGroup(code) {
+      picker.querySelectorAll("[data-group]").forEach(function (b) { b.classList.toggle("is-active", b.dataset.group === code); });
+      picker.querySelectorAll("[data-types]").forEach(function (row) { row.hidden = row.dataset.types !== code; });
+    }
+    function mark() {
+      picker.querySelectorAll("[data-type]").forEach(function (b) { b.classList.toggle("is-active", b.dataset.type === select.value); });
+    }
+    picker.addEventListener("click", function (event) {
+      var group = event.target.closest("[data-group]"), type = event.target.closest("[data-type]");
+      if (group) showGroup(group.dataset.group);
+      if (type) {
+        select.value = type.dataset.type;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        mark();
+      }
+    });
+    select.addEventListener("change", mark);
+    var chosen = select.value && picker.querySelector('[data-type="' + select.value + '"]');
+    showGroup(chosen ? chosen.closest("[data-types]").dataset.types : picker.dataset.chosenGroup);
+    mark();
+  })();
+
   // Show what the dental chart will become before saving (the dentist confirms with the checkbox).
   (function () {
     var form = document.getElementById("step-form");

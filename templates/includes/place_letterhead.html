@@ -1,6 +1,6 @@
 {% load static %}{% comment %}The top of a printed paper (bill, receipt, plan, lab request): the place's logo or mark with its name, line,
 phone and address (El Khadem and any place with a logo), the CIA logo, or the place's code (CIC...).{% endcomment %}
-{% if place.logo or place.is_elite %}<div class="letterhead-elite place-{{ place.code }}"{% if place.color %} style="--place: {{ place.color }}"{% endif %}>
+{% if place.has_mark %}<div class="letterhead-elite place-{{ place.code }}"{% if place.color %} style="--place: {{ place.color }}"{% endif %}>
   <img class="place-letterhead-logo" src="{{ place.mark_url }}" alt="{{ place.badge }}">
   <div class="text-start"><div class="lh-name">{{ place.name }}</div>{% if place.tagline %}<div class="lh-tagline">{{ place.tagline }}</div>{% endif %}
     {% if place.phone or place.address or place.email %}<div class="lh-contact">{% if place.phone %}<i class="bi bi-telephone"></i> <span class="ltr">{{ place.phone }}</span>{% endif %}{% if place.address %} · <i class="bi bi-geo-alt"></i> {{ place.address }}{% endif %}{% if place.email %} · <span class="ltr">{{ place.email }}</span>{% endif %}</div>{% endif %}</div>

@@ -1,28 +1,30 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-implant"></i> {{ title }}</h1></div>
 {% if file_steps %}{% include "patients/_file_steps.html" %}{% endif %}
+{% if clearance %}{% include "patients/_clearance.html" %}{% endif %}
 <form method="post" enctype="multipart/form-data" novalidate data-teeth-missing="{{ missing }}">{% csrf_token %}
+  {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
   {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
   {% for title, fields in form.bound_fieldsets %}
     {% if forloop.first %}
       <div class="card mb-3"><div class="card-header">{{ title }}</div><div class="card-body"><div class="row g-3">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div></div></div>
 
-      <div class="card mb-3" data-formset="sites">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span><i class="bi bi-grid-3x3-gap"></i> {% trans "Teeth: procedures and implants" %}</span>
-          <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add tooth" %}</button>
-        </div>
+      <div class="card mb-3 arch-card">
+        <div class="card-header"><i class="bi bi-grid-3x3-gap"></i> {% trans "The design: implants, pontics and extractions" %}</div>
+        <div class="card-body">{% include "surgery/_arch_designer.html" %}</div>
+      </div>
+
+      <details class="card mb-3 site-details" data-formset="sites"{% if surgery or formset.total_error_count %} open{% endif %}>
+        <summary class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-list-ul"></i> {% trans "Each tooth in detail" %} <span class="badge text-bg-light border" data-arch-card-count></span></span>
+        </summary>
         <div class="card-body">
-          <div class="same-procedures mb-3" data-same-procedures="sites">
-            <div class="fw-semibold mb-1"><i class="bi bi-copy"></i> {% trans "Same procedures on several teeth" %}</div>
-            <div class="small text-muted mb-2">{% trans "Tick the procedures, then choose the teeth: a card is made for every tooth with these procedures ticked. Then fill each implant's size." %}</div>
-            <div class="d-flex flex-wrap gap-3 mb-2">
-              {% for name, label in procedures %}<div class="form-check"><input class="form-check-input" type="checkbox" value="{{ name }}" id="same-{{ name }}"><label class="form-check-label" for="same-{{ name }}">{{ label }}</label></div>{% endfor %}
-            </div>
-            <button type="button" class="btn btn-sm btn-primary" data-same-procedures-pick><i class="bi bi-grid-3x3-gap"></i> {% trans "Choose the teeth" %}</button>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <span class="small text-muted">{% trans "Filled from the design above. Change here what is special to one tooth: its operator, a flap, the notes." %}</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus-lg"></i> {% trans "Add tooth" %}</button>
           </div>
           {{ formset.management_form }}
           {% if formset.non_form_errors %}<div class="alert alert-danger">{% for e in formset.non_form_errors %}{{ e }} {% endfor %}</div>{% endif %}
@@ -31,7 +33,7 @@
           </div>
           <template>{% include "surgery/_site_card.html" with site=formset.empty_form %}</template>
         </div>
-      </div>
+      </details>
     {% else %}
       <details class="card mb-3" {% if forloop.last %}open{% endif %}>
         <summary class="card-header" style="cursor:pointer">{{ title }}</summary>
@@ -44,44 +46,13 @@
     <a class="btn btn-outline-secondary btn-lg" href="{% if surgery %}{{ surgery.get_absolute_url }}{% else %}{% url 'surgery:list' %}{% endif %}">{% trans "Cancel" %}</a>
   </div>
 </form>
+{% include "surgery/_implant_sequence.html" %}
 {% endblock %}
 {% block extra_js %}
-{% trans "Tick at least one procedure first." as tick_first %}
+<script src="{% static 'js/surgery-arch.js' %}" defer></script>
 <script>
   // Open any collapsed section that contains an error so it is not missed.
   document.querySelectorAll("details").forEach(function (d) { if (d.querySelector(".errorlist")) d.open = true; });
-
-  // Same procedures on several teeth: one card per chosen tooth (an existing card of that tooth,
-  // an empty card, or a new one), with the ticked procedures ticked on it.
-  (function () {
-    var panel = document.querySelector("[data-same-procedures]");
-    if (!panel || !window.teethPicker) return;
-    var rows = document.querySelector('[data-formset="sites"] [data-formset-rows]');
-    function cards() { return Array.prototype.slice.call(rows.children); }
-    function toothOf(card) { return card.querySelector("select[name$='-tooth']"); }
-    function isEmpty(card) {
-      return !toothOf(card).value && !card.querySelector("input[type=checkbox]:checked");
-    }
-    panel.querySelector("[data-same-procedures-pick]").addEventListener("click", function () {
-      var procedures = Array.prototype.map.call(panel.querySelectorAll("input:checked"), function (box) { return box.value; });
-      if (!procedures.length) { window.appPopup(panel.querySelector(".fw-semibold").textContent, ["{{ tick_first|escapejs }}"]); return; }
-      window.teethPicker.open({
-        value: [], missing: window.teethPicker.missingFor(panel),
-        done: function (teeth) {
-          teeth.forEach(function (tooth) {
-            var card = cards().filter(function (c) { return toothOf(c).value === String(tooth); })[0] ||
-                       cards().filter(isEmpty)[0] || window.addFormsetRow("sites");
-            if (!card) return;
-            toothOf(card).value = String(tooth);
-            procedures.forEach(function (name) {
-              var box = card.querySelector("input[type=checkbox][name$='-" + name + "']");
-              if (box) box.checked = true;
-            });
-          });
-        }
-      });
-    });
-  })();
 
   // Implants from stock: choosing the company lists the implants in stock (size, lot, expiry, how many
   // left); choosing one fills the size and the lot. The chart takes it out of stock when saved.
@@ -93,9 +64,9 @@
     function loadLots(card) {
       var system = field(card, "implant_system"), select = field(card, "stock_choice");
       if (!system || !select) return;
-      var chosen = select.value;
       if (!system.value) { select.innerHTML = "<option value=''>" + notFromStock + "</option>"; return; }
       fetch(url + "?system=" + system.value, { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (data) {
+        var chosen = select.value, chosenOption = select.selectedOptions[0];  // read now: the design may have chosen one meanwhile
         select.innerHTML = "";
         var empty = document.createElement("option");
         empty.value = ""; empty.textContent = data.lots.length ? notFromStock : noneLeft;
@@ -109,6 +80,7 @@
           var sameSize = (!diameter || parseFloat(row.diameter) === diameter) && (!length || parseFloat(row.length) === length);
           if (sameSize) select.insertBefore(option, select.children[1] || null); else select.appendChild(option);
         });
+        if (chosen && !Array.prototype.some.call(select.options, function (o) { return o.value === chosen; }) && chosenOption) select.appendChild(chosenOption);
         select.value = chosen;
       });
     }

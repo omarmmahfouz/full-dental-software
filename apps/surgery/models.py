@@ -161,6 +161,10 @@ class Surgery(TimeStampedModel):
     temporary = models.CharField(_("temporary"), max_length=20, choices=Temporary.choices, blank=True)
     notes = models.TextField(_("notes"), blank=True)
     complications = models.TextField(_("complications / post-operative notes"), blank=True)
+    pontics = models.CharField(
+        _("pontics"), max_length=120, blank=True,
+        help_text=_("The teeth of the planned bridge or full arch with no implant under them (e.g. 15, 25): the chart "
+                    "shows them as pontics, not missing."))
     chart_updated = models.BooleanField(_("dental chart updated"), default=False, editable=False)
 
     AUGMENTATION_CHOICES = [
@@ -197,6 +201,15 @@ class Surgery(TimeStampedModel):
 
     def team(self):
         return [d for d in (self.operator_1, self.operator_2, self.assistant) if d]
+
+    @property
+    def pontic_teeth(self):
+        from apps.charting.teeth import parse_teeth
+
+        try:
+            return parse_teeth(self.pontics)
+        except Exception:  # noqa: BLE001 - an old value that no longer reads is shown as it is
+            return []
 
 
 def mm(value):
@@ -263,8 +276,8 @@ class SurgerySite(models.Model):
         ImplantSystem, verbose_name=_("implant type"), null=True, blank=True, on_delete=models.PROTECT,
         related_name="sites",
     )
-    implant_diameter = models.DecimalField(_("implant diameter (mm)"), max_digits=3, decimal_places=1, null=True, blank=True)
-    implant_length = models.DecimalField(_("implant length (mm)"), max_digits=3, decimal_places=1, null=True, blank=True)
+    implant_diameter = models.DecimalField(_("implant diameter (mm)"), max_digits=4, decimal_places=2, null=True, blank=True)
+    implant_length = models.DecimalField(_("implant length (mm)"), max_digits=4, decimal_places=2, null=True, blank=True)
     lot_number = models.CharField(_("lot / ref number"), max_length=60, blank=True)
     implant_stock_item = models.ForeignKey(
         "stock.StockItem", verbose_name=_("implant from stock"), null=True, blank=True, on_delete=models.SET_NULL,
@@ -475,3 +488,94 @@ class Prosthesis(TimeStampedModel):
             details.append(ngettext("%(n)s pontic", "%(n)s pontics", len(self.pontics)) % {"n": len(self.pontics)})
         details = [d for d in details if d]
         return f"{text} ({', '.join(details)})" if details else text
+
+
+class DeliveryCheck(TimeStampedModel):
+    """The checklist of the day a prosthesis on implants is delivered: tap each point as it is done (the points
+    that do not fit the prosthesis are not shown: e.g. no cement for a screw-retained bridge), write the torque,
+    then save it as delivered: the implants become loaded and the pontics show on the chart (prostheses.py)."""
+
+    # (group, [(code, label, fits)]): ``fits`` = the prosthesis it is asked for (see applies), empty = every one.
+    GROUPS = [
+        (_("Before the patient sits"), [
+            ("lab_match", _("The work matches the request: the patient, the teeth, the material"), ""),
+            ("shade", _("The shade checked in daylight"), ""),
+            ("parts", _("The screws, abutments and parts from the lab are all here"), ""),
+            ("model_fit", _("The fit checked on the model"), ""),
+        ]),
+        (_("Seating"), [
+            ("healing_off", _("Healing caps / the temporary removed and the sites cleaned"), ""),
+            ("passive_fit", _("Passive fit: the one-screw test, no rocking"), "multi"),
+            ("xray", _("Periapical X-ray: fully seated, no gap"), "fixed"),
+            ("contacts", _("Contacts: the floss passes with resistance"), "short"),
+            ("tissue", _("The gum: the blanching goes within 10 minutes"), "fixed"),
+            ("occlusion", _("Occlusion: light in centric, no contact in side movements"), ""),
+            ("torque", _("The screws tightened to the torque written below"), "screw"),
+            ("access_sealed", _("The screw holes sealed (PTFE tape and composite)"), "screw"),
+            ("cement_cleaned", _("All the excess cement removed (floss, X-ray)"), "cement"),
+            ("attachments", _("The attachment inserts placed and the retention checked"), "removable"),
+            ("pressure", _("Pressure spots relieved (pressure paste)"), "removable"),
+            ("speech", _("Speech and lip support checked"), "full"),
+        ]),
+        (_("The patient"), [
+            ("satisfied", _("The patient saw it in the mirror and is satisfied"), ""),
+            ("photos", _("Delivery photos taken"), ""),
+            ("hygiene", _("Cleaning taught: floss / superfloss / water flosser / interdental brush"), ""),
+            ("remove_teach", _("The patient takes it out and puts it back alone"), "removable"),
+            ("instructions", _("The instructions given (the printed sheet)"), ""),
+            ("night_guard", _("A night guard advised (if he grinds)"), "optional"),
+            ("recall", _("The next check booked (after a week, then every 6 months)"), ""),
+        ]),
+    ]
+
+    prosthesis = models.OneToOneField(Prosthesis, verbose_name=_("prosthesis"), on_delete=models.CASCADE,
+                                      related_name="delivery_check")
+    date = models.DateField(_("date"), default=timezone.localdate)
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="+")
+    ticked = models.JSONField(_("done"), default=list, blank=True)
+    torque_ncm = models.PositiveSmallIntegerField(_("torque (Ncm)"), null=True, blank=True,
+                                                  validators=[MaxValueValidator(60)])
+    shade = models.CharField(_("shade"), max_length=30, blank=True)
+    follow_up_on = models.DateField(_("next check on"), null=True, blank=True)
+    notes = models.TextField(_("notes"), blank=True)
+
+    class Meta:
+        verbose_name = _("delivery checklist")
+        verbose_name_plural = _("delivery checklists")
+
+    def __str__(self):
+        return str(self.prosthesis)
+
+    @staticmethod
+    def applies(fits, prosthesis):
+        kind, retention = prosthesis.kind, prosthesis.retention
+        K, R = Prosthesis.Kind, Prosthesis.Retention
+        removable = kind == K.OVERDENTURE or retention in (R.LOCATOR, R.BALL, R.BAR)
+        return {
+            "": True, "optional": True,
+            "multi": kind in (K.BRIDGE, K.FULL_FIXED),
+            "fixed": not removable,
+            "short": kind in (K.SINGLE, K.BRIDGE),
+            "screw": retention == R.SCREW or (kind == K.FULL_FIXED and retention != R.CEMENT),
+            "cement": retention == R.CEMENT,
+            "removable": removable,
+            "full": kind in Prosthesis.FULL_ARCH,
+        }[fits]
+
+    @classmethod
+    def items_for(cls, prosthesis):
+        """[(group, [(code, label, optional)])]: the points for this prosthesis."""
+        return [(group, [(code, label, fits == "optional") for code, label, fits in items
+                         if cls.applies(fits, prosthesis)]) for group, items in cls.GROUPS]
+
+    def missing(self):
+        """The points still to do (the optional ones aside)."""
+        done = set(self.ticked)
+        return [label for _group, items in self.items_for(self.prosthesis) for code, label, optional in items
+                if not optional and code not in done]
+
+    def progress(self):
+        items = [code for _group, rows in self.items_for(self.prosthesis) for code, _label, optional in rows]
+        done = sum(1 for code in items if code in set(self.ticked))
+        return done, len(items)

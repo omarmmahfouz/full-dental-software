@@ -22,7 +22,7 @@
 <nav class="navbar navbar-expand-xl app-navbar no-print{% if roles.owner or roles.head_cia %} nav-crowded{% endif %}">
   <div class="container-fluid">
     <a class="navbar-brand" href="{% url 'core:dashboard' %}">
-      {% if current_branch.kind == "lab" and not current_branch.logo %}<span class="place-letterhead-code brand-code">{{ current_branch.badge }}</span>{% else %}<img src="{% if current_branch %}{{ current_branch.mark_url }}{% else %}{% static 'img/cia-mark.png' %}{% endif %}" alt="{{ current_branch.badge|default:'CIA' }}">{% endif %}
+      {% if current_branch.kind == "lab" and not current_branch.has_mark %}<span class="place-letterhead-code brand-code">{{ current_branch.badge }}</span>{% else %}<img src="{% if current_branch %}{{ current_branch.mark_url }}{% else %}{% static 'img/cia-mark.png' %}{% endif %}" alt="{{ current_branch.badge|default:'CIA' }}">{% endif %}
       <span class="brand-name">{% if current_branch %}{{ current_branch.name }}{% else %}{% trans "Cairo Implant Academy" %}{% endif %}</span>
     </a>
     {% if working_places %}
@@ -71,6 +71,7 @@
             {% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% trans "All patients" %}</a></li>
             {% if my_dentist %}<li><a class="dropdown-item" href="{% url 'patients:list' %}?mine=on"><i class="bi bi-person-check"></i> {% trans "My patients" %}</a></li>{% endif %}
+            <li><a class="dropdown-item" href="{% url 'patients:medical_followup' %}"><i class="bi bi-heart-pulse"></i> {% trans "Medical follow-up" %}</a></li>
           </ul>
         </li>
         {% endif %}
