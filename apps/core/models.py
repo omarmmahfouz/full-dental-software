@@ -531,6 +531,22 @@ def working_places(user):
     return places.filter(pk__in=ids)
 
 
+def switch_places(user):
+    """The places this person can open (the switch in the top bar and the login page): their clinics, and the dental
+    lab for the lab's staff and the owner. Kept on the person for the page."""
+    if user is None or not user.is_authenticated:
+        return []
+    cached = getattr(user, "_switch_places", None)
+    if cached is None:
+        from .roles import LAB_STAFF, has_role
+
+        cached = list(working_places(user))
+        if user.is_superuser or has_role(user, *LAB_STAFF):
+            cached += list(Branch.objects.filter(is_active=True, kind=Branch.Kind.LAB).order_by("sort_order", "pk"))
+        user._switch_places = cached
+    return cached
+
+
 class PasswordHelp(models.Model):
     """Someone who forgot the password asks from the login page; the owner gives a temporary password (Settings →
     Users). There is no e-mail: the clinic works on its own network."""

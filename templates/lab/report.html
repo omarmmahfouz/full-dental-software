@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab report" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-graph-up"></i> {% trans "Lab report" %}</h1></div>
+<form class="card card-body mb-3 no-print" method="get" data-no-leave-warning><div class="row g-2 align-items-end">
+  <div class="col-6 col-md-3"><label class="form-label">{% trans "From" %}</label>{{ form.date_from }}</div>
+  <div class="col-6 col-md-3"><label class="form-label">{% trans "To" %}</label>{{ form.date_to }}</div>
+  <div class="col-md-3"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Show" %}</button></div>
+</div></form>
+<p class="small text-muted">{{ date_from|date:"d/m/Y" }} → {{ date_to|date:"d/m/Y" }}</p>
+<div class="stat-minis mb-3">
+  <div class="stat-mini"><span class="n">{{ data.received }}</span><span class="l">{% trans "Cases received" %} · {{ data.units_in }} {% trans "units" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ data.delivered }}</span><span class="l">{% trans "Cases delivered" %}</span></div>
+  <div class="stat-mini{% if data.on_time is not None and data.on_time >= 90 %} is-good{% elif data.on_time is not None %} is-warn{% endif %}"><span class="n">{% if data.on_time is None %}—{% else %}{{ data.on_time }}%{% endif %}</span><span class="l">{% trans "Delivered on time" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ data.in_lab }}</span><span class="l">{% trans "In the lab now" %}</span></div>
+  <div class="stat-mini{% if data.late_now %} is-warn{% endif %}"><span class="n">{{ data.late_now }}</span><span class="l">{% trans "Late now" %}</span></div>
+  <div class="stat-mini{% if data.remakes %} is-warn{% endif %}"><span class="n">{{ data.remakes }}</span><span class="l">{% trans "Remakes" %}{% if data.remake_rate is not None %} · {{ data.remake_rate }}%{% endif %}</span></div>
+  <div class="stat-mini"><span class="n">{{ data.outsourced }}</span><span class="l">{% trans "Sent to other labs" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ data.units_milled }}</span><span class="l">{% trans "Units milled from blocks" %} · {{ data.blocks_opened }} {% trans "blocks opened" %}</span></div>
+</div>
+
+{% if with_money %}
+<div class="card mb-3"><div class="card-header"><i class="bi bi-cash-stack"></i> {% trans "Money" %}</div><div class="card-body">
+  <div class="stat-minis">
+    <div class="stat-mini"><span class="n">{{ data.billed|money }}</span><span class="l">{% trans "Work delivered (billed)" %}</span></div>
+    <div class="stat-mini is-good"><span class="n">{{ data.paid|money }}</span><span class="l">{% trans "Money received" %}</span></div>
+    <div class="stat-mini"><span class="n">{{ data.materials|money }}</span><span class="l">{% trans "Materials used (lab stock)" %}</span></div>
+    <div class="stat-mini"><span class="n">{{ data.outsourcing|money }}</span><span class="l">{% trans "Other labs" %}</span></div>
+    <div class="stat-mini"><span class="n">{{ data.fees|money }}</span><span class="l">{% trans "Designers' fees" %}</span></div>
+    <div class="stat-mini{% if data.left < 0 %} is-warn{% else %} is-good{% endif %}"><span class="n">{{ data.left|money }}</span><span class="l">{% trans "Left for the lab" %}</span></div>
+  </div>
+</div></div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-xl-6">
+    <div class="card mb-3 h-100"><div class="card-header"><i class="bi bi-stopwatch"></i> {% trans "Time in each step (waiting included)" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Step" %}</th><th class="text-end">{% trans "Cases" %}</th><th>{% trans "Average" %}</th><th class="text-end">{% trans "Middle" %}</th><th class="text-end">{% trans "Longest" %}</th></tr></thead>
+        <tbody>{% for row in data.steps %}<tr><td>{{ row.label }}</td><td class="text-end num">{{ row.count }}</td>
+          <td><div class="hbar-row" title="{{ row.label }}: {{ row.average|floatformat:1 }} h"><div class="hbar" style="width: {{ row.width }}%"></div><span class="v">{{ row.average|floatformat:1 }} {% trans "h" %}</span></div></td>
+          <td class="text-end num">{{ row.median|floatformat:1 }} {% trans "h" %}</td><td class="text-end num">{{ row.longest|floatformat:1 }} {% trans "h" %}</td></tr>
+        {% empty %}<tr><td colspan="5" class="text-muted">{% trans "No step finished in this period." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <div class="card-footer small text-muted">{% trans "Middle = half the cases took less, half more: it is not pulled by one very long case." %}</div>
+    </div>
+  </div>
+  <div class="col-xl-6">
+    <div class="card mb-3 h-100"><div class="card-header"><i class="bi bi-hourglass-split"></i> {% trans "From received to delivered, by kind of work" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Kind of work" %}</th><th class="text-end">{% trans "Cases" %}</th><th class="text-end">{% trans "Units" %}</th><th class="text-end">{% trans "Days (average)" %}</th><th class="text-end">{% trans "On time" %}</th></tr></thead>
+        <tbody>{% for row in data.by_kind %}<tr><td>{{ row.label }}</td><td class="text-end num">{{ row.cases }}</td><td class="text-end num">{{ row.units }}</td><td class="text-end num">{{ row.days|floatformat:1|default:"—" }}</td><td class="text-end num">{% if row.on_time is None %}—{% else %}{{ row.on_time }}%{% endif %}</td></tr>
+        {% empty %}<tr><td colspan="5" class="text-muted">{% trans "Nothing delivered in this period." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<div class="card my-3"><div class="card-header"><i class="bi bi-people"></i> {% trans "The people" %}</div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Person" %}</th><th class="text-end">{% trans "Steps finished" %}</th><th class="text-end">{% trans "Cases" %}</th><th class="text-end">{% trans "Average time" %}</th><th class="text-end">{% trans "Units designed" %}</th><th class="text-end">{% trans "Remakes of their designs" %}</th>{% if with_money %}<th class="text-end">{% trans "Design fees" %}</th>{% endif %}</tr></thead>
+    <tbody>{% for row in data.staff %}<tr><td>{{ row.worker|default:"—" }}</td><td class="text-end num">{{ row.steps }}</td><td class="text-end num">{{ row.cases }}</td><td class="text-end num">{{ row.average|floatformat:1 }} {% trans "h" %}</td><td class="text-end num">{{ row.designed }}</td><td class="text-end num{% if row.remakes %} text-danger fw-semibold{% endif %}">{{ row.remakes }}</td>{% if with_money %}<td class="text-end num">{{ row.fee|money }}</td>{% endif %}</tr>
+    {% empty %}<tr><td colspan="7" class="text-muted">{% trans "Nobody finished a step in this period." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><i class="bi bi-arrow-repeat"></i> {% trans "Remakes: why and whose fault" %}</div><div class="card-body">
+    {% if data.remakes %}
+    <div class="row g-3"><div class="col-sm-6"><div class="small fw-semibold mb-1">{% trans "Why" %}</div>{% for label, n in data.reasons %}<div class="d-flex justify-content-between small"><span>{{ label }}</span><b class="num">{{ n }}</b></div>{% endfor %}</div>
+      <div class="col-sm-6"><div class="small fw-semibold mb-1">{% trans "Whose fault" %}</div>{% for label, n in data.faults %}<div class="d-flex justify-content-between small"><span>{{ label }}</span><b class="num">{{ n }}</b></div>{% endfor %}</div></div>
+    {% else %}<div class="text-muted small">{% trans "No remake in this period." %}</div>{% endif %}
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><i class="bi bi-layers"></i> {% trans "Blocks: units made from each" %}</div>
+    <div class="table-responsive"><table class="table table-sm mb-0">
+      <thead><tr><th>{% trans "Block / disc" %}</th><th class="text-end">{% trans "Finished blocks" %}</th><th class="text-end">{% trans "Units per block" %}</th>{% if with_money %}<th class="text-end">{% trans "Cost per unit" %}</th>{% endif %}</tr></thead>
+      <tbody>{% for row in data.block_kinds %}<tr><td>{{ row.item.name }}</td><td class="text-end num">{{ row.blocks }}</td><td class="text-end num">{{ row.average|floatformat:1 }}</td>{% if with_money %}<td class="text-end num">{{ row.cost_per_unit|money }}</td>{% endif %}</tr>
+      {% empty %}<tr><td colspan="4" class="text-muted">{% trans "No block finished yet." %}</td></tr>{% endfor %}</tbody>
+    </table></div></div></div>
+</div>
+
+<div class="card my-3"><div class="card-header"><i class="bi bi-buildings"></i> {% trans "Clients" %}</div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Client" %}</th><th class="text-end">{% trans "Received" %}</th><th class="text-end">{% trans "Delivered" %}</th><th class="text-end">{% trans "Remakes" %}</th>{% if with_money %}<th class="text-end">{% trans "Work delivered" %}</th><th class="text-end">{% trans "Paid" %}</th>{% endif %}</tr></thead>
+    <tbody>{% for row in data.clients %}<tr><td>{% if row.client %}<a href="{{ row.client.get_absolute_url }}">{{ row.client }}</a>{% endif %}</td><td class="text-end num">{{ row.received }}</td><td class="text-end num">{{ row.delivered }}</td><td class="text-end num">{{ row.remakes }}</td>{% if with_money %}<td class="text-end num">{{ row.billed|money }}</td><td class="text-end num">{{ row.paid|money }}</td>{% endif %}</tr>
+    {% empty %}<tr><td colspan="6" class="text-muted">{% trans "No work in this period." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

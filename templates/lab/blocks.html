@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Blocks and lab stock" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-layers"></i> {% trans "Blocks and lab stock" %}</h1></div>
+<div class="row g-3">
+  <div class="col-xl-7">
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-layers"></i> {% trans "Blocks and discs in use" %}</div>
+      <div class="table-responsive"><table class="table table-hover mb-0">
+        <thead><tr><th>{% trans "Block" %}</th><th>{% trans "Item" %}</th><th>{% trans "Lot" %}</th><th>{% trans "Opened" %}</th><th class="text-end">{% trans "Units made" %}</th></tr></thead>
+        <tbody>{% for b in in_use %}<tr><td><a href="{{ b.get_absolute_url }}" class="fw-semibold">{{ b.code }}</a>{% if b.shade %} · {{ b.shade }}{% endif %}</td><td>{{ b.item.name }}</td><td>{{ b.lot|default:"—" }}</td><td>{{ b.opened_at|date:"d/m/Y" }}</td><td class="text-end fw-bold">{{ b.units }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">{% trans "No block open." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% if can_desk %}
+    <div class="card mb-3 no-print"><div class="card-header"><i class="bi bi-box-arrow-up"></i> {% trans "Open a new block" %}</div><div class="card-body">
+      <form method="post" action="{% url 'lab:block_open' %}" data-no-leave-warning>{% csrf_token %}
+        {% with form=open_form %}{% include "includes/form_fields.html" %}{% endwith %}
+        <button class="btn btn-primary mt-3"><i class="bi bi-box-arrow-up"></i> {% trans "Open it" %}</button>
+      </form>
+    </div></div>
+    {% endif %}
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-archive"></i> {% trans "Finished blocks" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Block" %}</th><th>{% trans "Item" %}</th><th>{% trans "Opened" %}</th><th>{% trans "Closed" %}</th><th class="text-end">{% trans "Units made" %}</th></tr></thead>
+        <tbody>{% for b in finished %}<tr><td><a href="{{ b.get_absolute_url }}">{{ b.code }}</a>{% if b.status == "broken" %} <span class="badge text-bg-danger">{{ b.get_status_display }}</span>{% endif %}</td><td>{{ b.item.name }}</td><td>{{ b.opened_at|date:"d/m/Y" }}</td><td>{{ b.finished_at|date:"d/m/Y" }}</td><td class="text-end fw-bold">{{ b.units }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">{% trans "None yet." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="col-xl-5">
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-droplet-half"></i> {% trans "The lab's stock" %}{% if place %} <span class="place-badge place-{{ place.code }}">{{ place.badge }}</span>{% endif %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Item" %}</th><th class="text-end">{% trans "In stock" %}</th></tr></thead>
+        <tbody>{% for item in items %}<tr><td>{{ item.name }}<div class="small text-muted">{{ item.category }}</div></td><td class="text-end{% if item.is_low %} text-danger fw-bold{% endif %}">{{ item.quantity|floatformat:"-2" }} {{ item.unit }}</td></tr>{% empty %}<tr><td colspan="2" class="text-muted">{% trans "No item belongs to the lab yet: the stock manager adds them with Belongs to = the lab." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% if can_desk and items %}
+    <div class="card no-print"><div class="card-header"><i class="bi bi-arrow-left-right"></i> {% trans "Take out or receive (liquids, stains, bond...)" %}</div><div class="card-body">
+      <form method="post" action="{% url 'lab:stock_move' %}" data-no-leave-warning>{% csrf_token %}
+        {% with form=move_form %}{% include "includes/form_fields.html" %}{% endwith %}
+        <button class="btn btn-primary mt-3"><i class="bi bi-check2"></i> {% trans "Save" %}</button>
+      </form>
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

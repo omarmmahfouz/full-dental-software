@@ -34,6 +34,7 @@ AREAS = [
     ("clinics", gettext_lazy("Clinics: doctors' shares and clinic report"), ["/clinics/"]),
     ("specialists", gettext_lazy("Specialists: referrals, endodontics, TMJ, orthodontics, shades"),
      ["/specialists/"]),
+    ("dental_lab", gettext_lazy("Dental lab: cases, blocks, clients, receipts"), ["/lab/"]),
 ]
 AREA_LABELS = {code: label for code, label, _prefixes in AREAS}
 _PREFIXES = sorted(((prefix, code) for code, _label, prefixes in AREAS for prefix in prefixes), key=lambda p: -len(p[0]))

@@ -40,6 +40,14 @@
         <dt>{% trans "Delivered to patient" %}</dt><dd>{{ lr.delivered_at|date:"d/m/Y g:i A"|default:"—" }}</dd>
       </dl>
     </div></div>
+    {% if lab_case %}
+    <div class="card mb-3 lab-live"><div class="card-body d-flex flex-wrap align-items-center gap-2">
+      <span class="lab-step-chip step-{{ lab_case.step }}"><i class="bi {{ lab_case.step_icon }}"></i> {{ lab_case.get_step_display }}</span>
+      <div class="small">{% trans "At our lab" %}: <b class="ltr">{{ lab_case.number }}</b>{% if lab_case.is_remake %} · {% trans "remake" %}{% endif %}
+        · {% trans "since" %} {{ lab_case.step_since|date:"d/m g:i A" }}{% if lab_case.due_date %} · {% trans "promised for" %} {{ lab_case.due_date|date:"l d/m" }}{% endif %}</div>
+      {% if user|has_role:"owner,lab_head,lab_manager,lab_secretary,lab_designer" %}<a class="btn btn-sm btn-outline-secondary ms-auto" href="{{ lab_case.get_absolute_url }}"><i class="bi bi-box-arrow-up-right"></i> {% trans "Open at the lab" %}</a>{% endif %}
+    </div></div>
+    {% endif %}
     {% if fitting_url %}
     <div class="card mb-3 border-success no-print"><div class="card-body">
       <div class="fw-semibold"><i class="bi bi-calendar-check"></i> {% trans "The work is back from the lab: the patient needs an appointment to fit it." %}</div>

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ client }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-building"></i> {{ client }}{% if client.branch %} <span class="place-badge place-{{ client.branch.code }}">{{ client.branch.badge }}</span>{% endif %}</h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-primary" href="{% url 'lab:case_create' %}?client={{ client.pk }}"><i class="bi bi-inbox"></i> {% trans "Receive a case" %}</a>
+    <a class="btn btn-success" href="{% url 'lab:payment_create' %}?client={{ client.pk }}"><i class="bi bi-cash-coin"></i> {% trans "New receipt" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'lab:client_statement' client.pk %}"><i class="bi bi-file-earmark-text"></i> {% trans "Statement" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'lab:client_edit' client.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+  </div></div>
+<div class="stat-minis mb-3">
+  <div class="stat-mini"><span class="n">{{ money.billed|money }}</span><span class="l">{% trans "Work delivered" %}</span></div>
+  <div class="stat-mini is-good"><span class="n">{{ money.paid|money }}</span><span class="l">{% trans "Paid" %}</span></div>
+  <div class="stat-mini{% if money.balance > 0 %} is-warn{% endif %}"><span class="n">{{ money.balance|money }}</span><span class="l">{% trans "Still owed" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ money.in_work|money }}</span><span class="l">{% trans "Work still at the lab" %}</span></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-4"><div class="card mb-3"><div class="card-body"><dl class="dl-grid mb-0">
+    <dt>{% trans "Client" %}</dt><dd>{{ client.get_kind_display }}</dd>
+    <dt>{% trans "Price list" %}</dt><dd>{{ client.price_list|default:"—" }}</dd>
+    <dt>{% trans "Doctor / contact person" %}</dt><dd>{{ client.contact|default:"—" }}</dd>
+    <dt>{% trans "Mobile" %}</dt><dd class="ltr">{{ client.phone|default:"—" }}</dd>
+    <dt>{% trans "WhatsApp" %}</dt><dd class="ltr">{{ client.whatsapp_phone|default:"—" }}</dd>
+    <dt>{% trans "Address" %}</dt><dd>{{ client.address|default:"—" }}</dd>
+    {% if client.notes %}<dt>{% trans "Notes" %}</dt><dd>{{ client.notes }}</dd>{% endif %}
+  </dl></div></div>
+  <div class="card"><div class="card-header"><i class="bi bi-cash-coin"></i> {% trans "Receipts" %}</div><ul class="list-group list-group-flush">
+    {% for p in payments %}<li class="list-group-item d-flex justify-content-between{% if p.is_cancelled %} text-decoration-line-through text-muted{% endif %}"><a href="{{ p.get_absolute_url }}">{{ p.number }}</a><span>{{ p.paid_on|date:"d/m/Y" }}</span><b>{{ p.amount|money }}</b></li>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}
+  </ul></div></div>
+  <div class="col-lg-8"><div class="card"><div class="card-header"><i class="bi bi-list-ul"></i> {% trans "Cases" %}</div><div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>{% trans "No." %}</th><th>{% trans "Patient" %}</th><th>{% trans "Work" %}</th><th>{% trans "Step" %}</th><th class="text-end">{% trans "Price" %}</th></tr></thead>
+    <tbody>{% for case in page_obj %}<tr><td class="text-nowrap"><a href="{{ case.get_absolute_url }}" class="ltr">{{ case.number }}</a>{% if case.remake_of_id %} <span class="badge text-bg-warning">{% trans "Remake" %}</span>{% endif %}</td><td>{{ case.patient_name|default:"—" }}<div class="small text-muted">{{ case.doctor }}</div></td><td>{{ case.work_summary }}</td><td><span class="lab-step-chip step-{{ case.step }}">{{ case.get_step_display }}</span></td><td class="text-end">{{ case.total|money }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">{% trans "No cases yet." %}</td></tr>{% endfor %}</tbody>
+  </table></div></div>{% include "includes/pagination.html" %}</div>
+</div>
+{% endblock %}

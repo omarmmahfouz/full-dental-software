@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab clients" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-buildings"></i> {% trans "Lab clients" %}</h1>
+  <div class="d-flex gap-2"><a class="btn btn-primary" href="{% url 'lab:client_create' %}"><i class="bi bi-plus-lg"></i> {% trans "New client" %}</a>
+  {% if user|has_role:"owner,lab_head" %}<a class="btn btn-outline-secondary" href="{% url 'lab:prices' %}"><i class="bi bi-tags"></i> {% trans "Prices" %}</a>{% endif %}</div></div>
+<div class="stat-minis mb-3">
+  <div class="stat-mini"><span class="n">{{ totals.billed|money }}</span><span class="l">{% trans "Work delivered" %}</span></div>
+  <div class="stat-mini is-good"><span class="n">{{ totals.paid|money }}</span><span class="l">{% trans "Paid" %}</span></div>
+  <div class="stat-mini{% if totals.balance > 0 %} is-warn{% endif %}"><span class="n">{{ totals.balance|money }}</span><span class="l">{% trans "Still owed" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ totals.in_work|money }}</span><span class="l">{% trans "Work still at the lab" %}</span></div>
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "Client" %}</th><th>{% trans "Price list" %}</th><th>{% trans "Mobile" %}</th><th class="text-end">{% trans "Open cases" %}</th><th class="text-end">{% trans "Delivered" %}</th><th class="text-end">{% trans "Paid" %}</th><th class="text-end">{% trans "Still owed" %}</th></tr></thead>
+  <tbody>{% for c in clients %}<tr{% if not c.is_active %} class="text-muted"{% endif %}>
+    <td><a href="{{ c.get_absolute_url }}" class="fw-semibold">{{ c }}</a>{% if c.branch %} <span class="place-badge place-{{ c.branch.code }}">{{ c.branch.badge }}</span>{% else %} <span class="small text-muted">{{ c.get_kind_display }}</span>{% endif %}{% if c.contact %}<div class="small text-muted">{{ c.contact }}</div>{% endif %}</td>
+    <td>{{ c.price_list|default:"—" }}</td><td class="ltr">{{ c.whatsapp_phone|default:"—" }}</td>
+    <td class="text-end">{{ c.open_cases }}</td><td class="text-end">{{ c.money.billed|money }}</td><td class="text-end">{{ c.money.paid|money }}</td>
+    <td class="text-end fw-semibold{% if c.money.balance > 0 %} text-danger{% endif %}">{{ c.money.balance|money }}</td></tr>
+  {% empty %}<tr><td colspan="7" class="text-muted">{% trans "No clients yet." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

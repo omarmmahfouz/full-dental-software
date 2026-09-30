@@ -5,17 +5,17 @@ from django.conf import settings
 from django.middleware.locale import LocaleMiddleware
 from django.utils import translation
 
-from .roles import SECRETARY, STOCK, user_roles
+from .roles import LAB_SECRETARY, SECRETARY, STOCK, user_roles
 
 
 def default_language_for(user):
-    """Secretaries and the stock manager work in Arabic; dentists and managers in English.
+    """Secretaries (the lab's too) and the stock manager work in Arabic; dentists and managers in English.
     A language picked from the user menu (saved on the profile) always wins."""
     profile = getattr(user, "profile", None)
     if profile is not None and profile.language:
         return profile.language
     roles = user_roles(user)
-    if roles and roles <= {SECRETARY, STOCK}:
+    if roles and roles <= {SECRETARY, STOCK, LAB_SECRETARY}:
         return "ar"
     if roles:
         return "en"
@@ -69,9 +69,9 @@ class WorkingPlaceMiddleware:
         user = getattr(request, "user", None)
         chosen = request.session.get("place") if user is not None and user.is_authenticated else None
         if chosen:
-            from .models import working_places
+            from .models import switch_places
 
-            place = working_places(user).filter(pk=chosen).first()
+            place = next((place for place in switch_places(user) if place.pk == chosen), None)
             if place is None:
                 request.session.pop("place", None)
             else:

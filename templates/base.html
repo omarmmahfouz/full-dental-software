@@ -15,14 +15,14 @@
   <meta name="theme-color" content="#9EC64F">
   {% block extra_head %}{% endblock %}
 </head>
-<body class="sec-{{ section }}{% if current_branch %} place-{{ current_branch.code }} theme-{{ current_branch.theme }}{% endif %}{% if user.is_authenticated and bottom_nav %} has-bottom-bar{% endif %} {% block body_class %}{% endblock %}"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}" data-user="{{ user.pk }}"{% if hints_reset %} data-hints-reset{% endif %}{% if current_branch.color %} style="--place: {{ current_branch.color }}; --place-light: color-mix(in srgb, {{ current_branch.color }} 55%, #fff)"{% endif %}{% endif %} data-vendor-html2canvas="{% static 'vendor/html2canvas/html2canvas.min.js' %}" data-vendor-jspdf="{% static 'vendor/jspdf/jspdf.umd.min.js' %}">
+<body class="sec-{{ section }}{% if current_branch %} place-{{ current_branch.code }} theme-{{ current_branch.theme }}{% endif %}{% if user.is_authenticated and bottom_nav %} has-bottom-bar{% endif %} {% block body_class %}{% endblock %}"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}" data-user="{{ user.pk }}"{% if hints_reset %} data-hints-reset{% endif %}{% if current_branch.color %} style="--place: {{ current_branch.color }}; --place-light: color-mix(in srgb, {{ current_branch.color }} 55%, #fff)"{% endif %}{% endif %} data-saving-text="{% trans 'Saving…' %}" data-vendor-html2canvas="{% static 'vendor/html2canvas/html2canvas.min.js' %}" data-vendor-jspdf="{% static 'vendor/jspdf/jspdf.umd.min.js' %}">
 <div class="nav-progress no-print" data-nav-progress aria-hidden="true"></div>
 {% if test_copy %}<div class="test-copy-banner" role="alert"><i class="bi bi-cone-striped"></i> {% trans "TEST COPY: for trying things out. Nothing done here changes the real system, and nothing here is kept." %}</div>{% endif %}
 {% if user.is_authenticated %}
-<nav class="navbar navbar-expand-xl app-navbar no-print">
+<nav class="navbar navbar-expand-xl app-navbar no-print{% if roles.owner or roles.head_cia %} nav-crowded{% endif %}">
   <div class="container-fluid">
     <a class="navbar-brand" href="{% url 'core:dashboard' %}">
-      <img src="{% if current_branch %}{{ current_branch.mark_url }}{% else %}{% static 'img/cia-mark.png' %}{% endif %}" alt="{{ current_branch.badge|default:'CIA' }}">
+      {% if current_branch.kind == "lab" and not current_branch.logo %}<span class="place-letterhead-code brand-code">{{ current_branch.badge }}</span>{% else %}<img src="{% if current_branch %}{{ current_branch.mark_url }}{% else %}{% static 'img/cia-mark.png' %}{% endif %}" alt="{{ current_branch.badge|default:'CIA' }}">{% endif %}
       <span class="brand-name">{% if current_branch %}{{ current_branch.name }}{% else %}{% trans "Cairo Implant Academy" %}{% endif %}</span>
     </a>
     {% if working_places %}
@@ -163,8 +163,39 @@
           </ul>
         </li>
         {% endif %}
-        {% if sees_reports and "reports" not in hidden_areas %}
+        {% if is_lab and "dental_lab" not in hidden_areas %}
+        <li class="nav-item dropdown sec-lab">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-gem"></i> {% trans "Dental lab" %}</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'lab:board' %}"><i class="bi bi-kanban"></i> {% trans "Lab board" %}</a></li>
+            {% if is_lab_desk %}<li><a class="dropdown-item" href="{% url 'lab:case_create' %}"><i class="bi bi-inbox"></i> {% trans "Receive a case" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'lab:incoming' %}"><i class="bi bi-truck"></i> {% trans "On the way from our clinics" %}</a></li>{% endif %}
+            <li><a class="dropdown-item" href="{% url 'lab:case_list' %}"><i class="bi bi-list-ul"></i> {% trans "All cases" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'lab:my_work' %}"><i class="bi bi-person-workspace"></i> {% trans "My lab work" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'lab:blocks' %}"><i class="bi bi-layers"></i> {% trans "Blocks and lab stock" %}</a></li>
+            {% if is_lab_desk %}<li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'lab:clients' %}"><i class="bi bi-buildings"></i> {% trans "Clients and accounts" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'lab:payments' %}"><i class="bi bi-cash-coin"></i> {% trans "Lab receipts" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'lab:whatsapp' %}"><i class="bi bi-whatsapp"></i> {% trans "Lab WhatsApp" %}</a></li>{% endif %}
+            {% if is_lab_money %}<li><a class="dropdown-item" href="{% url 'lab:prices' %}"><i class="bi bi-tags"></i> {% trans "Lab prices" %}</a></li>{% endif %}
+            {% if is_lab_manager %}<li><a class="dropdown-item" href="{% url 'lab:report' %}"><i class="bi bi-graph-up"></i> {% trans "Lab report" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'lab:staff' %}"><i class="bi bi-person-gear"></i> {% trans "Lab staff" %}</a></li>{% endif %}
+            <li><a class="dropdown-item" href="{% url 'lab:universal_form' %}" target="_blank"><i class="bi bi-file-earmark-medical"></i> {% trans "Blank lab request (print)" %}</a></li>
+          </ul>
+        </li>
+        {% endif %}
+        {% if sees_dashboard and sees_reports and "reports" not in hidden_areas %}
+        <li class="nav-item dropdown sec-reports">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-bar-chart-line"></i> {% trans "Reports" %}</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'core:overview' %}"><i class="bi bi-speedometer2"></i> {% trans "Dashboard" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'reports:index' %}"><i class="bi bi-bar-chart-line"></i> {% trans "All the reports" %}</a></li>
+          </ul>
+        </li>
+        {% elif sees_reports and "reports" not in hidden_areas %}
         <li class="nav-item sec-reports"><a class="nav-link" href="{% url 'reports:index' %}"><i class="bi bi-bar-chart-line"></i> {% trans "Reports" %}</a></li>
+        {% elif sees_dashboard %}
+        <li class="nav-item sec-reports"><a class="nav-link" href="{% url 'core:overview' %}"><i class="bi bi-speedometer2"></i> {% trans "Dashboard" %}</a></li>
         {% endif %}
       </ul>
       {% if sees_patients %}
@@ -175,7 +206,7 @@
       <ul class="navbar-nav user-menu">
         <li class="nav-item d-none d-xl-flex nav-icons">{% include "includes/nav_icons.html" %}</li>
         <li class="nav-item dropdown sec-settings">
-          <a class="nav-link dropdown-toggle user-name" href="#" data-bs-toggle="dropdown" title="{{ user }}"><i class="bi bi-person-circle"></i> {{ user }}</a>
+          <a class="nav-link dropdown-toggle user-name" href="#" data-bs-toggle="dropdown" title="{{ user }}"><i class="bi bi-person-circle"></i> <span class="user-name-text">{{ user }}</span></a>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><form action="{% url 'set_language' %}" method="post" class="px-3 py-1">{% csrf_token %}
               <input name="next" type="hidden" value="{{ request.get_full_path }}">
@@ -201,7 +232,7 @@
 {% endif %}
 <main class="container-fluid py-3 px-3 px-lg-4 page-enter">
   {% if user.is_authenticated and request.resolver_match.url_name != "dashboard" %}
-  <a class="back-link no-print" href="{% url 'core:dashboard' %}" data-back><i class="bi bi-arrow-{% if RTL %}right{% else %}left{% endif %}"></i> {% trans "Back" %}</a>
+  <a class="back-link no-print" href="{{ back_url|default:'/' }}" data-back><i class="bi bi-arrow-{% if RTL %}right{% else %}left{% endif %}"></i> {% trans "Back" %}</a>
   {% endif %}
   {% if missing_notes %}<div class="alert alert-warning py-2 small no-print d-flex flex-wrap align-items-center gap-2"><i class="bi bi-pencil-square"></i> {% blocktrans count n=missing_notes %}{{ n }} visit has nothing written in the patient's file.{% plural %}{{ n }} visits have nothing written in the patients' files.{% endblocktrans %} <a class="btn btn-sm btn-warning ms-auto" href="{% url 'clinical:visits_missing_notes' %}?mine=1">{% trans "Write them now" %}</a></div>{% endif %}
   {% if read_only_here %}<div class="alert alert-secondary py-2 small no-print"><i class="bi bi-eye"></i> {% trans "Read only: you can look here but not save changes." %}</div>{% endif %}

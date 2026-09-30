@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ case.number }}{% endblock %}
+{% block content %}
+{% get_current_language_bidi as RTL %}
+<div class="page-header">
+  <h1><i class="bi bi-box2-heart"></i> <span class="ltr">{{ case.number }}</span>
+    <span class="lab-step-chip step-{{ case.step }}"><i class="bi {{ case.step_icon }}"></i> {{ case.get_step_display }}</span>
+    {% if case.urgent %}<span class="badge text-bg-danger"><i class="bi bi-fire"></i> {% trans "Urgent" %}</span>{% endif %}
+    {% if case.is_late %}<span class="badge text-bg-danger">{% trans "Late" %}</span>{% endif %}
+    {% if case.remake_of %}<span class="badge text-bg-warning">{% trans "Remake" %}</span>{% endif %}
+  </h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'lab:case_label' case.pk %}" target="_blank"><i class="bi bi-tag"></i> {% trans "Label" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'lab:case_print' case.pk %}" target="_blank"><i class="bi bi-printer"></i> {% trans "Case sheet" %}</a>
+    {% if is_desk %}<a class="btn btn-outline-secondary" href="{% url 'lab:case_edit' case.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
+  </div>
+</div>
+
+{% if new %}
+<div class="alert alert-success d-flex flex-wrap align-items-center gap-2 no-print">
+  <i class="bi bi-check-circle-fill"></i> <div>{% blocktrans with number=case.number %}Write <b>{{ number }}</b> on the box, or print the label. Then tell the doctor.{% endblocktrans %}</div>
+  <a class="btn btn-sm btn-success ms-auto" href="{% url 'lab:case_label' case.pk %}" target="_blank"><i class="bi bi-tag"></i> {% trans "Print the label" %}</a>
+  {% if can_whatsapp %}<form method="post" action="{% url 'lab:case_whatsapp' case.pk 'received' %}" target="_blank" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-outline-success"><i class="bi bi-whatsapp"></i> {% trans "Tell the doctor" %}</button></form>{% endif %}
+</div>
+{% endif %}
+
+<div class="card mb-3"><div class="card-body">
+  <div class="small text-muted mb-2">{% trans "The steps of this case" %}</div>
+  <div class="lab-road">
+    {% for r in road %}<span class="road-step{% if r.done %} is-done{% endif %}{% if r.now %} is-now{% endif %}"><i class="bi {% if r.done %}bi-check2{% else %}{{ r.icon }}{% endif %}"></i> {{ r.label }}</span>{% if not forloop.last %}<i class="bi bi-chevron-right road-arrow"></i>{% endif %}{% endfor %}
+    <i class="bi bi-chevron-right road-arrow"></i><span class="road-step{% if case.step == 'delivered' %} is-now{% endif %}"><i class="bi bi-check2-all"></i> {% trans "Delivered to the clinic" %}</span>
+  </div>
+</div></div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card mb-3 lab-now step-{{ case.step }}"><div class="card-body">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="lab-step-chip step-{{ case.step }} fs-6"><i class="bi {{ case.step_icon }}"></i> {{ case.get_step_display }}</span>
+        <span class="small text-muted">{% trans "since" %} {{ case.step_since|date:"D d/m g:i A" }} ({{ case.step_since|timesince }})</span>
+      </div>
+      {% if case.step == "incoming" %}
+        {% if is_desk %}
+        <form method="post" action="{% url 'lab:case_receive' case.pk %}" class="mt-3">{% csrf_token %}
+          <div class="small fw-semibold mb-1">{% trans "Came with the work" %}</div>
+          <div class="checkbox-grid mb-2">{{ receive_form.enclosures }}</div>
+          <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="checked" id="checked" required><label class="form-check-label" for="checked">{% trans "I checked the work against the request" %}</label></div>
+          <input class="form-control form-control-sm mb-2" name="notes" placeholder="{% trans 'Notes (optional)' %}">
+          <button class="btn btn-primary"><i class="bi bi-inbox"></i> {% trans "Received at the lab" %}</button>
+        </form>
+        {% endif %}
+      {% else %}
+      <div class="mt-2">{% trans "With" %}: <b>{{ case.worker|default:"—" }}</b></div>
+      {% if is_manager and case.step != "delivered" and case.step != "cancelled" and case.step != "received" and case.step != "ready" and case.step != "try_in" and case.step != "outsourced" and case.step != "on_hold" %}
+      <form method="post" action="{% url 'lab:case_assign' case.pk %}" class="d-flex gap-2 mt-2" data-no-leave-warning>{% csrf_token %}
+        {{ assign_form.worker }}<button class="btn btn-sm btn-outline-primary text-nowrap"><i class="bi bi-person-check"></i> {% trans "Give" %}</button>
+      </form>
+      {% endif %}
+      {% if can_next %}
+      <form method="post" action="{% url 'lab:case_move' case.pk %}" class="mt-3" data-no-leave-warning>{% csrf_token %}
+        <input type="hidden" name="to_step" value="{{ next }}">
+        {% if is_manager and next != "delivered" %}<div class="mb-2"><label class="form-label small mb-1">{% blocktrans %}Who does {{ next_label }}?{% endblocktrans %}</label>{{ move_form.worker }}</div>{% endif %}
+        <button class="btn btn-primary w-100 lab-next-btn"><i class="bi bi-arrow-{% if RTL %}left{% else %}right{% endif %}-circle"></i> {% if next == "delivered" %}{% trans "Delivered: it left the lab" %}{% else %}{% blocktrans %}Done: go on to {{ next_label }}{% endblocktrans %}{% endif %}</button>
+      </form>
+      {% endif %}
+      {% if can_hold %}
+      <form method="post" action="{% url 'lab:case_move' case.pk %}" class="mt-2 d-flex gap-2" data-no-leave-warning>{% csrf_token %}
+        <input type="hidden" name="to_step" value="on_hold"><input class="form-control form-control-sm" name="notes" placeholder="{% trans 'What do we wait for?' %}" required>
+        <button class="btn btn-sm btn-outline-warning text-nowrap"><i class="bi bi-pause-circle"></i> {% trans "On hold" %}</button>
+      </form>
+      {% endif %}
+      {% if is_manager %}
+      <details class="mt-3"><summary class="small">{% trans "Move to another step (e.g. back to milling after the check)" %}</summary>
+        <form method="post" action="{% url 'lab:case_move' case.pk %}" class="row g-2 mt-1" data-no-leave-warning>{% csrf_token %}
+          <div class="col-sm-6">{{ move_form.to_step }}</div><div class="col-sm-6">{{ move_form.worker }}</div>
+          <div class="col-12">{{ move_form.notes }}</div>
+          <div class="col-12"><button class="btn btn-sm btn-outline-primary">{% trans "Move" %}</button></div>
+        </form>
+      </details>
+      {% endif %}
+      {% endif %}
+    </div></div>
+
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-info-circle"></i> {% trans "The case" %}</div><div class="card-body">
+      <dl class="dl-grid">
+        <dt>{% trans "Client" %}</dt><dd>{% if is_desk %}<a href="{{ case.client.get_absolute_url }}">{{ case.client }}</a>{% else %}{{ case.client }}{% endif %}{% if case.client.branch %} <span class="place-badge place-{{ case.client.branch.code }}">{{ case.client.branch.badge }}</span>{% endif %}</dd>
+        <dt>{% trans "Doctor" %}</dt><dd>{{ case.doctor|default:"—" }}{% if case.doctor_phone %} · <span class="ltr">{{ case.doctor_phone }}</span>{% endif %}</dd>
+        <dt>{% trans "Patient" %}</dt><dd>{{ case.patient_name|default:"—" }}</dd>
+        <dt>{% trans "Impression" %}</dt><dd>{{ case.get_impression_display }}</dd>
+        <dt>{% trans "Send for" %}</dt><dd>{{ case.get_stage_display }}</dd>
+        {% if case.shade %}<dt>{% trans "Shade" %}</dt><dd>{{ case.shade }}</dd>{% endif %}
+        {% if case.enclosures %}<dt>{% trans "Came with the work" %}</dt><dd>{% for code, label in enclosure_choices %}{% if code in case.enclosures %}{{ label }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}</dd>{% endif %}
+        <dt>{% trans "Received" %}</dt><dd>{% if case.received_at %}{{ case.received_at|date:"d/m/Y g:i A" }}{% if case.received_by %} · {{ case.received_by }}{% endif %}{% else %}—{% endif %}</dd>
+        <dt>{% trans "Promised for" %}</dt><dd class="{% if case.is_late %}text-danger fw-semibold{% endif %}">{{ case.due_date|date:"l d/m/Y"|default:"—" }}</dd>
+        {% if case.delivered_at %}<dt>{% trans "Delivered" %}</dt><dd>{{ case.delivered_at|date:"d/m/Y g:i A" }}{% if case.delivered_by %} · {{ case.delivered_by }}{% endif %}</dd>{% endif %}
+        {% if case.request %}<dt>{% trans "Request of our place" %}</dt><dd><span class="ltr">{{ case.request.number }}</span> · {{ case.request.branch.badge }}</dd>{% endif %}
+        {% if case.remake_of %}<dt>{% trans "Remake of" %}</dt><dd><a href="{{ case.remake_of.get_absolute_url }}" class="ltr">{{ case.remake_of.number }}</a> · {{ case.get_remake_reason_display }} · {% trans "fault" %}: {{ case.get_remake_fault_display|default:"—" }}</dd>{% endif %}
+        {% for r in remakes %}<dt>{% trans "Remade as" %}</dt><dd><a href="{{ r.get_absolute_url }}" class="ltr">{{ r.number }}</a> · {{ r.get_remake_reason_display }}</dd>{% endfor %}
+        {% if case.instructions %}<dt>{% trans "Instructions" %}</dt><dd>{{ case.instructions|linebreaksbr }}</dd>{% endif %}
+        {% if case.notes %}<dt>{% trans "Notes of the lab" %}</dt><dd>{{ case.notes|linebreaksbr }}</dd>{% endif %}
+      </dl>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-list-ul"></i> {% trans "The work" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>{% trans "Work" %}</th><th>{% trans "Teeth" %}</th><th class="text-end">{% trans "Units" %}</th>{% if money %}<th class="text-end">{% trans "Price" %}</th>{% endif %}</tr></thead>
+        <tbody>{% for item in items %}<tr><td>{{ item.work_type }}{% if item.material %}<div class="small text-muted">{{ item.material }}</div>{% endif %}</td><td class="ltr">{{ item.teeth|default:"—" }}</td><td class="text-end">{{ item.units }}</td>{% if money %}<td class="text-end">{% if item.unit_price is None %}<span class="text-warning-emphasis small">{% trans "no price" %}</span>{% else %}{{ item.amount|money }}{% endif %}</td>{% endif %}</tr>{% endfor %}</tbody>
+        {% if money %}<tfoot>{% if case.discount %}<tr><td colspan="3">{% trans "Discount" %}</td><td class="text-end">−{{ case.discount|money }}</td></tr>{% endif %}
+          <tr class="fw-bold"><td colspan="3">{% trans "Price of the case" %}</td><td class="text-end">{{ case.total|money }}</td></tr></tfoot>{% endif %}
+      </table></div>
+    </div>
+
+    {% if is_desk %}
+    <div class="card mb-3 no-print"><div class="card-header"><i class="bi bi-whatsapp"></i> {% trans "WhatsApp to the doctor" %}</div><div class="card-body">
+      {% if can_whatsapp %}
+      <div class="d-flex flex-wrap gap-2">
+        {% for kind, label in wa_buttons %}<form method="post" action="{% url 'lab:case_whatsapp' case.pk kind %}" target="_blank" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-outline-success"><i class="bi bi-whatsapp"></i> {{ label }}</button></form>{% endfor %}
+      </div>
+      {% else %}<div class="small text-muted">{% trans "No mobile for WhatsApp: write the doctor's mobile on the case or the client." %}</div>{% endif %}
+      {% if sent %}<ul class="list-unstyled small mt-2 mb-0">{% for m in sent %}<li><i class="bi bi-check2"></i> {{ m.get_kind_display }} · {{ m.sent_at|date:"d/m g:i A" }}{% if m.by %} · {{ m.by }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+    </div></div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-stopwatch"></i> {% trans "Step by step: who and how long" %}</div><div class="card-body">
+      <div class="lab-times">
+        {% for s in steps %}
+        <div class="lab-time-row step-{{ s.step }}{% if not s.done_at %} is-open{% endif %}">
+          <div><i class="bi {{ s.icon }}"></i> <b>{{ s.get_step_display }}</b>{% if s.worker %} · {{ s.worker }}{% endif %}
+            <div class="small text-muted">{{ s.started_at|date:"d/m g:i A" }}{% if s.done_at and s.step != "delivered" and s.step != "cancelled" %} → {{ s.done_at|date:"d/m g:i A" }}{% endif %}{% if not s.completed %} · {% trans "paused" %}{% endif %}{% if s.notes %} · {{ s.notes }}{% endif %}</div></div>
+          {% if s.width %}<div class="bar-track"><div class="bar-fill" style="width: {{ s.width }}%"></div></div>
+          <div class="small text-nowrap">{% if s.hours < 1 %}{% trans "under 1 h" %}{% elif s.hours < 48 %}{{ s.hours|floatformat:"1" }} {% trans "h" %}{% else %}{% widthratio s.hours 24 1 %} {% trans "days" %}{% endif %}{% if not s.done_at %} …{% endif %}</div>{% else %}<div></div><div></div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div></div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card mb-3 h-100"><div class="card-header"><i class="bi bi-layers"></i> {% trans "Blocks used" %}</div><div class="card-body">
+          {% for u in blocks %}<div class="small"><a href="{{ u.block.get_absolute_url }}">{{ u.block.code }}</a> · {{ u.block.item.name }} · <b>{{ u.units }}</b> {% trans "unit(s)" %}</div>{% empty %}<div class="small text-muted">{% trans "None recorded." %}</div>{% endfor %}
+          <form method="post" action="{% url 'lab:case_block' case.pk %}" class="d-flex flex-wrap gap-2 mt-2 no-print" data-no-leave-warning>{% csrf_token %}
+            <div class="flex-grow-1">{{ block_form.block }}</div><div style="width: 5rem">{{ block_form.units }}</div>
+            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-plus"></i> {% trans "Add" %}</button>
+          </form>
+        </div></div>
+      </div>
+      <div class="col-md-6">
+        <div class="card mb-3 h-100"><div class="card-header"><i class="bi bi-building"></i> {% trans "Another lab" %}</div><div class="card-body">
+          {% for o in outsourced %}<div class="small mb-1"><b>{{ o.lab }}</b>: {{ o.work }} · {{ o.sent_at|date:"d/m" }}{% if o.back_at %} → {{ o.back_at|date:"d/m" }}{% endif %}{% if o.cost is not None and money %} · {{ o.cost|money }}{% endif %}
+            {% if not o.back_at and is_desk %}<form method="post" action="{% url 'lab:outsource_back' o.pk %}" class="d-flex gap-2 mt-1" data-no-leave-warning>{% csrf_token %}{% if money %}<input class="form-control form-control-sm" name="cost" placeholder="{% trans 'Cost' %}" inputmode="decimal" style="max-width: 7rem">{% endif %}<button class="btn btn-sm btn-outline-success text-nowrap">{% trans "It came back" %}</button></form>{% endif %}</div>
+          {% empty %}<div class="small text-muted">{% trans "Not sent to another lab." %}</div>{% endfor %}
+          {% if is_manager and case.is_open and case.step != "incoming" %}
+          <details class="mt-2 no-print"><summary class="small">{% trans "Send to another lab" %}</summary>
+            <form method="post" action="{% url 'lab:case_outsource' case.pk %}" class="row g-2 mt-1" data-no-leave-warning>{% csrf_token %}
+              <div class="col-12">{{ outsource_form.lab }}</div><div class="col-12">{{ outsource_form.work }}</div>
+              <div class="col-6">{{ outsource_form.cost }}</div><div class="col-6">{{ outsource_form.due_date }}</div>
+              <div class="col-12"><button class="btn btn-sm btn-outline-primary">{% trans "Send" %}</button></div>
+            </form></details>
+          {% endif %}
+        </div></div>
+      </div>
+    </div>
+
+    <div class="card my-3"><div class="card-header"><i class="bi bi-paperclip"></i> {% trans "Scans, photos and designs" %}</div><div class="card-body">
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        {% for f in files %}<a class="file-thumb" href="{{ f.file.url }}" target="_blank" title="{{ f.get_kind_display }}{% if f.note %}: {{ f.note }}{% endif %}">{% if f.is_image %}<img src="{{ f.file|preview }}" alt="" loading="lazy" style="height: 5rem; border-radius: 8px">{% else %}<span class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark"></i> {{ f.get_kind_display }}</span>{% endif %}</a>{% empty %}<span class="small text-muted">{% trans "No files yet." %}</span>{% endfor %}
+      </div>
+      <form method="post" action="{% url 'lab:case_file' case.pk %}" enctype="multipart/form-data" class="row g-2 no-print" data-no-leave-warning>{% csrf_token %}
+        <div class="col-sm-4">{{ file_form.kind }}</div><div class="col-sm-8">{{ file_form.file }}</div>
+        <div class="col-sm-8">{{ file_form.note }}</div><div class="col-sm-4"><button class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-upload"></i> {% trans "Add the file" %}</button></div>
+      </form>
+    </div></div>
+
+    {% if is_desk and case.step != "incoming" %}
+    <div class="d-flex flex-wrap gap-2 no-print">
+      <a class="btn btn-outline-danger" href="{% url 'lab:case_remake' case.pk %}"><i class="bi bi-arrow-repeat"></i> {% trans "Remake" %}</a>
+      {% if case.is_open and is_manager %}<form method="post" action="{% url 'lab:case_move' case.pk %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="to_step" value="cancelled"><button class="btn btn-outline-secondary" data-confirm="{% trans 'Cancel this case?' %}"><i class="bi bi-x-circle"></i> {% trans "Cancel the case" %}</button></form>{% endif %}
+      {% if case.step == "ready" and can_deliver %}<form method="post" action="{% url 'lab:case_move' case.pk %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="to_step" value="try_in"><button class="btn btn-outline-warning"><i class="bi bi-arrow-left-right"></i> {% trans "Sent for a try-in" %}</button></form>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% load i18n clinic %}
+<div class="quick-actions mb-3 no-print">
+  <form class="quick-search" role="search" action="{% url 'lab:case_list' %}">
+    <i class="bi bi-search"></i>
+    <input class="form-control form-control-lg" type="search" name="q" placeholder="{% trans 'Find a lab case: number, patient or doctor' %}" aria-label="{% trans 'Search' %}">
+  </form>
+  <a class="quick-tile tile-purple" href="{% url 'lab:board' %}"><i class="bi bi-kanban"></i><span>{% trans "Lab board" %}</span></a>
+  {% if is_lab_desk %}<a class="quick-tile tile-green" href="{% url 'lab:case_create' %}"><i class="bi bi-inbox"></i><span>{% trans "Receive a case" %}</span></a>
+  <a class="quick-tile tile-blue" href="{% url 'lab:incoming' %}"><i class="bi bi-truck"></i><span>{% trans "On the way from our clinics" %}{% if lab_numbers.incoming %} <b class="badge text-bg-danger">{{ lab_numbers.incoming }}</b>{% endif %}</span></a>{% endif %}
+  {% if lab_me %}<a class="quick-tile tile-amber" href="{% url 'lab:my_work' %}"><i class="bi bi-person-workspace"></i><span>{% trans "My lab work" %}{% if lab_numbers.mine %} <b class="badge text-bg-danger">{{ lab_numbers.mine }}</b>{% endif %}</span></a>{% endif %}
+  {% if is_lab_desk %}<a class="quick-tile tile-green" href="{% url 'lab:whatsapp' %}"><i class="bi bi-whatsapp"></i><span>{% trans "Lab WhatsApp" %}</span></a>
+  <a class="quick-tile tile-teal" href="{% url 'lab:payment_create' %}"><i class="bi bi-cash-coin"></i><span>{% trans "New receipt" %}</span></a>{% endif %}
+  <a class="quick-tile tile-gray" href="{% url 'lab:blocks' %}"><i class="bi bi-layers"></i><span>{% trans "Blocks and lab stock" %}</span></a>
+</div>
+<div class="stat-minis mb-3">
+  <a class="stat-mini" href="{% url 'lab:case_list' %}?step=received"><span class="n">{{ lab_numbers.to_give_out }}</span><span class="l">{% trans "To give out" %}</span></a>
+  <a class="stat-mini" href="{% url 'lab:board' %}"><span class="n">{{ lab_numbers.in_work }}</span><span class="l">{% trans "In work" %}</span></a>
+  <div class="stat-mini"><span class="n">{{ lab_numbers.due_today }}</span><span class="l">{% trans "Due today" %}</span></div>
+  <a class="stat-mini{% if lab_numbers.late %} is-warn{% endif %}" href="{% url 'lab:case_list' %}?late=on"><span class="n">{{ lab_numbers.late }}</span><span class="l">{% trans "Late" %}</span></a>
+  <a class="stat-mini is-good" href="{% url 'lab:case_list' %}?step=ready"><span class="n">{{ lab_numbers.ready }}</span><span class="l">{% trans "Ready to deliver" %}</span></a>
+  <div class="stat-mini"><span class="n">{{ lab_numbers.delivered_today }}</span><span class="l">{% trans "Delivered today" %}</span></div>
+  {% if lab_month %}<a class="stat-mini" href="{% url 'lab:report' %}"><span class="n">{{ lab_month.billed|money }}</span><span class="l">{% trans "Work delivered this month" %}</span></a>
+  <a class="stat-mini is-good" href="{% url 'lab:payments' %}"><span class="n">{{ lab_month.paid|money }}</span><span class="l">{% trans "Received this month" %}</span></a>
+  <a class="stat-mini{% if lab_month.owed %} is-warn{% endif %}" href="{% url 'lab:clients' %}"><span class="n">{{ lab_month.owed|money }}</span><span class="l">{% trans "Owed by the clients" %}</span></a>{% endif %}
+</div>
+{% if lab_mine or lab_late %}
+<div class="row g-3 mb-3">
+  {% if lab_mine %}<div class="col-lg-6"><div class="card h-100"><div class="card-header"><i class="bi bi-person-workspace"></i> {% trans "With me now" %}</div>
+    <div class="list-group list-group-flush">{% for case in lab_mine %}<a class="list-group-item list-group-item-action d-flex flex-wrap gap-2 align-items-center" href="{{ case.get_absolute_url }}"><b class="ltr">{{ case.number }}</b> <span class="lab-step-chip step-{{ case.step }}">{{ case.get_step_display }}</span><span class="small text-muted">{{ case.work_summary }}</span><span class="ms-auto small{% if case.is_late %} text-danger fw-semibold{% endif %}">{{ case.due_date|date:"D d/m" }}</span></a>{% endfor %}</div></div></div>{% endif %}
+  {% if lab_late %}<div class="col-lg-6"><div class="card h-100 border-danger"><div class="card-header"><i class="bi bi-alarm"></i> {% trans "Late cases" %}</div>
+    <div class="list-group list-group-flush">{% for case in lab_late %}<a class="list-group-item list-group-item-action d-flex flex-wrap gap-2 align-items-center" href="{{ case.get_absolute_url }}"><b class="ltr">{{ case.number }}</b> <span class="small">{{ case.client }}</span><span class="lab-step-chip step-{{ case.step }}">{{ case.get_step_display }}</span><span class="ms-auto small text-danger fw-semibold">{{ case.due_date|date:"D d/m" }}</span></a>{% endfor %}</div></div></div>{% endif %}
+</div>
+{% endif %}

@@ -38,7 +38,7 @@ from .forms import BootstrapFormMixin, StyledForm, StyledModelForm
 from .widgets import TimeSelect, WeekdaysWidget
 from .mixins import role_required
 from .models import AreaAccess, Branch, ClinicSettings, PersonAreaAccess, UserProfile
-from .roles import HEAD_CIA, OWNER, ROLE_CHOICES
+from .roles import HEAD_CIA, LAB_DESIGNER, LAB_HEAD, LAB_MANAGER, LAB_SECRETARY, OWNER, ROLE_CHOICES
 
 LOOKUP = ["name_ar", "name_en", "sort_order", "is_active"]
 
@@ -89,13 +89,13 @@ LISTS = {
     "labs": (gettext_lazy("Labs"), Lab, ["name", "name_en", "branch", "phone", "contact_person", "is_active"],
              ["name", "name_en", "phone"], None, gettext_lazy("Lab")),
     "lab_work_types": (gettext_lazy("Lab work types"), LabWorkType,
-                       ["name_ar", "name_en", "default_days", "sort_order", "is_active"],
-                       ["name_ar", "name_en", "default_days"], None,
+                       ["name_ar", "name_en", "category", "unit", "default_days", "sort_order", "is_active"],
+                       ["name_ar", "name_en", "category", "unit", "default_days"], None,
                        gettext_lazy("Lab")),
     "purchase_categories": (gettext_lazy("Purchase categories"), PurchaseCategory,
                             ["name_ar", "name_en", "kind", "sort_order", "is_active"], ["name_ar", "name_en", "kind"],
                             None, gettext_lazy("Stock and purchases")),
-    "stock_categories": (gettext_lazy("Stock categories"), StockCategory, ["group"] + LOOKUP,
+    "stock_categories": (gettext_lazy("Stock categories"), StockCategory, ["group", "lab_blocks"] + LOOKUP,
                          ["group", "name_ar", "name_en"], None, gettext_lazy("Stock and purchases")),
     "whatsapp": (gettext_lazy("WhatsApp messages"), MessageTemplate, ["kind", "text", "is_active"], ["kind", "text"],
                  None, gettext_lazy("Reception")),
@@ -210,9 +210,9 @@ class UserForm(StyledForm):
                                    help_text=gettext_lazy("Leave empty to keep the password (a new person gets one made up)."))
     places = forms.ModelMultipleChoiceField(
         label=gettext_lazy("works at"), required=False, widget=forms.CheckboxSelectMultiple,
-        queryset=Branch.objects.filter(is_active=True).exclude(kind=Branch.Kind.LAB).order_by("sort_order", "pk"),
-        help_text=gettext_lazy("E.g. the secretary at CIA and CIC. With more than one place, a switch in the top bar "
-                               "chooses where they work now. The owner works everywhere."))
+        queryset=Branch.objects.filter(is_active=True).order_by("sort_order", "pk"),
+        help_text=gettext_lazy("E.g. the secretary at CIA and CIC; the lab's staff at the lab. With more than one place, "
+                               "a switch in the top bar chooses where they work now. The owner works everywhere."))
     dentist = forms.ModelChoiceField(label=gettext_lazy("dentist record"), required=False,
                                      queryset=Dentist.objects.filter(kind__in=Dentist.LOGIN_KINDS),
                                      help_text=gettext_lazy("For CIA dentists: the dentist this login belongs to."))
@@ -261,6 +261,10 @@ class UserForm(StyledForm):
         data = super().clean()
         if bool(data.get("access_start")) != bool(data.get("access_end")):
             self.add_error("access_end", _("Write both hours, or neither."))
+        lab_roles = {LAB_HEAD, LAB_MANAGER, LAB_DESIGNER, LAB_SECRETARY}
+        if any(place.kind == Branch.Kind.LAB for place in data.get("places") or []) and \
+                not lab_roles & set(data.get("roles") or []):
+            self.add_error("places", _("The lab is for the lab's roles (head, manager, designer, secretary)."))
         dentist = data.get("dentist")
         if dentist and dentist.user_id and (self.user is None or dentist.user_id != self.user.pk):
             self.add_error("dentist", _("This dentist already has a login."))

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Lab options" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-gear"></i> {% trans "Lab options" %}</h1></div>
+<div class="card"><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}
+    {% include "includes/form_fields.html" %}
+    <div class="alert alert-info small mt-3">
+      <b>{% trans "To switch on the automatic answer" %}</b>
+      <ol class="mb-0">
+        <li>{% trans "Open a WhatsApp Business platform account at Meta for the lab's number (the number then works through the platform)." %}</li>
+        <li>{% trans "Make this server reachable from the internet with HTTPS (for example with a tunnel), and give Meta this webhook address:" %} <code class="ltr">{{ hook_url }}</code></li>
+        <li>{% trans "Copy here the phone number ID, the access token and the app secret, choose a verify token, and tick the box." %}</li>
+      </ol>
+      {% trans "Only the doctor or the client of a case (by their mobile) gets its status. Without the platform, answer from the Lab WhatsApp page in one click." %}
+    </div>
+    <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+  </form>
+</div></div>
+{% endblock %}

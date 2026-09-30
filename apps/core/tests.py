@@ -1,4 +1,5 @@
 import io
+import os
 from datetime import date
 from decimal import Decimal
 
@@ -604,7 +605,7 @@ class LookAndHintsTests(TestCase):
         self.assertEqual(urls("store"), ["/", "/stock/", "/stock/take-out/", "/purchases/"])
         marked = [url for _label, url, active in self.labels("store", "/stock/take-out/") if active]
         self.assertEqual(marked, ["/stock/take-out/"])
-        self.assertEqual(urls("boss"), ["/", "/schedule/today/", "/patients/", "/reports/"])
+        self.assertEqual(urls("boss"), ["/", "/schedule/today/", "/patients/", "/dashboard/"])
         # The place of the page shown is marked, the longest address first; "Home" only on the home page.
         marked = [url for _label, url, active in self.labels("sec", "/schedule/appointments/new/") if active]
         self.assertEqual(marked, ["/schedule/appointments/new/"])
@@ -727,6 +728,15 @@ class SpeedTests(TestCase):
         ("owner", "/specialists/", 40),
         ("owner", "/specialists/referrals/", 40),
         ("owner", "/clinics/prices/?place=CIC", 40),
+        ("owner", "/dashboard/", 60),
+        ("owner", f"/dashboard/?{PERIOD}", 60),
+        ("owner", "/lab/", 60),
+        ("owner", "/lab/cases/", 40),
+        ("owner", "/lab/cases/?step=open", 40),
+        ("owner", f"/lab/report/?{PERIOD}", 60),
+        ("owner", "/lab/clients/", 40),
+        ("owner", "/lab/whatsapp/", 40),
+        ("owner", "/lab/blocks/", 40),
     ]
 
     @classmethod
@@ -763,11 +773,16 @@ class SpeedTests(TestCase):
 
         from apps.patients.models import Patient
 
+        from apps.lab.models import LabCase
+
         self.assertEqual(self.added["patients"], 1500)
+        self.assertEqual(self.added["lab cases"], 300)
         patient = Patient.objects.order_by("-pk").first()
+        lab_case = LabCase.objects.exclude(step="delivered").order_by("-pk").first()
         pages = self.PAGES + [("secretary", f"/patients/{patient.pk}/", 60),
                               ("secretary", f"/billing/patient/{patient.pk}/", 60),
-                              ("dentist", f"/chart/patient/{patient.pk}/photos/", 60)]
+                              ("dentist", f"/chart/patient/{patient.pk}/photos/", 60),
+                              ("owner", f"/lab/cases/{lab_case.pk}/", 40)]
         for username, url, budget in pages:
             with self.subTest(user=username, page=url):
                 self.client.login(username=username, password=PASSWORD)
@@ -777,6 +792,8 @@ class SpeedTests(TestCase):
                     seconds = time.perf_counter() - started
                 self.assertEqual(response.status_code, 200)
                 self.assertLessEqual(len(queries), budget, f"{url} read the database {len(queries)} times")
+                if os.environ.get("SHOW_QUERIES"):
+                    print(f"{len(queries):4d} {seconds:5.2f}s {username} {url}")
                 self.assertLess(seconds, 10, f"{url} took {seconds:.1f} s")  # generous: GitHub's machines are slow
 
     def test_bulk_balances_agree_with_each_patient_account(self):

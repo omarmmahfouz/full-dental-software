@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab cases" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-list-ul"></i> {% trans "Lab cases" %}</h1>
+  {% if money %}<a class="btn btn-primary" href="{% url 'lab:case_create' %}"><i class="bi bi-inbox"></i> {% trans "Receive a case" %}</a>{% endif %}
+</div>
+<form class="card card-body mb-3 no-print" method="get" data-no-leave-warning><div class="row g-2 align-items-end">
+  {% for field in form %}{% if field.name == "late" or field.name == "remakes" %}<div class="col-6 col-md-3 col-xl-auto"><div class="form-check">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div></div>{% else %}<div class="col-6 col-md-3 col-xl-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endif %}{% endfor %}
+  <div class="col-6 col-md-3 col-xl-auto"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Show" %}</button></div>
+</div></form>
+<p class="small text-muted">{% blocktrans count n=totals.n %}{{ n }} case{% plural %}{{ n }} cases{% endblocktrans %}{% if money and totals.total %} · {% trans "value" %} {{ totals.total|money }}{% endif %}</p>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "No." %}</th><th>{% trans "Client" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Work" %}</th><th>{% trans "Step" %}</th><th>{% trans "Received" %}</th><th>{% trans "Promised for" %}</th>{% if money %}<th class="text-end">{% trans "Price" %}</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for case in page_obj %}
+  <tr>
+    <td class="text-nowrap"><a href="{{ case.get_absolute_url }}" class="fw-semibold ltr">{{ case.number }}</a>{% if case.urgent %} <i class="bi bi-fire urgent-mark"></i>{% endif %}{% if case.remake_of_id %} <span class="badge text-bg-warning">{% trans "Remake" %}</span>{% endif %}</td>
+    <td>{{ case.client }}{% if case.doctor %}<div class="small text-muted">{{ case.doctor }}</div>{% endif %}</td>
+    <td>{{ case.patient_name|default:"—" }}</td>
+    <td>{{ case.work_summary }}</td>
+    <td><span class="lab-step-chip step-{{ case.step }}"><i class="bi {{ case.step_icon }}"></i> {{ case.get_step_display }}</span>{% if case.worker %}<div class="small text-muted">{{ case.worker }}</div>{% endif %}</td>
+    <td class="text-nowrap">{{ case.received_at|date:"d/m/Y"|default:"—" }}</td>
+    <td class="text-nowrap{% if case.is_late %} text-danger fw-semibold{% endif %}">{{ case.due_date|date:"d/m/Y"|default:"—" }}</td>
+    {% if money %}<td class="text-end">{{ case.total|money }}</td>{% endif %}
+  </tr>
+  {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No cases." %}</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

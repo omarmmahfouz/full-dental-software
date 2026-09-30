@@ -28,7 +28,16 @@
         {% else %}<img class="login-logo" src="{% static 'img/cia-logo.png' %}" alt="Cairo Implant Academy">{% endif %}
       </div>
       <h1 class="h4 fw-bold mb-1 text-center">{% trans "Welcome" %}</h1>
-      <p class="text-muted text-center small mb-4">{% trans "Log in with the username and password the owner gave you." %}</p>
+      <p class="text-muted text-center small mb-3">{% trans "Tap your place, then log in with the username and password the owner gave you." %}</p>
+      {% if login_places|length > 1 %}
+      <nav class="place-tiles" aria-label="{% trans 'Your place' %}">
+        {% for place in login_places %}<a class="place-tile place-{{ place.code }} theme-{{ place.theme }}{% if place.pk == login_place.pk %} is-chosen{% endif %}" href="?place={{ place.code }}{% if next %}&amp;next={{ next|urlencode }}{% endif %}"{% if place.pk == login_place.pk %} aria-current="true"{% endif %}{% if place.color %} style="--place: {{ place.color }}"{% endif %}>
+          <span class="tile-mark">{% if place.logo or place.is_elite or place.code == "CIA" %}<img src="{{ place.mark_url }}" alt="">{% else %}{{ place.badge }}{% endif %}</span>
+          <span class="tile-text"><b>{{ place.badge }}</b><span>{{ place.name }}</span></span>
+          {% if place.pk == login_place.pk %}<i class="bi bi-check-circle-fill tile-check"></i>{% endif %}
+        </a>{% endfor %}
+      </nav>
+      {% endif %}
       {% for message in messages %}<div class="alert alert-warning">{{ message }}</div>{% endfor %}
       {% if form.errors %}<div class="alert alert-danger">{% with first=form.non_field_errors.as_data.0 %}{% if first.code == "candidate" or first.code == "time" %}{{ first.message }}{% else %}{% trans "Wrong username or password." %}{% endif %}{% endwith %}</div>{% endif %}
       <form method="post" data-no-leave-warning>{% csrf_token %}
@@ -40,6 +49,7 @@
           <input class="form-control form-control-lg" type="password" name="password" id="id_password" autocomplete="current-password" required>
           <button type="button" class="show-password" data-show-password="#id_password" aria-label="{% trans 'Show the password' %}" title="{% trans 'Show the password' %}"><i class="bi bi-eye"></i></button></div></div>
         <input type="hidden" name="next" value="{{ next }}">
+        {% if login_place %}<input type="hidden" name="place" value="{{ login_place.code }}">{% endif %}
         <button class="btn btn-primary btn-lg w-100"><i class="bi bi-box-arrow-in-right"></i> {% trans "Log in" %}</button>
       </form>
       <div class="text-center mt-2"><a class="small" href="{% url 'password_forgot' %}">{% trans "Forgot your password?" %}</a></div>

@@ -142,10 +142,36 @@ class Lab(models.Model):
         return self.name
 
 
+class LabCategory(models.TextChoices):
+    """The kind of lab work: it gives a case at our lab its usual road (design, milling, sintering...)."""
+
+    ZIRCONIA = "zirconia", _("Zirconia")
+    EMAX = "emax", _("E.max (lithium disilicate)")
+    PFM = "pfm", _("Cast metal and porcelain (PFM)")
+    RESIN_PRINT = "resin_print", _("3D printing in resin (models, guides, temporaries)")
+    PMMA = "pmma", _("Milled PMMA (temporaries)")
+    METAL_PRINT = "metal_print", _("Metal printing (CoCr / titanium)")
+    TI_MILL = "ti_mill", _("Titanium milling")
+    PRINT_MILL = "print_mill", _("Metal printed, then finished by milling")
+    REMOVABLE = "removable", _("Removable dentures")
+    SPLINT = "splint", _("Splints, night guards and orthodontic appliances")
+    OTHER = "other", _("Other")
+
+
 class LabWorkType(LookupModel):
+    class Unit(models.TextChoices):
+        TOOTH = "tooth", _("per tooth / unit")
+        ARCH = "arch", _("per arch")
+        CASE = "case", _("per case")
+
     default_days = models.PositiveSmallIntegerField(
         _("usual days at the lab"), null=True, blank=True,
         help_text=_("When sent, the date the work is needed back is set this many days later."))
+    category = models.CharField(_("kind of work"), max_length=15, choices=LabCategory.choices,
+                                default=LabCategory.OTHER,
+                                help_text=_("Gives the usual steps at our lab: e.g. zirconia is designed, milled, "
+                                            "sintered, stained and glazed."))
+    unit = models.CharField(_("priced"), max_length=6, choices=Unit.choices, default=Unit.TOOTH)
 
     class Meta(LookupModel.Meta):
         verbose_name = _("lab work type")

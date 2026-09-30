@@ -131,3 +131,12 @@ In the sample data:
 13. The elite look of a place, and the login page of this PC (section A).
 14. The stock and Fawry shared, the reception apart (section H).
 15. The reception's changes approved by the clinic's manager (section C20).
+
+## J. New in this version (9)
+1. **The login page with the places** (the owner's choice): `http://localhost:8000/login/` shows the four places; tap
+   **EK**: navy and gold, and El Khadem opens after logging in. The PC remembers the last place tapped.
+2. El Khadem's lab work sent to **our lab** takes **El Khadem's price list** at the lab (*Lab prices* as `labhead`), and
+   the request shows where the work is at the lab ([lab-test-checklist.md](lab-test-checklist.md), section F).
+3. As **amr**, **Dashboard** (menu *Dashboard*, or the button on his home page): El Khadem this month, with a column for
+   each day.
+4. **Back** goes up one page (never to a saved form), and *Save* works once even when tapped twice.

@@ -192,25 +192,37 @@ LAB_DAYS = {
     "Zirconia crown": 7, "PFM crown": 7, "E.max crown": 7, "Bridge": 10, "Screw-retained implant crown": 10,
     "Cement-retained implant crown": 10, "Full-arch hybrid (All-on-X)": 21, "Implant overdenture": 21,
     "Complete denture": 14, "Partial denture": 14, "Surgical guide": 5, "Custom abutment": 7,
-    "Temporary (PMMA)": 3, "Study model": 2,
+    "Temporary (PMMA)": 3, "Study model": 2, "E.max veneer": 7, "Inlay / onlay": 5, "Milled titanium bar": 14,
+    "Printed CoCr framework": 7, "Printed titanium framework, milled finish": 14, "Printed model": 2,
+    "Night guard / splint": 4, "Diagnostic wax-up": 4, "Custom tray": 2,
 }
 
 LAB_WORK_TYPES = [
-    ("طربوش زيركون", "Zirconia crown"),
-    ("طربوش بورسلين على معدن", "PFM crown"),
-    ("طربوش إي ماكس", "E.max crown"),
-    ("كوبري", "Bridge"),
-    ("تركيبة على زرعة (مثبتة بمسمار)", "Screw-retained implant crown"),
-    ("تركيبة على زرعة (مثبتة بلاصق)", "Cement-retained implant crown"),
-    ("تركيبة كاملة ثابتة على زرعات (Hybrid / All-on-X)", "Full-arch hybrid (All-on-X)"),
-    ("طقم متحرك على زرعات (Overdenture)", "Implant overdenture"),
-    ("طقم كامل", "Complete denture"),
-    ("طقم جزئي", "Partial denture"),
-    ("دليل جراحي (Surgical guide)", "Surgical guide"),
-    ("دعامة مخصصة (Custom abutment)", "Custom abutment"),
-    ("تركيبة مؤقتة", "Temporary (PMMA)"),
-    ("نموذج دراسة", "Study model"),
-    ("أخرى", "Other"),
+    # Arabic, English, kind of work (gives the steps at our lab), priced per
+    ("طربوش زيركون", "Zirconia crown", "zirconia", "tooth"),
+    ("طربوش بورسلين على معدن", "PFM crown", "pfm", "tooth"),
+    ("طربوش إي ماكس", "E.max crown", "emax", "tooth"),
+    ("كوبري", "Bridge", "zirconia", "tooth"),
+    ("تركيبة على زرعة (مثبتة بمسمار)", "Screw-retained implant crown", "zirconia", "tooth"),
+    ("تركيبة على زرعة (مثبتة بلاصق)", "Cement-retained implant crown", "zirconia", "tooth"),
+    ("تركيبة كاملة ثابتة على زرعات (Hybrid / All-on-X)", "Full-arch hybrid (All-on-X)", "print_mill", "arch"),
+    ("طقم متحرك على زرعات (Overdenture)", "Implant overdenture", "removable", "arch"),
+    ("طقم كامل", "Complete denture", "removable", "arch"),
+    ("طقم جزئي", "Partial denture", "removable", "arch"),
+    ("دليل جراحي (Surgical guide)", "Surgical guide", "resin_print", "case"),
+    ("دعامة مخصصة (Custom abutment)", "Custom abutment", "ti_mill", "tooth"),
+    ("تركيبة مؤقتة", "Temporary (PMMA)", "pmma", "tooth"),
+    ("نموذج دراسة", "Study model", "resin_print", "case"),
+    ("فينير إي ماكس", "E.max veneer", "emax", "tooth"),
+    ("إنلاي / أونلاي", "Inlay / onlay", "emax", "tooth"),
+    ("بار تيتانيوم (تفريز)", "Milled titanium bar", "ti_mill", "arch"),
+    ("هيكل معدن مطبوع (كوبالت كروم)", "Printed CoCr framework", "metal_print", "arch"),
+    ("هيكل تيتانيوم مطبوع ثم مفرّز", "Printed titanium framework, milled finish", "print_mill", "arch"),
+    ("نموذج مطبوع", "Printed model", "resin_print", "arch"),
+    ("جبيرة ليلية (Night guard)", "Night guard / splint", "splint", "arch"),
+    ("شمع تشخيصي (Wax-up)", "Diagnostic wax-up", "other", "tooth"),
+    ("طابع خاص (Custom tray)", "Custom tray", "resin_print", "arch"),
+    ("أخرى", "Other", "other", "case"),
 ]
 
 IMPLANT_SYSTEMS = [
@@ -343,6 +355,14 @@ STOCK_CATEGORIES = [
     ("أدوات مكتبية", "Stationery", "stationery"),
     ("مطبوعات وورق إيصالات", "Printing & receipt rolls", "stationery"),
     ("أحبار وطابعات", "Printer ink & toner", "stationery"),
+    # The dental lab
+    ("بلوكات وأقراص (زيركون، إي ماكس، PMMA، شمع، تيتانيوم)", "Lab blocks and discs", "lab"),
+    ("سوائل وألوان وجليز", "Liquids, stains and glaze", "lab"),
+    ("بورسلين وبوند", "Porcelain and bond", "lab"),
+    ("راتنج الطباعة", "Printing resins", "lab"),
+    ("مساحيق وسبائك المعادن", "Metal powders and alloys", "lab"),
+    ("جبس وأكريليك وأسنان صناعية", "Plaster, acrylic and denture teeth", "lab"),
+    ("أدوات وفريزات المعمل", "Lab tools and milling burs", "lab"),
 ]
 
 
@@ -405,10 +425,12 @@ class Command(BaseCommand):
                 extra_fields=lambda r: {"chart_effect": r[2], "surgery_procedure": r[3], "default_material": r[4],
                                         "category": _step_category(r[2], r[3])},
             ),
-            "lab work types": _lookup(LabWorkType, LAB_WORK_TYPES, extra_fields=lambda r: {}),
+            "lab work types": _lookup(LabWorkType, LAB_WORK_TYPES, extra_fields=lambda r: {"category": r[2],
+                                                                                          "unit": r[3]}),
             "purchase categories": _lookup(PurchaseCategory, PURCHASE_CATEGORIES, extra_fields=lambda r: {"kind": r[2]}),
             "stock categories": _lookup(StockCategory, STOCK_CATEGORIES, extra_fields=lambda r: {"group": r[2]}),
         }
+        StockCategory.objects.filter(name_en="Lab blocks and discs", lab_blocks=False).update(lab_blocks=True)
         Lab.objects.get_or_create(name="معمل الأسنان (معملنا)", defaults={"branch": Branch.objects.get(code="LAB")})
         Lab.objects.filter(name="معمل الأسنان (معملنا)", name_en="").update(name_en="Our dental lab")
         # Older installations: give existing treatment types their chart effect once.
@@ -417,6 +439,9 @@ class Command(BaseCommand):
                 chart_effect=effect)
             if procedure:
                 TreatmentStepType.objects.filter(name_ar=name_ar, surgery_procedure="").update(surgery_procedure=procedure)
+        for name_ar, name_en, category, unit in LAB_WORK_TYPES:  # older installations: the kind of each lab work
+            LabWorkType.objects.filter(name_ar=name_ar, category="other").exclude(category=category).update(
+                category=category, unit=unit)
         for name_en, days in LAB_DAYS.items():  # a starting point: the owner changes them in Settings
             LabWorkType.objects.filter(name_en=name_en, default_days__isnull=True).update(default_days=days)
         if not Service.objects.filter(quick_button=True).exists():  # one-click buttons on a new bill

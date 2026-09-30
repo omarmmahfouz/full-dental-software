@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-inbox"></i> {{ title }}</h1></div>
+<form method="post" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+  {% for title, fields in form.bound_fieldsets %}
+  <div class="card mb-3"><div class="card-body"><fieldset>
+    {% if title %}<legend class="form-section-title">{{ title }}</legend>{% endif %}
+    <div class="row g-3">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div>
+  </fieldset></div></div>
+  {% if forloop.first %}
+  <div class="card mb-3" data-formset="items"><div class="card-header"><i class="bi bi-list-ul"></i> {% trans "The work" %}</div><div class="card-body">
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<div class="alert alert-danger">{{ formset.non_form_errors }}</div>{% endif %}
+    <div class="table-responsive"><table class="table table-sm align-middle mb-2">
+      <thead><tr><th>{% trans "Work" %} <span class="required-mark">*</span></th><th>{% trans "Teeth" %}</th><th style="width: 6rem">{% trans "Units" %}</th><th>{% trans "Material" %}</th>{% if "unit_price" in formset.empty_form.fields %}<th style="width: 9rem">{% trans "Unit price" %}</th>{% endif %}<th>{% trans "delete" %}</th></tr></thead>
+      <tbody data-formset-rows>{% for row in formset %}<tr>
+        {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+        {% for field in row.visible_fields %}{% if field.name != "DELETE" %}<td>{{ field }}{% for e in field.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</td>{% endif %}{% endfor %}
+        <td>{% if row.instance.pk %}{{ row.DELETE }}{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    <template><tr>{% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}{% for field in formset.empty_form.visible_fields %}{% if field.name != "DELETE" %}<td>{{ field }}</td>{% endif %}{% endfor %}<td></td></tr></template>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-formset-add><i class="bi bi-plus"></i> {% trans "Another work" %}</button>
+    <div class="form-text field-hint mt-2">{% trans "An empty price takes the client's price list. The kind of the first work gives the steps of the case." %}</div>
+  </div></div>
+  {% endif %}
+  {% endfor %}
+  {% if form.errors %}
+  <div class="modal fade" tabindex="-1" aria-hidden="true" data-show-on-load>
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content border-danger">
+      <div class="modal-header bg-danger-subtle"><h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger"></i> {% trans "Not saved yet: please correct this" %}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button></div>
+      <div class="modal-body"><ul class="mb-0">{% for field in form %}{% for error in field.errors %}<li><b>{{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}</ul></div>
+      <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">{% trans "OK" %}</button></div>
+    </div></div>
+  </div>
+  {% endif %}
+  <div class="form-actions d-flex gap-2">
+    <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% if case %}{% trans "Save" %}{% else %}{% trans "Receive the case" %}{% endif %}</button>
+    <a class="btn btn-outline-secondary" href="{% if case %}{{ case.get_absolute_url }}{% else %}{% url 'lab:board' %}{% endif %}">{% trans "Cancel" %}</a>
+  </div>
+</form>
+{% endblock %}

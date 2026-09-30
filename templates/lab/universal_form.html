@@ -1,0 +1,56 @@
+{% load static i18n clinic %}{% get_current_language_bidi as RTL %}{% include "lab/_paper_head.html" with paper_title=_("Lab request") %}
+<body class="paper-page place-{{ place.code }} theme-{{ place.theme }}"{% if place.color %} style="--place: {{ place.color }}; --place-light: color-mix(in srgb, {{ place.color }} 55%, #fff)"{% endif %}>
+<div class="paper-toolbar no-print">
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'lab:board' %}"><i class="bi bi-arrow-{% if RTL %}right{% else %}left{% endif %}"></i> {% trans "Back" %}</a>
+  <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+</div>
+<main class="paper lab-paper universal-form">
+  {% include "includes/place_letterhead.html" with place=place %}
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-2">
+    <div class="doc-title">{% trans "Lab request" %}</div>
+    <div class="small">{% trans "Case number (the lab writes it)" %}: <span class="form-line"></span></div>
+  </div>
+  <div class="form-grid mb-2">
+    <div>{% trans "Clinic" %}: <span class="form-line"></span></div><div>{% trans "Doctor" %}: <span class="form-line"></span></div>
+    <div>{% trans "Mobile / WhatsApp" %}: <span class="form-line"></span></div><div>{% trans "Patient" %}: <span class="form-line"></span></div>
+    <div>{% trans "Date sent" %}: <span class="form-line"></span></div><div>{% trans "Needed back by" %}: <span class="form-line"></span></div>
+  </div>
+  <div class="doc-subtitle mt-2">{% trans "The work" %}</div>
+  {% for label, types in groups %}<div class="mb-1"><b class="small">{{ label }}</b><div class="form-grid">{% for wt in types %}<span><span class="form-tick"></span>{{ wt }}</span>{% endfor %}</div></div>{% endfor %}
+  <div class="small mt-1">{% trans "Other" %}: <span class="form-line" style="min-width: 60%"></span></div>
+  <div class="doc-subtitle mt-3">{% trans "Teeth" %}</div>
+  <div class="lab-teeth mb-2">
+    <div class="lab-teeth-row">{% for t in upper %}<span>{{ t }}</span>{% endfor %}</div>
+    <div class="lab-teeth-row">{% for t in lower %}<span>{{ t }}</span>{% endfor %}</div>
+  </div>
+  <div class="row g-3">
+    <div class="col-6">
+      <div class="doc-subtitle">{% trans "Send for" %}</div>
+      <div class="form-grid">{% for code, label in stages %}<span><span class="form-tick"></span>{{ label }}</span>{% endfor %}</div>
+      <div class="doc-subtitle mt-2">{% trans "Impression" %}</div>
+      <div class="form-grid">{% for code, label in impressions %}<span><span class="form-tick"></span>{{ label }}</span>{% endfor %}</div>
+      <div class="doc-subtitle mt-2">{% trans "Shade" %}</div>
+      <div class="small">{% trans "Guide" %}: <span class="form-tick"></span>VITA classical <span class="form-tick"></span>3D-Master</div>
+      <div class="small">{% trans "Cervical" %} <span class="form-line" style="min-width: 3rem"></span> {% trans "Middle" %} <span class="form-line" style="min-width: 3rem"></span> {% trans "Incisal" %} <span class="form-line" style="min-width: 3rem"></span> {% trans "Stump" %} <span class="form-line" style="min-width: 3rem"></span></div>
+    </div>
+    <div class="col-6">
+      <div class="doc-subtitle">{% trans "Finish line" %}</div>
+      <div class="form-grid">{% for code, label in margins %}<span><span class="form-tick"></span>{{ label }}</span>{% endfor %}</div>
+      <div class="doc-subtitle mt-2">{% trans "Pontic design" %}</div>
+      <div class="form-grid">{% for code, label in pontics %}<span><span class="form-tick"></span>{{ label }}</span>{% endfor %}</div>
+      <div class="doc-subtitle mt-2">{% trans "On implants" %}</div>
+      <div class="small"><span class="form-tick"></span>{% trans "Screw-retained" %} <span class="form-tick"></span>{% trans "Cement-retained" %} · {% trans "system, platform, abutment" %}: <span class="form-line"></span></div>
+    </div>
+  </div>
+  <div class="doc-subtitle mt-3">{% trans "Sent with the work" %}</div>
+  <div class="form-grid">{% for code, label in enclosures %}<span><span class="form-tick"></span>{{ label }}</span>{% endfor %}</div>
+  <div class="doc-subtitle mt-3">{% trans "Instructions" %}</div>
+  <div class="letter-box" style="min-height: 5rem"></div>
+  <div class="signature-row mt-4">
+    <div class="signature-block">{% trans "The doctor" %}: ______________</div>
+    <div class="signature-block">{% trans "Received at the lab by" %}: ______________</div>
+    <div class="signature-block">{% trans "Date" %}: ______________</div>
+  </div>
+  <p class="small text-muted mt-3 mb-0">{% trans "To follow your case, send its number on WhatsApp to the lab" %}{% if place.phone %}: <span class="ltr">{{ place.phone }}</span>{% endif %}.</p>
+</main>
+</body></html>

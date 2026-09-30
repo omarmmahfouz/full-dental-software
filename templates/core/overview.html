@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Dashboard" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-speedometer2"></i> {% trans "Dashboard" %}</h1>
+  <div class="btn-group no-print" role="group" aria-label="{% trans 'Period' %}">
+    <a class="btn btn-sm {% if key == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?period=today">{% trans "Today" %}</a>
+    <a class="btn btn-sm {% if key == 'week' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?period=week">{% trans "7 days" %}</a>
+    <a class="btn btn-sm {% if key == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?period=month">{% trans "This month" %}</a>
+  </div>
+</div>
+<form class="card card-body mb-3 no-print" method="get" data-no-leave-warning><div class="row g-2 align-items-end">
+  <div class="col-6 col-md-3"><label class="form-label">{% trans "From" %}</label>{{ form.date_from }}</div>
+  <div class="col-6 col-md-3"><label class="form-label">{% trans "To" %}</label>{{ form.date_to }}</div>
+  <div class="col-md-3"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Show" %}</button></div>
+  <div class="col-md-3 small text-muted">{{ date_from|date:"D d/m/Y" }}{% if date_to != date_from %} → {{ date_to|date:"D d/m/Y" }}{% endif %}</div>
+</div></form>
+
+{% if attention %}
+<div class="card mb-3 border-warning"><div class="card-header"><i class="bi bi-bell"></i> {% trans "Waiting for someone now" %}</div>
+  <div class="list-group list-group-flush">{% for icon, label, n, url in attention %}<a class="list-group-item list-group-item-action d-flex align-items-center gap-2" href="{{ url }}"><i class="bi {{ icon }}"></i> {{ label }} <span class="badge text-bg-warning ms-auto">{{ n }}</span></a>{% endfor %}</div>
+</div>
+{% endif %}
+
+<div class="stat-minis mb-3">
+  <div class="stat-mini"><span class="n">{{ totals.done }}</span><span class="l">{% trans "Visits finished" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ totals.booked }}</span><span class="l">{% trans "Appointments booked" %}</span></div>
+  <div class="stat-mini{% if totals.missed %} is-warn{% endif %}"><span class="n">{{ totals.missed }}</span><span class="l">{% trans "Did not come" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ totals.new_files }}</span><span class="l">{% trans "New files" %}</span></div>
+  {% if money %}<div class="stat-mini is-good"><span class="n">{{ totals.paid|money }}</span><span class="l">{% trans "Paid by the patients" %}</span></div>{% endif %}
+  <div class="stat-mini{% if totals.complaints %} is-warn{% endif %}"><span class="n">{{ totals.complaints }}</span><span class="l">{% trans "Complaints open" %}</span></div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-buildings"></i> {% trans "Each place" %}</div>
+  <div class="table-responsive"><table class="table mb-0 align-middle">
+    <thead><tr><th>{% trans "Place" %}</th><th class="text-end">{% trans "Booked" %}</th><th>{% trans "Visits finished" %}</th><th class="text-end">{% trans "Did not come" %}</th><th class="text-end">{% trans "New files" %}</th>{% if money %}<th>{% trans "Paid" %}</th>{% endif %}<th class="text-end">{% trans "Complaints open" %}</th></tr></thead>
+    <tbody>{% for row in rows %}<tr class="place-{{ row.place.code }}">
+      <td><span class="place-badge place-{{ row.place.code }}">{{ row.place.badge }}</span> <span class="small">{{ row.place }}</span></td>
+      <td class="text-end num">{{ row.booked }}</td>
+      <td><div class="hbar-row" data-tip="{{ row.place.badge }}: {{ row.done }}"><div class="hbar" style="width: {{ row.done_width }}%"></div><span class="v">{{ row.done }}</span></div></td>
+      <td class="text-end num">{{ row.missed }}{% if row.missed_rate is not None %} <span class="small text-muted">({{ row.missed_rate }}%)</span>{% endif %}</td>
+      <td class="text-end num">{{ row.new_files }}</td>
+      {% if money %}<td><div class="hbar-row" data-tip="{{ row.place.badge }}: {{ row.paid|money }}"><div class="hbar" style="width: {{ row.paid_width }}%"></div><span class="v">{{ row.paid|money }}</span></div></td>{% endif %}
+      <td class="text-end num">{% if row.complaints %}<span class="text-danger fw-semibold">{{ row.complaints }}</span>{% else %}0{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+{% if charts %}
+<div class="row g-3 mb-3">
+  {% for chart in charts %}
+  <div class="col-xl-6"><div class="card h-100"><div class="card-header"><i class="bi {{ chart.icon }}"></i> {{ chart.title }}</div><div class="card-body">
+    <div class="small text-muted mb-2">{% trans "Total" %}: <b class="text-body">{% if chart.money %}{{ chart.total|money }}{% else %}{{ chart.total }}{% endif %}</b></div>
+    <div class="day-cols" role="img" aria-label="{{ chart.title }}">
+      {% for bar in chart.bars %}<div class="day-col" data-tip="{{ bar.tip }}"><span style="height: {{ bar.height }}%"></span></div>{% endfor %}
+    </div>
+    <div class="day-cols-axis"><span>{{ chart.first|date:"d/m" }}</span><span>{{ chart.last|date:"d/m" }}</span></div>
+    <details class="mt-2"><summary class="small">{% trans "Show the numbers" %}</summary>
+      <table class="table table-sm mt-2 mb-0"><tbody>{% for bar in chart.bars %}<tr><td>{{ bar.day|date:"D d/m" }}</td><td class="text-end num">{% if chart.money %}{{ bar.value|money }}{% else %}{{ bar.value }}{% endif %}</td></tr>{% endfor %}</tbody></table>
+    </details>
+  </div></div></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if lab %}
+<div class="card mb-3 sec-lab"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-gem"></i> {% trans "Dental lab" %}</span><a class="small" href="{% url 'lab:board' %}">{% trans "Lab board" %}</a></div><div class="card-body">
+  <div class="stat-minis mb-3">
+    <div class="stat-mini"><span class="n">{{ lab.received }}</span><span class="l">{% trans "Cases received" %}</span></div>
+    <div class="stat-mini"><span class="n">{{ lab.delivered }}</span><span class="l">{% trans "Cases delivered" %}</span></div>
+    <div class="stat-mini"><span class="n">{{ lab.open }}</span><span class="l">{% trans "In the lab now" %}</span></div>
+    <div class="stat-mini{% if lab.late %} is-warn{% endif %}"><span class="n">{{ lab.late }}</span><span class="l">{% trans "Late now" %}</span></div>
+    <div class="stat-mini{% if lab.remakes %} is-warn{% endif %}"><span class="n">{{ lab.remakes }}</span><span class="l">{% trans "Remakes" %}</span></div>
+    {% if lab.billed is not None %}<div class="stat-mini"><span class="n">{{ lab.billed|money }}</span><span class="l">{% trans "Work delivered" %}</span></div>
+    <div class="stat-mini is-good"><span class="n">{{ lab.paid|money }}</span><span class="l">{% trans "Received" %}</span></div>{% endif %}
+  </div>
+  <div class="small fw-semibold mb-2">{% trans "Where the cases are now" %}</div>
+  <div class="lab-times">{% for row in lab.steps %}<div class="lab-time-row sec-lab"><div>{{ row.label }}</div><div class="bar-track"><div class="bar-fill" style="width: {{ row.width }}%; background: var(--section)"></div></div><div class="small num">{{ row.n }}</div></div>{% endfor %}</div>
+</div></div>
+{% endif %}
+{% endblock %}

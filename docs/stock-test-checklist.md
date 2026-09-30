@@ -80,3 +80,11 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
     and every take-out for it says **El Khadem**.
 37. "حركات المخزن": El Khadem's take-outs have the place badge **EK**, and **what each place used** shows El Khadem too.
 38. A new item can still **belong to** one place ("يخص"): leave it empty to share it with El Khadem.
+
+## N. New in this version (9): the dental lab's stock
+39. "المخزن" has a new group **معمل الأسنان** with its categories: البلوكات والأقراص، السوائل والألوان والجليز،
+    البورسلين والبوند، راتنج الطباعة، مساحيق وسبائك المعادن، الجبس والأكريليك والأسنان الصناعية، أدوات وفريزات المعمل.
+40. The lab's items (zirconia and e.max blocks, PMMA and titanium discs, liquids, stains…) **belong to the lab** (LAB):
+    the lab takes them out itself (*Blocks and lab stock*), and every take-out says **LAB** in "حركات المخزن".
+41. When the lab **opens a block**, one piece is taken out by itself, with its lot. The category *blocks and discs*
+    is ticked **followed one by one** (in *Settings → Stock categories*).

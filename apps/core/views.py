@@ -34,19 +34,21 @@ from apps.scheduling.models import Appointment, RoomShift, day_bounds
 from . import previews
 from .access import area_levels
 from .models import (
-    AreaAccess, Branch, ClinicSettings, Notification, UserProfile, branch_for_user, working_places,
+    AreaAccess, Branch, ClinicSettings, Notification, UserProfile, branch_for_user, switch_places, working_places,
 )
 from .roles import (
     CLINIC_MANAGERS,
     CLINICAL,
     FRONT_DESK,
     HEAD_CIA,
+    LAB_STAFF,
     MANAGEMENT,
     MODERATOR,
     OWNER,
     PATIENT_VIEWERS,
     PURCHASE_ROLES,
     SECRETARY,
+    STOCK,
     STOCK_ROLES,
     SUPERVISOR,
     TEAM_HEAD,
@@ -205,6 +207,18 @@ def dashboard(request):
         context["expiring"] = expiring_soon()[:8]
     if has_role(user, *CLINIC_MANAGERS):
         context["clinic_cards"] = clinic_cards(user, today)
+    if has_role(user, *LAB_STAFF):
+        at_lab = branch is not None and branch.kind == Branch.Kind.LAB
+        if at_lab or not has_role(user, OWNER, *PATIENT_VIEWERS, STOCK, MODERATOR):
+            from apps.lab.views import lab_home_context
+
+            context.update(lab_home_context(user))  # the lab's own home page
+        else:
+            from apps.lab.views import my_worker, open_cases
+
+            me = my_worker(user)  # e.g. a CIA doctor who designs: only the cases with him
+            if me is not None:
+                context["lab_with_me"] = list(open_cases().filter(worker=me).order_by("due_date", "pk")[:8])
     return render(request, "core/dashboard.html", context)
 
 
@@ -228,14 +242,20 @@ def clinic_cards(user, today):
 DEVICE_PLACE_COOKIE = "device_place"
 
 
+def login_places():
+    """The places offered on the login page (CIA, CIC, El Khadem, the lab): the reception chooses hers."""
+    places = Branch.objects.filter(is_active=True).order_by("sort_order", "pk")
+    return sorted(places, key=lambda place: place.kind == Branch.Kind.LAB)  # the lab last
+
+
 def login_place(request):
-    """The place whose look the login page takes: ``?place=EK`` in the address, else the place this device was
-    last used for (a cookie kept for a year)."""
-    code = (request.GET.get("place") or request.COOKIES.get(DEVICE_PLACE_COOKIE) or "").strip()
+    """The place whose look the login page takes: the one chosen on the page (``?place=EK``), else the place this
+    device was last used for (a cookie kept for a year)."""
+    code = (request.POST.get("place") or request.GET.get("place") or request.COOKIES.get(DEVICE_PLACE_COOKIE)
+            or "").strip()
     if not code or len(code) > 10:
         return None
-    return (Branch.objects.filter(is_active=True).exclude(kind=Branch.Kind.LAB)
-            .filter(Q(code__iexact=code) | Q(file_prefix__iexact=code)).first())
+    return Branch.objects.filter(is_active=True).filter(Q(code__iexact=code) | Q(file_prefix__iexact=code)).first()
 
 
 def remember_device_place(response, place):
@@ -245,8 +265,8 @@ def remember_device_place(response, place):
 
 
 class PlaceLoginView(auth_views.LoginView):
-    """The login page takes the look of the place of this device (El Khadem's reception PC shows El Khadem).
-    Someone who works in that place starts working there; a person with one place makes it this device's place."""
+    """One login page for every place: the person taps her place (CIA, CIC, El Khadem or the lab), the page takes its
+    look, and after logging in that place is open. The device remembers the last place chosen."""
 
     def get_form_class(self):
         from .forms import LoginForm
@@ -256,6 +276,7 @@ class PlaceLoginView(auth_views.LoginView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["login_place"] = login_place(self.request)
+        context["login_places"] = login_places()
         return context
 
     def get(self, request, *args, **kwargs):
@@ -267,13 +288,18 @@ class PlaceLoginView(auth_views.LoginView):
     def form_valid(self, form):
         response = super().form_valid(form)
         place, user = login_place(self.request), form.get_user()
-        mine = list(working_places(user))
+        mine = switch_places(user)
         if place is not None and place in mine:
             self.request.session["place"] = place.pk
+        elif place is not None and mine:
+            own = branch_for_user(user)
+            opened = own if own in mine else mine[0]
+            self.request.session["place"] = opened.pk
+            messages.info(self.request, _("You do not work at %(chosen)s: %(place)s is open.")
+                          % {"chosen": place.name, "place": opened.name})
+            place = None  # this device keeps the place chosen on it
         elif len(mine) == 1:
             place = mine[0]
-        else:
-            place = None
         return remember_device_place(response, place)
 
 
@@ -308,7 +334,7 @@ def switch_language(request):
 @require_POST
 def switch_place(request):
     """The switch in the top bar: work at another place (CIA, CIC...) from now on, then go on."""
-    place = working_places(request.user).filter(code=request.POST.get("place", "")).first()
+    place = next((p for p in switch_places(request.user) if p.code == request.POST.get("place", "")), None)
     if place is None:
         raise PermissionDenied
     request.session["place"] = place.pk

@@ -340,11 +340,20 @@ def lab_detail(request, pk):
             "can_edit": lab_request.status in (LabRequest.Status.DRAFT, LabRequest.Status.PENDING_REVIEW)
             and has_role(request.user, *ANY_STAFF),
             "fitting_url": _fitting_url(lab_request) if lab_request.status == LabRequest.Status.RECEIVED else "",
+            "lab_case": _lab_case(lab_request),
             "next_appointment": Appointment.objects.filter(
                 patient=lab_request.patient, status__in=Appointment.WAITING_STATUSES,
                 scheduled_at__gte=timezone.now()).order_by("scheduled_at").first(),
         },
     )
+
+
+def _lab_case(lab_request):
+    """The case at our own lab (the last remake when there is one): its step is shown live on the request."""
+    from apps.lab.models import LabCase
+
+    return (LabCase.objects.filter(Q(request=lab_request) | Q(remake_of__request=lab_request))
+            .select_related("worker").order_by("-pk").first())
 
 
 def _fitting_url(lab_request):

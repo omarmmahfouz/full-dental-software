@@ -1,0 +1,43 @@
+{% load static i18n clinic %}{% get_current_language_bidi as RTL %}{% include "lab/_paper_head.html" with paper_title=case.number %}
+<body class="paper-page place-{{ place.code }} theme-{{ place.theme }}"{% if place.color %} style="--place: {{ place.color }}; --place-light: color-mix(in srgb, {{ place.color }} 55%, #fff)"{% endif %}>
+<div class="paper-toolbar no-print">
+  <a class="btn btn-outline-secondary btn-sm" href="{{ case.get_absolute_url }}"><i class="bi bi-arrow-{% if RTL %}right{% else %}left{% endif %}"></i> {% trans "Back" %}</a>
+  <button class="btn btn-primary btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  {% if money %}<a class="btn btn-outline-secondary btn-sm" href="?prices=0">{% trans "Without the prices" %}</a>{% endif %}
+</div>
+<main class="paper lab-paper">
+  {% include "includes/place_letterhead.html" with place=place %}
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+    <div class="flex-grow-1" style="min-width: 0"><div class="doc-title">{% trans "Case sheet" %}</div>
+      <span class="lab-stage">{{ case.get_stage_display }}</span>{% if case.urgent %} <span class="badge text-bg-danger">{% trans "URGENT" %}</span>{% endif %}{% if case.remake_of %} <span class="badge text-bg-warning">{% trans "Remake of" %} {{ case.remake_of.number }}</span>{% endif %}
+      <div class="small text-muted mt-1">{{ case.get_impression_display }}</div></div>
+    <div class="text-end ms-auto"><div class="fs-4 fw-bold ltr">{{ case.number }}</div><div class="small">{% trans "Received" %} {{ case.received_at|date:"d/m/Y g:i A"|default:"—" }}</div>
+      {% if case.due_date %}<div class="lab-due"><i class="bi bi-calendar-event"></i> {% trans "Promised for" %} <b>{{ case.due_date|date:"l d/m/Y" }}</b></div>{% endif %}</div>
+  </div>
+  <div class="lab-parties mb-3">
+    <div><span class="text-muted small">{% trans "Client" %}</span><div class="fw-bold">{{ case.client }}</div>{% if case.client.phone %}<div class="small ltr">{{ case.client.phone }}</div>{% endif %}</div>
+    <div><span class="text-muted small">{% trans "Doctor" %}</span><div class="fw-bold">{{ case.doctor|default:"—" }}</div>{% if case.doctor_phone %}<div class="small ltr">{{ case.doctor_phone }}</div>{% endif %}</div>
+    <div><span class="text-muted small">{% trans "Patient" %}</span><div class="fw-bold">{{ case.patient_name|default:"—" }}</div></div>
+  </div>
+  <div class="doc-subtitle">{% trans "The work" %}</div>
+  <table class="table table-sm paper-table">
+    <thead><tr><th>{% trans "Work" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Material" %}</th><th class="text-end">{% trans "Units" %}</th>{% if money %}<th class="text-end">{% trans "Unit price" %}</th><th class="text-end">{% trans "Amount" %}</th>{% endif %}</tr></thead>
+    <tbody>{% for item in items %}<tr><td class="fw-semibold">{{ item.work_type }}</td><td class="ltr">{{ item.teeth|default:"—" }}</td><td>{{ item.material|default:"—" }}</td><td class="text-end">{{ item.units }}</td>{% if money %}<td class="text-end">{{ item.unit_price|money }}</td><td class="text-end">{{ item.amount|money }}</td>{% endif %}</tr>{% endfor %}</tbody>
+    {% if money %}<tfoot class="paper-total">{% if case.discount %}<tr><td colspan="5">{% trans "Discount" %}</td><td class="text-end">−{{ case.discount|money }}</td></tr>{% endif %}<tr><th colspan="5">{% trans "Price of the case" %}</th><th class="text-end">{{ case.total|money }} {{ CLINIC.CURRENCY }}</th></tr></tfoot>{% endif %}
+  </table>
+  {% if case.shade or case.instructions %}<div class="row g-3 mb-3">
+    {% if case.shade %}<div class="col-sm-4"><div class="doc-subtitle">{% trans "Shade" %}</div>{{ case.shade }}</div>{% endif %}
+    {% if case.instructions %}<div class="col-sm-8"><div class="doc-subtitle">{% trans "Instructions" %}</div><div class="letter-box">{{ case.instructions|linebreaksbr }}</div></div>{% endif %}
+  </div>{% endif %}
+  <div class="doc-subtitle">{% trans "Steps" %}</div>
+  <table class="table table-sm table-bordered paper-table">
+    <thead><tr><th>{% trans "Step" %}</th><th>{% trans "Done by" %}</th><th>{% trans "Date" %}</th><th>{% trans "Signature" %}</th></tr></thead>
+    <tbody>{% for code, label in route %}{% with done=steps|get_item:code %}<tr><td>{{ label }}</td><td>{% if done %}{{ done.worker|default:"" }}{% endif %}</td><td>{% if done %}{{ done.done_at|date:"d/m g:i A" }}{% endif %}</td><td style="width: 25%"></td></tr>{% endwith %}{% endfor %}</tbody>
+  </table>
+  <div class="signature-row mt-4">
+    <div class="signature-block">{% trans "Quality check" %}: ______________</div>
+    <div class="signature-block">{% trans "Delivered by" %}: ______________</div>
+    <div class="signature-block">{% trans "Received by the clinic" %}: ______________</div>
+  </div>
+</main>
+</body></html>

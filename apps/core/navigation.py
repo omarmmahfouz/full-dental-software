@@ -1,10 +1,13 @@
 """The bar at the bottom of the screen on tablets and phones: the four places each person uses
 most, then "Menu", which opens the full menu from the side."""
 
-from django.urls import reverse
+from django.urls import Resolver404, resolve, reverse
 from django.utils.translation import gettext_lazy as _
 
-from .roles import DENTISTS, FRONT_DESK, MODERATOR, SECRETARY, STOCK, is_only_dentist, user_roles
+from .roles import (
+    DENTISTS, FRONT_DESK, HEAD_CIA, LAB_DESK, LAB_STAFF, MODERATOR, OWNER, SECRETARY, STOCK, is_only_dentist,
+    user_roles,
+)
 
 
 def _item(url_name, icon, label, match=None, query=""):
@@ -19,13 +22,24 @@ def bottom_nav(user, path, hidden_areas):
     front_desk = bool(roles & set(FRONT_DESK))
     patients = "patients" not in hidden_areas and bool(roles & set(FRONT_DESK + DENTISTS))
     schedule = "schedule" not in hidden_areas
-    if front_desk:
+    lab_only = bool(roles & set(LAB_STAFF)) and not roles & set(FRONT_DESK + DENTISTS + (MODERATOR, STOCK))
+    if lab_only and "dental_lab" not in hidden_areas:
+        items.append(_item("lab:board", "bi-kanban", _("Board"), match="/lab/"))
+        if roles & set(LAB_DESK):
+            items.append(_item("lab:case_create", "bi-inbox", _("Receive")))
+            items.append(_item("lab:whatsapp", "bi-whatsapp", _("WhatsApp")))
+        else:
+            items.append(_item("lab:my_work", "bi-person-workspace", _("My work")))
+            items.append(_item("lab:case_list", "bi-list-ul", _("Cases")))
+    elif front_desk:
         if schedule:
             items.append(_item("scheduling:today", "bi-display", _("Reception"), match="/schedule/"))
         if patients:
             items.append(_item("patients:list", "bi-people", _("Patients"), match="/patients/"))
         if SECRETARY in roles and schedule:
             items.append(_item("scheduling:appointment_create", "bi-calendar-plus", _("Book")))
+        elif roles & {OWNER, HEAD_CIA}:
+            items.append(_item("core:overview", "bi-speedometer2", _("Dashboard")))
         elif "reports" not in hidden_areas:
             items.append(_item("reports:index", "bi-bar-chart-line", _("Reports"), match="/reports/"))
     elif roles & set(DENTISTS):
@@ -54,3 +68,18 @@ def bottom_nav(user, path, hidden_areas):
     for item in items:
         item["active"] = item is best
     return items
+
+
+def up_url(path):
+    """The page above this one, from its address: /lab/cases/5/edit/ → /lab/cases/5/ → /lab/cases/ → the home page.
+    "Back" opens it when the tab has no page before (e.g. a page opened from a notification)."""
+    parts = [part for part in path.split("/") if part]
+    while parts:
+        parts.pop()
+        candidate = "/" + "/".join(parts) + "/" if parts else "/"
+        try:
+            resolve(candidate)
+        except Resolver404:
+            continue
+        return candidate
+    return "/"

@@ -10,7 +10,7 @@ from .models import StockCategory, StockGroup, StockItem, StockMovement
 
 
 def places():
-    return Branch.objects.filter(is_active=True).exclude(kind=Branch.Kind.LAB).order_by("sort_order", "pk")
+    return Branch.objects.filter(is_active=True).order_by("sort_order", "pk")  # the lab has its stock too
 
 
 def place_filter_field(label, shared_label=None):

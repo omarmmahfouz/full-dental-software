@@ -6,8 +6,8 @@ One system for the owner's connected places:
 |---|---|---|
 | **Cairo Implant Academy** — teaching institute, economic dental service, course candidates, dentists | `CIA` | **In use: secretary + dentists** |
 | **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report |
-| **El Khadem Dental Clinic** — Dr. Amr El Khadem's private clinic: specialists, doctors who bring their own patients, 4 shared rooms | `PVT` (files `EK-…`) | **In use** (new): its own reception, the specialists' charts, 40% / 30% shares, the elite look |
-| Dental lab — serves the clinics and outside clinics | `LAB` | next (lab requests already flow to it) |
+| **El Khadem Dental Clinic** — Dr. Amr El Khadem's private clinic: specialists, doctors who bring their own patients, 4 shared rooms | `PVT` (files `EK-…`) | **In use**: its own reception, the specialists' charts, 40% / 30% shares, the elite look |
+| **Dental lab** — works for CIA, CIC, El Khadem and outside clinics, each with its own prices | `LAB` (cases `LAB-…`) | **In use** (new): its secretary, manager, designers and head; every case step by step, blocks, receipts, WhatsApp answers, the lab report |
 
 It runs **on your own PC or the clinic's own server**, with no cloud. Staff open it in a browser on the clinic network.
 Everything works offline, including fonts, icons and styles.
@@ -29,9 +29,13 @@ The language follows the person, not the PC:
 | Secretary (reception) | `secretary` | reception, patients, the **day planner**, WhatsApp messages, **patient payments** and the **end of the day**, lab send / receive, CBCT and blood test requests, complaints, academy (if allowed in Settings), purchases, and the **patients to call** lists. Not the dental chart, treatment log or surgeries: in the patient file she sees the data, the visits, the payments and a **medical summary**, and the parts the owner ticks in *Settings → Access*. She books; the dentists do not. Her edits of patient data and visit times wait for the head of CIA's approval (at El Khadem: Dr. Amr's) |
 | Stock manager | `stock` | the stock of materials, instruments, food and beverage, and purchases |
 | Clinic manager (moderator) | `moderator` | the **Clinics** menu: how each doctor of CIC (and later the other clinics) is paid, the doctors' shares, payments to the doctors, and the clinic report |
-| Dr. Amr El Khadem (new) | `amr` | owner and manager of El Khadem, and a doctor there (prosthodontist): its **Clinics** menu (fee rules, doctors' prices, shares, report), the specialists' charts, referrals, the day planner, and he **approves the changes of El Khadem's reception** |
-| El Khadem reception (new) | `khadem` | the reception work of El Khadem only (Arabic): its patients, bookings in the 4 shared rooms, bills, payments, the referrals to book. No academy, no CIA or CIC patients |
-| El Khadem specialists (new) | `endo`, or no login | the endodontist, TMJ specialist, orthodontist, oral surgeon and prosthodontist: each with his specialty, his own prices, and his charts |
+| Dr. Amr El Khadem | `amr` | owner and manager of El Khadem, and a doctor there (prosthodontist): its **Clinics** menu (fee rules, doctors' prices, shares, report), the specialists' charts, referrals, the day planner, and he **approves the changes of El Khadem's reception** |
+| El Khadem reception | `khadem` | the reception work of El Khadem only (Arabic): its patients, bookings in the 4 shared rooms, bills, payments, the referrals to book. No academy, no CIA or CIC patients |
+| El Khadem specialists | `endo`, or no login | the endodontist, TMJ specialist, orthodontist, oral surgeon and prosthodontist: each with his specialty, his own prices, and his charts |
+| Head of the lab (new) | `lab_head` | the whole lab: every case, the **prices** of each client, the receipts and their cancelling, the costs, the **lab report** with the money, the lab's options |
+| Lab manager (new) | `lab_manager` | gives out the work (who designs, mills, finishes…), moves any case, sends work to another lab, the lab report without the money, the lab staff |
+| Lab secretary (new) | `lab_secretary` | the lab's reception (Arabic): receives the cases and prints their labels, checks in the work of our clinics, WhatsApp to the doctors and the **answer with the real status**, deliveries, receipts, the clients' accounts |
+| Lab designers (new) | `lab_designer` (e.g. CIA doctors), or no login | **My lab work**: the cases given to them; they finish their step and the case goes on. Technicians without a login are recorded by the manager |
 | CIC doctors | `dentist`, or no login | booked at CIC; the ones with a login see **My shares**. A doctor can work at CIA and CIC |
 | Supervisors | no login for now | chosen by name: on treatments, surgeries, plans and lab requests |
 | Course candidates | **no login** | followed through their dentist file: batch, payments, implants done and remaining, every case |
@@ -39,7 +43,60 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: El Khadem Dental Clinic (new)
+### New in this version: the dental lab, the dashboard, an easier system (new)
+The dental lab opens as the fourth place. Checklist: [docs/lab-test-checklist.md](docs/lab-test-checklist.md).
+- **The login page with the four places** (the owner's choice): one login page for every PC; tap your place (CIA,
+  CIC, El Khadem or the lab), the page takes its look and that place opens after logging in. The PC remembers the
+  last place tapped. Someone who does not work at the place tapped is told, and her own place opens.
+- **Clients and prices**: CIA, CIC and El Khadem are clients of the lab, each with **its own price list**, and every
+  outside clinic or doctor is a client on the outside list (or its own). *Lab prices* shows all the lists side by side.
+- **A case step by step**: the secretary **receives** a case (the client, the doctor and his mobile, the patient,
+  **digital scan or conventional impression**, what came with the work, the stage, the shade) with its work (zirconia,
+  e.max, PFM, printing, titanium milling, printed metal then milled, dentures, splints…); the price comes from the
+  client's list and the date promised from the usual days of the work. Each kind of work has its **steps**: e.g.
+  zirconia is designed, milled, sintered, stained and glazed, checked and ready; a conventional impression is poured
+  and scanned first. Print the **label** for the box and the **case sheet**.
+- **The manager gives out the work**: the **Lab board** has a column per step with every case, who has it, since when
+  and the date promised (late in red, urgent with a flame). *Done: go on to…* moves a case to its next step and to the
+  person who does it (by itself when only one person does that step); the person with a login is told. Any step can
+  be chosen (e.g. back to milling after the check), and a case can be **on hold** (it resumes the same step), **at the
+  clinic for a try-in**, or **at another lab** (what, the cost, back by).
+- **Designers** (mostly CIA doctors, with their own login) see **My lab work**, finish their step, and see the units
+  they designed this month and their fees (a fee per unit, set by the head).
+- **Remakes**: a remake opens a new case linked to the first, with **the reason** (fit, contacts, occlusion, shade,
+  fracture, design, impression…) and **whose fault** (the lab's own mistake is remade free). A clinic returning work
+  for a remake opens one by itself.
+- **Blocks and the lab's stock**: the lab's items (blocks and discs, liquids, stains and glaze, porcelain and bond,
+  resins, metal powders, plaster and acrylic, burs) belong to the lab in the shared stock. **Opening a block** takes it
+  out of stock; each case records the units milled from it; the report says **how many crowns each block gave** and the
+  cost per crown.
+- **Money**: each client's account (work delivered, paid, still owed, and the work still in the lab), **receipts**
+  (80 mm; cancelled with a reason, never deleted), a **statement** for any period (printed or its total on WhatsApp).
+- **The lab report**: cases received and delivered, **on time %**, late now, the **time of each step** (average,
+  middle, longest), from received to delivered **by kind of work**, each person's steps, time, units designed and the
+  remakes of their designs, the remakes by reason and fault, the blocks, the clients, and the money (work delivered,
+  received, materials used, other labs, designers' fees, **left for the lab**).
+- **WhatsApp from the lab**: one click tells the doctor the case was received (with its number), is ready, or left the
+  lab. **"Where is my case?"**: the secretary types the number or the doctor's mobile and the answer with the **real
+  status** is written for her. With the WhatsApp Business platform (optional) the lab **answers by itself** to a doctor
+  who sends a case number (see the limits).
+- **Our clinics and the lab**: a lab request sent to **our lab** waits there as *on the way* until the lab checks it
+  in; the request shows **where the work is at the lab**; the lab's price becomes the request's **lab cost**; when the
+  lab delivers, the clinic's reception is told.
+- **The universal lab request**: a blank A4 request to print for outside clinics, with every kind of work to tick.
+- **Dashboard** (owner, head of CIA, clinic managers): every place side by side for today, 7 days, this month or any
+  dates: bookings, visits finished, missed, new files, money (owner and managers), complaints, the lab; a column
+  chart of each day; and what waits for someone now (approvals, late lab work, complaints, low stock, passwords).
+- **Back goes up one page**: *Back* opens the page you came from, never a form already saved and never the same page
+  twice; the browser's own back button no longer shows a saved form again. A page opened from a notification goes
+  up one level (a case → the cases).
+- **Saving once**: a form sent shows *Saving…* and a second tap does nothing (no double bills or bookings on a slow
+  network). With SQLite (the trial and single-PC servers) pages keep opening while someone saves, and a save waits
+  for its turn instead of failing.
+- **Quicker pages**: pages show at once (the boxes no longer come in one after another), the lab board reads the
+  database once for all its cards, and every new page has a speed budget in the automatic tests.
+
+### Earlier: El Khadem Dental Clinic
 Dr. Amr El Khadem's private clinic is the third place (`PVT`, files `EK-…`). Checklist:
 [docs/khadem-test-checklist.md](docs/khadem-test-checklist.md).
 - **Its own place and reception**: El Khadem has its own patients, its own reception (Arabic) and 4 rooms. Its reception
@@ -91,8 +148,7 @@ Dr. Amr El Khadem's private clinic is the third place (`PVT`, files `EK-…`). C
   for El Khadem), a colour, a **logo** (top bar, login page and every printed paper), the file number prefix, a line
   under the name and an e-mail.
 - **The login page of a PC**: `/login/?place=EK` shows the place's own login page, and the PC remembers it; logging in
-  there opens that place for someone who works in more than one. How the reception logs in stays the owner's choice
-  (see the report).
+  there opens that place for someone who works in more than one (now a place to tap on the login page, see above).
 - **Shared**: the stock (each take-out still names its place) and the **two Fawry machines**. The reception is not
   shared: each place has its own.
 
@@ -425,7 +481,10 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (now also **El Khadem**: Dr. Amr, its reception, six specialists with their own prices and the 40% / 30% rules, eight `EK-…` patients (two brought by Dr. Tarek), a month of visits in the 4 shared rooms and today's and tomorrow's bookings, referrals, two endodontic cases, a TMJ examination with its follow-ups, an orthodontic case, a shade record and its lab request, and a full-rehabilitation treatment plan; also **X-rays and two CBCTs kept on the server and on a centre's viewer** for one patient, and a **backup history** with one failed night; **CIC**: three doctors paid in three ways, a month of CIC visits with bills and payments, some on the second Fawry machine, a payment to a doctor, CIC's own implants and drapes in stock, and each place's use of the shared stock; hints are on for every sample login; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
+This makes a **practice copy on your PC** with sample data (now also **the dental lab**: its head, manager, secretary
+and designers (Dr. Sherif of CIA designs too), four technicians without a login, CIA, CIC, El Khadem and three outside
+clinics with their price lists, the lab's stock and blocks, six weeks of cases in every step with the time of each
+step, two remakes, a case at another lab, one on hold and one at a try-in, receipts and WhatsApp messages; **El Khadem**: Dr. Amr, its reception, six specialists with their own prices and the 40% / 30% rules, eight `EK-…` patients (two brought by Dr. Tarek), a month of visits in the 4 shared rooms and today's and tomorrow's bookings, referrals, two endodontic cases, a TMJ examination with its follow-ups, an orthodontic case, a shade record and its lab request, and a full-rehabilitation treatment plan; also **X-rays and two CBCTs kept on the server and on a centre's viewer** for one patient, and a **backup history** with one failed night; **CIC**: three doctors paid in three ways, a month of CIC visits with bills and payments, some on the second Fawry machine, a payment to a doctor, CIC's own implants and drapes in stock, and each place's use of the shared stock; hints are on for every sample login; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.
 
 **Windows**
 1. Install **Python 3.12 or newer** from https://www.python.org/downloads/. On the first installer screen, tick **"Add python.exe to PATH"**.
@@ -451,10 +510,14 @@ This makes a **practice copy on your PC** with sample data (now also **El Khadem
    | `amr` | Dr. Amr El Khadem: a doctor at El Khadem and its manager | English |
    | `khadem` | El Khadem's reception (El Khadem only) | Arabic |
    | `endo` | Dr. Yasser Hamed, El Khadem's endodontist | English |
+   | `labhead` | Dr. Hossam, the head of the lab | English |
+   | `labmanager` | Eng. Karim, the lab manager who gives out the work | English |
+   | `labsec` | the lab's secretary | Arabic |
 
    The 4 course candidates (batch IMP-2026-A), the training dentist and the supervisors have no login, as agreed.
 
 5. Follow the checklists step by step:
+   - **[docs/lab-test-checklist.md](docs/lab-test-checklist.md)** for the dental lab and the login page with the places
    - **[docs/khadem-test-checklist.md](docs/khadem-test-checklist.md)** for El Khadem: its reception, Dr. Amr, the specialists and the printed papers
    - **[docs/cic-test-checklist.md](docs/cic-test-checklist.md)** for CIC: the secretary, the moderator, the owner and a CIC doctor
    - **[docs/secretary-test-checklist.md](docs/secretary-test-checklist.md)** for the secretary
@@ -531,8 +594,14 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   ```bash
   DJANGO_DEBUG=1 python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests apps.clinical.tests \
     apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests apps.prescriptions.tests \
-    apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests apps.surgery.tests apps.clinics.tests
+    apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests apps.surgery.tests apps.clinics.tests \
+    apps.specialties.tests apps.lab.tests
   ```
+- The dental lab is `apps/lab`: `models.py` (the steps `Step` and the usual road of each kind of work `ROUTES`,
+  `LabCase` with its items and steps, clients, price lists, workers, blocks, receipts, messages), `services.py` (every
+  change of a case: `start_case`, `move`, `next_step`, `assign`, `receive`, `make_remake`, `outsource`, the blocks,
+  `balances`; `case_from_request` / `clinic_received` link the clinics' lab requests), `stats.py` (the report),
+  `whatsapp.py` (the texts, the status answer and the WhatsApp Business webhook) and `demo.py` (the sample data).
 - Backups: `python manage.py backup` (the data ZIP into `BACKUP_DIR`, default `data/backups`, then the new files to
   `FILES_BACKUP_DIR`; each run is a `BackupRun`), `python manage.py restore_backup <zip>`, `python manage.py restore_files`,
   and `python manage.py organize_photos` (moves photos saved by older versions into the readable folders).

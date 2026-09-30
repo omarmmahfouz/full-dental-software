@@ -94,12 +94,12 @@ class KhademPlaceTests(KhademMixin, TestCase):
     def test_the_login_page_takes_the_look_of_the_place_of_this_device(self):
         self.client.logout()
         page = self.client.get("/login/?place=EK")
-        self.assertContains(page, "theme-elite")
+        self.assertContains(page, "login-page place-PVT theme-elite")
         self.assertContains(page, "khadem-mark.svg")
         self.assertEqual(page.cookies["device_place"].value, "PVT")
-        self.assertContains(self.client.get("/login/"), "theme-elite")  # remembered on this PC
+        self.assertContains(self.client.get("/login/"), "login-page place-PVT theme-elite")  # remembered on this PC
         self.client.cookies.pop("device_place")
-        self.assertNotContains(self.client.get("/login/"), "theme-elite")
+        self.assertNotContains(self.client.get("/login/"), "login-page place-PVT")
 
     def test_someone_logging_in_at_a_place_they_work_starts_there(self):
         owner = make_user("owner", "owner")

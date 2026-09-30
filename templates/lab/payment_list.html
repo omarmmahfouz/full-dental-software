@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab receipts" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-cash-coin"></i> {% trans "Lab receipts" %}</h1>
+  <a class="btn btn-success" href="{% url 'lab:payment_create' %}"><i class="bi bi-plus-lg"></i> {% trans "New receipt" %}</a></div>
+<form class="card card-body mb-3 no-print" method="get" data-no-leave-warning><div class="row g-2 align-items-end">
+  <div class="col-6 col-md-3"><label class="form-label">{% trans "From" %}</label>{{ form.date_from }}</div>
+  <div class="col-6 col-md-3"><label class="form-label">{% trans "To" %}</label>{{ form.date_to }}</div>
+  <div class="col-md-3"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Show" %}</button></div>
+</div></form>
+<div class="stat-minis mb-3">
+  <div class="stat-mini is-good"><span class="n">{{ total|money }}</span><span class="l">{% trans "Received" %}{% if date_from %} · {{ date_from|date:"d/m" }} → {{ date_to|date:"d/m"|default:"…" }}{% endif %}</span></div>
+  {% for label, amount in methods %}<div class="stat-mini"><span class="n">{{ amount|money }}</span><span class="l">{{ label }}</span></div>{% endfor %}
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "Receipt" %}</th><th>{% trans "Date" %}</th><th>{% trans "Client" %}</th><th>{% trans "Paid by" %}</th><th>{% trans "Received by" %}</th><th class="text-end">{% trans "Amount" %}</th></tr></thead>
+  <tbody>{% for p in page_obj %}<tr{% if p.is_cancelled %} class="text-decoration-line-through text-muted"{% endif %}><td><a href="{{ p.get_absolute_url }}">{{ p.number }}</a></td><td>{{ p.paid_on|date:"d/m/Y" }}</td><td>{{ p.client }}</td><td>{{ p.get_method_display }}</td><td>{{ p.received_by|default:"—" }}</td><td class="text-end">{{ p.amount|money }}</td></tr>{% empty %}<tr><td colspan="6" class="text-muted">{% trans "No receipts." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

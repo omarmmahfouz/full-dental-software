@@ -18,6 +18,7 @@ class StockGroup(models.TextChoices):
     BEVERAGE = "beverage", _("Beverage & hospitality")
     CLEANING = "cleaning", _("Cleaning")
     STATIONERY = "stationery", _("Stationery & printing")
+    LAB = "lab", _("Dental lab")
     OTHER = "other", _("Other")
 
 
@@ -31,6 +32,7 @@ GROUP_LOOK = {
     StockGroup.BEVERAGE: ("bi-cup-hot", "#a0632b"),
     StockGroup.CLEANING: ("bi-bucket", "#3b8bb0"),
     StockGroup.STATIONERY: ("bi-printer", "#58595B"),
+    StockGroup.LAB: ("bi-gem", "#7A4ED3"),
     StockGroup.OTHER: ("bi-box", "#868C93"),
 }
 
@@ -40,6 +42,9 @@ class StockCategory(LookupModel):
 
     group = models.CharField(_("group"), max_length=20, choices=StockGroup.choices, default=StockGroup.OTHER,
                              db_index=True)
+    lab_blocks = models.BooleanField(
+        _("blocks or discs followed one by one"), default=False,
+        help_text=_("The lab opens each block (zirconia, e.max, PMMA...) and counts the units made from it."))
 
     class Meta(LookupModel.Meta):
         verbose_name = _("stock category")

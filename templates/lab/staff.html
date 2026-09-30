@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab staff" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-person-gear"></i> {% trans "Lab staff" %}</h1>
+  <a class="btn btn-primary" href="{% url 'lab:worker_create' %}"><i class="bi bi-plus-lg"></i> {% trans "Add a person" %}</a></div>
+<p class="text-muted">{% trans "Designers (mostly CIA doctors), technicians and the head of the lab. With a login they see their own work and are told when a case is given to them; without one, the manager records their steps." %}</p>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Works on" %}</th><th>{% trans "Login" %}</th><th class="text-end">{% trans "Cases with them now" %}</th></tr></thead>
+  <tbody>{% for w in workers %}<tr{% if not w.is_active %} class="text-muted"{% endif %}><td><a href="{% url 'lab:worker_edit' w.pk %}" class="fw-semibold">{{ w.name }}</a></td><td class="small">{{ w.job_labels|join:", "|default:"—" }}</td><td>{{ w.user|default:"—" }}</td><td class="text-end"><a href="{% url 'lab:board' %}?worker={{ w.pk }}">{{ w.open_cases }}</a></td></tr>
+  {% empty %}<tr><td colspan="4" class="text-muted">{% trans "Nobody yet." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

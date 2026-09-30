@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "My lab work" %}{% endblock %}
+{% block content %}
+{% get_current_language_bidi as LANGUAGE_BIDI %}
+<div class="page-header"><h1><i class="bi bi-person-workspace"></i> {% trans "My lab work" %}</h1>
+  <a class="btn btn-outline-secondary" href="{% url 'lab:board' %}"><i class="bi bi-kanban"></i> {% trans "Lab board" %}</a></div>
+<div class="stat-minis mb-3">
+  <div class="stat-mini"><span class="n">{{ cases|length }}</span><span class="l">{% trans "With me now" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ designed }}</span><span class="l">{% trans "Units I designed this month" %}</span></div>
+  {% if worker.fee_per_unit %}<div class="stat-mini is-good"><span class="n">{{ fee|money }}</span><span class="l">{% trans "My design fees this month" %}</span></div>{% endif %}
+</div>
+<div class="lab-board mb-4">
+  {% for case in cases %}{% include "lab/_card.html" %}{% empty %}<div class="text-muted">{% trans "Nothing with you now." %}</div>{% endfor %}
+</div>
+<div class="card"><div class="card-header"><i class="bi bi-clock-history"></i> {% trans "What I finished lately" %}</div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>{% trans "Case" %}</th><th>{% trans "Step" %}</th><th>{% trans "From" %}</th><th>{% trans "To" %}</th></tr></thead>
+    <tbody>{% for s in done %}<tr><td><a href="{{ s.case.get_absolute_url }}" class="ltr">{{ s.case.number }}</a> · {{ s.case.client }}</td><td>{{ s.get_step_display }}</td><td>{{ s.started_at|date:"d/m g:i A" }}</td><td>{{ s.done_at|date:"d/m g:i A" }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">{% trans "Nothing yet." %}</td></tr>{% endfor %}</tbody>
+  </table></div></div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% load i18n clinic %}<div class="lab-card place-{{ case.client.branch.code|default:'none' }}{% if case.late %} is-late{% endif %}">
+  <div class="d-flex align-items-start gap-2">
+    <a class="num ltr" href="{{ case.get_absolute_url }}">{{ case.number }}</a>
+    {% if case.urgent %}<i class="bi bi-fire urgent-mark" data-tip="{% trans 'Urgent' %}" title="{% trans 'Urgent' %}"></i>{% endif %}
+    {% if case.remake_of_id %}<span class="badge text-bg-warning">{% trans "Remake" %}</span>{% endif %}
+    <span class="lab-step-chip step-{{ case.step }} ms-auto small"><i class="bi {{ case.step_icon }}"></i></span>
+  </div>
+  <div class="who">{{ case.client }}{% if case.doctor %} · {{ case.doctor }}{% endif %}{% if case.patient_name %} · {{ case.patient_name }}{% endif %}</div>
+  <div class="work">{{ case.work_summary }}</div>
+  <div class="meta">
+    <span><i class="bi bi-clock"></i> {{ case.get_step_display }} · {{ case.step_since|timesince }}</span>
+    {% if case.worker %}<span><i class="bi bi-person"></i> {{ case.worker }}</span>{% elif case.step in work_steps %}<span class="text-warning-emphasis"><i class="bi bi-person-dash"></i> {% trans "nobody yet" %}</span>{% endif %}
+    {% if case.due_date %}<span class="{% if case.late %}late{% endif %}"><i class="bi bi-calendar-event"></i> {{ case.due_date|date:"D d/m" }}</span>{% endif %}
+  </div>
+  {% if case.step == "incoming" %}{% if is_lab_desk %}<a class="btn btn-sm btn-outline-primary w-100 mt-2" href="{{ case.get_absolute_url }}"><i class="bi bi-inbox"></i> {% trans "Check it in" %}</a>{% endif %}
+  {% elif case.can_next %}<form method="post" action="{% url 'lab:case_move' case.pk %}" data-no-leave-warning>{% csrf_token %}
+    <input type="hidden" name="to_step" value="{{ case.next }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-arrow-{% if LANGUAGE_BIDI %}left{% else %}right{% endif %}-circle"></i> {{ case.next_label }}</button></form>{% endif %}
+</div>

@@ -95,5 +95,52 @@ def fill(patients=10_000, visits_per_patient=6, bills_per_patient=3, photos_per_
                                         file=f"Patient photos/test/{rng.randint(1, 10**9)}.jpg",
                                         taken_on=today - timedelta(days=rng.randint(0, days))))
         ClinicalPhoto.objects.bulk_create(photos, batch_size=2000)
+        lab_cases = fill_lab(rng, patients // 5, today, days)
     return {"patients": len(new), "visits": len(visits), "bills": len(bills), "services": len(charges),
-            "payments": len(payments), "photos": len(photos)}
+            "payments": len(payments), "photos": len(photos), "lab cases": lab_cases}
+
+
+def fill_lab(rng, count, today, days):
+    """Cases of the dental lab (one for five patients): most delivered with their steps, the rest in every step."""
+    from apps.clinical.models import LabWorkType
+    from apps.core.models import Branch
+    from apps.lab.models import ROUTES, LabCase, LabCaseItem, LabCaseStep, LabClient, LabPayment
+
+    work_types = list(LabWorkType.objects.filter(is_active=True))
+    if not work_types or not count:
+        return 0
+    clients = list(LabClient.objects.all()) or [
+        LabClient.objects.create(name="Big data clinic"),
+        *[LabClient.objects.create(name=place.name_ar, kind=LabClient.Kind.PLACE, branch=place)
+          for place in Branch.objects.exclude(kind=Branch.Kind.LAB).exclude(lab_client__isnull=False)[:3]]]
+    now = timezone.now()
+    cases, plans = [], []
+    for n in range(count):
+        work = rng.choice(work_types)
+        route = [str(step) for step in ROUTES.get(work.category, ROUTES["other"])]
+        received = now - timedelta(days=rng.randint(0, days), hours=rng.randint(0, 8))
+        open_at = rng.randint(0, len(route)) if n % 10 == 0 else len(route)  # one in ten still at the lab
+        step = route[open_at] if open_at < len(route) else "delivered"
+        cases.append(LabCase(number=f"LX-{n:06d}", client=rng.choice(clients), patient_name=rng.choice(FIRST),
+                             received_at=received, step=step, route=route, step_since=received,
+                             due_date=timezone.localdate(received) + timedelta(days=7),
+                             delivered_at=received + timedelta(days=3) if step == "delivered" else None,
+                             total=Decimal(rng.choice([800, 1200, 1800, 3000]))))
+        plans.append((work, route[:open_at + 1], received))
+    LabCase.objects.bulk_create(cases, batch_size=1000)
+    made = list(LabCase.objects.filter(number__in=[c.number for c in cases]).order_by("pk"))
+    items, steps = [], []
+    for case, (work, route, received) in zip(made, plans):
+        items.append(LabCaseItem(case=case, work_type=work, units=rng.randint(1, 3), unit_price=Decimal("600")))
+        moment = received
+        for number, step in enumerate(route):
+            done = moment + timedelta(hours=rng.uniform(1, 12))
+            last = number == len(route) - 1 and case.step != "delivered"
+            steps.append(LabCaseStep(case=case, step=step, started_at=moment, done_at=None if last else done))
+            moment = done
+    LabCaseItem.objects.bulk_create(items, batch_size=2000)
+    LabCaseStep.objects.bulk_create(steps, batch_size=2000)
+    LabPayment.objects.bulk_create([LabPayment(number=f"LX{n:06d}", client=rng.choice(clients), amount=Decimal("1000"),
+                                               paid_on=today - timedelta(days=rng.randint(0, days)))
+                                    for n in range(count // 3)], batch_size=2000)
+    return len(made)

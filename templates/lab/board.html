@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab board" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-kanban"></i> {% trans "Lab board" %}</h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    {% if user|has_role:"owner,lab_head,lab_manager,lab_secretary" %}<a class="btn btn-primary" href="{% url 'lab:case_create' %}"><i class="bi bi-inbox"></i> {% trans "Receive a case" %}</a>
+    {% if numbers.incoming %}<a class="btn btn-outline-primary" href="{% url 'lab:incoming' %}"><i class="bi bi-truck"></i> {% trans "On the way from our clinics" %} <span class="badge rounded-pill text-bg-primary">{{ numbers.incoming }}</span></a>{% endif %}{% endif %}
+    {% if me %}<a class="btn btn-outline-secondary" href="{% url 'lab:my_work' %}"><i class="bi bi-person-workspace"></i> {% trans "My lab work" %}{% if numbers.mine %} <span class="badge rounded-pill text-bg-secondary">{{ numbers.mine }}</span>{% endif %}</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="{% url 'lab:case_list' %}"><i class="bi bi-list-ul"></i> {% trans "All cases" %}</a>
+  </div>
+</div>
+<div class="stat-minis mb-3">
+  <div class="stat-mini"><span class="n">{{ numbers.received_today }}</span><span class="l">{% trans "Received today" %}</span></div>
+  <div class="stat-mini{% if numbers.to_give_out %} is-warn{% endif %}"><span class="n">{{ numbers.to_give_out }}</span><span class="l">{% trans "To give out" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ numbers.in_work }}</span><span class="l">{% trans "In work" %}</span></div>
+  <div class="stat-mini{% if numbers.unassigned %} is-warn{% endif %}"><span class="n">{{ numbers.unassigned }}</span><span class="l">{% trans "Steps with nobody" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ numbers.due_today }}</span><span class="l">{% trans "Due today" %}</span></div>
+  <a class="stat-mini{% if numbers.late %} is-warn{% endif %}" href="?late=1"><span class="n">{{ numbers.late }}</span><span class="l">{% trans "Late" %}</span></a>
+  <div class="stat-mini is-good"><span class="n">{{ numbers.ready }}</span><span class="l">{% trans "Ready to deliver" %}</span></div>
+  <div class="stat-mini"><span class="n">{{ numbers.remakes_month }}</span><span class="l">{% trans "Remakes this month" %}</span></div>
+</div>
+<form class="card card-body mb-3 no-print" method="get" data-no-leave-warning>
+  <div class="row g-2 align-items-end">
+    <div class="col-sm-6 col-lg-3"><label class="form-label small">{% trans "Person" %}</label>
+      <select class="form-select form-select-sm" name="worker"><option value="">{% trans "Everyone" %}</option>{% for w in workers %}<option value="{{ w.pk }}"{% if filters.worker == w.pk|stringformat:"s" %} selected{% endif %}>{{ w }}</option>{% endfor %}</select></div>
+    <div class="col-sm-6 col-lg-3"><label class="form-label small">{% trans "Client" %}</label>
+      <select class="form-select form-select-sm" name="client"><option value="">{% trans "All clients" %}</option>{% for c in clients %}<option value="{{ c.pk }}"{% if filters.client == c.pk|stringformat:"s" %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    <div class="col-auto"><div class="form-check"><input class="form-check-input" type="checkbox" name="late" value="1" id="late"{% if filters.late %} checked{% endif %}><label class="form-check-label" for="late">{% trans "Late only" %}</label></div></div>
+    <div class="col-auto"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-funnel"></i> {% trans "Show" %}</button> {% if filters.worker or filters.client or filters.late %}<a class="btn btn-sm btn-link" href="{% url 'lab:board' %}">{% trans "Clear" %}</a>{% endif %}</div>
+  </div>
+</form>
+{% get_current_language_bidi as LANGUAGE_BIDI %}
+<div class="lab-board">
+  {% for col in columns %}
+  <section class="lab-col step-{{ col.key }}">
+    <div class="lab-col-head"><i class="bi {{ col.icon }}"></i> {{ col.title }} <span class="count">{{ col.cases|length }}</span></div>
+    {% for case in col.cases %}{% include "lab/_card.html" with work_steps=work_steps %}{% empty %}<div class="lab-col-empty">{% trans "Nothing here." %}</div>{% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

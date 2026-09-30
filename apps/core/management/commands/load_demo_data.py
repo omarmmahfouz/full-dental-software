@@ -55,7 +55,7 @@ from apps.surgery.views import complete_plan_for_surgery, update_chart_for_surge
 
 STOCK_LIST = Path(__file__).resolve().parents[3] / "stock" / "data" / "cia_material_instrument_list.csv"
 DEMO_USERS = ["owner", "headcia", "teamhead", "dentist1", "dentist2", "secretary", "secretary2", "stock", "moderator",
-              "cicdoctor", "amr", "khadem", "endo"]
+              "cicdoctor", "amr", "khadem", "endo", "labhead", "labmanager", "labsec"]
 
 FIRST = ["محمد", "أحمد", "محمود", "مصطفى", "علي", "حسن", "إبراهيم", "يوسف", "سارة", "منى", "هبة", "فاطمة", "نادية", "سعاد", "أمل"]
 LAST = ["عبد الله", "السيد", "حسين", "عبد الرحمن", "إبراهيم", "مصطفى", "الشريف", "عثمان", "سليمان", "فؤاد"]
@@ -674,12 +674,16 @@ class Command(BaseCommand):
         from apps.specialties.demo import load_khadem
 
         load_khadem(today, at, user, secretary, stock_user, owner, {t.name_en: t for t in TreatmentStepType.objects.all()})
+        from apps.lab.demo import load_lab
+
+        load_lab(today, at, user, owner)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
             "CIA dentists team), dentist1 and dentist2 (CIA dentists), secretary, secretary2 (reception without the "
             "academy), stock (stock manager), moderator (CIC clinic manager), cicdoctor (a CIC doctor), amr (Dr. Amr "
-            "El Khadem), khadem (El Khadem's reception), endo (El Khadem's endodontist). "
+            "El Khadem), khadem (El Khadem's reception), endo (El Khadem's endodontist), labhead, labmanager and "
+            "labsec (the dental lab; dentist2 also designs for the lab). "
             "Candidates, training dentists and supervisors have no login."
         ))
 

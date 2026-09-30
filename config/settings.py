@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.clinics",
     "apps.specialties",
+    "apps.lab",
 ]
 
 MIDDLEWARE = [
@@ -147,6 +148,14 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": SQLITE_PATH,
+            # Several PCs saving at once: the pages keep reading while one saves (WAL), a save takes its turn at
+            # once instead of failing half way ("database is locked"), and waits up to 20 s for the one before.
+            "OPTIONS": {
+                "timeout": 20,
+                "transaction_mode": "IMMEDIATE",
+                "init_command": "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA temp_store=MEMORY; "
+                                "PRAGMA cache_size=-32000",
+            },
         }
     }
 

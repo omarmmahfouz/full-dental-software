@@ -1,11 +1,12 @@
 from django.urls import path
 
-from . import approvals, problems, views
+from . import approvals, overview, problems, views
 
 app_name = "core"
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("dashboard/", overview.overview, name="overview"),
     path("notifications/", views.notification_list, name="notifications"),
     path("approvals/", approvals.approval_list, name="approvals"),
     path("approvals/<int:pk>/", approvals.approval_decide, name="approval_decide"),

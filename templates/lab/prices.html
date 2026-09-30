@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab prices" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-tags"></i> {% trans "Lab prices" %}</h1></div>
+<p class="text-muted">{% trans "One column per price list: CIA, CIC and El Khadem each have theirs, and the outside clinics theirs. Each client of the lab uses one list. An empty box = no price (it is typed on the case)." %}</p>
+<form method="post">{% csrf_token %}
+<div class="card mb-3"><div class="table-responsive"><table class="table table-sm align-middle mb-0 price-grid">
+  <thead><tr><th>{% trans "Work" %}</th>{% for pl in lists %}<th>{{ pl.name }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for row in rows %}<tr><td>{{ row.work_type }}<div class="small text-muted">{{ row.work_type.get_category_display }} · {{ row.work_type.get_unit_display }}</div></td>
+    {% for pl, price in row.cells %}<td><input class="form-control form-control-sm" name="p-{{ pl.pk }}-{{ row.work_type.pk }}" value="{% if price %}{{ price.price|floatformat:'-2' }}{% endif %}" inputmode="decimal" aria-label="{{ pl.name }} · {{ row.work_type }}"></td>{% endfor %}</tr>{% endfor %}</tbody>
+</table></div></div>
+<button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save the prices" %}</button>
+</form>
+<div class="row g-3 mt-2">
+  <div class="col-lg-6"><div class="card"><div class="card-header"><i class="bi bi-plus-circle"></i> {% trans "Add a price list" %}</div><div class="card-body">
+    <form method="post" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="add_list" value="1">
+      {% with form=list_form %}{% include "includes/form_fields.html" %}{% endwith %}
+      <button class="btn btn-outline-primary mt-3">{% trans "Add" %}</button></form>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-header"><i class="bi bi-buildings"></i> {% trans "Who uses which list" %}</div><ul class="list-group list-group-flush">
+    {% for c in clients %}<li class="list-group-item d-flex justify-content-between"><a href="{% url 'lab:client_edit' c.pk %}">{{ c }}</a><span class="text-muted">{{ c.price_list|default:"—" }}</span></li>{% endfor %}
+  </ul></div></div>
+</div>
+{% endblock %}

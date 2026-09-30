@@ -105,3 +105,10 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
 36. As **secretary** (CIA and CIC): El Khadem's patients never show, and the place switch offers CIA and CIC only.
 37. Printed bills and papers of CIC keep CIC's name, phone and address; the place's look is set in *Settings → Places*
     (CIC stays *standard*; a logo can be uploaded there).
+
+## J. New in this version (9): the lab and the dashboard
+38. **Login page**: tap **CIC**: the page turns blue, and the secretary starts at CIC after logging in.
+39. As **moderator**, **Dashboard** (menu or the button on the home page): CIC side by side with the places he manages,
+    for today, 7 days or this month, with the money paid and a column for each day.
+40. The lab has **CIC's own price list** (*Lab prices*, as `labhead`): CIC's lab requests sent to our lab take it, and
+    it becomes the request's **lab cost**. See [lab-test-checklist.md](lab-test-checklist.md), section F.

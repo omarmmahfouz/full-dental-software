@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Statement" %} · {{ client }}{% endblock %}
+{% block body_class %}paper-page{% endblock %}
+{% block content %}
+<form class="card card-body mb-3 no-print" method="get" data-no-leave-warning><div class="row g-2 align-items-end">
+  <div class="col-6 col-md-3"><label class="form-label">{% trans "From" %}</label>{{ form.date_from }}</div>
+  <div class="col-6 col-md-3"><label class="form-label">{% trans "To" %}</label>{{ form.date_to }}</div>
+  <div class="col-md-6 d-flex flex-wrap gap-2"><button class="btn btn-outline-primary"><i class="bi bi-funnel"></i> {% trans "Show" %}</button>
+    <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button></div>
+</div></form>
+<form method="post" class="no-print mb-3" target="_blank" data-no-leave-warning>{% csrf_token %}<button class="btn btn-success" formaction="?date_from={{ date_from|date:'d/m/Y' }}&amp;date_to={{ date_to|date:'d/m/Y' }}"><i class="bi bi-whatsapp"></i> {% trans "Send the total on WhatsApp" %}</button></form>
+<div class="paper"><div class="place-{{ place.code }}">
+  {% include "includes/place_letterhead.html" %}
+  <div class="doc-title mt-3">{% trans "Account statement" %}</div>
+  <div class="mb-3"><b>{{ client }}</b>{% if client.contact %} · {{ client.contact }}{% endif %} · {{ date_from|date:"d/m/Y" }} → {{ date_to|date:"d/m/Y" }}</div>
+  <table class="table table-sm paper-table">
+    <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Case" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Work" %}</th><th class="text-end">{% trans "Work" %}</th><th class="text-end">{% trans "Paid" %}</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4"><b>{% trans "Balance before" %}</b></td><td class="text-end" colspan="2"><b>{{ opening|money }}</b></td></tr>
+      {% for case in cases %}<tr><td>{{ case.delivered_at|date:"d/m/Y" }}</td><td class="ltr">{{ case.number }}</td><td>{{ case.patient_name }}</td><td>{{ case.work_summary }}{% if case.remake_of_id %} ({% trans "remake" %}){% endif %}</td><td class="text-end">{{ case.total|money }}</td><td></td></tr>{% endfor %}
+      {% for p in payments %}<tr><td>{{ p.paid_on|date:"d/m/Y" }}</td><td>{{ p.number }}</td><td colspan="2">{% trans "Payment" %} · {{ p.get_method_display }}</td><td></td><td class="text-end">{{ p.amount|money }}</td></tr>{% endfor %}
+    </tbody>
+    <tfoot class="paper-total"><tr><th colspan="4">{% trans "Totals" %}</th><th class="text-end">{{ cases_total|money }}</th><th class="text-end">{{ paid_total|money }}</th></tr>
+      <tr><th colspan="4">{% trans "Balance owed" %}</th><th class="text-end" colspan="2">{{ closing|money }}</th></tr></tfoot>
+  </table>
+</div></div>
+{% endblock %}

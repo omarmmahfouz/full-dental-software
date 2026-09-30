@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Lab WhatsApp" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-whatsapp"></i> {% trans "Lab WhatsApp" %}</h1>
+  {% if user|has_role:"owner,lab_head" %}<a class="btn btn-outline-secondary" href="{% url 'lab:settings' %}"><i class="bi bi-gear"></i> {% trans "Texts and the automatic answer" %}</a>{% endif %}</div>
+<div class="card mb-3"><div class="card-header"><i class="bi bi-question-circle"></i> {% trans "A doctor asks: where is my case?" %}</div><div class="card-body">
+  <form method="get" class="d-flex flex-wrap gap-2" data-no-leave-warning>
+    <input class="form-control" style="max-width: 24rem" name="q" value="{{ query }}" placeholder="{% trans 'Case number (e.g. 123) or the doctor mobile' %}" data-digits autofocus>
+    <button class="btn btn-primary"><i class="bi bi-search"></i> {% trans "Find" %}</button>
+  </form>
+  {% if query %}
+  <div class="row g-3 mt-1">
+    {% for row in found %}
+    <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+      <div class="d-flex align-items-center gap-2 mb-2"><a href="{{ row.case.get_absolute_url }}" class="fw-bold ltr">{{ row.case.number }}</a><span class="lab-step-chip step-{{ row.case.step }}"><i class="bi {{ row.case.step_icon }}"></i> {{ row.case.get_step_display }}</span></div>
+      <pre class="small bg-light p-2 rounded mb-2" dir="rtl" style="white-space: pre-wrap">{{ row.text }}</pre>
+      <form method="post" action="{% url 'lab:whatsapp_answer' row.case.pk %}" target="_blank" class="d-flex flex-wrap gap-2" data-no-leave-warning>{% csrf_token %}
+        <input class="form-control form-control-sm ltr" style="max-width: 12rem" name="phone" value="{{ row.phone }}" placeholder="{% trans 'Mobile' %}" data-digits>
+        <button class="btn btn-sm btn-success"><i class="bi bi-whatsapp"></i> {% trans "Send this answer" %}</button>
+      </form>
+    </div></div></div>
+    {% empty %}<div class="col-12 text-muted">{% trans "No case found." %}</div>{% endfor %}
+  </div>
+  {% endif %}
+</div></div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-send"></i> {% trans "To send" %}</div>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <tbody>{% for case, kind, label in to_send %}<tr><td class="text-nowrap"><a href="{{ case.get_absolute_url }}" class="ltr">{{ case.number }}</a></td><td>{{ case.client }}{% if case.doctor %} · {{ case.doctor }}{% endif %}</td><td>{{ label }}</td>
+      <td class="text-end">{% if case.whatsapp_phone %}<form method="post" action="{% url 'lab:case_whatsapp' case.pk kind %}" target="_blank" data-no-leave-warning onsubmit="setTimeout(function(){location.reload()}, 1500)">{% csrf_token %}<button class="btn btn-sm btn-success"><i class="bi bi-whatsapp"></i> {% trans "Send" %}</button></form>{% else %}<span class="small text-muted">{% trans "no mobile" %}</span>{% endif %}</td></tr>
+    {% empty %}<tr><td class="text-muted">{% trans "Nothing to send now." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-robot"></i> {% trans "The automatic answer" %}</div><div class="card-body small">
+  {% if options.auto_reply %}<span class="badge text-bg-success">{% trans "On" %}</span> {% trans "A doctor who sends a case number to the lab's WhatsApp gets its real status by itself." %}
+  {% else %}<span class="badge text-bg-secondary">{% trans "Off" %}</span> {% trans "The answers are sent from this page in one click. The automatic answer needs the WhatsApp Business platform of Meta and the server reachable from the internet (Settings of the lab)." %}{% endif %}
+</div></div>
+
+<div class="card"><div class="card-header"><i class="bi bi-clock-history"></i> {% trans "Sent lately" %}</div>
+  <div class="table-responsive"><table class="table table-sm mb-0"><tbody>
+    {% for m in sent %}<tr><td class="text-nowrap">{{ m.sent_at|date:"d/m g:i A" }}</td><td>{% if m.case %}<a href="{{ m.case.get_absolute_url }}" class="ltr">{{ m.case.number }}</a>{% endif %}</td><td>{{ m.get_kind_display }}</td><td class="ltr">{{ m.phone }}</td><td>{{ m.by|default:_("automatic") }}</td></tr>
+    {% empty %}<tr><td class="text-muted">{% trans "Nothing sent yet." %}</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endblock %}

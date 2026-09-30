@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ payment.number }}{% endblock %}
+{% block extra_head %}<style>@media print { @page { size: 80mm auto; margin: 2mm; } main { max-width: none !important; } }</style>{% endblock %}
+{% block content %}
+<div class="receipt-80{% if payment.is_cancelled %} is-cancelled{% endif %}" id="receipt">
+  <div class="text-center receipt-head">
+    {% include "includes/place_letterhead.html" %}
+    <div class="receipt-title">{% trans "Lab receipt" %}</div>
+  </div>
+  {% if payment.is_cancelled %}<div class="receipt-stamp">{% trans "CANCELLED" %}</div>{% endif %}
+  <table class="receipt-lines">
+    <tr><th>{% trans "Receipt number" %}</th><td class="fw-bold">{{ payment.number }}</td></tr>
+    <tr><th>{% trans "Date" %}</th><td>{{ payment.paid_on|date:"d/m/Y" }} {{ payment.created_at|date:"g:i A" }}</td></tr>
+    <tr><th>{% trans "Received from" %}</th><td>{{ payment.client }}{% if payment.client.contact %}<br>{{ payment.client.contact }}{% endif %}</td></tr>
+    <tr class="receipt-amount"><th>{% trans "Amount" %}</th><td>{{ payment.amount|money }} {{ CLINIC.CURRENCY }}</td></tr>
+    <tr><th>{% trans "Payment method" %}</th><td>{{ payment.get_method_display }}{% if payment.reference %}<br><span class="ltr">#{{ payment.reference }}</span>{% endif %}</td></tr>
+    <tr><th>{% trans "Still owed" %}</th><td>{{ balance|money }} {{ CLINIC.CURRENCY }}</td></tr>
+    {% if payment.notes %}<tr><th>{% trans "Notes" %}</th><td>{{ payment.notes }}</td></tr>{% endif %}
+    <tr><th>{% trans "Received by" %}</th><td>{{ payment.received_by|default:"—" }}</td></tr>
+    {% if payment.is_cancelled %}<tr><th>{% trans "Cancelled" %}</th><td>{{ payment.cancelled_at|date:"d/m/Y g:i A" }} · {{ payment.cancelled_by }}<br>{{ payment.cancel_reason }}</td></tr>{% endif %}
+  </table>
+  <div class="receipt-foot">{% trans "Signature" %}: ______________</div>
+</div>
+<div class="d-flex flex-wrap justify-content-center gap-2 mt-3 no-print">
+  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print (80 mm)" %}</button>
+  <button class="btn btn-outline-primary" data-save-as="jpeg" data-save-target="#receipt" data-save-name="{{ payment.number }}"><i class="bi bi-image"></i> {% trans "Save as a picture" %}</button>
+  <a class="btn btn-outline-secondary" href="{{ payment.client.get_absolute_url }}"><i class="bi bi-building"></i> {{ payment.client }}</a>
+</div>
+{% if can_cancel %}
+<div class="card mt-4 mx-auto no-print" style="max-width: 32rem"><div class="card-body">
+  <form method="post" action="{% url 'lab:payment_cancel' payment.pk %}" class="d-flex flex-wrap gap-2">{% csrf_token %}
+    <input class="form-control" name="reason" required placeholder="{% trans 'Why is it cancelled?' %}">
+    <button class="btn btn-outline-danger" data-confirm="{% trans 'Cancel this receipt? It stays in the list, crossed out.' %}"><i class="bi bi-x-circle"></i> {% trans "Cancel the receipt" %}</button>
+  </form>
+</div></div>
+{% endif %}
+{% endblock %}

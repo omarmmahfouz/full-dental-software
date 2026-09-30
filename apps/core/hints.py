@@ -6,12 +6,16 @@ their browser) or switch all hints off from the user menu (kept on their profile
 
 from django.utils.translation import gettext_lazy as _
 
-from .roles import DENTISTS, FRONT_DESK, STOCK, has_role
+from .roles import DENTISTS, FRONT_DESK, LAB_DESK, LAB_STAFF, STOCK, has_role
 
-ROLE_GROUPS = {"front_desk": FRONT_DESK, "dentist": DENTISTS, "stock": (STOCK,)}
+ROLE_GROUPS = {"front_desk": FRONT_DESK, "dentist": DENTISTS, "stock": (STOCK,), "lab_desk": LAB_DESK[1:],
+               "lab": LAB_STAFF[1:]}
 
 HINTS = {
     "core:dashboard": {
+        "lab_desk": _("The lab's day: receive a case, check in the work coming from our clinics, and tell the doctors "
+                      "on WhatsApp. The numbers open the lists behind them."),
+        "lab": _("The cases given to you are under With me now. Open one and press Done when your step is finished."),
         "front_desk": _("Start here: find a patient with the search box, or tap a big button. "
                         "Below them you see who comes next and who is waiting."),
         "dentist": _("Your week is below: tap a patient to open the visit page. "
@@ -145,6 +149,33 @@ HINTS = {
     "specialties:ortho": _("Add each adjustment visit: the wires of the last visit are filled in, change what is new."),
     "specialties:shade": _("The shade of each third of the tooth for the ceramist. Tap Lab request to send it with "
                            "the work."),
+    # The dashboard and the dental lab
+    "core:overview": _("Every place side by side. Choose today, 7 days or this month; rest the mouse on a column to "
+                       "see its number, or open Show the numbers."),
+    "lab:board": {
+        "lab_desk": _("One column per step. Press the button under a case when its step is done: it goes on to the "
+                      "next step, and to the person who does it."),
+        "default": _("One column per step. The cases with you have your name; press Done when your step is "
+                     "finished."),
+    },
+    "lab:case_create": _("Choose the client and write the work: the price comes from the client's price list and the "
+                         "steps from the kind of work. Then print the label for the box."),
+    "lab:incoming": _("Work sent by CIA, CIC or El Khadem. When it arrives, tick what came with it and press "
+                      "Received."),
+    "lab:case_detail": _("The big button moves the case to its next step. The bars show how long each step took. A "
+                         "remake opens a new case linked to this one."),
+    "lab:my_work": _("The cases given to you. Press the button when your step is finished: the next person is told."),
+    "lab:blocks": _("Open a new block when you start it: then record on each case how many units were milled from "
+                    "it, and close the block when it is finished."),
+    "lab:clients": _("Each client with what was delivered, paid and still owed. Open one for its cases, receipts and "
+                     "statement."),
+    "lab:prices": _("Type the prices of each list and press Save. An empty box means no price for that work."),
+    "lab:payments": _("Every receipt of the lab. A mistake is cancelled with its reason (never deleted)."),
+    "lab:report": _("The time each step takes, the people, the remakes and their reasons, the blocks and the money. "
+                    "Change the dates to compare months."),
+    "lab:whatsapp": _("Type the case number or the doctor's mobile: the answer with the real status is written for "
+                      "you. Press Send, then send it in WhatsApp."),
+    "lab:staff": _("Tick the steps each person does: a case goes by itself to the only person who does a step."),
 }
 
 

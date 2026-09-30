@@ -35,5 +35,6 @@ urlpatterns = [
     path("reports/", include("apps.reports.urls")),
     path("clinics/", include("apps.clinics.urls")),
     path("specialists/", include("apps.specialties.urls")),
+    path("lab/", include("apps.lab.urls")),
     path("settings/", include("apps.core.settings_urls")),
 ]

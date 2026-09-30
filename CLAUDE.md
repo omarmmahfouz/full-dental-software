@@ -6,8 +6,8 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - A Django system for the **Cairo Implant Academy (CIA)** and **CIC, the Cairo Implant Center** (a private economical
   clinic, mainly implants, whose many doctors are paid by percentage or fixed amounts), and **El Khadem Dental Clinic**
   (the `PVT` branch, files `EK-…`): Dr. Amr El Khadem's private clinic with specialists, doctors who bring their own
-  patients (40%) or get the clinic's (30%), after the lab / implant cost, and 4 shared rooms. The dental lab (`LAB`)
-  comes next; its branch already exists.
+  patients (40%) or get the clinic's (30%), after the lab / implant cost, and 4 shared rooms; and the **dental lab**
+  (`LAB`, cases `LAB-…`, `apps/lab`), which works for the three places and outside clinics, each with its own prices.
 - It runs **on the clinic's own server or PC**, with no cloud. Fonts, icons and scripts are in `static/vendor`, so it works offline.
 - The owner sends **numbered lists of changes** ("rounds"). For each round:
   1. Build every point.
@@ -24,8 +24,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - The owner writes quick English with typos. Answer in plain English, and ask only when truly blocked.
 - Decisions already taken:
   - Supervisors, course candidates and training dentists **do not log in**; they are chosen by name.
-  - The owner is still deciding how the reception logs in (one login page per PC with `?place=EK`, or a place
-    chooser); ask before changing the login flow.
+  - The login (decided in round 9): one login page with a tile for each place (CIA, EK, CIC, LAB); the place tapped
+    opens after login and the PC remembers it (`device_place` cookie; `?place=EK` still works). Someone who does not
+    work at the place tapped is told and her own place opens (`core.views.PlaceLoginView`).
   - Tablets: under 1200 px each role gets a bottom bar (`apps/core/navigation.py`) and the menu slides in from the side.
     Keep pages usable by touch at 768–1024 px, with no sideways scrolling.
 
@@ -60,6 +61,10 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - `secretary` does the reception work (front desk).
 - `supervisor` is kept for later.
 - `stock` is the stock manager.
+- The lab: `lab_head` (everything, prices, cancelling receipts, the report's money), `lab_manager` (gives out the work,
+  moves any case), `lab_designer` (his own steps: CIA doctors add it to `dentist`), `lab_secretary` (Arabic: receive,
+  deliver, WhatsApp, receipts). Sets: `LAB_STAFF`, `LAB_DESK`, `LAB_MANAGERS`, `LAB_MONEY`. Technicians without a login
+  are `LabWorker` rows (the manager records their steps).
 - `moderator` is the clinic manager: doctors' fee rules, doctors' prices, shares, payouts and the clinic report
   (`CLINIC_MANAGERS` = owner + moderator). At a clinic place he also approves the reception's changes (Dr. Amr at
   El Khadem is `dentist` + `moderator`; `is_only_dentist` is false for a moderator).
@@ -86,8 +91,17 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - `specialties`: `Referral`, `EndoCase`/`EndoCanal`/`EndoVisit`, `TMJExam`/`TMJVisit`, `OrthoCase`/`OrthoVisit`,
     `ShadeRecord` (`shades.py` = VITA classical / 3D-Master); `services.finish_endo` writes the treatment log and chart;
     `demo.py` (`load_khadem`) fills El Khadem
+  - `lab`: `LabCase` (items, `LabCaseStep` = one row per step with its worker and times, `route` = the case's road from
+    `ROUTES` by `LabWorkType.category`), `LabClient` (+ `LabPriceList` / `LabPrice`), `LabWorker`, `LabBlock` /
+    `LabBlockUse`, `LabOutsource`, `LabPayment` (cancelled, never deleted), `LabMessage`, `LabSettings`. Every change of
+    a case goes through `lab/services.py` (`start_case`, `move`, `next_step`, `assign`, `receive`, `make_remake`,
+    `outsource`, `open_block`, `balances`); `clinical.services.perform_lab_action` calls `case_from_request` (send),
+    `request_remade` (remake) and `clinic_received` (receive) when the lab is ours (`Lab.branch` is the LAB place).
+    `stats.py` = the report; `whatsapp.py` = texts, the status answer, the WhatsApp Business webhook; `demo.py` =
+    `load_lab`
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
-  through `WorkingPlaceMiddleware`); `working_places(user)` = the owner's all, else `profile.places` + `profile.branch`.
+  through `WorkingPlaceMiddleware`); `working_places(user)` = the clinic places (the owner's all, else `profile.places`
+  + `profile.branch`); `switch_places(user)` adds the LAB place for the lab staff and the owner (the switch, the login).
   - Bills, charges (with `dentist`), patient payments, appointments, rooms, room shifts and stock movements carry a place.
   - Each place has its own patients (`Patient.objects.here()`, `visible_patients`): a place never sees another place's
     patients. New files take the place's prefix (`CIC-…`); moving one (`patients/transfer.py`) opens a new file there.
@@ -121,6 +135,13 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - Page hints: `apps/core/hints.py` (keyed by `namespace:url_name`, a text per role where needed). Add one for each new
   main page, in plain words, and translate it. Each person can switch hints off (user menu, `UserProfile.show_hints`).
 - Links: show a link only when the reader can open it (e.g. `user|opens_dentist:dentist`, `hidden_areas`, `is_clinical`).
+- **Back and saving** (`static/js/app.js`): the pages of a tab are kept in order in `sessionStorage` ("page-trail");
+  a page that sends a POST form leaves it, so *Back* (`a[data-back]`) opens the page before (never a saved form, never
+  the same page twice); without a trail it opens `back_url` = `navigation.up_url(path)` (the address one level up).
+  On sending a main form the history entry of the form becomes the page before (the browser's back skips the form).
+  A POST form is sent once: the button shows *Saving…* (`data-saving-text` on `<body>`).
+- **SQLite** (trial, single PC) runs in WAL mode with `transaction_mode=IMMEDIATE` and a 20 s timeout (`settings.py`).
+- **Dashboard**: `core/overview.py` (`/dashboard/`, owner / head of CIA / moderators; money for owner and moderators).
 - The JavaScript is in `static/js/app.js`, with no build step. Its hooks:
   - `data-formset` / `data-formset-add`
   - `data-teeth-picker="multi|single"`
@@ -160,7 +181,7 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   DJANGO_DEBUG=1 .venv/bin/python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests \
     apps.clinical.tests apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests \
     apps.prescriptions.tests apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests \
-    apps.surgery.tests apps.clinics.tests
+    apps.surgery.tests apps.clinics.tests apps.specialties.tests apps.lab.tests
   ```
 - A throw-away demo copy. Keep it outside the repo, e.g. in a scratch folder:
   ```bash
@@ -177,10 +198,12 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 
 ## Testing notes for the owner's report
 - To get the new sample data: delete the `data` folder, then run `trial-windows.bat` (or `sh trial-mac-linux.sh`).
-- Logins (password `demo12345`): owner, headcia, teamhead, dentist1, dentist2 (also at CIC), secretary (CIA and CIC),
-  secretary2 (no academy), stock, moderator (CIC manager), cicdoctor (a CIC doctor), amr (Dr. Amr, El Khadem's doctor
-  and manager), khadem (El Khadem's reception), endo (El Khadem's endodontist).
-- CIC's steps are in `docs/cic-test-checklist.md`; El Khadem's in `docs/khadem-test-checklist.md`.
+- Logins (password `demo12345`): owner, headcia, teamhead, dentist1, dentist2 (also at CIC, and a lab designer),
+  secretary (CIA and CIC), secretary2 (no academy), stock, moderator (CIC manager), cicdoctor (a CIC doctor), amr (Dr.
+  Amr, El Khadem's doctor and manager), khadem (El Khadem's reception), endo (El Khadem's endodontist), labhead,
+  labmanager, labsec (the lab).
+- CIC's steps are in `docs/cic-test-checklist.md`; El Khadem's in `docs/khadem-test-checklist.md`; the lab's in
+  `docs/lab-test-checklist.md`.
 - Known limits to state honestly:
   - Fawry is a ledger typed by the reception; there is no link to the machine itself.
   - WhatsApp opens one message per click; there is no automatic sending.
@@ -199,3 +222,6 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - Speeds were measured on a test copy with made-up data on an ordinary PC, with SQLite; the real server with
     PostgreSQL should be similar or faster. Photo download times depend on the Wi-Fi.
   - A CBCT is kept as a folder or link: the system does not open DICOM files. The test copy has no photos.
+  - The lab's automatic WhatsApp answer needs Meta's WhatsApp Business platform and the server reachable from the
+    internet (HTTPS); without it the secretary answers in one click. Design files (exocad) stay on the design PC: the
+    case keeps screenshots, scans or photos only. Lab machines (mills, printers, furnaces) are not connected.

@@ -128,8 +128,26 @@ def perform_lab_action(lab_request, action, user, notes="", checked=False):
         LabRequestEvent.objects.create(request=lab_request, action=A.APPROVED, by=user, at=now,
                                        notes=str(lab_request.supervisor))
         action = "approve"
+    if action in ("send", "remake") and is_our_lab(lab_request.lab):
+        # Our own dental lab: the work waits there as a case "on the way", followed step by step.
+        from apps.lab import services as lab
+
+        if action == "send":
+            lab.case_from_request(lab_request, user)
+        else:
+            lab.request_remade(lab_request, user, notes)
+    elif action == "receive" and is_our_lab(lab_request.lab):
+        from apps.lab import services as lab
+
+        lab.clinic_received(lab_request, user)
     _notify(lab_request, action, user, notes)
     return lab_request
+
+
+def is_our_lab(lab):
+    from apps.core.models import Branch
+
+    return lab is not None and lab.branch_id is not None and lab.branch.kind == Branch.Kind.LAB
 
 
 def _requesters(lab_request):

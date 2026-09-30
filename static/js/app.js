@@ -11,14 +11,46 @@
     }
   });
 
-  // "Back" goes to the previous page of this system; without one it goes to the home page.
+  // "Back" goes up one page: to the page this one was opened from, never to a form already saved and never to the
+  // same page twice. The pages opened in this tab are kept in order (the "trail"); a page sending a form leaves the
+  // trail. Without a trail (a page opened from a notification), Back opens the page above this one.
+  var TRAIL = "page-trail";
+  var here = window.location.pathname + window.location.search;
+  function readTrail() { try { return JSON.parse(sessionStorage.getItem(TRAIL) || "[]"); } catch (e) { return []; } }
+  function writeTrail(trail) { try { sessionStorage.setItem(TRAIL, JSON.stringify(trail.slice(-30))); } catch (e) {} }
+  function updateTrail() {
+    var trail = readTrail(), sent = null;
+    try { sent = sessionStorage.getItem("page-sent"); sessionStorage.removeItem("page-sent"); } catch (e) {}
+    if (sent) trail = trail.filter(function (page) { return page.url !== sent; });
+    for (var i = 0; i < trail.length; i++) {
+      if (trail[i].url === here) { trail = trail.slice(0, i); break; }  // back on a page already in the trail
+    }
+    if (!document.body.classList.contains("login-page")) {
+      trail.push({ url: here, title: document.title.split(" · ")[0] });
+    }
+    writeTrail(trail);
+    return trail;
+  }
+  function pageBefore() {
+    var trail = readTrail();
+    return trail.length >= 2 && trail[trail.length - 1].url === here ? trail[trail.length - 2] : null;
+  }
+  function goBack(link) {
+    var before = pageBefore();
+    window.location.href = before ? before.url : link.href;
+  }
+  function labelBack() {
+    var before = pageBefore(), link = document.querySelector("a[data-back]");
+    if (link) link.title = before ? before.title : (link.getAttribute("data-up-title") || "");
+  }
+  updateTrail();
+  labelBack();
+  window.addEventListener("pageshow", function (event) { if (event.persisted) { updateTrail(); labelBack(); } });
   document.addEventListener("click", function (event) {
     var link = event.target.closest("[data-back]");
-    if (!link) return;
-    if (window.history.length > 1 && document.referrer && document.referrer.indexOf(window.location.host) >= 0) {
-      event.preventDefault();
-      window.history.back();
-    }
+    if (!link || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    event.preventDefault();
+    goBack(link);
   });
 
   // Convert Arabic-Indic digits to Western digits while typing in number-like fields.
@@ -275,8 +307,7 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     askBeforeLeaving(function () {
-      if (link.hasAttribute("data-back") && window.history.length > 1 && document.referrer &&
-          document.referrer.indexOf(window.location.host) >= 0) window.history.back();
+      if (link.hasAttribute("data-back")) goBack(link);
       else window.location.href = link.href;
     });
   }, true);
@@ -450,11 +481,12 @@
   var main = document.querySelector("main.page-enter");
   if (main) main.addEventListener("animationend", function () { main.classList.remove("page-enter"); }, { once: true });
 
-  // Cards and tiles appear one after the other, top to bottom (only those on the first screen).
-  if (!reduceMotion) {
+  // On the home page the cards and tiles appear one after the other, quickly (only those on the first screen). Other
+  // pages show everything at once: nobody waits for a box to arrive before working.
+  if (!reduceMotion && window.location.pathname === "/") {
     var order = 0;
     document.querySelectorAll("main .quick-tile, main .visit-step, main .stat-card, main .card, main .my-week-day, main .now-col").forEach(function (el) {
-      if (order >= 14 || el.closest(".reveal") || el.querySelector(".modal") || el.closest(".modal")) return;
+      if (order >= 10 || el.closest(".reveal") || el.querySelector(".modal") || el.closest(".modal")) return;
       var box = el.getBoundingClientRect();
       if (box.top > window.innerHeight || box.height === 0) return;
       el.style.setProperty("--i", order++);
@@ -468,7 +500,7 @@
     if (reduceMotion || el.children.length || !/^\d{1,6}$/.test(el.textContent.trim())) return;
     var target = parseInt(el.textContent.trim(), 10);
     if (target < 2) return;
-    var start = null, duration = Math.min(900, 350 + target * 8);
+    var start = null, duration = Math.min(500, 250 + target * 4);
     el.textContent = "0";
     var step = function (now) {
       if (start === null) start = now;
@@ -1509,5 +1541,63 @@
   if (guides) document.querySelectorAll("select[data-stump]").forEach(function (select) {
     drawTabs(select, guides.stump);
     select.addEventListener("change", function () { drawTabs(select, guides.stump); });
+  });
+
+  // Saving: a form sent is sent once. The button shows "Saving…" and a second tap does nothing, so a slow network
+  // never makes two bills or two bookings. The page with the form leaves the trail (see Back) and the browser's own
+  // back button, too, goes to the page before the form instead of showing the saved form again.
+  var SAVING = document.body.getAttribute("data-saving-text") || "…";
+  function release(form) {
+    form.removeAttribute("data-submitting");
+    form.querySelectorAll("button[data-saving]").forEach(function (button) {
+      button.disabled = false;
+      button.innerHTML = button._label;
+      button.removeAttribute("data-saving");
+    });
+  }
+  // For the browser's own back button: the form page's place in the history becomes the page before it (after a new
+  // record, back shows the list it came from), or for an edit form (…/5/edit/ opened from …/5/) the page before
+  // that one, as saving opens …/5/ again. Only for the main form of a page, not the small buttons of a page.
+  function pageInsteadOfForm(form) {
+    var fields = form.querySelectorAll("input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, textarea");
+    if (form.hasAttribute("data-no-leave-warning") || fields.length < 2) return null;
+    var trail = readTrail();
+    if (trail.length < 2 || trail[trail.length - 1].url !== here) return null;
+    var opener = trail[trail.length - 2], path = window.location.pathname;
+    var editOf = /\/(edit|change)\/$/.test(path) && path.replace(/(edit|change)\/$/, "") === opener.url.split("?")[0];
+    if (editOf && trail.length >= 3) return trail[trail.length - 3].url;
+    return opener.url;
+  }
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (event.defaultPrevented || (form.getAttribute("method") || "").toLowerCase() !== "post" ||
+        form.target === "_blank") return;
+    if (form.hasAttribute("data-submitting")) { event.preventDefault(); return; }
+    var download = form.hasAttribute("data-no-progress") || DOWNLOADS.test(form.getAttribute("action") || "") ||
+                   (event.submitter && DOWNLOADS.test(event.submitter.getAttribute("formaction") || ""));
+    var button = event.submitter;
+    if (!download) {
+      form.setAttribute("data-submitting", "");
+      try { sessionStorage.setItem("page-sent", here); } catch (e) {}
+      var instead = pageInsteadOfForm(form);
+      if (instead && window.history.replaceState) {
+        // The addresses are fixed first: after replaceState the page's own address is another one.
+        form.setAttribute("action", form.action);
+        if (button && button.hasAttribute("formaction")) button.setAttribute("formaction", button.formAction);
+        window.history.replaceState(window.history.state, "", instead);
+      }
+      setTimeout(function () { release(form); }, 20000);  // e.g. no answer from the server: it can be sent again
+    }
+    if (button && button.tagName === "BUTTON" && !download) {
+      setTimeout(function () {  // after the browser has taken the button's name and value
+        button._label = button.innerHTML;
+        button.setAttribute("data-saving", "");
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> ' + SAVING;
+      }, 0);
+    }
+  });
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted) document.querySelectorAll("form[data-submitting]").forEach(release);
   });
 })();

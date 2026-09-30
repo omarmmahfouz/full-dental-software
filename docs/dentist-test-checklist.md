@@ -248,3 +248,22 @@ the CIA dentists, the heads and the owner:
      login page, and logging in there opens El Khadem. `?place=CIA` puts it back.
 113. **Owner, approvals**: *Changes to approve* shows the place of each change. The changes of El Khadem's reception are
      approved by Dr. Amr (`amr`), and the owner sees all of them.
+
+## S. New in this version (9): the dental lab, the dashboard, an easier system
+The whole lab is in **[lab-test-checklist.md](lab-test-checklist.md)** (log in as `labhead`, `labmanager` or `labsec`).
+For the CIA dentists, the heads and the owner:
+114. **Login page**: `http://localhost:8000/login/` shows the **four places** (CIA, El Khadem, CIC, the lab). Tap one:
+     the page takes its look, and that place opens after logging in.
+115. **Dr. Sherif designs for the lab** (`dentist2`): besides his CIA menus he has **Dental lab → My lab work**: the
+     cases given to him. Open one and press **Done: go on to milling** when the design is finished.
+116. **A lab request to our lab**: as `dentist1`, make a lab request to *Our dental lab*; as `secretary`, send it. On
+     the request, a line shows **where the work is at our lab** (on the way, design, milling…), since when and the date
+     promised.
+117. **Owner / head of CIA, the Dashboard** (*Reports → Dashboard*, or the tile on the home page, or the bottom bar on a
+     tablet): every place side by side for **Today, 7 days, This month** or any dates: booked, visits finished, did not
+     come, new files, **paid** (owner only), complaints; a column for each day (rest the mouse on one, or *Show the
+     numbers*); the lab; and **Waiting for someone now** (approvals, late lab work, complaints, low stock, passwords).
+118. **Back**: open a patient, then a plan, *Edit*, save: **Back** returns to the patient's file (not the edit form).
+     The browser's own back button, too, does not show the saved form again.
+119. **Saving once**: on a slow network, tap *Save* twice: the button says *Saving…* and only one record is made.
+120. **Owner**: the place button in the top bar has **LAB** too: the lab's home page, board and report.

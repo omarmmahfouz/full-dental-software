@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "On the way from our clinics" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-truck"></i> {% trans "On the way from our clinics" %}</h1></div>
+<p class="text-muted">{% trans "The reception of CIA, CIC or El Khadem sent these to the lab. When one arrives, tick what came with it and press Received." %}</p>
+<div class="row g-3">
+  {% for case in cases %}
+  <div class="col-md-6 col-xl-4"><div class="card h-100 place-{{ case.client.branch.code|default:'none' }} clinic-card"><div class="card-body">
+    <div class="d-flex align-items-center gap-2"><a href="{{ case.get_absolute_url }}" class="fw-bold ltr">{{ case.number }}</a>{% if case.client.branch %}<span class="place-badge place-{{ case.client.branch.code }}">{{ case.client.branch.badge }}</span>{% endif %}{% if case.remake_of_id %}<span class="badge text-bg-warning">{% trans "Remake" %}</span>{% endif %}</div>
+    <div class="small text-muted">{{ case.doctor }} · {{ case.patient_name }}</div>
+    <div class="mb-2">{{ case.work_summary }} · {{ case.get_impression_display }}</div>
+    <form method="post" action="{% url 'lab:case_receive' case.pk %}">{% csrf_token %}
+      <div class="checkbox-grid small mb-2">{% for code, label in form.fields.enclosures.choices %}<label class="form-check"><input class="form-check-input" type="checkbox" name="enclosures" value="{{ code }}"{% if code in case.enclosures %} checked{% endif %}> <span class="form-check-label">{{ label }}</span></label>{% endfor %}</div>
+      <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="checked" id="chk{{ case.pk }}" required><label class="form-check-label" for="chk{{ case.pk }}">{% trans "I checked the work against the request" %}</label></div>
+      <button class="btn btn-primary btn-sm"><i class="bi bi-inbox"></i> {% trans "Received at the lab" %}</button>
+    </form>
+  </div></div></div>
+  {% empty %}<div class="col-12 text-muted">{% trans "Nothing on the way." %}</div>{% endfor %}
+</div>
+{% endblock %}

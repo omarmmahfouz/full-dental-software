@@ -17,6 +17,11 @@ Who logs in at the Cairo Implant Academy:
   doctors' shares and payouts and the clinic report.
 - supervisor: kept for later. Supervisors and course candidates do not log in for now;
   they are chosen by name on the clinical forms.
+The dental lab (apps/lab):
+- lab_head: the head of the lab - every case, the prices, the receipts, the costs and the lab report.
+- lab_manager: gives out the work (who designs, who mills...), moves the cases and follows them.
+- lab_designer: a designer (mostly CIA doctors): their own designs and steps.
+- lab_secretary: the lab's reception: receives the cases, prints the labels, WhatsApp, deliveries and receipts.
 """
 
 from django.contrib.auth import get_user_model
@@ -30,6 +35,10 @@ SECRETARY = "secretary"
 DENTIST = "dentist"
 STOCK = "stock"
 MODERATOR = "moderator"
+LAB_HEAD = "lab_head"
+LAB_MANAGER = "lab_manager"
+LAB_DESIGNER = "lab_designer"
+LAB_SECRETARY = "lab_secretary"
 
 ROLE_CHOICES = [
     (OWNER, _("Owner / CEO")),
@@ -40,6 +49,10 @@ ROLE_CHOICES = [
     (DENTIST, _("CIA dentist")),
     (STOCK, _("Stock manager")),
     (MODERATOR, _("Clinic manager (moderator)")),
+    (LAB_HEAD, _("Head of the lab")),
+    (LAB_MANAGER, _("Lab manager (gives out the work)")),
+    (LAB_DESIGNER, _("Lab designer")),
+    (LAB_SECRETARY, _("Lab secretary")),
 ]
 ALL_ROLES = tuple(code for code, _label in ROLE_CHOICES)
 
@@ -52,6 +65,11 @@ PATIENT_VIEWERS = FRONT_DESK + DENTISTS
 STOCK_ROLES = (OWNER, HEAD_CIA, STOCK)
 PURCHASE_ROLES = (OWNER, HEAD_CIA, SECRETARY, STOCK)
 CLINIC_MANAGERS = (OWNER, MODERATOR)
+# The dental lab
+LAB_STAFF = (OWNER, LAB_HEAD, LAB_MANAGER, LAB_DESIGNER, LAB_SECRETARY)
+LAB_DESK = (OWNER, LAB_HEAD, LAB_MANAGER, LAB_SECRETARY)  # receive, deliver, WhatsApp, receipts
+LAB_MANAGERS = (OWNER, LAB_HEAD, LAB_MANAGER)  # give out the work and move any case
+LAB_MONEY = (OWNER, LAB_HEAD)  # prices, costs, cancelling receipts, the money of the report
 STAFF = ALL_ROLES
 
 

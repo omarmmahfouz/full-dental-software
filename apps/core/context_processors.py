@@ -1,12 +1,16 @@
 from django.conf import settings
 
-from .models import ChangeRequest, ProblemReport, branch_for_user, working_places
+from .models import ChangeRequest, ProblemReport, branch_for_user, switch_places
 from .roles import (
     ALL_ROLES,
     CLINIC_MANAGERS,
     CLINICAL,
     DENTISTS,
     FRONT_DESK,
+    LAB_DESK,
+    LAB_MANAGERS,
+    LAB_MONEY,
+    LAB_STAFF,
     HEAD_CIA,
     MANAGEMENT,
     MODERATOR,
@@ -45,6 +49,11 @@ def app_context(request):
                 "sees_reports": bool(roles & set(MANAGEMENT + (TEAM_HEAD,))),
                 "only_dentist": is_only_dentist(user),
                 "is_clinic_manager": bool(roles & set(CLINIC_MANAGERS)),
+                "sees_dashboard": bool(roles & {OWNER, HEAD_CIA, MODERATOR}),
+                "is_lab": bool(roles & set(LAB_STAFF)),
+                "is_lab_desk": bool(roles & set(LAB_DESK)),
+                "is_lab_manager": bool(roles & set(LAB_MANAGERS)),
+                "is_lab_money": bool(roles & set(LAB_MONEY)),
             }
         )
         from .access import area_levels, area_of
@@ -52,15 +61,16 @@ def app_context(request):
         levels = area_levels(user)
         context["hidden_areas"] = {area for area, level in levels.items() if level == "hidden"}
         from .hints import hint_for
-        from .navigation import bottom_nav
+        from .navigation import bottom_nav, up_url
 
         profile = getattr(user, "profile", None)
         context["hints_on"] = profile is None or profile.show_hints
         context["page_hint"] = hint_for(request) if context["hints_on"] else None
         context["hints_reset"] = request.session.pop("hints_reset", False)
         context["bottom_nav"] = bottom_nav(user, request.path, context["hidden_areas"])
+        context["back_url"] = up_url(request.path)
         context["role_labels"] = [label for code, label in ROLE_CHOICES if code in roles]
-        places = list(working_places(user))
+        places = switch_places(user)
         context["working_places"] = places if len(places) > 1 else []
         context["read_only_here"] = (levels.get(area_of(request.path)) or levels.get("*")) == "read"
         context["can_stock"] = context["can_stock"] and "stock" not in context["hidden_areas"]
