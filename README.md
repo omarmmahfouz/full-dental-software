@@ -43,7 +43,24 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: protected from hackers, the data kept safe, smooth and fast (new)
+### New in this version: a finer, calmer interface (new)
+A look-and-feel round on top of the existing design (`static/css/app.css`, last block "Round 12"). No page works
+differently; everything looks and feels more finished. The steps to try are in the checklists, section W (the
+secretary's) and V (the dentist's and the owner's).
+1. **Calm status badges**: statuses (Under treatment, Paid, Waiting...) are a soft tint with a dark readable text and a
+   small dot, not loud solid blocks. The red / yellow number bubbles (the bell, WhatsApp) stay solid.
+2. **Tidy lists**: links in tables are plain until you point at them (no page of underlines); numbers line up.
+3. **One focus ring**: moving with the keyboard shows the same clear ring on every button, link and field.
+4. **Smooth page changes**: a short cross-fade between pages in browsers that support it (Chrome, Edge); the others
+   just open the page. Nothing moves for people who turned animations off on their device.
+5. **Balanced home buttons**: the big buttons wrap in the middle, so a last row never hangs at the side.
+6. **Button details**: the icon of a button moves a little when pointed at (a plus turns, an arrow steps forward, right
+   to left too).
+7. **Pop-ups, empty lists and loading**: softer pop-ups, a ready "empty state" (a picture, a sentence, a button) and a
+   loading placeholder for parts of a page still coming.
+8. **Thin scrollbars** that match the look.
+
+### Round 11: protected from hackers, the data kept safe, smooth and fast
 For the owner: *Settings → Security and health*. The steps to try are in every checklist (the owner's in
 [docs/dentist-test-checklist.md](docs/dentist-test-checklist.md) section U); what the server needs is in
 [docs/deployment.md](docs/deployment.md#security).

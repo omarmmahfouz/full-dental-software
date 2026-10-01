@@ -348,3 +348,11 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
      errors and the slow pages of the last day.
 145. As `headcia` or `dentist1`, open `/settings/security/`: refused (and written in the log). Pages open a little
      quicker on the tablets (they are sent compressed).
+
+## V. New in this version (12): a finer, calmer interface
+146. Open **Patients**: the *Under treatment* labels are soft green with a small dot; the file numbers and names are
+     not underlined until you point at them.
+147. Open the home page: the big buttons sit in the middle, and the red numbers (WhatsApp...) are still solid red.
+148. Press **Tab** on any page: a clear ring follows you from button to field. Click with the mouse: no ring.
+149. Move between two pages in Chrome: a short soft fade. Switch animations off in the device settings: no fade.
+150. At 1024 and 768 px (a tablet): nothing scrolls sideways, and the labels stay readable.

@@ -1300,3 +1300,100 @@ a.stat-mini:hover { border-color: var(--section); color: var(--ink); }
 .form-fold-icon { font-size: .85em; transition: transform var(--fast); }
 .form-fold[open] .form-fold-icon { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .form-fold-icon { transition: none; } }
+
+/* ==========================================================================
+   Round 12: interface polish
+   One layer on top of the rest: calm status badges, tidy table links, one focus ring,
+   smooth page changes, balanced home tiles, empty states, skeletons, thin scrollbars.
+   Everything respects prefers-reduced-motion (the rule above) and works right to left.
+   ========================================================================== */
+:root {
+  --focus-ring: 0 0 0 3px #fff, 0 0 0 5px var(--section, #5C8020);
+  --ok: #1C7A47; --ok-soft: #E2F4EA;
+  --warn: #9A6200; --warn-soft: #FFF3D6;
+  --bad: #B3283F; --bad-soft: #FCE8EC;
+  --info: #1F5FB8; --info-soft: #E7F0FD;
+  --muted-soft: #ECEFF2;
+}
+
+/* One keyboard focus ring everywhere (a mouse click shows none) */
+:where(a, button, [role=button], summary, input, select, textarea, .btn, .form-check-input):focus-visible {
+  outline: 0; box-shadow: var(--focus-ring);
+}
+.form-control:focus-visible, .form-select:focus-visible { box-shadow: 0 0 0 .25rem rgba(158, 198, 79, .30); }
+
+/* Status badges: a soft tint, a dark readable text and a small dot, instead of loud solid blocks */
+.badge.text-bg-success, .badge.bg-success { --b: var(--ok); --bs: var(--ok-soft); }
+.badge.text-bg-warning, .badge.bg-warning { --b: var(--warn); --bs: var(--warn-soft); }
+.badge.text-bg-danger, .badge.bg-danger { --b: var(--bad); --bs: var(--bad-soft); }
+.badge.text-bg-info, .badge.bg-info, .badge.text-bg-primary, .badge.bg-primary { --b: var(--info); --bs: var(--info-soft); }
+.badge.text-bg-secondary, .badge.bg-secondary, .badge.text-bg-light, .badge.bg-light, .badge.text-bg-dark { --b: var(--ink-2); --bs: var(--muted-soft); }
+:is(.badge.text-bg-success, .badge.bg-success, .badge.text-bg-warning, .badge.bg-warning, .badge.text-bg-danger, .badge.bg-danger,
+    .badge.text-bg-info, .badge.bg-info, .badge.text-bg-primary, .badge.bg-primary, .badge.text-bg-secondary, .badge.bg-secondary,
+    .badge.text-bg-light, .badge.bg-light, .badge.text-bg-dark):not(.position-absolute):not(.rounded-circle):not(.quick-tile .badge):not(.navbar .badge):not(.page-header .badge) {
+  background: var(--bs) !important; color: var(--b) !important; border: 1px solid color-mix(in srgb, var(--b) 22%, transparent);
+  display: inline-flex; align-items: center; gap: .4em; padding: .32em .7em .32em .6em; font-size: .78rem;
+}
+:is(td, li, .card-body, .list-group-item) :is(.badge.text-bg-success, .badge.bg-success, .badge.text-bg-warning, .badge.bg-warning, .badge.text-bg-danger, .badge.bg-danger,
+    .badge.text-bg-info, .badge.bg-info, .badge.text-bg-primary, .badge.bg-primary, .badge.text-bg-secondary, .badge.bg-secondary,
+    .badge.text-bg-light, .badge.bg-light, .badge.text-bg-dark):not(.position-absolute):not(.rounded-circle):not(.quick-tile .badge):not(:has(> .bi:first-child))::before {
+  content: ""; flex: none; width: .5em; height: .5em; border-radius: 50%; background: currentColor;
+}
+
+/* Links inside tables: plain until pointed at, so a list reads as rows, not as a page of underlines */
+.table tbody a:not(.btn):not(.badge) { text-decoration: none; font-weight: 600; }
+.table tbody a:not(.btn):not(.badge):hover { text-decoration: underline; text-underline-offset: .2em; }
+.table tbody tr:has(a:not(.btn)):active > * { --bs-table-bg-state: var(--section-soft); }
+
+/* Home: the big buttons wrap in the middle, so a last row never hangs alone at the side */
+.quick-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
+.quick-actions > .quick-tile { flex: 0 1 13rem; min-width: 9rem; }
+.quick-actions > .quick-search { flex: 1 0 100%; }
+.quick-tile .badge { position: absolute; top: .5rem; inset-inline-end: .5rem; }
+.page-header .badge { font-variant-numeric: tabular-nums; }
+
+/* Buttons: the icon moves a little toward its action when pointed at */
+@media (hover: hover) {
+  .btn > .bi { transition: transform var(--normal) var(--ease); }
+  .btn:hover > .bi-plus-lg, .btn:hover > .bi-person-plus, .btn:hover > .bi-person-plus-fill { transform: rotate(90deg) scale(1.1); }
+  .btn:hover > .bi-arrow-right, .btn:hover > .bi-box-arrow-in-right { transform: translateX(3px); }
+  [dir=rtl] .btn:hover > .bi-arrow-left { transform: translateX(3px); }
+  .btn:hover > .bi-arrow-left, [dir=rtl] .btn:hover > .bi-arrow-right { transform: translateX(-3px); }
+}
+.btn:disabled, .btn.disabled { filter: saturate(.6); }
+
+/* Page changes: a short cross-fade in browsers that can do it (the others just load) */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: .12s ease both fade-out-plain; }
+::view-transition-new(root) { animation: .22s var(--ease) both fade-in-plain; }
+@keyframes fade-out-plain { to { opacity: 0; } }
+@keyframes fade-in-plain { from { opacity: 0; } }
+
+/* Empty states: one picture, one sentence, one button */
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: .5rem; text-align: center; padding: 2.5rem 1rem; color: var(--ink-3); }
+.empty-state > .bi { display: grid; place-items: center; width: 4rem; height: 4rem; border-radius: 50%; font-size: 1.8rem; background: var(--section-soft); color: var(--section); }
+.empty-state h2, .empty-state h3 { font-size: 1.05rem; font-weight: 700; color: var(--ink); margin: .25rem 0 0; }
+.empty-state p { margin: 0; max-width: 28rem; }
+td.text-muted:only-child, .empty-row { text-align: center; padding-block: 1.8rem; }
+
+/* Loading placeholders (use while a part of a page is still coming) */
+.skeleton { position: relative; overflow: hidden; border-radius: var(--radius-xs); background: var(--muted-soft); min-height: 1em; }
+.skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .65) 50%, transparent 80%); transform: translateX(-100%); animation: shimmer 1.3s infinite; }
+[dir=rtl] .skeleton::after { animation-direction: reverse; }
+@keyframes shimmer { to { transform: translateX(100%); } }
+
+/* Thin scrollbars that match the look (tables and the day grid scroll a lot on tablets) */
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 9px; border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--ink-3); background-clip: content-box; border: 2px solid transparent; }
+
+/* Numbers line up in every table and total */
+.table td, .table th, .stat-value { font-variant-numeric: tabular-nums; }
+
+/* Pop-ups: a soft backdrop and a gentle rise */
+.modal-backdrop.show { opacity: .42; backdrop-filter: none; }
+.modal-header { border-bottom-color: var(--line); }
+.modal-footer { border-top-color: var(--line); background: var(--surface-2); border-radius: 0 0 18px 18px; }
+.modal-title { font-weight: 700; }
+.toast, .app-toast { border-radius: var(--radius-sm); box-shadow: var(--shadow-3); }
