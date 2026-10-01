@@ -318,19 +318,120 @@ def _run(kind, work):
 
 def create_backup(stdout=None, with_files=False):
     """Make the ZIP of all the data in the backup folder (with the uploaded files too when ``with_files``);
-    returns its path. Old ZIPs beyond BACKUP_KEEP are removed."""
+    returns its path. Old ZIPs beyond BACKUP_KEEP are removed. The ZIP is opened again and checked (every part
+    readable, the records counted, the database copy sound), then copied to BACKUP_COPY_DIR when it is set."""
     from .models import BackupRun
 
     result = {}
 
     def work():
         result["path"] = path = _write_zip(with_files)
-        return {"where": str(path), "size": path.stat().st_size}
+        details = {"where": str(path), "size": path.stat().st_size, "records": verify_backup(path), "verified": True}
+        details.update(second_copy(path))
+        return details
 
-    _run(BackupRun.Kind.DATABASE, work)
+    run = _run(BackupRun.Kind.DATABASE, work)
     if stdout is not None:
-        stdout.write(f"Backup of the data saved: {result['path']}")
+        stdout.write(f"Backup of the data saved: {result['path']} ({run.records} records, checked)")
+        if run.copy_where:
+            stdout.write(f"Second copy: {run.copy_where}")
+        if run.copy_error:
+            stdout.write(f"Second copy FAILED: {run.copy_error}")
     return result["path"]
+
+
+def verify_backup(path):
+    """Open a backup ZIP again: every part must read back without error, the records file must be complete, and the
+    database copy (SQLite) must pass its own check. Returns the number of records; raises when something is wrong."""
+    import re
+
+    model_line = re.compile(rb'^ "model": "')  # one record per line at this depth (indent=1)
+    with zipfile.ZipFile(path) as bundle:
+        damaged = bundle.testzip()
+        if damaged is not None:
+            raise ValueError(f"The backup is damaged: {damaged} does not read back.")
+        records, last = 0, b""
+        with bundle.open("database.json") as raw:
+            for line in raw:
+                if model_line.match(line):
+                    records += 1
+                if line.strip():
+                    last = line.strip()
+        if last != b"]":
+            raise ValueError("The backup is not complete: the records file stops before its end.")
+        if "database.sqlite3" in bundle.namelist():
+            with tempfile.TemporaryDirectory() as work:
+                copy = bundle.extract("database.sqlite3", work)
+                check = sqlite3.connect(copy)
+                try:
+                    answer = check.execute("PRAGMA integrity_check").fetchone()[0]
+                finally:
+                    check.close()
+                if answer != "ok":
+                    raise ValueError(f"The database copy is damaged: {answer}")
+    return records
+
+
+def copy_dir():
+    value = getattr(settings, "BACKUP_COPY_DIR", "")
+    return Path(value) if value else None
+
+
+def second_copy(path):
+    """Copy the backup to the second place (another disk, a network folder): the copy is compared with the
+    original, and the newest BACKUP_KEEP are kept there too. A problem is written on the run and told to the
+    owner, but the backup itself stays good."""
+    target_dir = copy_dir()
+    if target_dir is None:
+        return {}
+    try:
+        target_dir.mkdir(parents=True, exist_ok=True)
+        if target_dir.resolve() == backup_dir().resolve():
+            raise ValueError("BACKUP_COPY_DIR is the backup folder itself: choose another disk.")
+        partial = target_dir / (path.name + ".part")
+        shutil.copyfile(path, partial)
+        if _sha256(partial) != _sha256(path):
+            partial.unlink(missing_ok=True)
+            raise ValueError("The copy is not the same as the backup.")
+        os.replace(partial, target_dir / path.name)
+        keep = getattr(settings, "BACKUP_KEEP", 10)
+        copies = sorted(target_dir.glob("backup_*.zip"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for old in copies[keep:]:
+            old.unlink(missing_ok=True)
+        return {"copy_where": str(target_dir / path.name)}
+    except Exception as error:  # noqa: BLE001 - the backup is made; the owner is told about the copy
+        from .models import Notification
+        from .notify import notify_roles
+        from .roles import OWNER
+
+        problem = f"{type(error).__name__}: {error}"[:500]
+        notify_roles((OWNER,), _("The second copy of the backup failed"), _("%(error)s — see Settings → Backup."),
+                     "/settings/backup/", Notification.Level.DANGER, params={"error": problem[:200]})
+        return {"copy_error": problem}
+
+
+def _sha256(path):
+    import hashlib
+
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def maintain_database():
+    """Every night after the backup: SQLite tidies its statistics (pages stay quick as the data grows); the
+    security log and the deleted records older than a year are removed."""
+    from .security import clean_old_records
+
+    if connection.vendor == "sqlite":
+        with connection.cursor() as cursor:
+            cursor.execute("PRAGMA optimize")
+    elif connection.vendor == "postgresql":
+        with connection.cursor() as cursor:
+            cursor.execute("ANALYZE")
+    return clean_old_records()
 
 
 def backup_now(wait=20):

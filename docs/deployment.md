@@ -7,7 +7,7 @@ No internet or cloud is needed.
 - A PC that stays on during working hours, with a **fixed LAN IP**, for example `192.168.1.10`. Set it on the router with a DHCP reservation.
 - **A UPS** (backup power). Power cuts are the most common way a database gets damaged.
 - For a trial or a small start: 8 GB RAM and an SSD are plenty.
-- For **10,000 patients, 1–3 TB of photos and X-rays, and 30–50 staff working at once** (see [Many photos and many users](#many-photos-and-many-users-new)):
+- For **10,000 patients, 1–3 TB of photos and X-rays, and 30–50 staff working at once** (see [Many photos and many users](#many-photos-and-many-users)):
 
   | Part | What to buy |
   |---|---|
@@ -93,6 +93,11 @@ The data and the photos are backed up apart, because the photos grow to hundreds
   - `excel/all-data.xlsx` and `csv/*.csv`: every table with readable column names, to open or move into any other program.
 - **The photos and files** (ID scans, clinical photos, X-rays, stickers, invoices): every night they are copied as they are to `FILES_BACKUP_DIR` (Docker: `FILES_BACKUP_HOST_DIR`). **Only new and changed files are copied**, so after the first night it takes minutes, even with 1 TB. **Nothing is deleted there**, so a photo deleted by mistake is still in the copy. The previews are not copied (the system makes them again). Put this folder on **another disk** than the system's.
 - `python manage.py backup` does both (`--no-files`: only the data; `--zip-files`: the files in the ZIP too, to move a small system in one file). The Windows `backup.bat` and the Docker `nightly` service run it every night.
+- **Checked and copied**: each night's ZIP is **opened again and checked** (every part reads back, the records are
+  counted, the database copy passes its own check), then **copied to a second place** when `BACKUP_COPY_DIR` is set
+  (another disk or a network folder, e.g. `F:\CIA second copy`); the copy is compared with the original. A failed
+  check or copy is written on the run and the owner is notified. The nightly run also tidies the database
+  (`PRAGMA optimize` on SQLite, `ANALYZE` on PostgreSQL) and removes log lines older than a year.
 - **Is it working?** *Settings → Backup and export* shows the last good backup of each part, the last runs and any error. The owner's home page shows a red **Check the backup** box when a part failed or has not run for more than a day and a half, and the owner gets a notification when a backup fails.
 - **Restore on a new PC**:
   ```bash
@@ -106,7 +111,7 @@ The data and the photos are backed up apart, because the photos grow to hundreds
   ```
 - **Outside the clinic**: swap a second backup disk every week and keep it at home (the 3-2-1 rule: three copies, two disks, one outside).
 - **Before a big change to the system** (new version, moving to another program): make a backup (the update scripts do it by themselves) and copy it outside the PC.
-- Test a restore on another PC (or on the [test copy](#test-copy-new)) once. A backup that has never been restored is only a hope.
+- Test a restore on another PC (or on the [test copy](#test-copy)) once. A backup that has never been restored is only a hope.
 
 ## Test copy
 
@@ -143,9 +148,58 @@ How it stays quick:
 - Periapical and panoramic X-rays are small pictures: upload them as documents of type *X-ray / CBCT* (up to 60 MB, `MAX_XRAY_UPLOAD_MB`) or as clinical photos.
 - A **CBCT** is a folder of DICOM files (hundreds of MB) that a browser cannot show. Keep it in the viewer software or a shared folder on the server, and add a document of type *X-ray / CBCT* with the report (PDF) or a few screenshots, and **where the full scan is kept** (a folder such as `\\CIA-SERVER\CBCT\CIA-00020`, or the centre's viewer link). The patient's **X-rays & CBCT** tab shows them to the dentists, with a button to copy the folder.
 
-## Security notes
+## Security
 
-- Every page needs a login. Sessions end when the browser closes, or after 12 hours.
-- Uploaded files are served only through a permission check. They are never public web files.
-- Keep `DJANGO_DEBUG=0` on the server. Never share the `.env` file.
-- If the system is ever reached from outside the clinic, put it behind HTTPS first and set `DJANGO_HTTPS=1`. The branches will be connected later, and a VPN between them is the safest way to do that.
+Run `python manage.py security_check` (Docker: `docker compose exec web python manage.py security_check`) after
+installing or changing the server: it prints what is right and what to fix. The owner sees the same list in
+*Settings → Security and health*.
+
+**What the system does by itself**
+- **Every page needs a login.** Sessions end when the browser closes, after 12 hours, or after
+  *Settings → Clinic options → log out after (minutes without use)* (60 by default; 0 = never). The bell's own checks
+  every 30 s do not keep a PC awake.
+- **Wrong passwords**: after 5 wrong passwords in a row a username is closed for 15 minutes, and after 20 from one
+  device (any usernames) that device is closed too (`LOGIN_LOCK_AFTER`, `LOGIN_IP_LOCK_AFTER`, `LOGIN_LOCK_MINUTES`).
+  The owner is notified and can open them again in *Settings → Security*. The admin pages are closed the same way.
+- **Easy passwords** (short, common, like the username, or the sample `demo12345`) are noted at login: the person
+  sees a yellow notice, and the owner a list. Tick *People with an easy password must change it* in Clinic options to
+  make them choose another at their next login.
+- **The clinic's network only** (`ALLOWED_NETWORKS`): by default the private networks (`192.168.x`, `10.x`,
+  `172.16–31.x`), the VPN range `100.64.x` and the server itself. A request from any other address gets a short
+  refusal and is written in the security log, so a server opened to the internet by mistake still shows nothing.
+  `*` lets everyone try: use it only behind HTTPS and a VPN. The lab's WhatsApp address (`/lab/whatsapp/hook/`) is
+  always open, because Meta's servers call it, and it checks Meta's signature itself.
+- **Behind our nginx** (Docker) the device's address is the one nginx saw (`TRUSTED_PROXIES`, set in
+  `docker-compose.yml`); a device on the network cannot pretend to be another. nginx also slows down many logins from
+  one address (10 a minute).
+- **The security log** (*Settings → Security*): logins, wrong passwords, closed logins, log outs (by hand, after
+  minutes without use, or by the owner), passwords changed or given by the owner, **files taken out** (Word, Excel,
+  CSV, ZIP of photos, backups), pages refused, and visits from outside the network. Kept a year.
+- **Who is logged in now**, on which device and since when; the owner can log one person out on every device, or
+  everyone else.
+- **Deleted records are kept**: whatever is deleted (a document, a photo's record, a payout, a booking shift…) is kept
+  a year with everything it held, who deleted it, when and from which page (*Settings → Security → Deleted records*).
+- **Files are checked by what they hold**, not only by their name: a program or a web page renamed `photo.jpg` is
+  refused. Only photos, videos and PDFs open in the browser (in a sandbox); any other file is only downloaded.
+- **Headers** that stop other sites from framing the pages or running scripts in them (Content-Security-Policy,
+  X-Frame-Options, nosniff, same-origin referrer), cookies that scripts cannot read, and no caching of patient pages in
+  shared caches.
+- **Typed data is not lost**: when a form is sent, the browser keeps what was typed for a day. If the network or the
+  server stopped, the next time the form is opened a bar offers to put it back. A good save drops it. Each person sees
+  only their own; passwords and files are never kept.
+
+**What the clinic must do**
+- Keep `DJANGO_DEBUG=0` and a long random `DJANGO_SECRET_KEY` (the installer writes one) in `.env`. **Never share the
+  `.env` file**; it is not in the backups.
+- Give each person their **own login** and a password of 10+ letters and numbers. Do not share logins: the log then
+  says who did what.
+- **Guests on another Wi-Fi**: the patients' Wi-Fi must be a separate network (a "guest network" on the router) from
+  the staff's PCs, tablets and the server. Change the router's own password.
+- **Never forward a port** of the router to the server. To reach it from home or between the branches, use a **VPN**
+  (e.g. WireGuard or Tailscale: its 100.64.x addresses are already allowed), then turn HTTPS on.
+- **HTTPS**: `DJANGO_HTTPS=1` (secure cookies, HTTPS only, the browser remembers it for 30 days: `DJANGO_HSTS_SECONDS`)
+  once nginx has a certificate. On the clinic's own network only, HTTP is acceptable.
+- **Windows**: turn on **BitLocker** on the server's disks and on the backup disks, so a stolen PC or disk shows
+  nothing. Keep Windows updated, keep its firewall on, and lock the server's screen (Win + L).
+- **Two backup disks**: set `BACKUP_COPY_DIR` to a second disk or a network folder (each night's ZIP is copied there
+  and compared), and swap a disk kept outside the clinic every week.

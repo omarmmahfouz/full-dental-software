@@ -204,6 +204,7 @@ class AccessAndSettingsTests(TestCase):
             "o-stock_expiry_days": 30, "o-reminder_days_before": 2, "o-whatsapp_country_code": "20",
             "o-fawry_fee_percent": "1.5", "o-hba1c_limit": "7.5", "o-glucose_limit": 200, "o-systolic_limit": 160,
             "o-diastolic_limit": 100, "o-follow_up_sinus_days": 3, "o-follow_up_graft_days": 7, "o-follow_up_days": 7,
+            "o-idle_logout_minutes": 60,
             "b-name_ar": "أكاديمية القاهرة لزراعة الأسنان", "b-name_en": "Cairo Implant Academy", "b-phone": "0223456789",
             "b-address": "Cairo",
         })
@@ -741,6 +742,8 @@ class SpeedTests(TestCase):
         ("owner", "/lab/blocks/", 40),
         ("dentist", "/patients/medical-follow-up/?mine=0", 40),
         ("secretary", "/patients/medical-follow-up/", 40),
+        ("owner", "/settings/security/", 40),
+        ("owner", "/settings/security/deleted/", 30),
     ]
 
     @classmethod
@@ -941,3 +944,396 @@ class PlaceLogoTests(TestCase):
         page = self.client.get("/login/?place=CIC")
         self.assertContains(page, "img/cic-logo.jpg")
         self.assertContains(self.client.get("/login/"), "img/gdil-logo.jpg")  # the lab's tile
+
+
+class SecurityTests(TestCase):
+    """Round 11: wrong passwords close a login, a PC left open logs out, only the clinic's network gets in, the
+    security log, files checked by what they hold, deleted records kept, and the owner's Security page."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        self.branch = setup_clinic()
+        self.owner = make_user("owner", "owner")
+        self.secretary = make_user("sec", "secretary")
+
+    def assertLocked(self, page):
+        self.assertEqual([error.code for error in page.context["form"].non_field_errors().as_data()], ["locked"])
+        self.assertContains(page, "15")  # how many minutes to wait, in the page's language
+
+    def wrong(self, username="sec", times=1, **extra):
+        for _i in range(times):
+            page = self.client.post("/login/", {"username": username, "password": "wrong-password"}, **extra)
+        return page
+
+    def test_wrong_passwords_close_the_login_and_the_owner_opens_it(self):
+        from apps.core.models import SecurityEvent
+
+        self.wrong(times=4)
+        self.assertEqual(SecurityEvent.objects.filter(kind="login_failed", username="sec").count(), 4)
+        self.assertFalse(SecurityEvent.objects.filter(kind="locked").exists())
+        page = self.wrong()  # the fifth
+        self.assertTrue(SecurityEvent.objects.filter(kind="locked", username="sec").exists())
+        self.assertTrue(Notification.objects.filter(recipient=self.owner, url="/settings/security/",
+                                                    level="danger").exists())
+        # Even the right password is refused now, with how long to wait; the tries do not count again.
+        page = self.client.post("/login/", {"username": "SEC", "password": PASSWORD})
+        self.assertLocked(page)
+        self.assertFalse(page.wsgi_request.user.is_authenticated)
+        self.wrong(times=3)
+        self.assertEqual(SecurityEvent.objects.filter(kind="login_failed", username="sec").count(), 5)
+        self.assertEqual(SecurityEvent.objects.filter(kind="locked").count(), 1)
+        # The admin pages are closed too.
+        page = self.client.post("/admin/login/", {"username": "sec", "password": PASSWORD})
+        self.assertFalse(page.wsgi_request.user.is_authenticated)
+
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/settings/security/")
+        self.assertEqual([row["username"] for row in page.context["locked"]], ["sec"])
+        self.assertEqual(page.context["failed_today"], 5)
+        self.client.post("/settings/security/unlock/", {"username": "sec"})
+        self.assertFalse(self.client.get("/settings/security/").context["locked"])
+        self.client.logout()
+        page = self.client.post("/login/", {"username": "sec", "password": PASSWORD})
+        self.assertEqual(page.status_code, 302)
+        self.assertTrue(SecurityEvent.objects.filter(kind="login", username="sec").exists())
+
+    def test_the_lock_ends_by_itself(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.core.models import SecurityEvent
+        from apps.core.security import LOCK_MINUTES, minutes_locked
+
+        self.wrong(times=5)
+        self.assertGreater(minutes_locked("sec"), 0)
+        SecurityEvent.objects.update(at=timezone.now() - timedelta(minutes=LOCK_MINUTES + 1))
+        self.assertEqual(minutes_locked("sec"), 0)
+        self.assertEqual(self.client.post("/login/", {"username": "sec", "password": PASSWORD}).status_code, 302)
+
+    def test_a_device_trying_many_usernames_is_closed(self):
+        from django.test import override_settings
+
+        from apps.core import security
+        from apps.core.models import SecurityEvent
+
+        with override_settings(ALLOWED_NETWORKS=["*"]):
+            security.IP_LOCK_AFTER, old = 6, security.IP_LOCK_AFTER
+            self.addCleanup(setattr, security, "IP_LOCK_AFTER", old)
+            for name in ("a", "b", "c", "d", "e", "f"):
+                self.wrong(name, REMOTE_ADDR="192.168.1.50")
+            self.assertTrue(SecurityEvent.objects.filter(kind="locked", username="", ip="192.168.1.50").exists())
+            page = self.client.post("/login/", {"username": "owner", "password": PASSWORD},
+                                    REMOTE_ADDR="192.168.1.50")
+            self.assertLocked(page)
+            # Another device is not closed.
+            page = self.client.post("/login/", {"username": "owner", "password": PASSWORD},
+                                    REMOTE_ADDR="192.168.1.51")
+            self.assertEqual(page.status_code, 302)
+            self.client.post("/settings/security/unlock/", {"ip": "192.168.1.50"}, REMOTE_ADDR="192.168.1.51")
+            self.client.logout()
+            page = self.client.post("/login/", {"username": "owner", "password": PASSWORD},
+                                    REMOTE_ADDR="192.168.1.50")
+            self.assertEqual(page.status_code, 302)
+
+    def test_a_pc_left_open_logs_out_by_itself(self):
+        import time
+
+        from apps.core.models import ClinicSettings, SecurityEvent
+
+        options = ClinicSettings.get()
+        options.idle_logout_minutes = 30
+        options.save()
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/").status_code, 200)
+        session = self.client.session
+        session["seen"] = int(time.time()) - 31 * 60
+        session.save()
+        self.assertEqual(self.client.get("/notifications/poll/").status_code, 401)  # the bell: a short answer
+        self.assertTrue(SecurityEvent.objects.filter(kind="idle_logout", username="sec").exists())
+        self.client.login(username="sec", password=PASSWORD)
+        session = self.client.session
+        session["seen"] = int(time.time()) - 31 * 60
+        session.save()
+        page = self.client.get("/patients/")
+        self.assertRedirects(page, "/login/?next=%2Fpatients%2F", fetch_redirect_response=False)
+        # The bell's own checks do not keep a PC awake; a page used does.
+        self.client.login(username="sec", password=PASSWORD)
+        session = self.client.session
+        session["seen"] = int(time.time()) - 20 * 60
+        session.save()
+        self.client.get("/notifications/poll/")
+        self.assertEqual(self.client.session["seen"], session["seen"])
+        self.client.get("/")
+        self.assertGreater(self.client.session["seen"], session["seen"])
+        options.idle_logout_minutes = 0  # never
+        options.save()
+        session = self.client.session
+        session["seen"] = int(time.time()) - 600 * 60
+        session.save()
+        self.assertEqual(self.client.get("/").status_code, 200)
+
+    def test_only_the_clinics_network_gets_in(self):
+        from django.test import override_settings
+
+        from apps.core.models import SecurityEvent
+
+        with override_settings(ALLOWED_NETWORKS=["127.0.0.0/8", "192.168.0.0/16"], TRUSTED_PROXIES=["172.18.0.0/16"]):
+            page = self.client.get("/login/", REMOTE_ADDR="8.8.8.8")
+            self.assertEqual(page.status_code, 403)
+            self.assertContains(page, "clinic's network", status_code=403)
+            self.client.get("/login/", REMOTE_ADDR="8.8.8.8")
+            self.assertEqual(SecurityEvent.objects.filter(kind="outside", ip="8.8.8.8").count(), 1)  # once an hour
+            self.assertEqual(self.client.get("/login/", REMOTE_ADDR="192.168.1.9").status_code, 200)
+            # Behind our nginx the device's address is the one nginx saw; a device cannot send it itself.
+            self.assertEqual(self.client.get("/login/", REMOTE_ADDR="172.18.0.2", HTTP_X_REAL_IP="8.8.4.4").status_code,
+                             403)
+            self.assertEqual(self.client.get("/login/", REMOTE_ADDR="172.18.0.2",
+                                             HTTP_X_REAL_IP="192.168.1.9").status_code, 200)
+            self.assertEqual(self.client.get("/login/", REMOTE_ADDR="8.8.8.8",
+                                             HTTP_X_REAL_IP="192.168.1.9").status_code, 403)
+            # Meta's WhatsApp messages to the lab still arrive.
+            hook = self.client.get("/lab/whatsapp/hook/", REMOTE_ADDR="8.8.8.8")
+            self.assertNotContains(hook, "clinic's network", status_code=hook.status_code)
+
+    def test_headers_and_files_that_cannot_run(self):
+        import shutil
+        import tempfile
+
+        from django.test import override_settings
+
+        page = self.client.get("/login/")
+        self.assertIn("frame-ancestors 'self'", page["Content-Security-Policy"])
+        self.assertIn("object-src 'none'", page["Content-Security-Policy"])
+        self.assertIn("geolocation=()", page["Permissions-Policy"])
+        self.assertEqual(page["X-Content-Type-Options"], "nosniff")
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertEqual(self.client.get("/")["Cache-Control"], "private")
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
+        with override_settings(MEDIA_ROOT=folder):
+            os.makedirs(f"{folder}/problems")
+            with open(f"{folder}/problems/page.html", "w") as handle:
+                handle.write("<script>alert(1)</script>")
+            with open(f"{folder}/problems/scan.jpg", "wb") as handle:
+                handle.write(b"\xff\xd8\xff photo")
+            page = self.client.get("/media/problems/page.html")
+            self.assertEqual(page["Content-Type"], "application/octet-stream")
+            self.assertTrue(page["Content-Disposition"].startswith("attachment"))
+            self.assertIn("sandbox", page["Content-Security-Policy"])
+            page = self.client.get("/media/problems/scan.jpg")
+            self.assertEqual(page["Content-Type"], "image/jpeg")
+            self.assertTrue(page["Content-Disposition"].startswith("inline"))
+            self.assertIn("sandbox", page["Content-Security-Policy"])
+            page.close()
+
+    def test_uploads_are_checked_by_what_they_hold(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from apps.core.forms import validate_upload
+        from apps.core.uploads import is_blocked, looks_right
+
+        self.assertTrue(looks_right(SimpleUploadedFile("a.jpg", b"\xff\xd8\xff\xe0 photo")))
+        self.assertTrue(looks_right(SimpleUploadedFile("a.PNG", b"\x89PNG\r\n\x1a\n...")))
+        self.assertTrue(looks_right(SimpleUploadedFile("a.pdf", b"%PDF-1.7 ...")))
+        self.assertFalse(looks_right(SimpleUploadedFile("a.jpg", b"<html><script>")))
+        self.assertFalse(looks_right(SimpleUploadedFile("a.pdf", b"MZ\x90\x00 program")))
+        self.assertTrue(is_blocked(SimpleUploadedFile("scan.stl", b"MZ\x90\x00 program")))
+        self.assertTrue(is_blocked(SimpleUploadedFile("page.html", b"<html>")))
+        self.assertFalse(is_blocked(SimpleUploadedFile("scan.stl", b"solid scan")))
+        with self.assertRaises(ValidationError):
+            validate_upload(SimpleUploadedFile("photo.jpg", b"<svg onload=alert(1)>", "image/jpeg"))
+        upload = SimpleUploadedFile("photo.jpg", b"\xff\xd8\xff\xe0 photo", "image/jpeg")
+        self.assertIs(validate_upload(upload), upload)
+        self.assertEqual(upload.read(4), b"\xff\xd8\xff\xe0")  # the check leaves the file at its start
+
+    def test_deleted_records_are_kept_with_who_deleted_them(self):
+        import shutil
+        import tempfile
+
+        from django.core.files.base import ContentFile
+        from django.test import override_settings
+
+        from apps.core.models import DeletedRecord
+        from apps.core.testing import make_patient
+        from apps.patients.models import PatientDocument
+
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
+        with override_settings(MEDIA_ROOT=folder):
+            patient = make_patient(self.branch)
+            document = PatientDocument.objects.create(patient=patient, kind="other", notes="Old referral letter",
+                                                      file=ContentFile(b"%PDF-1.4", name="letter.pdf"))
+            self.client.login(username="owner", password=PASSWORD)
+            self.client.post(f"/patients/{patient.pk}/documents/{document.pk}/delete/")
+        self.assertFalse(PatientDocument.objects.exists())
+        kept = DeletedRecord.objects.get()
+        self.assertEqual((kept.object_id, kept.deleted_by, kept.page),
+                         (str(document.pk), self.owner, f"/patients/{patient.pk}/documents/{document.pk}/delete/"))
+        self.assertEqual(kept.data["notes"], "Old referral letter")
+        self.assertEqual(kept.data["patient"], patient.pk)
+        page = self.client.get("/settings/security/deleted/?q=تجربة")  # the patient's name
+        self.assertEqual(list(page.context["page_obj"]), [kept])
+        page = self.client.get(f"/settings/security/deleted/{kept.pk}/")
+        self.assertContains(page, "Old referral letter")
+        self.assertIn(("Patient", str(patient)), page.context["fields"])  # in plain words, not a number
+        # The log itself and the notifications are not kept twice.
+        Notification.objects.all().delete()
+        self.assertEqual(DeletedRecord.objects.count(), 1)
+
+    def test_files_taken_out_are_written_in_the_log(self):
+        from apps.core.models import SecurityEvent
+        from apps.core.testing import make_patient
+
+        patient = make_patient(self.branch, name="مريض الملف")
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get(f"/patients/{patient.pk}/excel/")
+        self.assertEqual(page.status_code, 200)
+        event = SecurityEvent.objects.get(kind="export")
+        self.assertEqual(event.user, self.owner)
+        self.assertIn("مريض الملف", event.details)
+        self.assertEqual(self.client.get("/settings/security/?kind=export").context["page_obj"][0], event)
+
+    def test_easy_passwords_are_noted_and_may_be_forced_to_change(self):
+        from apps.core.models import ClinicSettings
+
+        self.secretary.set_password("demo12345")
+        self.secretary.save()
+        self.client.post("/login/", {"username": "sec", "password": "demo12345"})
+        self.secretary.profile.refresh_from_db()
+        self.assertTrue(self.secretary.profile.weak_password)
+        self.assertContains(self.client.get("/"), "/password/")
+        self.assertFalse(self.secretary.profile.must_change_password)
+        self.client.logout()
+        options = ClinicSettings.get()
+        options.force_strong_passwords = True
+        options.save()
+        self.client.post("/login/", {"username": "sec", "password": "demo12345"})
+        self.assertRedirects(self.client.get("/"), "/password/")
+        self.client.post("/password/", {"old_password": "demo12345", "new_password1": "Reception-2026-strong",
+                                        "new_password2": "Reception-2026-strong"})
+        self.secretary.profile.refresh_from_db()
+        self.assertFalse(self.secretary.profile.weak_password)
+        self.assertFalse(self.secretary.profile.must_change_password)
+        self.client.login(username="owner", password=PASSWORD)
+        checks = {check["title"]: check["ok"] for check in self.client.get("/settings/security/").context["checks"]}
+        self.assertTrue(checks["Nobody logs in with an easy password"])
+
+    def test_the_security_page_is_the_owners(self):
+        from apps.core.models import SecurityEvent
+
+        make_user("head", "head_cia")
+        head, other = self.client_class(), self.client_class()
+        head.login(username="head", password=PASSWORD)
+        other.login(username="sec", password=PASSWORD)
+        for client in (head, other):
+            self.assertEqual(client.get("/settings/security/").status_code, 403)
+            self.assertEqual(client.get("/settings/security/deleted/").status_code, 403)
+        self.assertTrue(SecurityEvent.objects.filter(kind="denied", username="sec").exists())
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/settings/security/")
+        self.assertEqual(sorted(row["user"].username for row in page.context["sessions"]), ["head", "owner", "sec"])
+        self.client.post("/settings/security/logout/", {"user": self.secretary.pk})
+        self.assertEqual(other.get("/").status_code, 302)  # logged out on that device
+        self.assertTrue(SecurityEvent.objects.filter(kind="forced_logout", username="sec").exists())
+        self.client.post("/settings/security/logout/")
+        self.assertEqual([row["user"].username for row in self.client.get("/settings/security/").context["sessions"]],
+                         ["owner"])
+
+    def test_every_page_asks_for_a_login(self):
+        from django.urls import URLPattern, URLResolver, get_resolver
+
+        public = set()
+
+        def walk(patterns, prefix=""):
+            for entry in patterns:
+                if isinstance(entry, URLResolver):
+                    walk(entry.url_patterns, prefix + str(entry.pattern))
+                elif isinstance(entry, URLPattern) and getattr(entry.callback, "login_required", True) is False:
+                    public.add(prefix + str(entry.pattern))
+
+        walk(get_resolver().url_patterns)
+        self.assertEqual({p for p in public if not p.startswith("admin/")},
+                         {"login/", "password/forgot/", "i18n/setlang/", "lab/whatsapp/hook/", "place/<str:code>/logo/"})
+        for url in ("/", "/patients/", "/settings/security/", "/billing/bills/", "/lab/", "/reports/money/"):
+            self.assertRedirects(self.client.get(url), f"/login/?next={url.replace('/', '%2F')}",
+                                 fetch_redirect_response=False)
+
+    def test_saved_forms_leave_a_mark_for_the_drafts(self):
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.post("/password/", {"old_password": "wrong"})  # an error: the typed data is not saved
+        self.assertEqual(page.status_code, 200)
+        self.assertNotIn("saved", page.cookies)
+        page = self.client.post("/notifications/read-all/")
+        self.assertEqual(page.status_code, 302)
+        self.assertIn("saved", page.cookies)
+        self.assertEqual(page.cookies["saved"]["max-age"], 120)
+
+    def test_pages_are_sent_compressed_but_files_are_not(self):
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/", HTTP_ACCEPT_ENCODING="gzip")
+        self.assertEqual(page["Content-Encoding"], "gzip")
+        page = self.client.get(f"/patients/{self.make_patient().pk}/excel/", HTTP_ACCEPT_ENCODING="gzip")
+        self.assertNotIn("Content-Encoding", page)
+
+    def make_patient(self):
+        from apps.core.testing import make_patient
+
+        return make_patient(self.branch)
+
+    def test_backups_are_checked_and_copied_to_a_second_disk(self):
+        import shutil
+        import tempfile
+        import zipfile
+        from pathlib import Path
+
+        from django.core.management import call_command
+        from django.test import override_settings
+
+        from apps.core.backup import create_backup, verify_backup
+        from apps.core.models import BackupRun
+
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
+        with override_settings(MEDIA_ROOT=f"{folder}/media", BACKUP_DIR=f"{folder}/backups",
+                               BACKUP_COPY_DIR=f"{folder}/second-disk"):
+            path = create_backup()
+            run = BackupRun.objects.get(kind="database")
+            self.assertTrue(run.verified)
+            self.assertGreater(run.records, 10)
+            self.assertEqual(run.copy_where, str(Path(folder) / "second-disk" / path.name))
+            self.assertEqual(Path(run.copy_where).read_bytes(), path.read_bytes())
+            # A damaged backup is found.
+            broken = Path(folder) / "broken.zip"
+            with zipfile.ZipFile(path) as source, zipfile.ZipFile(broken, "w") as target:
+                target.writestr("database.json", source.read("database.json")[:-20])
+            with self.assertRaises(ValueError):
+                verify_backup(broken)
+            output = io.StringIO()
+            self.client.login(username="owner", password=PASSWORD)
+            checks = {c["title"]: c["ok"] for c in self.client.get("/settings/security/").context["checks"]}
+            self.assertTrue(checks["The last backup was opened again and checked"])
+            self.assertTrue(checks["A second copy of each backup is kept on another disk"])
+            call_command("security_check", stdout=output)
+            self.assertIn("OK   The last backup was opened again and checked", output.getvalue())
+        with override_settings(MEDIA_ROOT=f"{folder}/media", BACKUP_DIR=f"{folder}/backups",
+                               BACKUP_COPY_DIR=f"{folder}/backups"):
+            create_backup()  # the "second copy" in the same folder: refused, the owner is told
+            run = BackupRun.objects.filter(kind="database").first()
+            self.assertTrue(run.ok and run.copy_error)
+            self.assertTrue(Notification.objects.filter(recipient=self.owner, url="/settings/backup/").exists())
+
+    def test_old_log_lines_are_cleaned_after_a_year(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.core.models import SecurityEvent
+        from apps.core.security import clean_old_records
+
+        SecurityEvent.objects.create(kind="login", username="old", at=timezone.now() - timedelta(days=400))
+        SecurityEvent.objects.create(kind="login", username="new")
+        self.assertEqual(clean_old_records(), 1)
+        self.assertEqual(list(SecurityEvent.objects.values_list("username", flat=True)), ["new"])

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Deleted records" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-trash3"></i> {% trans "Deleted records" %}</h1></div>
+<p class="text-muted small">{% trans "Every record deleted from the system is kept here for a year with what it held, who deleted it and when: a mistake can be seen and written again." %}</p>
+<form method="get" class="card card-body mb-3 d-flex flex-row flex-wrap gap-2 align-items-end" data-no-leave-warning>
+  <div><label class="form-label small mb-0" for="del-model">{% trans "Kind of record" %}</label>
+    <select class="form-select form-select-sm" id="del-model" name="model" onchange="this.form.submit()"><option value="">{% trans "Everything" %}</option>{% for value, name in models %}<option value="{{ value }}"{% if value == model %} selected{% endif %}>{{ name|capfirst }}</option>{% endfor %}</select></div>
+  <div><label class="form-label small mb-0" for="del-q">{% trans "Search" %}</label><input class="form-control form-control-sm" id="del-q" name="q" value="{{ q }}"></div>
+  <button class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i></button>
+</form>
+<div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+  <thead><tr><th>{% trans "Deleted at" %}</th><th>{% trans "Kind of record" %}</th><th>{% trans "Record" %}</th><th>{% trans "Deleted by" %}</th></tr></thead>
+  <tbody>{% for r in page_obj %}<tr>
+    <td class="small nowrap"><a href="{% url 'settings:deleted_detail' r.pk %}">{{ r.deleted_at|date:"d/m/Y H:i" }}</a></td>
+    <td class="small">{{ r.kind_name|capfirst }}</td>
+    <td>{{ r.label|truncatechars:90 }}</td>
+    <td class="small">{{ r.deleted_by.get_full_name|default:r.deleted_by.username|default:"—" }}</td>
+  </tr>{% empty %}<tr><td colspan="4" class="text-muted text-center py-3">{% trans "Nothing was deleted." %}</td></tr>{% endfor %}</tbody>
+</table></div>
+<div class="px-3">{% include "includes/pagination.html" %}</div></div>
+{% endblock %}

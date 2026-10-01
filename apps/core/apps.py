@@ -16,4 +16,4 @@ class CoreConfig(AppConfig):
 
         # Show staff by their real name everywhere (drop-downs, lists, admin).
         get_user_model().__str__ = _user_display_name
-        from . import signals  # noqa: F401
+        from . import security, signals  # noqa: F401 - the security log and the deleted records listen from the start

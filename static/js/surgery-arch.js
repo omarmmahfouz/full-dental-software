@@ -23,6 +23,11 @@
   var ADDONS = Array.prototype.map.call(designer.querySelectorAll(".arch-addon"), function (b) { return b.dataset.tool; });
   var tool = "implant";
 
+  function esc(text) {  // typed text (a lot number) shown as text, never as HTML
+    var span = document.createElement("span");
+    span.textContent = text == null ? "" : String(text);
+    return span.innerHTML;
+  }
   function order(teeth) {
     return teeth.filter(function (t, i) { return ALL.indexOf(t) >= 0 && teeth.indexOf(t) === i; })
       .sort(function (a, b) { return ALL.indexOf(a) - ALL.indexOf(b); });
@@ -307,14 +312,15 @@
     var chosen = field(card, "stock_choice") ? field(card, "stock_choice").value : "";
     var rows = seq.lots.filter(function (row) { return (!d || sameNumber(row.diameter, d)) && (!l || sameNumber(row.length, l)); });
     holder.innerHTML = "";
-    if (!seqField("implant_system").value) { holder.innerHTML = '<span class="text-muted small">' + holder.dataset.empty + "</span>"; return; }
-    if (!rows.length) { holder.innerHTML = '<span class="text-muted small">' + texts.noneInStock + "</span>"; return; }
+    if (!seqField("implant_system").value) { holder.innerHTML = '<span class="text-muted small">' + esc(holder.dataset.empty) + "</span>"; return; }
+    if (!rows.length) { holder.innerHTML = '<span class="text-muted small">' + esc(texts.noneInStock) + "</span>"; return; }
     rows.forEach(function (row) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "seq-lot" + (row.value === chosen ? " is-active" : "");
       b.dataset.value = row.value;
-      b.innerHTML = "<b>" + row.diameter + " × " + row.length + "</b> <span>" + (row.lot || "—") + "</span> <small>" + row.left + " " + texts.left + "</small>";
+      b.innerHTML = "<b>" + esc(row.diameter) + " × " + esc(row.length) + "</b> <span>" + esc(row.lot || "—") +
+        "</span> <small>" + esc(row.left) + " " + esc(texts.left) + "</small>";
       b.title = row.label;
       holder.appendChild(b);
     });

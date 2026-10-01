@@ -171,6 +171,9 @@ class UserProfile(models.Model):
     must_change_password = models.BooleanField(
         _("must choose a new password"), default=False,
         help_text=_("Set when the owner gives a temporary password: the person chooses their own at the next login."))
+    weak_password = models.BooleanField(
+        _("easy password"), default=False, editable=False,
+        help_text=_("Seen at the last login: the password is short, common or like the username (security.py)."))
     access_from = models.DateField(_("access starts on"), null=True, blank=True)
     access_until = models.DateField(_("access ends on"), null=True, blank=True,
                                     help_text=_("After this day the login stops working (e.g. end of a course or contract)."))
@@ -294,6 +297,14 @@ class ClinicSettings(models.Model):
     follow_up_sinus_days = models.PositiveSmallIntegerField(_("check after a sinus lift (days)"), default=2)
     follow_up_graft_days = models.PositiveSmallIntegerField(_("check after a bone or gum graft (days)"), default=7)
     follow_up_days = models.PositiveSmallIntegerField(_("suture removal after other surgeries (days)"), default=7)
+    # Security (apps/core/security.py).
+    idle_logout_minutes = models.PositiveSmallIntegerField(
+        _("log out after (minutes without use)"), default=60,
+        help_text=_("A PC left open closes its session by itself. 0 = never."))
+    force_strong_passwords = models.BooleanField(
+        _("people with an easy password must change it"), default=False,
+        help_text=_("At their next login, people whose password is short, common or like their username choose a "
+                    "new one."))
 
     class Meta:
         verbose_name = _("clinic options")
@@ -472,6 +483,7 @@ class Notification(models.Model):
         ordering = ["-created_at"]
         verbose_name = _("notification")
         verbose_name_plural = _("notifications")
+        indexes = [models.Index(fields=["recipient", "read_at"], name="notification_unread")]
 
     def __str__(self):
         return self.title
@@ -498,6 +510,11 @@ class BackupRun(models.Model):
     files_copied = models.PositiveIntegerField(_("files copied"), default=0)
     files_checked = models.PositiveIntegerField(_("files checked"), default=0)
     error = models.TextField(_("error"), blank=True)
+    # Round 11: each ZIP is opened again and checked, and copied to a second place (backup.py).
+    verified = models.BooleanField(_("checked after saving"), default=False)
+    records = models.PositiveIntegerField(_("records in it"), default=0)
+    copy_where = models.CharField(_("second copy in"), max_length=500, blank=True)
+    copy_error = models.CharField(_("second copy problem"), max_length=500, blank=True)
 
     class Meta:
         ordering = ["-started_at"]
@@ -594,3 +611,75 @@ class PasswordHelp(models.Model):
 
     def __str__(self):
         return self.username
+
+
+class SecurityEvent(models.Model):
+    """The security log (apps/core/security.py): logins and wrong passwords, logins closed after too many wrong
+    passwords, log outs, passwords changed or given, data taken out of the system, pages refused, and visits from
+    outside the clinic's network. Kept a year; the owner reads it in Settings → Security."""
+
+    class Kind(models.TextChoices):
+        LOGIN = "login", _("Logged in")
+        LOGIN_FAILED = "login_failed", _("Wrong password")
+        LOCKED = "locked", _("Login closed after wrong passwords")
+        UNLOCKED = "unlocked", _("Login opened again by the owner")
+        LOGOUT = "logout", _("Logged out")
+        IDLE_LOGOUT = "idle_logout", _("Logged out after no use")
+        FORCED_LOGOUT = "forced_logout", _("Logged out by the owner")
+        PASSWORD_CHANGED = "password_changed", _("Password changed")
+        PASSWORD_GIVEN = "password_given", _("Password set by the owner")
+        EXPORT = "export", _("Data taken out (file, export or backup)")
+        DENIED = "denied", _("Page refused (no permission)")
+        OUTSIDE = "outside", _("Refused: from outside the clinic's network")
+
+    ALERTS = (Kind.LOCKED, Kind.OUTSIDE)
+
+    kind = models.CharField(_("what"), max_length=20, choices=Kind.choices, db_index=True)
+    at = models.DateTimeField(_("when"), default=timezone.now, db_index=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("person"), null=True, blank=True,
+                             on_delete=models.SET_NULL, related_name="+")
+    username = models.CharField(_("username"), max_length=150, blank=True, db_index=True)
+    ip = models.GenericIPAddressField(_("device address (IP)"), null=True, blank=True, db_index=True)
+    device = models.CharField(_("browser"), max_length=200, blank=True)
+    path = models.CharField(_("page"), max_length=300, blank=True)
+    details = models.CharField(_("details"), max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["-at", "-pk"]
+        verbose_name = _("security event")
+        verbose_name_plural = _("security log")
+
+    def __str__(self):
+        return f"{self.get_kind_display()} {self.username} {timezone.localtime(self.at):%d/%m/%Y %H:%M}"
+
+
+class DeletedRecord(models.Model):
+    """A record deleted from the system, kept with everything it held, who deleted it and when (security.py): a
+    mistake can be seen and typed back. Kept a year."""
+
+    model = models.CharField(_("kind of record"), max_length=100, db_index=True)
+    label = models.CharField(_("record"), max_length=300)
+    object_id = models.CharField(_("number"), max_length=40)
+    data = models.JSONField(_("what it held"), default=dict)
+    deleted_at = models.DateTimeField(_("deleted at"), default=timezone.now, db_index=True)
+    deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("deleted by"), null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="+")
+    page = models.CharField(_("page"), max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["-deleted_at", "-pk"]
+        verbose_name = _("deleted record")
+        verbose_name_plural = _("deleted records")
+
+    def __str__(self):
+        return f"{self.kind_name}: {self.label}"
+
+    @property
+    def kind_name(self):
+        """The kind of record in the reader's language (``model`` keeps the program's name, e.g. "patients.patient")."""
+        from django.apps import apps
+
+        try:
+            return apps.get_model(self.model)._meta.verbose_name
+        except (LookupError, ValueError):
+            return self.model

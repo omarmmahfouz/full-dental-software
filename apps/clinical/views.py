@@ -220,6 +220,7 @@ def step_photo(request, pk):
     from apps.charting.models import ClinicalPhoto, PhotoStage
     from apps.charting.views import ALLOWED_MEDIA, MAX_PHOTO_MB
     from apps.core import previews
+    from apps.core.uploads import looks_right
 
     step = get_object_or_404(TreatmentStep.objects.select_related("step_type"), pk=pk)
     if not has_role(request.user, *CLINICAL):
@@ -231,7 +232,8 @@ def step_photo(request, pk):
     saved = 0
     for upload in request.FILES.getlist("file"):
         ext = os.path.splitext(upload.name)[1].lower()
-        if ext not in ALLOWED_MEDIA or ext in ClinicalPhoto.VIDEO_EXTENSIONS or upload.size > MAX_PHOTO_MB * 1024 * 1024:
+        if ext not in ALLOWED_MEDIA or ext in ClinicalPhoto.VIDEO_EXTENSIONS or upload.size > MAX_PHOTO_MB * 1024 * 1024 \
+                or not looks_right(upload):
             messages.error(request, _("%(name)s: only photos or PDF up to %(mb)s MB.") % {"name": upload.name,
                                                                                        "mb": MAX_PHOTO_MB})
             continue

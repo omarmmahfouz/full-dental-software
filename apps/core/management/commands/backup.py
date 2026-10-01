@@ -1,11 +1,12 @@
 from django.core.management.base import BaseCommand
 
-from apps.core.backup import copy_files, create_backup
+from apps.core.backup import copy_files, create_backup, maintain_database
 
 
 class Command(BaseCommand):
     help = ("The nightly backup: a ZIP of all the data (JSON, Excel, CSV and the database file) in the backup folder, "
-            "then a copy of the new and changed photos and files to the photo backup folder (FILES_BACKUP_DIR). "
+            "checked and copied to BACKUP_COPY_DIR, then a copy of the new and changed photos and files to the photo "
+            "backup folder (FILES_BACKUP_DIR), then the database is tidied. "
             "Run it every night from the Windows Task Scheduler (deploy/windows/backup.bat) or cron.")
 
     def add_arguments(self, parser):
@@ -18,3 +19,5 @@ class Command(BaseCommand):
         create_backup(stdout=self.stdout, with_files=zip_files)
         if not no_files:
             copy_files(stdout=self.stdout, target=files_to)
+        removed = maintain_database()
+        self.stdout.write(f"Database tidied ({removed} old log lines removed).")

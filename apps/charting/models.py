@@ -117,6 +117,7 @@ class Examination(TimeStampedModel):
         ordering = ["-exam_date", "-pk"]
         verbose_name = _("examination & history")
         verbose_name_plural = _("examinations & histories")
+        indexes = [models.Index(fields=["patient", "exam_date"], name="exam_patient_date")]
 
     def __str__(self):
         return f"{self.patient.full_name} - {self.exam_date}"
@@ -442,6 +443,7 @@ class ClinicalPhoto(TimeStampedModel):
         ordering = ["stage", "photo_type__sort_order", "-taken_on"]
         verbose_name = _("clinical photo")
         verbose_name_plural = _("clinical photos")
+        indexes = [models.Index(fields=["patient", "stage"], name="photo_patient_stage")]
 
     def __str__(self):
         return f"{self.get_stage_display()} - {self.photo_type or ''}"

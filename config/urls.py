@@ -38,3 +38,5 @@ urlpatterns = [
     path("lab/", include("apps.lab.urls")),
     path("settings/", include("apps.core.settings_urls")),
 ]
+
+handler403 = "apps.core.views.permission_denied"

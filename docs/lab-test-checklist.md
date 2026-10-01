@@ -108,3 +108,11 @@ In the sample data:
 1. **GDIL**: the lab is now **GDIL Dental Lab — The art of dentistry**, with its logo on the login page (tap **LAB**:
    the page turns teal-blue), the top bar, the case sheet, the label, the receipts, the statements and the blank lab
    request. An older system gets the new name when `setup_clinic` runs (the update does it).
+
+## I. New in this version (11)
+1. The lab's files: scans (STL, PLY), photos and PDFs still upload on a case; a program or a web page (`.exe`, `.html`,
+   or a program renamed) is refused.
+2. The **WhatsApp address** of the lab stays open to Meta's servers (it checks Meta's signature); every other page is
+   open only on the clinic's network.
+3. Five wrong passwords close `labsec`'s login for 15 minutes; `labsec`'s PC logs out after the minutes without use, and
+   a case typed when the network stopped is offered back (**Put it back**).

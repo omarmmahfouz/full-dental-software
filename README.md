@@ -5,9 +5,9 @@ One system for the owner's connected places:
 | Place | Code | Status |
 |---|---|---|
 | **Cairo Implant Academy** — teaching institute, economic dental service, course candidates, dentists | `CIA` | **In use: secretary + dentists** |
-| **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report; **its own logo** (new) |
+| **Cairo Implant Center** — private economical clinic, mainly implants, many doctors paid by percentage or fixed amounts | `CIC` | **In use**: the same secretary, shared patients, doctors' shares, its own stock and the clinic report; **its own logo** |
 | **El Khadem Dental Clinic** — Dr. Amr El Khadem's private clinic: specialists, doctors who bring their own patients, 4 shared rooms | `PVT` (files `EK-…`) | **In use**: its own reception, the specialists' charts, 40% / 30% shares, the elite look |
-| **GDIL Dental Lab** — works for CIA, CIC, El Khadem and outside clinics, each with its own prices; **its GDIL logo** (new) | `LAB` (cases `LAB-…`) | **In use**: its secretary, manager, designers and head; every case step by step, blocks, receipts, WhatsApp answers, the lab report |
+| **GDIL Dental Lab** — works for CIA, CIC, El Khadem and outside clinics, each with its own prices; **its GDIL logo** | `LAB` (cases `LAB-…`) | **In use**: its secretary, manager, designers and head; every case step by step, blocks, receipts, WhatsApp answers, the lab report |
 
 It runs **on your own PC or the clinic's own server**, with no cloud. Staff open it in a browser on the clinic network.
 Everything works offline, including fonts, icons and styles.
@@ -43,7 +43,48 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: the medical follow-up, the surgery design, the delivery checklist, the file step by step (new)
+### New in this version: protected from hackers, the data kept safe, smooth and fast (new)
+For the owner: *Settings → Security and health*. The steps to try are in every checklist (the owner's in
+[docs/dentist-test-checklist.md](docs/dentist-test-checklist.md) section U); what the server needs is in
+[docs/deployment.md](docs/deployment.md#security).
+1. **Protection from hackers**:
+   - **Wrong passwords close the login**: after 5 wrong passwords in a row a username is closed for 15 minutes (the
+     right password too), and after 20 from one device that device is closed. The person is told how long to wait; the
+     owner gets a red notification and can **open it again** at once. The admin pages are closed the same way.
+   - **Easy passwords** (short, common, like the name, or the sample `demo12345`) are noted at login: a yellow notice
+     asks the person to change it, and the owner sees who. The owner can make them change it at their next login.
+   - **A PC left open logs out by itself** after 60 minutes without use (Clinic options; 0 = never). An unsaved form is
+     not lost (point 2).
+   - **Only the clinic's network can open the system**: a device from the internet gets a short refusal, even if the
+     server is opened to the internet by mistake (the lab's WhatsApp address stays open for Meta).
+   - **The security log**: logins, wrong passwords, closed logins, log outs, passwords changed, **files taken out**
+     (Word, Excel, CSV, photo ZIPs, backups), pages refused and visits from outside, with who, when and which device.
+   - **Who is logged in now**, on which device, since when: the owner can log one person out on every device, or
+     everyone else.
+   - **Uploads are checked by what they hold**: a program or a web page renamed `photo.jpg` is refused; only photos,
+     videos and PDFs open in the browser, anything else is only downloaded. Names and notes can no longer run as a
+     script on a page (two places fixed), and other sites cannot frame the pages or run scripts in them.
+   - **The checks**: *Settings → Security and health* lists what is right and what to fix, with how (test mode off,
+     secret key, network, HTTPS, idle log out, easy passwords, backups checked and copied, disk space).
+     `python manage.py security_check` prints the same on the server.
+2. **The data kept safe**:
+   - **Each night's backup is opened again and checked** (every part reads back, the records are counted, the database
+     copy passes its own check) and **copied to a second disk** (`BACKUP_COPY_DIR`) and compared. A problem is shown in
+     *Settings → Backup* and the owner is notified.
+   - **Deleted records are kept a year** with everything they held, who deleted them, when and from which page
+     (*Settings → Security → Deleted records*): a mistake can be seen and typed back.
+   - **Nothing typed is lost**: when a form is sent, the browser keeps what was typed for a day; if the network or the
+     server stopped, the form offers to put it back (**Put it back** / **Drop it**). Each person sees only their own.
+3. **Smooth and fast**:
+   - **Pages are sent compressed** (about a fifth of their size: quicker on the tablets' Wi-Fi); photos and videos are
+     not (they are compressed already).
+   - **Quicker look-ups** for the day's appointments, the bills and payments of a period, the treatment log, the
+     examinations, the photos and the bell (new database indexes), and the database is tidied every night.
+   - The server **keeps its database connection** instead of opening one per page.
+   - **Health**: the database's size, free space on the photo and backup disks, the slow pages and page errors of the
+     last day, on the owner's Security page.
+
+### Earlier: the medical follow-up, the surgery design, the delivery checklist, the file step by step
 Checklists: [docs/dentist-test-checklist.md](docs/dentist-test-checklist.md) section T, and the new sections of the
 others.
 1. **Medical follow-up and the fitness for surgery** (CIA, CIC and every place):
@@ -241,7 +282,7 @@ Dr. Amr El Khadem's private clinic is the third place (`PVT`, files `EK-…`). C
 
 ### Speed and safety with a lot of data
 Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**: the reception and dentist pages open in
-0.03–0.15 s, the owner's money pages in 0.2–1.2 s (before: 15–25 s). Details and the server to buy: [docs/deployment.md](docs/deployment.md#many-photos-and-many-users-new).
+0.03–0.15 s, the owner's money pages in 0.2–1.2 s (before: 15–25 s). Details and the server to buy: [docs/deployment.md](docs/deployment.md#many-photos-and-many-users).
 - **Quick money pages**: the home page, balance sheet, money report, doctors' shares, clinic report and bills add up all the
   balances in a few database look-ups instead of one per patient; the visits report reads the clinic options once.
 - **Photo previews**: each photo gets a small copy when it is uploaded. Photo pages, the patient's documents and the
@@ -522,7 +563,13 @@ User menu → **Settings**.
 - **Parts of the system for one person**: on a person's page, choose for each part "as the role", normal, read only or no access, e.g. only some secretaries work with the academy.
 - **Clinic options**: appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, the e-mail for CBCT files, and **Fawry's percentage** on card payments.
 - **Lists**: the **usual days at the lab** for each lab work type, which paid services get a **quick button** on a new bill, and implants in stock (company, diameter and length on the stock item).
-- **Backup and export** (owner): one button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones. The page shows the last good backup of each part and any error. *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
+- **Backup and export** (owner): each backup is **checked after saving** and copied to a **second disk** when one is
+  set (new). One button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones. The page shows the last good backup of each part and any error. *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
+- **Security and health** (owner, new): the checks (what is right and what to fix), who is logged in now (log a person
+  out), the logins closed after wrong passwords (open them), the security log (logins, wrong passwords, files taken
+  out, pages refused), the disks' free space and the slow pages, and **Deleted records** (whatever was deleted, kept a
+  year). *Clinic options* has **log out after (minutes without use)** and **people with an easy password must change
+  it**. See [Security](docs/deployment.md#security).
 - **Problem reports** (owner and head of CIA): what the staff reported, and pages that stopped with an error (recorded automatically), with a download to send to whoever maintains the system.
 - **Access by role**: make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for a role.
   - It can only take access away, never give more than the role normally has.

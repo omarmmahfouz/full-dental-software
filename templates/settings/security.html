@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Security and health" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-shield-check"></i> {% trans "Security and health" %}</h1>
+  <a class="btn btn-outline-secondary" href="{% url 'settings:deleted' %}"><i class="bi bi-trash3"></i> {% trans "Deleted records" %}{% if deleted_week %} <span class="badge text-bg-light border">{{ deleted_week }}</span>{% endif %}</a>
+</div>
+
+<div class="row g-2 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100 {% if to_fix %}border-warning{% else %}border-success{% endif %}"><div class="card-body p-2">
+    <div class="stat-value {% if to_fix %}text-warning{% else %}text-success{% endif %}">{% if to_fix %}{{ to_fix }}{% else %}<i class="bi bi-check2-all"></i>{% endif %}</div>
+    <div class="stat-label">{% if to_fix %}{% trans "things to fix" %}{% else %}{% trans "all the checks are good" %}{% endif %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ sessions|length }}</div><div class="stat-label">{% trans "devices logged in now" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100 {% if failed_today %}border-warning{% endif %}"><div class="card-body p-2"><div class="stat-value {% if failed_today %}text-warning{% endif %}">{{ failed_today }}</div><div class="stat-label">{% trans "wrong passwords (24 hours)" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ exports_week }}</div><div class="stat-label">{% trans "files taken out (7 days)" %}</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-7"><div class="card h-100"><div class="card-header"><i class="bi bi-list-check"></i> {% trans "The checks" %}</div>
+    <ul class="list-group list-group-flush security-checks">
+      {% for check in checks %}<li class="list-group-item d-flex gap-2">
+        <i class="bi {% if check.ok %}bi-check-circle-fill text-success{% else %}bi-exclamation-triangle-fill text-warning{% endif %} fs-5"></i>
+        <div><div class="fw-semibold">{{ check.title }}</div>{% if check.detail %}<div class="small {% if check.ok %}text-muted{% endif %}">{{ check.detail }}</div>{% endif %}</div>
+      </li>{% endfor %}
+    </ul>
+  </div></div>
+  <div class="col-xl-5"><div class="card h-100"><div class="card-header"><i class="bi bi-activity"></i> {% trans "Health" %}</div><div class="card-body">
+    <dl class="dl-grid small mb-0">
+      <dt>{% trans "Database" %}</dt><dd>{{ health.database }}{% if health.database_mb is not None %} · {{ health.database_mb }} MB{% endif %}</dd>
+      {% if health.data_disk %}<dt>{% trans "Disk of the photos" %}</dt><dd>{% blocktrans with free=health.data_disk.0 total=health.data_disk.1 percent=health.data_disk.2 %}{{ free }} GB free of {{ total }} GB ({{ percent }}%){% endblocktrans %}</dd>{% endif %}
+      {% if health.backup_disk %}<dt>{% trans "Disk of the backups" %}</dt><dd>{% blocktrans with free=health.backup_disk.0 total=health.backup_disk.1 percent=health.backup_disk.2 %}{{ free }} GB free of {{ total }} GB ({{ percent }}%){% endblocktrans %}</dd>{% endif %}
+      <dt>{% trans "Page errors (24 hours)" %}</dt><dd>{% if health.errors %}<a href="{% url 'core:problems' %}" class="text-danger fw-bold">{{ health.errors }}</a>{% else %}0{% endif %}</dd>
+      <dt>{% trans "Slow pages (24 hours)" %}</dt><dd>{{ health.slow|length }}</dd>
+    </dl>
+    {% if health.slow %}<details class="mt-2 small"><summary>{% trans "The slow pages" %}</summary>
+      <ul class="mb-0 mt-1 ltr-list">{% for when, line in health.slow|slice:":20" %}<li dir="ltr"><span class="text-muted">{{ when|date:"H:i" }}</span> {{ line|truncatechars:120 }}</li>{% endfor %}</ul></details>{% endif %}
+  </div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-7"><div class="card h-100"><div class="card-header d-flex flex-wrap justify-content-between gap-2 align-items-center"><span><i class="bi bi-pc-display"></i> {% trans "Logged in now" %}</span>
+    {% if sessions|length > 1 %}<form method="post" action="{% url 'settings:security_logout' %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-outline-danger" data-confirm="{% trans 'Log out everyone else now? Their unsaved work is lost.' %}"><i class="bi bi-box-arrow-right"></i> {% trans "Log out everyone else" %}</button></form>{% endif %}</div>
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+      <thead><tr><th>{% trans "Person" %}</th><th>{% trans "Device" %}</th><th>{% trans "Since" %}</th><th>{% trans "Last used" %}</th><th></th></tr></thead>
+      <tbody>{% for row in sessions %}<tr>
+        <td><b>{{ row.user.get_full_name|default:row.user.username }}</b>{% if row.mine %} <span class="badge text-bg-success">{% trans "you, here" %}</span>{% endif %}</td>
+        <td class="small"><span dir="ltr">{{ row.ip|default:"—" }}</span><div class="text-muted">{{ row.short_device }}</div></td>
+        <td class="small nowrap">{{ row.since|date:"d/m H:i"|default:"—" }}</td>
+        <td class="small nowrap">{{ row.seen|date:"d/m H:i"|default:"—" }}</td>
+        <td class="text-end">{% if not row.mine %}<form method="post" action="{% url 'settings:security_logout' %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="user" value="{{ row.user_id }}"><button class="btn btn-sm btn-outline-secondary" data-confirm="{% trans 'Log this person out on every device?' %}">{% trans "Log out" %}</button></form>{% endif %}</td>
+      </tr>{% empty %}<tr><td colspan="5" class="text-muted text-center py-3">{% trans "Nobody." %}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div></div>
+  <div class="col-xl-5"><div class="card h-100 {% if locked %}border-danger{% endif %}"><div class="card-header"><i class="bi bi-lock"></i> {% trans "Closed after wrong passwords" %}</div>
+    <ul class="list-group list-group-flush">
+      {% for row in locked %}<li class="list-group-item d-flex flex-wrap gap-2 align-items-center">
+        <span>{% if row.username %}<b>{{ row.username }}</b>{% else %}{% trans "Device" %} <b dir="ltr">{{ row.ip }}</b>{% endif %}<div class="small text-muted">{% blocktrans with until=row.until|date:"H:i" %}until {{ until }}{% endblocktrans %}{% if row.ip and row.username %} · <span dir="ltr">{{ row.ip }}</span>{% endif %}</div></span>
+        <form method="post" action="{% url 'settings:security_unlock' %}" class="ms-auto" data-no-leave-warning>{% csrf_token %}
+          {% if row.username %}<input type="hidden" name="username" value="{{ row.username }}">{% else %}<input type="hidden" name="ip" value="{{ row.ip }}">{% endif %}
+          <button class="btn btn-sm btn-outline-success"><i class="bi bi-unlock"></i> {% trans "Open" %}</button></form>
+      </li>{% empty %}<li class="list-group-item text-muted small">{% blocktrans %}None. After 5 wrong passwords a login is closed for 15 minutes, and you are told.{% endblocktrans %}</li>{% endfor %}
+    </ul>
+  </div></div>
+</div>
+
+<div class="card"><div class="card-header"><i class="bi bi-journal-text"></i> {% trans "Security log" %}</div>
+  <form method="get" class="card-body border-bottom d-flex flex-wrap gap-2 align-items-end" data-no-leave-warning>
+    <div><label class="form-label small mb-0" for="log-kind">{% trans "What" %}</label>
+      <select class="form-select form-select-sm" id="log-kind" name="kind" onchange="this.form.submit()"><option value="">{% trans "Everything" %}</option>{% for value, label in kinds %}<option value="{{ value }}"{% if value == kind %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div><label class="form-label small mb-0" for="log-who">{% trans "Username or device" %}</label>
+      <input class="form-control form-control-sm" id="log-who" name="who" value="{{ who }}"></div>
+    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-search"></i></button>
+  </form>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>{% trans "When" %}</th><th>{% trans "What" %}</th><th>{% trans "Who" %}</th><th>{% trans "Device" %}</th><th>{% trans "Details" %}</th></tr></thead>
+    <tbody>{% for e in page_obj %}<tr class="{% if e.kind == 'locked' or e.kind == 'outside' %}table-danger{% elif e.kind == 'login_failed' or e.kind == 'denied' %}table-warning{% endif %}">
+      <td class="small nowrap">{{ e.at|date:"d/m/Y H:i" }}</td>
+      <td class="small">{{ e.get_kind_display }}</td>
+      <td class="small">{{ e.user.get_full_name|default:e.username|default:"—" }}</td>
+      <td class="small" dir="ltr">{{ e.ip|default:"—" }}</td>
+      <td class="small text-break">{{ e.details }}{% if e.path %} <span class="text-muted" dir="ltr">{{ e.path|truncatechars:60 }}</span>{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="5" class="text-muted text-center py-3">{% trans "Nothing yet." %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="px-3">{% include "includes/pagination.html" %}</div>
+</div>
+{% endblock %}

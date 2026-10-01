@@ -96,6 +96,11 @@ def validate_upload(file, limit=None):
     name = file.name.lower()
     if not name.endswith((".jpg", ".jpeg", ".png", ".webp", ".heic", ".pdf", ".tif", ".tiff", ".bmp")):
         raise ValidationError(_("Only images or PDF files can be uploaded."))
+    from .uploads import looks_right
+
+    if not looks_right(file):
+        raise ValidationError(_("This file is not a real picture or PDF: take the photo again or save it again "
+                                "as a picture."))
     return file
 
 
@@ -106,7 +111,26 @@ class DateRangeForm(StyledForm):
 
 class LoginForm(AuthenticationForm):
     """The normal login, but course candidates are refused: their work is followed
-    by the academy, they do not use the system themselves."""
+    by the academy, they do not use the system themselves. A login (or a device) closed after wrong passwords is
+    told how long to wait, and an easy password is noted (apps/core/security.py)."""
+
+    def clean(self):
+        from django.utils.translation import ngettext
+
+        from .security import client_ip, minutes_locked, note_password
+
+        username = self.cleaned_data.get("username")
+        if username and self.request is not None:
+            minutes = minutes_locked(username, client_ip(self.request))
+            if minutes:
+                raise ValidationError(ngettext(
+                    "Too many wrong passwords: this login is closed for %(n)s minute. Wait, or ask the owner to "
+                    "open it.", "Too many wrong passwords: this login is closed for %(n)s minutes. Wait, or ask the "
+                    "owner to open it.", minutes) % {"n": minutes}, code="locked")
+        data = super().clean()
+        if self.user_cache is not None:
+            note_password(self.user_cache, self.cleaned_data.get("password"))
+        return data
 
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)

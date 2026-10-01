@@ -30,6 +30,9 @@ services:
       MEDIA_SENDFILE: nginx
       BACKUP_DIR: /app/backups
       FILES_BACKUP_DIR: /files-backup
+      # nginx (on the compose network) tells the system each device's own address (security log, closed logins,
+      # the clinic's network only).
+      TRUSTED_PROXIES: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
     volumes:
       - ./data/media:/app/data/media
       - ./backups:/app/backups

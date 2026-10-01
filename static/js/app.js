@@ -450,7 +450,11 @@
     };
     var check = function () {
       fetch(pollUrl + "?since=" + lastSeen, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          // Logged out after no use (or by the owner): show the login page, not the patient's data.
+          if (r.status === 401 || r.redirected && /\/login\//.test(r.url)) { window.location.reload(); return null; }
+          return r.ok ? r.json() : null;
+        })
         .then(function (data) {
           if (!data) return;
           setBadge(data.unread);
@@ -1604,4 +1608,103 @@
   window.addEventListener("pageshow", function (event) {
     if (event.persisted) document.querySelectorAll("form[data-submitting]").forEach(release);
   });
+
+  // A notice closed with its × stays closed in this tab (e.g. the easy-password notice); it comes back next login.
+  document.querySelectorAll("[data-hide-for-now]").forEach(function (box) {
+    var key = "hidden:" + box.getAttribute("data-hide-for-now");
+    try { if (sessionStorage.getItem(key)) { box.remove(); return; } } catch (e) {}
+    var button = box.querySelector("[data-hide-now]");
+    if (button) button.addEventListener("click", function () {
+      try { sessionStorage.setItem(key, "1"); } catch (e) {}
+      box.remove();
+    });
+  });
+
+  // Drafts: nothing typed is lost. When a main form is sent, what was typed is kept in this browser for a day. The
+  // server marks a good save (the "saved" cookie of SavedMarkMiddleware): the draft is then dropped. If the network or
+  // the server stopped, the next time the form is opened a bar offers to put the data back. Passwords, files and the
+  // security token are never kept, and each person sees only their own drafts. A form opts out with data-no-draft.
+  (function drafts() {
+    var store;
+    try { store = window.localStorage; store.setItem("draft-test", "1"); store.removeItem("draft-test"); } catch (e) { return; }
+    var user = document.body.getAttribute("data-user");
+    if (!user) return;
+    var ALL = "draft:", PREFIX = ALL + user + ":", DAY = 24 * 60 * 60 * 1000, now = Date.now();  // each person's own
+    var path = window.location.pathname + window.location.search;
+    function mainForms() {
+      return Array.prototype.filter.call(document.querySelectorAll("form"), function (form) {
+        return (form.getAttribute("method") || "").toLowerCase() === "post" && !form.hasAttribute("data-no-leave-warning") &&
+          !form.hasAttribute("data-no-draft") &&
+          form.querySelectorAll("input:not([type=hidden]):not([type=password]), select, textarea").length >= 3;
+      });
+    }
+    function keyOf(form, where) { return PREFIX + where + "#" + mainForms().indexOf(form); }
+    function each(fn, prefix) {
+      for (var i = store.length - 1; i >= 0; i--) {
+        var key = store.key(i);
+        if (key && key.indexOf(prefix || PREFIX) === 0) {
+          var draft = null;
+          try { draft = JSON.parse(store.getItem(key)); } catch (e) {}
+          fn(key, draft);
+        }
+      }
+    }
+    function snapshot(form) {
+      var fields = [];
+      Array.prototype.forEach.call(form.elements, function (el) {
+        var type = (el.type || "").toLowerCase();
+        if (!el.name || el.disabled || el.name === "csrfmiddlewaretoken" ||
+            ["password", "file", "submit", "button", "reset"].indexOf(type) >= 0) return;
+        if (type === "checkbox" || type === "radio") fields.push({n: el.name, v: el.value, c: el.checked});
+        else if (el.tagName === "SELECT" && el.multiple) {
+          fields.push({n: el.name, m: Array.prototype.filter.call(el.options, function (o) { return o.selected; })
+            .map(function (o) { return o.value; })});
+        } else fields.push({n: el.name, v: el.value});
+      });
+      return fields;
+    }
+    function putBack(form, fields) {
+      fields.forEach(function (field) {
+        var els = form.querySelectorAll('[name="' + field.n.replace(/"/g, '\\"') + '"]');
+        Array.prototype.forEach.call(els, function (el) {
+          if (field.c !== undefined) { if (el.value === field.v) el.checked = field.c; }
+          else if (field.m) Array.prototype.forEach.call(el.options, function (o) { o.selected = field.m.indexOf(o.value) >= 0; });
+          else if (el.type !== "checkbox" && el.type !== "radio") el.value = field.v;
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      });
+    }
+    // A good save: drop the drafts of the last minutes. Old drafts go after a day.
+    var saved = /(?:^|; )saved=(\d+)/.exec(document.cookie);
+    if (saved) {
+      document.cookie = "saved=; Max-Age=0; path=/; SameSite=Lax";
+      each(function (key, draft) { if (!draft || draft.t >= now - 10 * 60 * 1000) store.removeItem(key); });
+    }
+    each(function (key, draft) { if (!draft || now - draft.t > DAY) store.removeItem(key); }, ALL);
+    var template = document.getElementById("draft-bar");
+    mainForms().forEach(function (form) {
+      var key = keyOf(form, path);
+      if (form.querySelector(".errorlist, .is-invalid")) { store.removeItem(key); return; }  // the data is on the page
+      var draft = null;
+      try { draft = JSON.parse(store.getItem(key)); } catch (e) {}
+      if (!draft || !template) return;
+      var bar = template.content.firstElementChild.cloneNode(true);
+      var when = new Date(draft.t);
+      bar.querySelector("[data-draft-time]").textContent =
+        ("0" + when.getHours()).slice(-2) + ":" + ("0" + when.getMinutes()).slice(-2);
+      bar.querySelector("[data-draft-restore]").addEventListener("click", function () {
+        putBack(form, draft.f);
+        store.removeItem(key);
+        bar.remove();
+        form.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      bar.querySelector("[data-draft-discard]").addEventListener("click", function () { store.removeItem(key); bar.remove(); });
+      form.parentNode.insertBefore(bar, form);
+    });
+    document.addEventListener("submit", function (event) {
+      var form = event.target;
+      if (mainForms().indexOf(form) < 0 || form.hasAttribute("data-no-progress")) return;
+      try { store.setItem(keyOf(form, path), JSON.stringify({t: Date.now(), f: snapshot(form)})); } catch (e) {}
+    }, true);
+  })();
 })();

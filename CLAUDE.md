@@ -173,8 +173,23 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     the original in a grid (`apps/core/previews.py`). Files are sent by `core.views.send_file` (ETag; X-Accel-Redirect
     with `MEDIA_SENDFILE=nginx`).
   - Long lists get pages (`Paginator`, `includes/pagination.html`); keep totals for the whole period.
+- **Security** (round 11, `apps/core/security.py`): `LockoutBackend` + the `user_login_failed` receiver close a username
+  after `LOGIN_LOCK_AFTER` wrong passwords (and a device after `LOGIN_IP_LOCK_AFTER`) for `LOGIN_LOCK_MINUTES`;
+  `SecurityEvent` is the security log (`log_event`); `NetworkFenceMiddleware` (`ALLOWED_NETWORKS`, `TRUSTED_PROXIES`
+  for our nginx's X-Real-IP; `OUTSIDE_ALLOWED_PATHS` = the lab's WhatsApp hook); `SecurityHeadersMiddleware` (CSP,
+  Permissions-Policy, logs every `attachment` response as an export); `IdleLogoutMiddleware`
+  (`ClinicSettings.idle_logout_minutes`; the bell's poll does not count; 401 JSON for AJAX); a `pre_delete` receiver
+  keeps every deleted record of our apps as `DeletedRecord` (`working_as(user)` outside a request). Easy passwords:
+  `note_password` → `UserProfile.weak_password`. The owner's page is `security_views.py` + `health.py`
+  (`security_check` prints the checks). Uploads: `core/uploads.py` (`looks_right` by magic bytes, `is_blocked`); test
+  uploads need real first bytes (`b"\xff\xd8\xff"` for a JPEG, `b"%PDF"`). `send_file` only shows photos, videos and
+  PDFs (others download, sandbox CSP). Never render user text with `|safe` (field help_text often holds a patient's
+  name). Drafts: `app.js` keeps sent forms in `localStorage` per user until the `saved` cookie
+  (`SavedMarkMiddleware`) says the save worked.
 - **Backups**: `backup` = the data ZIP (no photos) + `copy_files` (new files only, to `FILES_BACKUP_DIR`, never deletes);
-  each run is a `BackupRun`, shown in Settings → Backup and on the owner's home page. Logs are in `LOG_DIR`
+  each run is a `BackupRun`, shown in Settings → Backup and on the owner's home page. Each ZIP is checked again
+  (`verify_backup`) and copied to `BACKUP_COPY_DIR` (`second_copy`, compared by sha256); the nightly run also calls
+  `maintain_database` and `clean_old_records`. Logs are in `LOG_DIR`
   (`errors.log`, `slow-pages.log`). `make_test_copy` makes a test copy (`TEST_COPY=1` banner).
 
 ## Commands
@@ -237,5 +252,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - The implant sticker is kept as a photo: the lot is chosen from stock or typed, the photo is not read by itself.
   - The photos and X-rays of a treatment step are asked for, not required: a step can be saved without them. The
     periapical X-ray is photographed or uploaded; the X-ray sensor is not connected.
+  - Security: there is no two-step login (a code on the phone); the backup ZIP is not encrypted (use BitLocker on the
+    backup disks); the pages still allow inline scripts (the Content-Security-Policy blocks other sites, not a script
+    already in a page); the clinic's-network rule trusts the addresses the server sees, so it depends on the router
+    and, with Docker, on our nginx. Drafts stay in the browser of that PC for a day.
   - The planned prosthesis made from a surgery's design is a best guess (a full arch from 10 units, a bridge when a
     pontic is between implants, else a crown for each implant): the dentist corrects it on the dental chart.

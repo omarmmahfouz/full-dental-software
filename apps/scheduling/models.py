@@ -160,6 +160,7 @@ class Appointment(TimeStampedModel):
         ordering = ["scheduled_at"]
         verbose_name = _("appointment")
         verbose_name_plural = _("appointments")
+        indexes = [models.Index(fields=["branch", "scheduled_at"], name="appointment_place_time")]
 
     def __str__(self):
         local = timezone.localtime(self.scheduled_at)

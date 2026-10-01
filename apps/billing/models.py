@@ -92,6 +92,7 @@ class Bill(TimeStampedModel):
         ordering = ["-billed_on", "-pk"]
         verbose_name = _("bill")
         verbose_name_plural = _("bills")
+        indexes = [models.Index(fields=["branch", "billed_on"], name="bill_place_date")]
 
     def __str__(self):
         return self.number
@@ -154,6 +155,7 @@ class Charge(TimeStampedModel):
         ordering = ["charged_on", "pk"]
         verbose_name = _("service given")
         verbose_name_plural = _("services given")
+        indexes = [models.Index(fields=["branch", "charged_on"], name="charge_place_date")]
 
     def __str__(self):
         return f"{self.service} — {self.charged_on:%d/%m/%Y}"
@@ -220,6 +222,7 @@ class PatientPayment(TimeStampedModel):
         verbose_name = _("patient payment")
         verbose_name_plural = _("patient payments")
         base_manager_name = "every"
+        indexes = [models.Index(fields=["branch", "paid_on"], name="payment_place_date")]
 
     def __str__(self):
         return f"{self.receipt_number} - {self.amount}"

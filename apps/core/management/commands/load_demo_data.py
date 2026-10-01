@@ -681,6 +681,9 @@ class Command(BaseCommand):
 
         load_round_ten(today, at, patients, cia_dentists, {t.name_en: t for t in TreatmentStepType.objects.all()},
                        secretary, owner, demo_photo)
+        from apps.core.demo import load_round_eleven
+
+        load_round_eleven(patients, secretary)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
@@ -1016,10 +1019,12 @@ class Command(BaseCommand):
 
         last_night, older = timezone.now() - timedelta(hours=6), at(today - timedelta(days=4), 2)
         runs = [
-            (BackupRun.Kind.DATABASE, older, True, {"size": 41_200_000}),
+            (BackupRun.Kind.DATABASE, older, True, {"size": 41_200_000, "verified": True, "records": 51_870}),
             (BackupRun.Kind.FILES, older, False,
              {"error": "OSError: [Errno 28] No space left on device", "files_checked": 11_870, "files_copied": 212}),
-            (BackupRun.Kind.DATABASE, last_night, True, {"size": 43_100_000}),
+            (BackupRun.Kind.DATABASE, last_night, True,
+             {"size": 43_100_000, "verified": True, "records": 52_406,  # opened again and checked; a second copy
+              "copy_where": f"F:/CIA second copy/backup_{timezone.localtime(last_night):%Y-%m-%d_%H-%M-%S}.zip"}),
             (BackupRun.Kind.FILES, last_night + timedelta(minutes=3), True,
              {"files_checked": 12_450, "files_copied": 386, "size": 1_540_000_000}),
         ]

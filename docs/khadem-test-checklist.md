@@ -150,3 +150,10 @@ In the sample data:
    ready consultation letter on El Khadem's paper.
 3. A surgery chart at El Khadem is drawn like a scanner's order form (implants, pontics, extractions), with the
    **delivery checklist** of the teeth on the implants (see the dentists' checklist, section T).
+
+## L. New in this version (11)
+1. Five wrong passwords close `khadem`'s (or `amr`'s) login for 15 minutes; the owner is told and can open it.
+2. El Khadem's reception PC logs out by itself after the minutes without use; a form typed when the network stopped is
+   offered back (**Put it back**).
+3. Whatever is deleted at El Khadem (a document, a photo, a room shift) is kept in the owner's *Security → Deleted
+   records*, with who deleted it. See the dentists' checklist, section U.

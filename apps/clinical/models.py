@@ -162,6 +162,8 @@ class TreatmentStep(TimeStampedModel):
         ordering = ["-performed_at"]
         verbose_name = _("treatment step")
         verbose_name_plural = _("treatment steps")
+        indexes = [models.Index(fields=["performed_at"], name="step_time"),
+                   models.Index(fields=["patient", "performed_at"], name="step_patient_time")]
 
     def __str__(self):
         return f"{self.step_type} - {self.patient.full_name}"

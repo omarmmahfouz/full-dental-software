@@ -89,6 +89,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.core.security.NetworkFenceMiddleware",
+    "apps.core.security.SecurityHeadersMiddleware",
+    "apps.core.middleware.CompressPagesMiddleware",
     "apps.core.middleware.SlowPageMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -100,6 +103,8 @@ MIDDLEWARE = [
     "apps.core.middleware.UserLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.core.security.IdleLogoutMiddleware",
+    "apps.core.middleware.SavedMarkMiddleware",
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "apps.core.access.AccessControlMiddleware",
     "apps.core.middleware.ErrorRecorderMiddleware",
@@ -138,7 +143,9 @@ if env("DB_ENGINE", "sqlite") == "postgres":
             "PASSWORD": env("DB_PASSWORD", ""),
             "HOST": env("DB_HOST", "localhost"),
             "PORT": env("DB_PORT", "5432"),
-            "CONN_MAX_AGE": 60,
+            # Each worker keeps its connection open (quicker pages) and checks it is alive before use.
+            "CONN_MAX_AGE": 600,
+            "CONN_HEALTH_CHECKS": True,
         }
     }
 else:
@@ -150,6 +157,8 @@ else:
             "NAME": SQLITE_PATH,
             # Several PCs saving at once: the pages keep reading while one saves (WAL), a save takes its turn at
             # once instead of failing half way ("database is locked"), and waits up to 20 s for the one before.
+            "CONN_MAX_AGE": 600,  # each thread keeps its connection: no reopening the file on every page
+            "CONN_HEALTH_CHECKS": True,
             "OPTIONS": {
                 "timeout": 20,
                 "transaction_mode": "IMMEDIATE",
@@ -167,6 +176,12 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# Logins: wrong passwords close a login (and a device) for a while; see apps/core/security.py.
+AUTHENTICATION_BACKENDS = ["apps.core.security.LockoutBackend"]
+LOGIN_LOCK_AFTER = int(env("LOGIN_LOCK_AFTER", "5"))
+LOGIN_IP_LOCK_AFTER = int(env("LOGIN_IP_LOCK_AFTER", "20"))
+LOGIN_LOCK_MINUTES = int(env("LOGIN_LOCK_MINUTES", "15"))
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "core:dashboard"
@@ -210,6 +225,9 @@ MEDIA_SENDFILE_PREFIX = env("MEDIA_SENDFILE_PREFIX", "/protected-media/")
 # Full backups (Settings → Backup and export, or "python manage.py backup"): the newest BACKUP_KEEP are kept.
 BACKUP_DIR = Path(env("BACKUP_DIR", str(BASE_DIR / "data" / "backups")))
 BACKUP_KEEP = int(env("BACKUP_KEEP", "10"))
+# A second copy of each data backup, checked against the first (another disk, a USB disk or a network folder,
+# e.g. E:\CIA backup or \\NAS\backups). Empty = no second copy (Settings → Security says so).
+BACKUP_COPY_DIR = env("BACKUP_COPY_DIR", "")
 # The nightly copy of the photos and uploaded files (only new and changed files; best on another disk,
 # e.g. E:\CIA backup\files). Empty = the "files" folder inside BACKUP_DIR.
 FILES_BACKUP_DIR = env("FILES_BACKUP_DIR", "")
@@ -221,13 +239,28 @@ MAX_UPLOAD_SIZE_MB = int(env("MAX_UPLOAD_SIZE_MB", "15"))
 # X-rays and CBCT reports (patient documents of that type) may be larger.
 MAX_XRAY_UPLOAD_MB = int(env("MAX_XRAY_UPLOAD_MB", "60"))
 
+# The clinic's network only: requests from other addresses are refused (apps/core/security.py). The private
+# networks, the VPN range (100.64.x) and this PC by default; "*" = everyone (only behind HTTPS and a VPN).
+ALLOWED_NETWORKS = env_list("ALLOWED_NETWORKS", "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,"
+                                                "169.254.0.0/16,::1/128,fc00::/7,fe80::/10")
+# Our own nginx in front of the system (Docker): the device's address is read from what nginx sends.
+TRUSTED_PROXIES = env_list("TRUSTED_PROXIES", "")
+
 # LAN-only by default. Enable when the server is put behind HTTPS.
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "SAMEORIGIN"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = True  # the pages send the token from the form, not from the cookie
 if env_bool("DJANGO_HTTPS", False):
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = env_bool("DJANGO_SSL_REDIRECT", True)
+    # The browser goes on using HTTPS for this server (30 days by default; 0 = off).
+    SECURE_HSTS_SECONDS = int(env("DJANGO_HSTS_SECONDS", str(30 * 24 * 60 * 60)))
 
 LOGGING = {
     "version": 1,

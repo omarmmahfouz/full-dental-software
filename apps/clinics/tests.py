@@ -246,7 +246,8 @@ class DoctorShareTests(PlaceMixin, TestCase):
         payout = DoctorPayout.objects.get()
         self.assertEqual((payout.branch, payout.created_by), (self.cic, self.moderator))
         self.assertEqual(owed(self.walid, self.cic, self.today), Decimal("50.00"))  # 100 + 100 earned, 150 paid
-        page = self.client.get("/clinics/?place=CIC")
+        period = f"date_from={self.start:%d/%m/%Y}&date_to={self.today:%d/%m/%Y}"  # also on the 1st of a month
+        page = self.client.get(f"/clinics/?place=CIC&{period}")
         row = next(r for r in page.context["rows"] if r["dentist"] == self.walid)
         self.assertEqual((row["share"], row["paid_out"], row["owed"]), (Decimal("200.00"), Decimal("150"), Decimal("50.00")))
         # The balance sheet counts it as a cost of CIC.

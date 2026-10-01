@@ -35,3 +35,9 @@
     </div>
   </form></div>
 </div>
+
+<template id="draft-bar"><div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 no-print draft-bar" role="status">
+  <i class="bi bi-cloud-slash"></i> <span>{% blocktrans %}What you typed here at <b data-draft-time></b> was not saved (the network or the server stopped).{% endblocktrans %}</span>
+  <span class="ms-auto d-flex gap-2"><button type="button" class="btn btn-sm btn-warning" data-draft-restore><i class="bi bi-arrow-counterclockwise"></i> {% trans "Put it back" %}</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary" data-draft-discard>{% trans "No, throw it away" %}</button></span>
+</div></template>

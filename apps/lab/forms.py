@@ -121,6 +121,10 @@ class FileForm(StyledModelForm):
         upload = self.cleaned_data["file"]
         if upload and upload.size > 60 * 1024 * 1024:
             raise forms.ValidationError(_("The file is too large (maximum %(size)s MB).") % {"size": 60})
+        from apps.core.uploads import is_blocked
+
+        if upload and is_blocked(upload):
+            raise forms.ValidationError(_("Programs, scripts and web pages cannot be uploaded."))
         return upload
 
 

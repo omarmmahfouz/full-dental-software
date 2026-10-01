@@ -43,7 +43,7 @@ class PatientRegistrationTests(TestCase):
         return data
 
     def test_register_patient_with_id_scan(self):
-        data = self.form_data(id_front=SimpleUploadedFile("id.jpg", b"fake-image", content_type="image/jpeg"))
+        data = self.form_data(id_front=SimpleUploadedFile("id.jpg", b"\xff\xd8\xff fake-image", content_type="image/jpeg"))
         response = self.client.post("/patients/new/", data)
         patient = Patient.objects.get()
         self.assertRedirects(response, f"/patients/{patient.pk}/", fetch_redirect_response=False)

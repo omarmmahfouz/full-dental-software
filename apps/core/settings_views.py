@@ -183,7 +183,8 @@ class OptionsForm(StyledModelForm):
         fields = ["day_start", "day_end", "default_appointment_minutes", "surgery_days", "late_threshold_minutes",
                   "complaint_follow_up_days", "stock_expiry_days", "reminder_days_before", "whatsapp_country_code",
                   "dicom_email", "fawry_fee_percent", "hba1c_limit", "glucose_limit", "systolic_limit",
-                  "diastolic_limit", "follow_up_sinus_days", "follow_up_graft_days", "follow_up_days"]
+                  "diastolic_limit", "follow_up_sinus_days", "follow_up_graft_days", "follow_up_days",
+                  "idle_logout_minutes", "force_strong_passwords"]
         widgets = {"surgery_days": WeekdaysWidget}
 
 
@@ -258,6 +259,16 @@ class UserForm(StyledForm):
             raise forms.ValidationError(_("This username is taken."))
         return username
 
+    def clean_new_password(self):
+        from .models import ClinicSettings
+        from .security import is_easy
+
+        password = self.cleaned_data.get("new_password", "")
+        if password and ClinicSettings.get().force_strong_passwords and is_easy(password, self.user):
+            raise forms.ValidationError(_("This password is too easy to guess: use at least 8 letters and numbers, "
+                                          "not like the username."))
+        return password
+
     def clean(self):
         data = super().clean()
         if bool(data.get("access_start")) != bool(data.get("access_end")):
@@ -313,6 +324,13 @@ def user_edit(request, pk=None):
                 profile = UserProfile.objects.get_or_create(user=target)[0]
             elif password:
                 target.set_password(password)
+            if data["new_password"]:
+                from .models import SecurityEvent
+                from .security import is_easy, log_event
+
+                profile.weak_password = is_easy(data["new_password"], target)
+                log_event(SecurityEvent.Kind.PASSWORD_GIVEN, request, user=target,
+                          details=_("set in People and logins by %(owner)s") % {"owner": request.user.get_username()})
             if target.pk == request.user.pk and OWNER not in data["roles"] and not target.is_superuser:
                 data["roles"] = [*data["roles"], OWNER]  # the owner cannot remove their own access
             target.username, target.first_name = data["username"], data["first_name"]

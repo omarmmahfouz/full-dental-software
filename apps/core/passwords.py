@@ -71,6 +71,10 @@ def give_password(request, pk):
     profile.save(update_fields=["must_change_password"])
     PasswordHelp.objects.filter(user=asked.user, status=PasswordHelp.Status.NEW).update(
         status=PasswordHelp.Status.DONE, done_by=request.user, done_at=timezone.now())
+    from .models import SecurityEvent
+    from .security import log_event
+
+    log_event(SecurityEvent.Kind.PASSWORD_GIVEN, request, user=asked.user, details=_("temporary password"))
     request.session["given_password"] = {"user": asked.user.pk, "name": asked.user.get_full_name() or
                                          asked.user.username, "password": password, "phone": profile.phone}
     return redirect(reverse("settings:users") + "#password-requests")
@@ -92,8 +96,14 @@ class PasswordChange(auth_views.PasswordChangeView):
     success_url = reverse_lazy("password_change_done")
 
     def form_valid(self, form):
+        from .models import SecurityEvent
+        from .security import is_easy, log_event
+
         response = super().form_valid(form)
-        UserProfile.objects.filter(user=self.request.user).update(must_change_password=False)
+        UserProfile.objects.filter(user=self.request.user).update(
+            must_change_password=False, weak_password=is_easy(form.cleaned_data.get("new_password1"),
+                                                              self.request.user))
+        log_event(SecurityEvent.Kind.PASSWORD_CHANGED, self.request)
         return response
 
 

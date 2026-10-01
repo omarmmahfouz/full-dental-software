@@ -121,3 +121,11 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
 43. As `cicdoctor`, the surgery chart **design** (tap the teeth, the company once, sizes and lots one by one), the
     **delivery checklist** and the treatment steps by kind work at CIC the same way (see the dentists' checklist,
     section T). Implants bought for CIC are the ones offered from stock.
+
+## L. New in this version (11): protection and safe data at CIC too
+44. Wrong passwords close the `moderator`'s or `cicdoctor`'s login the same way as at CIA (5 tries, 15 minutes); the
+    owner sees CIC's logins, wrong passwords and files taken out in *Settings → Security*.
+45. A CIC reception PC left open logs out after the minutes of *Clinic options*; a form typed when the network
+    stopped is offered back (**Put it back**).
+46. Whatever is deleted at CIC (a doctor's payout, a booking shift, a document) is kept in *Security → Deleted
+    records*, with who deleted it. See the dentists' checklist, section U.

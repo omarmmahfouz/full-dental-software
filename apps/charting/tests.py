@@ -434,10 +434,10 @@ class PhotoFolderAndLogBookTests(TestCase):
         url = f"/chart/patient/{self.patient.pk}/photos/"
         for teeth in ("16", "26"):  # the right side, then the left side, the same day
             response = self.client.post(url, {"stage": "follow_up", "taken_on": "20/09/2026", "teeth": teeth,
-                                              f"type_{shot.pk}": SimpleUploadedFile("a.jpg", b"jpeg", "image/jpeg")})
+                                              f"type_{shot.pk}": SimpleUploadedFile("a.jpg", b"\xff\xd8\xff jpeg", "image/jpeg")})
             self.assertIn(f"teeth={teeth}", response["Location"])
         self.client.post(url, {"stage": "follow_up", "taken_on": "27/09/2026", "teeth": "16", "extra_name": "Suture removed",
-                               "extra": SimpleUploadedFile("b.jpg", b"jpeg", "image/jpeg")})
+                               "extra": SimpleUploadedFile("b.jpg", b"\xff\xd8\xff jpeg", "image/jpeg")})
         page = self.client.get(f"{url}?stage=follow_up&on=2026-09-20&teeth=26")
         stage = next(s for s in page.context["stages"] if s["code"] == "follow_up")
         shown = [p for item in stage["items"] for p in item["photos"]] + stage["extra"]
@@ -545,10 +545,10 @@ class PhotoPreviewTests(TestCase):
 
         from apps.core import previews
 
-        photo = self.upload(b"not really a jpeg")
+        photo = self.upload(b"\xff\xd8\xff not really a jpeg")  # looks like one, but cannot be read
         self.assertFalse(os.path.exists(os.path.join(self.media, previews.preview_name(photo.file.name))))
         response = self.client.get(default_storage.url(previews.preview_name(photo.file.name)))
-        self.assertEqual(b"".join(response.streaming_content), b"not really a jpeg")
+        self.assertEqual(b"".join(response.streaming_content), b"\xff\xd8\xff not really a jpeg")
 
     def test_behind_nginx_the_file_is_sent_by_nginx(self):
         from django.test import override_settings

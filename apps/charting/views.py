@@ -22,6 +22,8 @@ from apps.patients.sequence import after_step, file_steps
 from apps.patients.access import get_clinical_patient_or_403
 
 from . import odontogram, photo_files
+from apps.core.uploads import looks_right
+
 from .forms import (
     HISTORY_FIELDSETS, ExaminationForm, PhotoUploadForm, PlanItemFormSet, ToothForm, TreatmentPlanForm,
 )
@@ -396,7 +398,7 @@ def photos(request, patient_pk):
                 for upload in request.FILES.getlist(key):
                     ext = os.path.splitext(upload.name)[1].lower()
                     limit = MAX_VIDEO_MB if ext in ClinicalPhoto.VIDEO_EXTENSIONS else MAX_PHOTO_MB
-                    if ext not in ALLOWED_MEDIA:
+                    if ext not in ALLOWED_MEDIA or not looks_right(upload):
                         errors.append(_("%(name)s: only photos, PDF or videos can be uploaded.") % {"name": upload.name})
                         continue
                     if upload.size > limit * 1024 * 1024:

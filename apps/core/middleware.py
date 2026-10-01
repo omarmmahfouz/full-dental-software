@@ -116,3 +116,42 @@ class SlowPageMiddleware:
             slow_log.warning("%.1f s  %s %s  (%s)", seconds, request.method, request.get_full_path()[:300],
                              user.get_username() if user is not None and user.is_authenticated else "-")
         return response
+
+
+class CompressPagesMiddleware:
+    """Pages and lists are sent compressed (about a fifth of their size: quicker on the tablets' Wi-Fi). Photos,
+    videos, PDFs and downloads are not: they are compressed already, and videos must stay seekable. Django's
+    GZipMiddleware also guards the pages against the BREACH attack."""
+
+    TYPES = ("text/html", "application/json", "text/plain", "text/csv", "text/css", "application/javascript")
+
+    def __init__(self, get_response):
+        from django.middleware.gzip import GZipMiddleware
+
+        self.get_response = get_response
+        self.gzip = GZipMiddleware(lambda request: None)
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        content_type = response.get("Content-Type", "").split(";")[0].strip()
+        if response.streaming or content_type not in self.TYPES or response.has_header("Content-Disposition"):
+            return response
+        return self.gzip.process_response(request, response)
+
+
+class SavedMarkMiddleware:
+    """A form saved without error answers with a redirect: a short "saved" cookie then tells the next page that the
+    data typed is in the system, so the copy the browser kept (the drafts of app.js) is dropped. When the network
+    or the server stopped, there is no cookie and the browser offers the typed data back."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if request.method == "POST" and response.status_code in (301, 302, 303) and getattr(
+                request, "user", None) is not None and request.user.is_authenticated:
+            import time
+
+            response.set_cookie("saved", str(int(time.time())), max_age=120, samesite="Lax", httponly=False)
+        return response

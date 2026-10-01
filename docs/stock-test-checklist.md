@@ -93,3 +93,8 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
 42. An implant's diameter and length take **two decimals** (e.g. **3.75 x 11.5**): add one in "صنف جديد" and it is offered on
     the surgery chart. On the new surgery design the dentist taps the implant used **from stock**; saving takes it out
     with its lot, as before.
+
+## P. New in this version (11): safety
+43. Five wrong passwords close the `stock` login for 15 minutes (the owner can open it); a PC left open logs out by itself.
+44. A movement typed when the network stopped is offered back on the same page (**Put it back** / **No, throw it away**).
+    The owner keeps every deleted record for a year.

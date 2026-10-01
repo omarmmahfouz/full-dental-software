@@ -449,17 +449,31 @@ def protected_media(request, path):
     return send_file(request, path)
 
 
+# Uploaded files the browser may show itself (photos, videos, PDFs); any other kind is only downloaded, so a file
+# made to look like a page cannot run in the system's name.
+SHOWN_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/bmp", "image/tiff", "image/heic",
+               "application/pdf", "video/mp4", "video/webm", "video/quicktime", "video/x-m4v", "video/x-msvideo"}
+FILE_CSP = "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox"
+
+
 def send_file(request, path):
     """Send a stored file. The browser keeps it and asks again only whether it changed (no download when it
-    did not). Behind nginx (MEDIA_SENDFILE=nginx) the file itself is sent by nginx, not by Python."""
+    did not). Behind nginx (MEDIA_SENDFILE=nginx) the file itself is sent by nginx, not by Python.
+    Only photos, videos and PDFs open in the browser, in a sandbox; anything else is downloaded."""
     full_path = default_storage.path(path)
     info = os.stat(full_path)
     etag = f'"{info.st_mtime_ns:x}-{info.st_size:x}"'
-    headers = {"ETag": etag, "Last-Modified": http_date(info.st_mtime), "Cache-Control": "private, no-cache"}
+    headers = {"ETag": etag, "Last-Modified": http_date(info.st_mtime), "Cache-Control": "private, no-cache",
+               "X-Content-Type-Options": "nosniff"}
+    content_type = mimetypes.guess_type(full_path)[0] or "application/octet-stream"
+    if content_type not in SHOWN_TYPES:
+        content_type = "application/octet-stream"
+        headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{quote(os.path.basename(full_path))}"
+    if content_type != "application/pdf":  # the browser's PDF viewer does not open in a sandbox
+        headers["Content-Security-Policy"] = FILE_CSP
     if etag in request.headers.get("If-None-Match", ""):
         response = HttpResponseNotModified()
     else:
-        content_type = mimetypes.guess_type(full_path)[0] or "application/octet-stream"
         if settings.MEDIA_SENDFILE == "nginx":
             response = HttpResponse(content_type=content_type)
             response["X-Accel-Redirect"] = settings.MEDIA_SENDFILE_PREFIX + quote(path)
@@ -471,3 +485,13 @@ def send_file(request, path):
     for key, value in headers.items():
         response[key] = value
     return response
+
+def permission_denied(request, exception=None):
+    """A page refused: the security log keeps who tried and what (Settings → Security)."""
+    from .models import SecurityEvent
+    from .security import log_event
+
+    user = getattr(request, "user", None)
+    if user is not None and user.is_authenticated:
+        log_event(SecurityEvent.Kind.DENIED, request, details=str(exception or "")[:300])
+    return render(request, "403.html", {"exception": exception}, status=403)

@@ -311,3 +311,40 @@ Log in as `dentist1` (Dr. Mona) unless written otherwise.
      opens the tablet's camera. **CIA-00030** has a root canal in two steps with its X-rays (one still to take).
 132. **Logos**: the login page tiles and the top bar of **CIC** and the **lab (GDIL)** show their logos; a CIC bill,
      prescription or CBCT request prints CIC's logo.
+
+## U. New in this version (11): protection from hackers, the data kept safe, smooth and fast
+Log in as `owner` unless written otherwise. For the steps with "another browser", use a private window.
+133. *Settings → Security and health*: the **checks**, each green or yellow with what to do. On the trial some are
+     yellow on purpose (test mode on, the trial's secret key, no second backup disk, everybody uses `demo12345`).
+     `python manage.py security_check` prints the same list on the server.
+134. The **security log** of the sample data: the secretary's two wrong passwords then her login, **admin** closed
+     after 5 wrong passwords from 192.168.1.77, a visit **from outside** the clinic's network (41.33.12.5) refused,
+     `secretary2` refused on the money report, the owner's Excel downloads, Dr. Mona's password change. Filter by
+     *What* or type a username or an address.
+135. **Wrong passwords**: in another browser log in as `secretary` with a wrong password 5 times. The next try, even
+     with the right password, says the login is **closed for 15 minutes**. You get a red notification; *Closed after
+     wrong passwords* shows `secretary` → **Open**: she can log in at once.
+136. **Who is logged in now**: with `secretary` logged in in the other browser, you see two lines (device, since, last
+     used). **Log out** on her line: her next click opens the login page. *Log out everyone else* does it for all.
+137. **A PC left open**: *Clinic options → log out after (minutes without use)*: set **1**, leave the page 2 minutes,
+     then click a link: the login page says you were logged out, and after logging in you are back on that page. Set
+     it back to **60** (0 = never).
+138. **Easy passwords**: every sample login uses `demo12345`, so a yellow notice asks to change it (its × hides it for
+     now). **Change my password** with a stronger one: the notice goes, and the check turns green when nobody is left.
+     Tick *people with an easy password must change it*: at their next login they must choose a new one first.
+139. **Deleted records** (*Security → Deleted records*): the referral letter the secretary deleted yesterday: open it
+     to see what it held, who deleted it, when and from which page. Delete a document on any patient: it is at the top.
+140. **Files taken out**: download a patient's file as Word or Excel (*The file*): the security log shows *Data taken
+     out* with the file's name. The same for the backup ZIP, the Excel of all the data and the photo ZIPs.
+141. **Uploads checked**: rename a text file to `photo.jpg` and upload it as a patient document or a photo: refused,
+     *not a real picture or PDF*. Real photos, PDFs and the lab's scans still go in.
+142. **Nothing typed is lost**: open a long form (e.g. a medical history), type, then stop the server (close its black
+     window) and press Save: the page fails. Start the server, open the same form: a yellow bar says what you typed
+     was not saved → **Put it back** fills it again. After a good save the bar never comes.
+143. **Backups checked and copied**: *Settings → Backup*: last night's sample backup says *checked: 52,406 records
+     read back* and *Second copy: F:/CIA second copy/…*. **Make a backup now**: the new line says checked too. Set
+     `BACKUP_COPY_DIR` in `.env` (another disk) to get the second copy.
+144. **Health** (on the Security page): the database's size, the free space on the photo and backup disks, the page
+     errors and the slow pages of the last day.
+145. As `headcia` or `dentist1`, open `/settings/security/`: refused (and written in the log). Pages open a little
+     quicker on the tablets (they are sent compressed).

@@ -130,6 +130,11 @@ HINTS = {
     "settings:home": _("Lists, clinic options and logins. Nothing is deleted: untick active to stop using an item."),
     "settings:backup": _("Green means the last backup worked. Every night the data is saved as a ZIP and the new "
                          "photos are copied to the backup disk. Make a backup now before any big change."),
+    "settings:security": _("A yellow line is something to fix, with how. Below: who is logged in now, the logins "
+                           "closed after wrong passwords (Open lets them try again) and everything done with the "
+                           "logins and the files taken out."),
+    "settings:deleted": _("Whatever anyone deletes is kept here for a year: open a line to see what it held, then "
+                          "write it again if it was a mistake."),
     "core:problems": _("Problems told by the staff, and pages that stopped with an error (written down by "
                        "themselves). Mark each one when it is being looked at or solved."),
     "clinics:doctors": _("Each doctor of the place: visits, time in the chair, what the patients paid and the "

@@ -11,7 +11,10 @@
       <h2 class="h6 fw-bold mb-2">{% if part.kind == "database" %}<i class="bi bi-database"></i>{% else %}<i class="bi bi-images"></i>{% endif %} {{ part.label }}</h2>
       {% if part.last_ok %}
         <div class="{% if part.overdue %}text-danger{% else %}text-success{% endif %} fw-semibold"><i class="bi {% if part.overdue %}bi-exclamation-triangle{% else %}bi-check-circle{% endif %}"></i> {% blocktrans with when=part.last_ok.started_at|date:"d/m/Y g:i A" %}Last good one: {{ when }}{% endblocktrans %}</div>
-        <div class="small text-muted">{% if part.kind == "files" %}{% blocktrans with copied=part.last_ok.files_copied checked=part.last_ok.files_checked %}{{ copied }} new or changed files copied, {{ checked }} checked.{% endblocktrans %}{% else %}{{ part.last_ok.size|filesizeformat }}{% endif %}</div>
+        <div class="small text-muted">{% if part.kind == "files" %}{% blocktrans with copied=part.last_ok.files_copied checked=part.last_ok.files_checked %}{{ copied }} new or changed files copied, {{ checked }} checked.{% endblocktrans %}{% else %}{{ part.last_ok.size|filesizeformat }}{% if part.last_ok.verified %} · <i class="bi bi-patch-check text-success"></i> {% blocktrans with n=part.last_ok.records %}checked: {{ n }} records read back{% endblocktrans %}{% endif %}{% endif %}</div>
+        {% if part.kind == "database" %}{% if part.last_ok.copy_where %}<div class="small text-success"><i class="bi bi-hdd-stack"></i> {% trans "Second copy" %}: <span dir="ltr">{{ part.last_ok.copy_where }}</span></div>
+        {% elif part.last_ok.copy_error %}<div class="small text-danger"><i class="bi bi-exclamation-triangle"></i> {% trans "The second copy failed" %}: <span dir="ltr">{{ part.last_ok.copy_error|truncatechars:160 }}</span></div>
+        {% else %}<div class="small text-warning-emphasis"><i class="bi bi-hdd-stack"></i> {% trans "No second copy on another disk yet (BACKUP_COPY_DIR)." %}</div>{% endif %}{% endif %}
       {% else %}
         <div class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle"></i> {% trans "Never done yet." %}</div>
       {% endif %}

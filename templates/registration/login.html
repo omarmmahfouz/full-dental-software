@@ -39,7 +39,7 @@
       </nav>
       {% endif %}
       {% for message in messages %}<div class="alert alert-warning">{{ message }}</div>{% endfor %}
-      {% if form.errors %}<div class="alert alert-danger">{% with first=form.non_field_errors.as_data.0 %}{% if first.code == "candidate" or first.code == "time" %}{{ first.message }}{% else %}{% trans "Wrong username or password." %}{% endif %}{% endwith %}</div>{% endif %}
+      {% if form.errors %}<div class="alert alert-danger">{% with first=form.non_field_errors.as_data.0 %}{% if first.code == "candidate" or first.code == "time" or first.code == "locked" %}{{ first.message }}{% else %}{% trans "Wrong username or password." %}{% endif %}{% endwith %}</div>{% endif %}
       <form method="post" data-no-leave-warning>{% csrf_token %}
         <div class="mb-3"><label class="form-label" for="id_username">{% trans "Username" %}</label>
           <div class="input-icon"><i class="bi bi-person"></i>

@@ -1,4 +1,6 @@
 from django import forms
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 from django.forms import inlineformset_factory
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -29,9 +31,10 @@ class PurchaseForm(StyledModelForm):
         self.fields["invoice_image"].validators.append(validate_upload)
         self.fields["invoice_image"].widget.attrs["accept"] = "image/*,application/pdf"
         self.fields["notes"].widget.attrs["rows"] = 2
-        self.fields["supplier"].help_text = _('Not in the list? <a href="%(url)s" target="_blank">Add a supplier</a>.') % {
-            "url": reverse("purchasing:supplier_create")
-        }
+        # The only hint with a link: marked safe here (the other hints are always escaped, see field.html).
+        self.fields["supplier"].help_text = mark_safe(_(
+            'Not in the list? <a href="%(url)s" target="_blank">Add a supplier</a>.') % {
+            "url": escape(reverse("purchasing:supplier_create"))})
 
     def clean(self):
         data = super().clean()
