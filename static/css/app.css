@@ -1397,3 +1397,73 @@ td.text-muted:only-child, .empty-row { text-align: center; padding-block: 1.8rem
 .modal-footer { border-top-color: var(--line); background: var(--surface-2); border-radius: 0 0 18px 18px; }
 .modal-title { font-weight: 700; }
 .toast, .app-toast { border-radius: var(--radius-sm); box-shadow: var(--shadow-3); }
+
+/* ==========================================================================
+   Round 12b: the visible pass. Depth, light, motion and rhythm.
+   ========================================================================== */
+:root {
+  --glow: 0 0 0 1px color-mix(in srgb, var(--section) 18%, transparent), 0 10px 30px -10px color-mix(in srgb, var(--section) 45%, transparent);
+}
+body { background-image: radial-gradient(900px 420px at 85% -80px, color-mix(in srgb, var(--section) 9%, transparent), transparent 70%), radial-gradient(700px 380px at -10% 0, color-mix(in srgb, var(--brand-green) 8%, transparent), transparent 70%); background-attachment: fixed; background-repeat: no-repeat; }
+
+/* Every page opens with its parts rising one after the other */
+main > *, .page-header, .card, .quick-tile, .stat-card, .alert { animation: rise .55s var(--ease) both; }
+main > *:nth-child(2) { animation-delay: .05s; } main > *:nth-child(3) { animation-delay: .1s; }
+main > *:nth-child(4) { animation-delay: .15s; } main > *:nth-child(n+5) { animation-delay: .2s; }
+.quick-tile:nth-child(2) { animation-delay: .04s; } .quick-tile:nth-child(3) { animation-delay: .08s; } .quick-tile:nth-child(4) { animation-delay: .12s; }
+.quick-tile:nth-child(5) { animation-delay: .16s; } .quick-tile:nth-child(6) { animation-delay: .2s; } .quick-tile:nth-child(n+7) { animation-delay: .24s; }
+
+/* Cards: more air, a lift and a coloured edge of light when pointed at */
+.card { --bs-card-border-radius: 18px; --bs-card-inner-border-radius: 17px; border-color: color-mix(in srgb, var(--line) 70%, transparent); box-shadow: 0 1px 2px rgba(30,45,15,.05), 0 8px 24px -12px rgba(30,45,15,.18); }
+@media (hover: hover) { .card:hover { box-shadow: 0 1px 2px rgba(30,45,15,.05), 0 14px 34px -14px rgba(30,45,15,.28); } a.card:hover, .card-link:hover { box-shadow: var(--glow); } }
+.card-header { background: linear-gradient(180deg, var(--surface), var(--surface-2)); }
+
+/* Primary buttons: a light sweep across them, a press, a stronger glow */
+.btn-primary, .btn-success { position: relative; overflow: hidden; isolation: isolate; }
+.btn-primary::after, .btn-success::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.28) 50%, transparent 70%); transform: translateX(-120%); transition: transform .6s var(--ease); }
+[dir=rtl] .btn-primary::after, [dir=rtl] .btn-success::after { transform: translateX(120%); }
+@media (hover: hover) { .btn-primary:hover::after, .btn-success:hover::after { transform: translateX(120%); } [dir=rtl] .btn-primary:hover::after, [dir=rtl] .btn-success:hover::after { transform: translateX(-120%); } .btn:hover { transform: translateY(-1px); } }
+.btn:active { transform: translateY(0) scale(.96); }
+.btn { --bs-btn-padding-y: .5rem; --bs-btn-padding-x: 1rem; }
+.btn-sm { --bs-btn-padding-y: .3rem; --bs-btn-padding-x: .7rem; }
+
+/* Big home buttons: a real depth, a glow ring of their own colour, a bigger icon */
+.quick-tile { min-height: 8rem; border: 0; box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 10px 22px -12px color-mix(in srgb, var(--tile) 55%, transparent); }
+.quick-tile::before { content: ""; position: absolute; inset: -40% -20% auto auto; width: 70%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.7), transparent); transition: transform .5s var(--ease); }
+.quick-tile i { width: 3.4rem; height: 3.4rem; font-size: 1.65rem; box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--tile) 55%, transparent); }
+.quick-tile:hover { transform: translateY(-5px); box-shadow: 0 2px 4px rgba(0,0,0,.05), 0 20px 34px -14px color-mix(in srgb, var(--tile) 70%, transparent); }
+.quick-tile:hover::before { transform: translate(-12%, 12%) scale(1.25); }
+
+/* Page title: a larger chip with a soft ring, and the title itself a little bolder */
+.page-header h1 { font-size: 1.6rem; letter-spacing: -.01em; }
+.page-header h1 > .bi:first-child { width: 2.9rem; height: 2.9rem; border-radius: 15px; font-size: 1.4rem; background: linear-gradient(145deg, var(--section-soft), color-mix(in srgb, var(--section) 16%, white)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--section) 18%, transparent), 0 6px 14px -8px var(--section); }
+
+/* Tables: a coloured bar appears on the row you point at; header stays quiet and sticks while you scroll */
+.table tbody tr > :first-child { position: relative; }
+.table:not(.surgery-grid):not(.logbook-facts):not(.table-borderless) tbody tr > :first-child::before { content: ""; position: absolute; inset-block: 6px; inset-inline-start: 0; width: 3px; border-radius: 3px; background: var(--section); transform: scaleY(0); transition: transform .2s var(--ease); }
+@media (hover: hover) { .table:not(.surgery-grid):not(.logbook-facts):not(.table-borderless) tbody tr:hover > :first-child::before { transform: scaleY(1); } }
+.table > thead > tr > th { text-transform: uppercase; letter-spacing: .05em; font-size: .72rem; color: var(--ink-3); }
+.table-responsive > .table > thead > tr > th, .card > .table > thead > tr > th { position: sticky; top: 0; z-index: 2; }
+
+/* Forms: bigger, softer fields; the label lights up with its field */
+.form-control, .form-select { border-radius: 12px; padding-block: .55rem; background-color: #FCFDFB; }
+.form-control:focus, .form-select:focus { background-color: #fff; }
+.form-control:focus-visible, .form-select:focus-visible { box-shadow: 0 0 0 .25rem rgba(158,198,79,.30), 0 6px 16px -8px rgba(92,128,32,.4); }
+.form-control::placeholder { color: var(--ink-3); opacity: .7; }
+
+/* Top bar: a frosted look; the active menu entry gets an underline that grows */
+.navbar .nav-link { position: relative; transition: color var(--fast); }
+.navbar .nav-link::before { content: ""; position: absolute; inset-inline: .6rem; bottom: .15rem; height: 2px; border-radius: 2px; background: var(--section, var(--app-primary)); transform: scaleX(0); transition: transform .25s var(--ease); }
+@media (hover: hover) { .navbar .nav-link:hover::before { transform: scaleX(1); } }
+
+/* Banners: slimmer, so the work starts higher on the page */
+.alert { padding-block: .55rem; }
+.app-message, .hint-box, .alert-hint { margin-bottom: .6rem; }
+
+/* Stat numbers count in softly */
+.stat-card .stat-value, .quick-actions + * .stat-value { animation: rise .7s var(--ease) .1s both; }
+
+/* A calm switch for tabs and pills */
+.nav-pills .nav-link { transition: background-color .2s var(--ease), color .2s, box-shadow .2s var(--ease); }
+.nav-pills .nav-link.active { box-shadow: 0 6px 14px -6px rgba(92,128,32,.6); }
+.nav-tabs .nav-link.active { box-shadow: inset 0 -3px 0 var(--section); }

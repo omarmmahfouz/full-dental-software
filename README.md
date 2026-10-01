@@ -59,6 +59,10 @@ secretary's) and V (the dentist's and the owner's).
 7. **Pop-ups, empty lists and loading**: softer pop-ups, a ready "empty state" (a picture, a sentence, a button) and a
    loading placeholder for parts of a page still coming.
 8. **Thin scrollbars** that match the look.
+9. **Pages that come alive**: each page opens with its parts rising in one after the other; cards have more depth and
+   lift when pointed at; the big home buttons have a glow of their own colour and a bigger icon; main buttons have a
+   light sweep when pointed at; a coloured bar marks the row you point at in a list; table headings are quieter and
+   stay at the top while you scroll; fields are rounder and softer; the page title chip is larger.
 
 ### Round 11: protected from hackers, the data kept safe, smooth and fast
 For the owner: *Settings → Security and health*. The steps to try are in every checklist (the owner's in
