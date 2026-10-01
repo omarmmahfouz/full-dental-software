@@ -43,7 +43,7 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: a finer, calmer interface (new)
+### New in this version: a new professional interface (new)
 A look-and-feel round on top of the existing design (`static/css/app.css`, last block "Round 12"). No page works
 differently; everything looks and feels more finished. The steps to try are in the checklists, section W (the
 secretary's) and V (the dentist's and the owner's).
@@ -59,6 +59,12 @@ secretary's) and V (the dentist's and the owner's).
 7. **Pop-ups, empty lists and loading**: softer pop-ups, a ready "empty state" (a picture, a sentence, a button) and a
    loading placeholder for parts of a page still coming.
 8. **Thin scrollbars** that match the look.
+10. **A side rail instead of the top bar** (screens of 1200 px and more): the menu is a dark rail on the left (on the
+   right in Arabic) in the colour of the place you work at (green for CIA, blue for CIC, navy and gold for El Khadem,
+   teal for the lab). At the top: the place and its switch, then the patient search; below: the same entries as
+   before, each group opening like a drawer (the group of the page you are on is open and its page is marked); at
+   the bottom: the bell, the approvals and the person's menu, which opens upward. Who sees which entry is unchanged.
+   Tablets and phones keep the top bar, the bottom bar and the menu that slides in.
 9. **Pages that come alive**: each page opens with its parts rising in one after the other; cards have more depth and
    lift when pointed at; the big home buttons have a glow of their own colour and a bigger icon; main buttons have a
    light sweep when pointed at; a coloured bar marks the row you point at in a list; table headings are quieter and

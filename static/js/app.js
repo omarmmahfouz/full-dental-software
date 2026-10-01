@@ -521,18 +521,26 @@
 
   // The menu entry of the page being shown is marked (the longest address that matches wins).
   (function markActive() {
-    var path = window.location.pathname, best = null, bestLength = 0;
+    var path = window.location.pathname, best = null, bestLink = null, bestLength = 0;
     document.querySelectorAll(".app-navbar .navbar-nav > .nav-item").forEach(function (item) {
       item.querySelectorAll("a[href]").forEach(function (link) {
         var href = link.getAttribute("href");
         if (!href || href === "#" || href.charAt(0) !== "/") return;
         href = href.split("?")[0];
         var matches = href === "/" ? path === "/" : path.indexOf(href) === 0;
-        if (matches && href.length > bestLength) { best = item; bestLength = href.length; }
+        if (matches && href.length > bestLength) { best = item; bestLink = link; bestLength = href.length; }
       });
     });
     var top = best && best.querySelector(":scope > .nav-link");
     if (top) { top.classList.add("is-active"); top.setAttribute("aria-current", "page"); }
+    // On wide screens the menu is a side rail: the group of this page is open and its entry is marked.
+    if (bestLink && bestLink.classList.contains("dropdown-item")) {
+      bestLink.classList.add("is-current");
+      var menu = bestLink.closest(".dropdown-menu"), toggle = menu && menu.parentElement.querySelector(":scope > .dropdown-toggle");
+      if (menu && toggle && window.matchMedia("(min-width: 1200px)").matches) {
+        menu.classList.add("show"); toggle.classList.add("show"); toggle.setAttribute("aria-expanded", "true");
+      }
+    }
   })();
 
   // A thin bar at the top while the next page loads, so a tap always shows it was taken.

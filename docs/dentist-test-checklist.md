@@ -356,3 +356,9 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
 148. Press **Tab** on any page: a clear ring follows you from button to field. Click with the mouse: no ring.
 149. Move between two pages in Chrome: a short soft fade. Switch animations off in the device settings: no fade.
 150. At 1024 and 768 px (a tablet): nothing scrolls sideways, and the labels stay readable.
+151. On a wide screen (1200 px or more) the menu is a **dark rail** at the side. Tap *Schedule*: its group opens like a
+     drawer and the *Patients* group closes. Open a page of a group, e.g. *Appointments*: the group is open and the
+     page is marked. Tap the person at the bottom: the menu opens **upward**. Tap the place name at the top: the
+     places open under it.
+152. Switch to **العربية**: the rail is on the right. Log in as `amr` or `khadem`: the rail is navy. As `labhead`: teal.
+153. On a tablet (1024 px and less) nothing changed: the top bar, the bottom bar and the slide-in menu.

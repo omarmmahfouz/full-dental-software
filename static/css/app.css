@@ -728,9 +728,9 @@ main.page-enter { animation: page-in .14s ease-out both; }
 .sec-clinics { --section: #1F6FB2; --section-soft: #E6F0FA; }
 .clinic-card { border-top: 4px solid var(--place); }
 .small-code { min-width: 3rem; height: 3rem; font-size: 1rem; border-radius: 12px; }
-.clinic-card-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); gap: .5rem; }
+.clinic-card-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(4.8rem, 1fr)); gap: .5rem; }
 .clinic-card-stats > div { display: flex; flex-direction: column; background: var(--surface-2); border-radius: var(--radius-xs); padding: .45rem .6rem; }
-.clinic-card-stats b { font-size: 1.1rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.clinic-card-stats b { font-size: 1.05rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 .clinic-card-stats span { font-size: .78rem; color: var(--ink-3); }
 
 /* ---------------------------------------------------------------- implant icon
@@ -1467,3 +1467,95 @@ main > *:nth-child(4) { animation-delay: .15s; } main > *:nth-child(n+5) { anima
 .nav-pills .nav-link { transition: background-color .2s var(--ease), color .2s, box-shadow .2s var(--ease); }
 .nav-pills .nav-link.active { box-shadow: 0 6px 14px -6px rgba(92,128,32,.6); }
 .nav-tabs .nav-link.active { box-shadow: inset 0 -3px 0 var(--section); }
+
+/* ==========================================================================
+   Round 12c: the side rail (wide screens, 1200 px and more)
+   The same menu, laid out as a fixed rail on the left (on the right in Arabic) with the place at the top, the search,
+   groups that open like drawers, and the bell and the person at the bottom. Tablets and phones keep the top bar, the
+   bottom bar and the slide-in menu. Nothing here changes who sees which entry.
+   ========================================================================== */
+@media (min-width: 1200px) {
+  :root { --side-w: 17rem; }
+  body:has(> .app-navbar) { padding-inline-start: var(--side-w); }
+  body:has(> .app-navbar) { --rail-a: color-mix(in srgb, var(--place) 34%, #0c1410); --rail-b: color-mix(in srgb, var(--place) 14%, #070b09); }
+  body .app-navbar.app-navbar {
+    position: fixed; inset-block: 0; inset-inline-start: 0; inset-inline-end: auto; top: 0; width: var(--side-w); height: 100vh; height: 100dvh;
+    padding: 0; display: block; z-index: 1040; box-shadow: none; --bs-navbar-padding-y: 0;
+  }
+  body .app-navbar.app-navbar::before { background: linear-gradient(190deg, var(--rail-a), var(--rail-b)); backdrop-filter: none; }
+  body .app-navbar.app-navbar::after { inset: 0 0 0 auto; width: 1px; height: auto; background: linear-gradient(180deg, transparent, rgba(255,255,255,.14), transparent); }
+  [dir=rtl] body .app-navbar.app-navbar::after { inset: 0 auto 0 0; }
+  body .app-navbar > .container-fluid { height: 100%; flex-direction: column; align-items: stretch; flex-wrap: nowrap; padding: 1.1rem .8rem .9rem; gap: .15rem; }
+
+  /* Place and brand */
+  .app-navbar .navbar-brand { margin: 0 0 .85rem; padding: 0 .2rem; gap: .7rem; color: #fff; align-items: center; }
+  .app-navbar .navbar-brand img { height: 46px; width: 46px; object-fit: contain; background: #fff; border-radius: 13px; padding: 5px; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+  .app-navbar .brand-name { display: block; border: 0; padding: 0; font-size: .92rem; font-weight: 700; line-height: 1.25; color: #fff; white-space: normal; }
+  .app-navbar .brand-code { display: grid; place-items: center; width: 46px; height: 46px; }
+  .app-navbar .place-switch { margin: 0 0 .9rem; }
+  .app-navbar .place-pill { width: 100%; justify-content: flex-start; border-radius: 12px; padding: .5rem .8rem; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); }
+  .app-navbar .place-pill:hover { background: rgba(255,255,255,.17); box-shadow: inset 0 0 0 1px rgba(255,255,255,.26); transform: none; }
+  .app-navbar .place-pill::after { margin-inline-start: auto; }
+  .app-navbar .place-pill .place-dot { background: var(--place-light); box-shadow: 0 0 0 3px rgba(255,255,255,.14); }
+  .app-navbar .navbar-toggler, .app-navbar > .container-fluid > .nav-icons { display: none !important; }
+
+  /* The menu column */
+  body .app-navbar .offcanvas { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100% !important; }
+  body .app-navbar .offcanvas-body { display: flex; flex-direction: column; align-items: stretch; flex: 1 1 auto; min-height: 0; padding: 0; overflow: visible; }
+  .app-navbar .offcanvas-body > form[role=search] { order: 1; margin: 0 0 .7rem !important; }
+  .app-navbar .offcanvas-body > ul.navbar-nav.me-auto { order: 2; flex: 1 1 auto; min-height: 0; flex-direction: column; gap: .1rem; overflow-y: auto; overflow-x: hidden; margin: 0 -.3rem !important; padding: 0 .3rem .6rem; scrollbar-width: none; }
+  .app-navbar .offcanvas-body > ul.navbar-nav.me-auto::-webkit-scrollbar { display: none; }
+  .app-navbar .offcanvas-body > ul.user-menu { order: 3; flex: none; flex-direction: row; align-items: center; justify-content: space-between; gap: .3rem; margin-top: .5rem; padding: .45rem .5rem; border-radius: 14px; background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); }
+  .app-navbar .offcanvas-body > ul.navbar-nav.me-auto::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); background-clip: content-box; }
+
+  /* Search */
+  .app-navbar form[role=search] input, body .app-navbar form[role=search] input { width: 100%; min-width: 0; height: 2.5rem; border-radius: 12px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); color: #fff; padding-inline-start: 2.3rem; }
+  .app-navbar form[role=search] input::placeholder { color: rgba(255,255,255,.6); }
+  .app-navbar form[role=search] input:focus { background: rgba(255,255,255,.16); border-color: var(--place-light); box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--place-light) 30%, transparent); }
+  .app-navbar form[role=search]::before { color: rgba(255,255,255,.65); inset-inline-start: .85rem; }
+
+  /* Entries */
+  body .app-navbar .navbar-nav .nav-link { display: flex; align-items: center; gap: .75rem; padding: .62rem .8rem; border-radius: 12px; font-size: .95rem; font-weight: 600; color: rgba(255,255,255,.8); box-shadow: none; position: relative; }
+  body .app-navbar .navbar-nav .nav-link::before { display: none; }
+  body .app-navbar .me-auto > .nav-item > .nav-link > .bi { display: inline-block; flex: none; width: 1.55rem; height: 1.55rem; line-height: 1.55rem; text-align: center; border-radius: 8px; font-size: .95rem; color: color-mix(in srgb, var(--section) 45%, #fff); background: rgba(255,255,255,.07); }
+  body .app-navbar .navbar-nav .nav-link:hover, body .app-navbar .navbar-nav .nav-link:focus, body .app-navbar .navbar-nav .nav-link.show { color: #fff; background: rgba(255,255,255,.1); }
+  body .app-navbar .navbar-nav .nav-link:hover .bi { transform: none; }
+  body .app-navbar .navbar-nav .nav-link.is-active { color: #fff; background: rgba(255,255,255,.14); box-shadow: none; }
+  body .app-navbar .navbar-nav .nav-link.is-active::after { content: ""; position: absolute; inset-block: .55rem; inset-inline-start: -.8rem; width: 4px; border-radius: 0 4px 4px 0; background: color-mix(in srgb, var(--section) 55%, #fff); }
+  [dir=rtl] body .app-navbar .navbar-nav .nav-link.is-active::after { border-radius: 4px 0 0 4px; }
+  body .app-navbar .me-auto > .nav-item > .nav-link.is-active > .bi { background: color-mix(in srgb, var(--section) 70%, #000); color: #fff; }
+  body .app-navbar .me-auto .dropdown-toggle::after { margin-inline-start: auto; border: 0; width: .55rem; height: .55rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); opacity: .6; transition: transform var(--normal) var(--ease); }
+  body .app-navbar .me-auto .dropdown-toggle.show::after { transform: rotate(225deg); }
+
+  /* Groups open like drawers, in the rail (no floating pop-up) */
+  body .app-navbar .me-auto .dropdown-menu { position: static !important; inset: auto !important; transform: none !important; float: none; width: auto; min-width: 0; display: none; margin: .1rem 0 .35rem 0; padding: .15rem 0 .15rem .3rem; background: transparent; border: 0; box-shadow: none; border-radius: 0; border-inline-start: 1px solid rgba(255,255,255,.14); margin-inline-start: 1.15rem; animation: none; }
+  body .app-navbar .me-auto .dropdown-menu.show { display: block; animation: drawer-in .22s var(--ease); }
+  body .app-navbar .me-auto .dropdown-item { display: flex; align-items: center; gap: .6rem; white-space: normal; padding: .45rem .7rem; border-radius: 10px; font-size: .88rem; font-weight: 500; color: rgba(255,255,255,.72); }
+  body .app-navbar .me-auto .dropdown-item > .bi:first-child { width: 1.1rem; color: color-mix(in srgb, var(--section) 40%, #fff); opacity: .9; }
+  body .app-navbar .me-auto .dropdown-item:hover, body .app-navbar .me-auto .dropdown-item:focus { color: #fff; background: rgba(255,255,255,.09); }
+  body .app-navbar .me-auto .dropdown-item.is-current { color: #fff; background: rgba(255,255,255,.14); font-weight: 700; }
+  body .app-navbar .me-auto .dropdown-divider { border-color: rgba(255,255,255,.12); margin: .3rem .5rem; }
+  body .app-navbar .me-auto .dropdown-item .badge { margin-inline-start: auto; }
+
+  /* The person and the bell at the bottom */
+  .app-navbar .user-menu .nav-icons { display: flex !important; gap: .1rem; }
+  body .app-navbar .user-menu .nav-link { padding: .45rem .55rem; color: rgba(255,255,255,.85); }
+  body .app-navbar .user-menu .nav-link .bi { color: #fff; }
+  .app-navbar .user-menu .user-name { display: flex; align-items: center; gap: .5rem; max-width: none; min-width: 0; }
+  .app-navbar .user-menu .user-name .bi { font-size: 1.35rem; }
+  .app-navbar .user-name-text { display: inline !important; max-width: 7.5rem; overflow: hidden; text-overflow: ellipsis; font-size: .85rem; }
+  .app-navbar .offcanvas-body > ul.user-menu { position: relative; }
+  .app-navbar .user-menu > .dropdown { position: static; }
+  body .app-navbar .user-menu .dropdown-menu { position: absolute !important; inset: auto 0 calc(100% + .55rem) 0 !important; transform: none !important; margin: 0; width: auto; min-width: 0; --bs-dropdown-min-width: 0; }
+
+  /* The page: starts under a clean edge, with room to breathe */
+  body:has(> .app-navbar) main { padding-top: 1.4rem !important; padding-inline: 2rem !important; max-width: 1500px; margin-inline: auto; }
+  .test-copy-banner { margin-inline-start: var(--side-w); }
+  html { scroll-padding-top: 1.5rem; }
+  .form-actions.is-sticky { border-radius: 14px 14px 0 0; }
+}
+@keyframes drawer-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* The place pill and the person's menu open on top of the rail */
+@media (min-width: 1200px) { .app-navbar .place-switch .dropdown-menu, .app-navbar .user-menu .dropdown-menu { z-index: 1050; } }
+@media print { body:has(> .app-navbar) { padding-inline-start: 0 !important; } body:has(> .app-navbar) main { max-width: none; padding-inline: 0 !important; } .test-copy-banner { margin-inline-start: 0; } }
