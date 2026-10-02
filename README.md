@@ -65,6 +65,11 @@ secretary's) and V (the dentist's and the owner's).
    before, each group opening like a drawer (the group of the page you are on is open and its page is marked); at
    the bottom: the bell, the approvals and the person's menu, which opens upward. Who sees which entry is unchanged.
    Tablets and phones keep the top bar, the bottom bar and the menu that slides in.
+11. **A new home page**: it opens with a **welcome band** in the place's colour: the greeting, the date, the place, your
+   role and the last good backup; for the reception the big patient search sits inside it. The quick buttons are now
+   even white rows with a coloured icon (it fills with colour and an arrow shows when pointed at); the bookings the
+   head must approve are a short list; links in the week, *Coming next* and the other home lists are plain until
+   pointed at. The lab's home uses the same buttons.
 9. **Pages that come alive**: each page opens with its parts rising in one after the other; cards have more depth and
    lift when pointed at; the big home buttons have a glow of their own colour and a bigger icon; main buttons have a
    light sweep when pointed at; a coloured bar marks the row you point at in a list; table headings are quieter and

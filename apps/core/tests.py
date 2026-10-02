@@ -1337,3 +1337,34 @@ class SecurityTests(TestCase):
         SecurityEvent.objects.create(kind="login", username="new")
         self.assertEqual(clean_old_records(), 1)
         self.assertEqual(list(SecurityEvent.objects.values_list("username", flat=True)), ["new"])
+
+
+class InterfaceTests(TestCase):
+    """Round 12: the side rail and the new home page."""
+
+    def setUp(self):
+        setup_clinic()
+
+    def home(self, username, role):
+        make_user(username, role)
+        self.client.login(username=username, password=PASSWORD)
+        return self.client.get("/").content.decode()
+
+    def test_reception_home_has_the_welcome_band_with_the_search(self):
+        page = self.home("sec", "secretary")
+        self.assertIn('class="home-hero"', page)
+        self.assertIn("hero-search", page)
+        self.assertEqual(page.count('name="q"'), 2)  # the rail's search and the big one, no third copy
+        self.assertIn('class="quick-actions', page)
+
+    def test_dentist_home_has_the_band_without_the_reception_search(self):
+        page = self.home("dentist", "dentist")
+        self.assertIn('class="home-hero"', page)
+        self.assertNotIn("hero-search", page)
+        self.assertNotIn('class="quick-actions', page)
+
+    def test_menu_keeps_the_side_rail_hooks(self):
+        page = self.home("owner", "owner")
+        self.assertIn("app-navbar", page)
+        self.assertIn('class="navbar-nav me-auto"', page)
+        self.assertIn('class="navbar-nav user-menu"', page)

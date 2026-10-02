@@ -1501,9 +1501,9 @@ main > *:nth-child(4) { animation-delay: .15s; } main > *:nth-child(n+5) { anima
 
   /* The menu column */
   body .app-navbar .offcanvas { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100% !important; }
-  body .app-navbar .offcanvas-body { display: flex; flex-direction: column; align-items: stretch; flex: 1 1 auto; min-height: 0; padding: 0; overflow: visible; }
+  body .app-navbar .offcanvas-body { display: flex; flex-direction: column; align-items: stretch !important; flex: 1 1 auto; min-height: 0; padding: 0; overflow: visible; }
   .app-navbar .offcanvas-body > form[role=search] { order: 1; margin: 0 0 .7rem !important; }
-  .app-navbar .offcanvas-body > ul.navbar-nav.me-auto { order: 2; flex: 1 1 auto; min-height: 0; flex-direction: column; gap: .1rem; overflow-y: auto; overflow-x: hidden; margin: 0 -.3rem !important; padding: 0 .3rem .6rem; scrollbar-width: none; }
+  .app-navbar .offcanvas-body > ul.navbar-nav.me-auto { order: 2; flex: 1 1 auto; width: auto; align-self: stretch; min-height: 0; flex-direction: column; gap: .1rem; overflow-y: auto; overflow-x: hidden; margin: 0 -.3rem !important; padding: 0 .3rem .6rem; scrollbar-width: none; }
   .app-navbar .offcanvas-body > ul.navbar-nav.me-auto::-webkit-scrollbar { display: none; }
   .app-navbar .offcanvas-body > ul.user-menu { order: 3; flex: none; flex-direction: row; align-items: center; justify-content: space-between; gap: .3rem; margin-top: .5rem; padding: .45rem .5rem; border-radius: 14px; background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); }
   .app-navbar .offcanvas-body > ul.navbar-nav.me-auto::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); background-clip: content-box; }
@@ -1559,3 +1559,72 @@ main > *:nth-child(4) { animation-delay: .15s; } main > *:nth-child(n+5) { anima
 /* The place pill and the person's menu open on top of the rail */
 @media (min-width: 1200px) { .app-navbar .place-switch .dropdown-menu, .app-navbar .user-menu .dropdown-menu { z-index: 1050; } }
 @media print { body:has(> .app-navbar) { padding-inline-start: 0 !important; } body:has(> .app-navbar) main { max-width: none; padding-inline: 0 !important; } .test-copy-banner { margin-inline-start: 0; } }
+
+/* ==========================================================================
+   Round 12d: the home page
+   A welcome band in the place's colour (greeting, date, place, role, backup, and the big search for the reception),
+   quick buttons as clean rows (coloured icon, label, an arrow when pointed at), and the bookings to approve as a list.
+   ========================================================================== */
+.home-hero {
+  position: relative; overflow: hidden; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 32rem);
+  gap: 1rem 2rem; align-items: center; padding: 1.7rem 1.9rem; margin-bottom: 1.25rem; border-radius: 22px; color: #fff;
+  background: radial-gradient(520px 260px at 100% 0, color-mix(in srgb, var(--place-light) 45%, transparent), transparent 65%),
+              linear-gradient(125deg, color-mix(in srgb, var(--place) 62%, #08100b), var(--place));
+  box-shadow: 0 20px 44px -24px color-mix(in srgb, var(--place) 85%, transparent);
+}
+[dir=rtl] .home-hero { background: radial-gradient(520px 260px at 0 0, color-mix(in srgb, var(--place-light) 45%, transparent), transparent 65%), linear-gradient(235deg, color-mix(in srgb, var(--place) 62%, #08100b), var(--place)); }
+.home-hero::before, .home-hero::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; border: 1px solid rgba(255,255,255,.12); pointer-events: none; }
+.home-hero::before { width: 22rem; height: 22rem; inset-inline-end: -7rem; bottom: -13rem; box-shadow: 0 0 0 2.5rem rgba(255,255,255,.035), 0 0 0 5rem rgba(255,255,255,.025); }
+.home-hero::after { width: 9rem; height: 9rem; inset-inline-start: 38%; top: -5.5rem; background: rgba(255,255,255,.05); }
+.home-hero h1 { display: flex; align-items: center; gap: .75rem; margin: 0 0 .7rem; font-size: clamp(1.35rem, 2.1vw, 1.95rem); font-weight: 700; letter-spacing: -.01em; color: #fff; }
+.home-hero h1 > .bi { display: grid; place-items: center; flex: none; width: 2.9rem; height: 2.9rem; border-radius: 15px; font-size: 1.35rem; background: rgba(255,255,255,.16); box-shadow: inset 0 0 0 1px rgba(255,255,255,.24); }
+.home-hero-meta { display: flex; flex-wrap: wrap; gap: .45rem; }
+.home-hero-meta > span, .home-hero .today-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .28rem .75rem; border-radius: 999px; font-size: .82rem; font-weight: 600; color: rgba(255,255,255,.94); background: rgba(255,255,255,.13); border: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+.home-hero .today-chip .bi { color: inherit; }
+.home-hero .backup-ok { background: rgba(255,255,255,.2); }
+.home-hero .backup-ok .bi { color: #B8F5C4; }
+.home-hero .hero-search { position: relative; grid-column: auto; }
+.home-hero .hero-search .bi-search { position: absolute; inset-inline-start: 1.15rem; top: 50%; transform: translateY(-50%); color: var(--place); font-size: 1.15rem; z-index: 1; }
+.home-hero .hero-search input { height: 3.5rem; border: 0; border-radius: 16px; background: #fff; padding-inline-start: 3.1rem; font-size: 1.05rem; box-shadow: 0 14px 28px -14px rgba(0,0,0,.55); }
+.home-hero .hero-search input:focus { box-shadow: 0 0 0 4px rgba(255,255,255,.35), 0 14px 28px -14px rgba(0,0,0,.55); }
+.theme-elite .home-hero { box-shadow: inset 0 -3px 0 #C9A55C, 0 20px 44px -24px rgba(11, 27, 53, .8); }
+.theme-elite .home-hero h1 > .bi { color: #E7CC8F; }
+@media (max-width: 991.98px) { .home-hero { grid-template-columns: minmax(0, 1fr); padding: 1.3rem 1.2rem; border-radius: 18px; } }
+@media print { .home-hero { color: var(--ink); background: none; box-shadow: none; padding: 0; } .home-hero h1 { color: var(--ink); } }
+
+/* Quick buttons: even rows, white, a coloured icon square, an arrow when pointed at */
+.quick-actions, .quick-actions.mb-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr)); gap: .75rem; }
+.quick-actions > .quick-search { grid-column: 1 / -1; }
+.quick-actions > .quick-tile {
+  flex: none; min-width: 0; min-height: 4.7rem; flex-direction: row; justify-content: flex-start; text-align: start; gap: .9rem;
+  padding: .85rem 1rem; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-size: .98rem;
+  box-shadow: 0 1px 2px rgba(30,45,15,.05), 0 6px 16px -12px rgba(30,45,15,.25);
+}
+.quick-actions > .quick-tile::before { display: none; }
+.quick-actions > .quick-tile i { flex: none; width: 3rem; height: 3rem; border-radius: 14px; font-size: 1.35rem; background: color-mix(in srgb, var(--tile) 12%, #fff); color: var(--tile); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tile) 18%, transparent); transition: background-color var(--normal), color var(--normal), transform var(--normal) var(--ease); }
+.quick-actions > .quick-tile span { flex: 1; display: flex; align-items: center; gap: .5rem; line-height: 1.25; }
+.quick-actions > .quick-tile .badge { position: static; margin-inline-start: auto; }
+.quick-actions > .quick-tile::after { content: "\f285"; font-family: bootstrap-icons; flex: none; color: var(--tile); opacity: 0; transform: translateX(-6px); transition: opacity var(--normal), transform var(--normal) var(--ease); }
+[dir=rtl] .quick-actions > .quick-tile::after { content: "\f284"; transform: translateX(6px); }
+@media (hover: hover) {
+  .quick-actions > .quick-tile:hover { transform: translateY(-2px); color: var(--ink); border-color: color-mix(in srgb, var(--tile) 40%, var(--line)); box-shadow: 0 14px 28px -16px color-mix(in srgb, var(--tile) 65%, transparent); }
+  .quick-actions > .quick-tile:hover i { transform: none; background: var(--tile); color: #fff; }
+  .quick-actions > .quick-tile:hover::after { opacity: 1; transform: none; }
+}
+.quick-actions > .quick-tile:active { transform: scale(.98); }
+.quick-actions .quick-search input { border-radius: 16px; height: 3.3rem; }
+
+/* What needs the head's attention: a list instead of a block of underlined links */
+.attention-card { border-inline-start: 4px solid #E0A400; }
+.attention-card .card-header { display: flex; align-items: center; gap: .5rem; background: #FFF8E6; }
+.attention-card .card-header > .bi { color: #B07E00; }
+.attention-card .list-group-item { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
+.attention-when { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 8.5rem; }
+.attention-who { font-weight: 600; }
+.attention-meta { color: var(--ink-3); font-size: .9rem; }
+.attention-go { margin-inline-start: auto; color: var(--ink-3); }
+[dir=rtl] .attention-go { transform: scaleX(-1); }
+
+/* Links inside cards and lists read as text until pointed at (the week, coming next, lists on the home page) */
+:is(.card-body, .list-group-item, .my-week-day) a:not(.btn):not(.badge):not(.list-group-item) { text-decoration: none; font-weight: 600; }
+:is(.card-body, .list-group-item, .my-week-day) a:not(.btn):not(.badge):not(.list-group-item):hover { text-decoration: underline; text-underline-offset: .2em; }

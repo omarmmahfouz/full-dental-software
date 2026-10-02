@@ -362,3 +362,7 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
      places open under it.
 152. Switch to **العربية**: the rail is on the right. Log in as `amr` or `khadem`: the rail is navy. As `labhead`: teal.
 153. On a tablet (1024 px and less) nothing changed: the top bar, the bottom bar and the slide-in menu.
+154. **Home page**: a coloured welcome band with the date, the place, your role and (for the owner) *Backup OK*. As
+     `owner`, the bookings to approve are a list with their number; the quick buttons are white rows: point at one and
+     its icon fills with colour and an arrow shows. As `dentist1`: the band, then the numbers and *My week* (names not
+     underlined).

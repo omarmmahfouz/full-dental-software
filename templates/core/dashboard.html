@@ -2,10 +2,23 @@
 {% load i18n clinic %}
 {% block title %}{% trans "Home" %}{% endblock %}
 {% block content %}
-<div class="page-header">
-  <h1><i class="bi {{ greeting_icon }}"></i> {{ greeting }}</h1>
-  <span class="today-chip"><i class="bi bi-calendar3"></i> {{ today|date:"l d/m/Y" }}</span>
-</div>
+<section class="home-hero">
+  <div class="home-hero-text">
+    <h1><i class="bi {{ greeting_icon }}"></i> {{ greeting }}</h1>
+    <div class="home-hero-meta">
+      <span class="today-chip"><i class="bi bi-calendar3"></i> {{ today|date:"l d/m/Y" }}</span>
+      {% if current_branch %}<span><i class="bi bi-geo-alt"></i> {{ current_branch.name }}</span>{% endif %}
+      {% if role_labels %}<span><i class="bi bi-person-badge"></i> {{ role_labels|join:" · " }}</span>{% endif %}
+      {% if backup and not backup.problem %}<span class="backup-ok"><i class="bi bi-shield-check"></i> {% blocktrans with when=backup.parts.0.last_ok.started_at|date:"d/m g:i A" %}Backup OK (last: {{ when }}){% endblocktrans %}</span>{% endif %}
+    </div>
+  </div>
+  {% if is_front_desk %}
+  <form class="quick-search hero-search no-print" role="search" action="{% url 'patients:list' %}">
+    <i class="bi bi-search"></i>
+    <input class="form-control form-control-lg" type="search" name="q" placeholder="{% trans 'Find a patient: name, mobile, file number or ID' %}" aria-label="{% trans 'Search' %}" autofocus>
+  </form>
+  {% endif %}
+</section>
 
 {% if backup.problem %}
 <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2 backup-alert" role="alert">
@@ -14,14 +27,14 @@
     {% for part in backup.parts %}{% if part.failed or part.overdue %}<div class="small">{{ part.label }}: {% if part.failed %}{% trans "the last try failed." %}{% elif part.last_ok %}{% blocktrans with when=part.last_ok.started_at|timesince %}last good one {{ when }} ago.{% endblocktrans %}{% else %}{% trans "never done yet." %}{% endif %}</div>{% endif %}{% endfor %}</div>
   <a class="btn btn-sm btn-light" href="{% url 'settings:backup' %}"><i class="bi bi-safe"></i> {% trans "Backup and export" %}</a>
 </div>
-{% elif backup %}
-<div class="small text-success mb-2 backup-ok"><i class="bi bi-shield-check"></i> {% blocktrans with when=backup.parts.0.last_ok.started_at|date:"d/m g:i A" %}Backup OK (last: {{ when }}){% endblocktrans %}</div>
 {% endif %}
 
 {% if bookings_to_approve %}
-<div class="alert alert-warning">
-  <div class="fw-bold mb-1"><i class="bi bi-hourglass-split"></i> {% trans "Bookings to approve (not the dentist's day or hours)" %}</div>
-  {% for a in bookings_to_approve %}<div><a href="{{ a.get_absolute_url }}">{{ a.scheduled_at|date:"D d/m g:i A" }} · {{ a.patient.full_name }} · {{ a.dentist|default:"" }}</a></div>{% endfor %}
+<div class="card attention-card mb-3">
+  <div class="card-header"><i class="bi bi-hourglass-split"></i> {% trans "Bookings to approve (not the dentist's day or hours)" %} <span class="badge rounded-pill text-bg-warning">{{ bookings_to_approve|length }}</span></div>
+  <div class="list-group list-group-flush">
+    {% for a in bookings_to_approve %}<a class="list-group-item list-group-item-action" href="{{ a.get_absolute_url }}"><span class="attention-when">{{ a.scheduled_at|date:"D d/m g:i A" }}</span><span class="attention-who">{{ a.patient.full_name }}</span><span class="attention-meta">{{ a.dentist|default:"" }}</span><i class="bi bi-chevron-right attention-go"></i></a>{% endfor %}
+  </div>
 </div>
 {% endif %}
 
@@ -47,10 +60,6 @@
 
 {% if is_front_desk %}
 <div class="quick-actions mb-3 no-print">
-  <form class="quick-search" role="search" action="{% url 'patients:list' %}">
-    <i class="bi bi-search"></i>
-    <input class="form-control form-control-lg" type="search" name="q" placeholder="{% trans 'Find a patient: name, mobile, file number or ID' %}" aria-label="{% trans 'Search' %}" autofocus>
-  </form>
   <a class="quick-tile tile-green" href="{% url 'scheduling:today' %}"><i class="bi bi-display"></i><span>{% trans "Reception now" %}</span></a>
   <a class="quick-tile tile-blue" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i><span>{% trans "Book appointment" %}</span></a>
   <a class="quick-tile tile-amber" href="{% url 'scheduling:today' %}#walk-in"><i class="bi bi-person-walking"></i><span>{% trans "Walk-in patient" %}</span></a>
