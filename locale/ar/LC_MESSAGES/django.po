@@ -22853,3 +22853,7 @@ msgstr "رقم العملية أو اسم المريض أو رقم الملف"
 #: templates/surgery/surgery_list.html:26
 msgid "No surgeries recorded."
 msgstr "لا توجد عمليات مسجلة."
+
+#: templates/base.html:28
+msgid "Show or hide the names in the menu"
+msgstr "إظهار أو إخفاء أسماء القائمة"

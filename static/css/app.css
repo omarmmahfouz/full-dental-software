@@ -1334,7 +1334,7 @@ a.stat-mini:hover { border-color: var(--section); color: var(--ink); }
   background: var(--bs) !important; color: var(--b) !important; border: 1px solid color-mix(in srgb, var(--b) 22%, transparent);
   display: inline-flex; align-items: center; gap: .4em; padding: .32em .7em .32em .6em; font-size: .78rem;
 }
-:is(td, li, .card-body, .list-group-item) :is(.badge.text-bg-success, .badge.bg-success, .badge.text-bg-warning, .badge.bg-warning, .badge.text-bg-danger, .badge.bg-danger,
+td :is(.badge.text-bg-success, .badge.bg-success, .badge.text-bg-warning, .badge.bg-warning, .badge.text-bg-danger, .badge.bg-danger,
     .badge.text-bg-info, .badge.bg-info, .badge.text-bg-primary, .badge.bg-primary, .badge.text-bg-secondary, .badge.bg-secondary,
     .badge.text-bg-light, .badge.bg-light, .badge.text-bg-dark):not(.position-absolute):not(.rounded-circle):not(.quick-tile .badge):not(:has(> .bi:first-child))::before {
   content: ""; flex: none; width: .5em; height: .5em; border-radius: 50%; background: currentColor;
@@ -1477,7 +1477,6 @@ main > *:nth-child(4) { animation-delay: .15s; } main > *:nth-child(n+5) { anima
 @media (min-width: 1200px) {
   :root { --side-w: 17rem; }
   body:has(> .app-navbar) { padding-inline-start: var(--side-w); }
-  body:has(> .app-navbar) { --rail-a: color-mix(in srgb, var(--place) 34%, #0c1410); --rail-b: color-mix(in srgb, var(--place) 14%, #070b09); }
   body .app-navbar.app-navbar {
     position: fixed; inset-block: 0; inset-inline-start: 0; inset-inline-end: auto; top: 0; width: var(--side-w); height: 100vh; height: 100dvh;
     padding: 0; display: block; z-index: 1040; box-shadow: none; --bs-navbar-padding-y: 0;
@@ -1521,8 +1520,8 @@ main > *:nth-child(4) { animation-delay: .15s; } main > *:nth-child(n+5) { anima
   body .app-navbar .navbar-nav .nav-link:hover, body .app-navbar .navbar-nav .nav-link:focus, body .app-navbar .navbar-nav .nav-link.show { color: #fff; background: rgba(255,255,255,.1); }
   body .app-navbar .navbar-nav .nav-link:hover .bi { transform: none; }
   body .app-navbar .navbar-nav .nav-link.is-active { color: #fff; background: rgba(255,255,255,.14); box-shadow: none; }
-  body .app-navbar .navbar-nav .nav-link.is-active::after { content: ""; position: absolute; inset-block: .55rem; inset-inline-start: -.8rem; width: 4px; border-radius: 0 4px 4px 0; background: color-mix(in srgb, var(--section) 55%, #fff); }
-  [dir=rtl] body .app-navbar .navbar-nav .nav-link.is-active::after { border-radius: 4px 0 0 4px; }
+  body .app-navbar .me-auto .nav-link.is-active::after { content: ""; position: absolute; inset-block: .55rem; inset-inline-start: -.8rem; width: 4px; border-radius: 0 4px 4px 0; background: color-mix(in srgb, var(--section) 55%, #fff); }
+  [dir=rtl] body .app-navbar .me-auto .nav-link.is-active::after { border-radius: 4px 0 0 4px; }
   body .app-navbar .me-auto > .nav-item > .nav-link.is-active > .bi { background: color-mix(in srgb, var(--section) 70%, #000); color: #fff; }
   body .app-navbar .me-auto .dropdown-toggle::after { margin-inline-start: auto; border: 0; width: .55rem; height: .55rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); opacity: .6; transition: transform var(--normal) var(--ease); }
   body .app-navbar .me-auto .dropdown-toggle.show::after { transform: rotate(225deg); }
@@ -1628,3 +1627,180 @@ main > *:nth-child(4) { animation-delay: .15s; } main > *:nth-child(n+5) { anima
 /* Links inside cards and lists read as text until pointed at (the week, coming next, lists on the home page) */
 :is(.card-body, .list-group-item, .my-week-day) a:not(.btn):not(.badge):not(.list-group-item) { text-decoration: none; font-weight: 600; }
 :is(.card-body, .list-group-item, .my-week-day) a:not(.btn):not(.badge):not(.list-group-item):hover { text-decoration: underline; text-underline-offset: .2em; }
+
+/* ==========================================================================
+   Round 12e: the patient file
+   The top is an identity card: a round initial, the name, the file number, the status and the main facts, with the
+   actions on the right; the tabs are a clean strip; the medical alerts stand out.
+   ========================================================================== */
+.patient-header { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 1.1rem 1.25rem; gap: 1rem 1.5rem;
+  box-shadow: 0 1px 2px rgba(30,45,15,.05), 0 10px 26px -16px rgba(30,45,15,.28); position: relative; overflow: hidden; }
+.patient-header::after { display: none; }
+.patient-header::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: linear-gradient(90deg, var(--section), color-mix(in srgb, var(--section) 30%, #fff)); }
+[dir=rtl] .patient-header::before { background: linear-gradient(-90deg, var(--section), color-mix(in srgb, var(--section) 30%, #fff)); }
+.patient-id { display: flex; align-items: flex-start; gap: 1rem; min-width: 0; flex: 1 1 26rem; }
+.patient-id-text { min-width: 0; }
+.patient-avatar { flex: none; display: grid; place-items: center; width: 3.6rem; height: 3.6rem; border-radius: 50%; font-size: 1.7rem; font-weight: 700; color: #fff;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--section) 60%, #fff), var(--section)); box-shadow: 0 8px 18px -8px var(--section), inset 0 0 0 3px rgba(255,255,255,.35); }
+.patient-avatar.g-F, .patient-avatar.g-f { background: linear-gradient(145deg, #E8A3C0, #B9467A); box-shadow: 0 8px 18px -8px #B9467A, inset 0 0 0 3px rgba(255,255,255,.35); }
+.patient-avatar.g-M, .patient-avatar.g-m { background: linear-gradient(145deg, #8FB8E8, #2F6BD8); box-shadow: 0 8px 18px -8px #2F6BD8, inset 0 0 0 3px rgba(255,255,255,.35); }
+.patient-header h1 { font-size: 1.55rem; gap: .3rem .65rem; }
+.patient-header h1 .patient-file-no { font-size: .85rem; font-weight: 700; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: .1rem .5rem; font-variant-numeric: tabular-nums; direction: ltr; }
+.patient-header h1 .badge { font-size: .78rem; padding: .35em .75em; }
+.patient-facts { display: flex; flex-wrap: wrap; gap: .3rem 1rem; margin-top: .45rem; color: var(--ink-2); font-size: .9rem; }
+.patient-facts > span { display: inline-flex; align-items: center; gap: .35rem; }
+.patient-facts .bi { color: var(--section); }
+.patient-header .lab-flag, .patient-header .complaint-flag { display: inline-flex; align-items: center; gap: .3rem; margin-top: .45rem; padding: .2rem .6rem; font-size: .78rem; font-weight: 600; }
+.patient-actions { align-items: center; align-self: center; }
+.patient-actions .btn { border-radius: 12px; }
+@media (max-width: 767.98px) { .patient-avatar { width: 2.8rem; height: 2.8rem; font-size: 1.2rem; } .patient-header h1 { font-size: 1.25rem; } }
+
+/* Medical alerts: a red band that cannot be missed */
+.medical-alert { background: #FFF0F0; border: 1px solid #F3C2C6; color: #8E1E2B; border-radius: 999px; padding: .25rem .75rem; font-weight: 600; }
+
+/* Tabs: a clean strip with a coloured underline that slides in */
+.nav-tabs { border-bottom: 1px solid var(--line-strong); gap: .2rem; flex-wrap: wrap; }
+.nav-tabs .nav-link { border: 0; border-radius: 10px 10px 0 0; color: var(--ink-2); padding: .6rem .95rem; position: relative; background: transparent; }
+.nav-tabs .nav-link::after { content: ""; position: absolute; inset-inline: .6rem; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--section); transform: scaleX(0); transition: transform .25s var(--ease); }
+.nav-tabs .nav-link:hover { color: var(--ink); background: var(--section-soft); }
+.nav-tabs .nav-link.active { color: var(--section); background: transparent; box-shadow: none; font-weight: 700; }
+.nav-tabs .nav-link.active::after { transform: scaleX(1); }
+.tab-pane.active { animation: rise .35s var(--ease) both; }
+
+/* Number bubbles in tabs, menus and buttons are counters: no status dot */
+:is(.nav-link, .dropdown-item, .btn) .badge::before { display: none !important; }
+:is(.nav-link, .btn) .badge.text-bg-light { background: var(--muted-soft) !important; color: var(--ink-2) !important; border: 0; }
+.nav-tabs .nav-link.active .badge.text-bg-light { background: var(--section-soft) !important; color: var(--section) !important; }
+
+/* ==========================================================================
+   Round 12f: the day planner and the reception board
+   Appointments are soft cards with a coloured edge for their state; the grid is calmer; the room headings stay at
+   the top; the line of "now" glows; the week above is a row of day cards.
+   ========================================================================== */
+.daygrid-wrap { border-radius: 16px; background: var(--surface); }
+.daygrid-head { background: var(--surface); border-bottom: 1px solid var(--line-strong); border-inline-start-color: var(--line); padding: .55rem .6rem; font-size: .82rem; color: var(--ink-2); box-shadow: 0 6px 10px -10px rgba(30,45,15,.35); }
+.daygrid-head > :first-child, .daygrid-head b, .daygrid-head strong { color: var(--ink); font-size: .92rem; }
+.daygrid-head.is-surgery { background: linear-gradient(180deg, #FFF1F1, #fff); }
+.daygrid-col { border-inline-start-color: var(--line); }
+.daygrid-mark { color: var(--ink-3); border-top-color: #F0F2EE; }
+.daygrid-mark.is-hour { color: var(--ink-2); border-top-color: var(--line-strong); }
+.daygrid-slot { background: #F5F6F4; border-bottom-color: rgba(255,255,255,.9); transition: background-color var(--fast); }
+.daygrid-slot.is-open { background: #F1F8E6; }
+.daygrid-slot:hover, .daygrid-slot.is-picked { background: #DCEFC0; outline: 1.5px dashed var(--brand-green-dark); outline-offset: -2px; border-radius: 6px; }
+.daygrid-block { border-radius: 9px; padding: 3px 7px 3px 8px; font-size: .78rem; line-height: 1.3; border-width: 0; border-inline-start: 4px solid #6E97E8; background: #EAF1FF;
+  box-shadow: inset 0 0 0 1px rgba(47,107,216,.14), 0 1px 2px rgba(30,45,15,.08); }
+.daygrid-block strong { font-variant-numeric: tabular-nums; }
+.daygrid-block:hover { filter: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), 0 10px 22px -10px rgba(30,45,15,.45); }
+.status-confirmed.daygrid-block { background: #E2EDFF; border-inline-start-color: #2F6BD8; }
+.status-arrived.daygrid-block { background: #FFF6DB; border-inline-start-color: #E0A400; box-shadow: inset 0 0 0 1px rgba(224,164,0,.25), 0 1px 2px rgba(30,45,15,.08); }
+.status-in_room.daygrid-block { background: #DDF6FA; border-inline-start-color: #0E9FB8; box-shadow: inset 0 0 0 1px rgba(14,159,184,.25), 0 0 0 2px rgba(14,159,184,.12); }
+.status-completed.daygrid-block { background: #F0F1F2; border-inline-start-color: #9AA3AB; color: var(--ink-2); }
+.status-no_show.daygrid-block, .status-late_not_seen.daygrid-block { background: #FDEBED; border-inline-start-color: #D6455A; color: #7A2532; }
+.daygrid-now { border-top: 2px solid #E0384F; box-shadow: 0 0 8px rgba(224,56,79,.55); }
+.daygrid-now::before { width: 10px; height: 10px; top: -6px; inset-inline-start: -5px; background: #E0384F; box-shadow: 0 0 0 4px rgba(224,56,79,.18); }
+.legend-box { border-radius: 4px; }
+.week-day.card { border-radius: 14px; }
+.week-day.card.is-current { border-color: var(--section); box-shadow: 0 0 0 2px var(--section-soft), 0 10px 22px -14px var(--section); }
+.week-day .progress { background: var(--muted-soft); border-radius: 999px; }
+.week-day .progress-bar { border-radius: 999px; }
+.planner-view-switch .btn-secondary { background: var(--section); border-color: var(--section); }
+
+/* The rail's switch: names shown or icons only */
+.rail-toggle { display: none; }
+@media (min-width: 1200px) {
+  .app-navbar > .container-fluid { position: relative; }
+  .rail-toggle { display: grid; place-items: center; position: absolute; top: 1.35rem; inset-inline-end: .7rem; width: 2rem; height: 2rem; border: 0; border-radius: 9px;
+    background: rgba(255,255,255,.08); color: rgba(255,255,255,.75); font-size: 1rem; transition: background-color var(--fast), color var(--fast); }
+  .rail-toggle:hover { background: rgba(255,255,255,.16); color: #fff; }
+  .app-navbar .navbar-brand { padding-inline-end: 2.4rem; }
+
+  /* Icons only: the rail is narrow, and opens over the page when pointed at or tapped */
+  body.rail-compact { --side-w: 4.75rem; }
+  body.rail-compact .app-navbar.app-navbar { transition: width .22s var(--ease), box-shadow .22s; }
+  body.rail-compact .app-navbar.app-navbar:is(:hover, :focus-within) { width: 17rem; box-shadow: 18px 0 40px -12px rgba(0,0,0,.45); }
+  [dir=rtl] body.rail-compact .app-navbar.app-navbar:is(:hover, :focus-within) { box-shadow: -18px 0 40px -12px rgba(0,0,0,.45); }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) :is(.brand-name, form[role=search], .rail-toggle) { display: none !important; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) > .container-fluid { padding-inline: .6rem; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .navbar-brand { padding: 0; justify-content: center; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .place-pill { font-size: 0; justify-content: center; padding: .6rem 0; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .place-pill::after { display: none; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .navbar-nav .nav-link { font-size: 0; justify-content: center; padding-inline: 0; gap: 0; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .me-auto > .nav-item > .nav-link > .bi { width: 2.2rem; height: 2.2rem; line-height: 2.2rem; font-size: 1.05rem; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .me-auto .dropdown-toggle::after { display: none; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .me-auto .dropdown-menu.show { display: none; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .offcanvas-body > ul.user-menu { flex-direction: column; padding: .4rem 0; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .user-menu .nav-icons { flex-direction: column; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .user-name-text, body.rail-compact .app-navbar:not(:hover):not(:focus-within) .user-name::after { display: none !important; }
+  body.rail-compact .app-navbar:not(:hover):not(:focus-within) .user-menu .user-name { font-size: 0; justify-content: center; }
+}
+
+/* ==========================================================================
+   Round 12g: the shared details of every page
+   ========================================================================== */
+/* Hints and warnings: slimmer, so the work starts higher on the page */
+.page-hint { padding: .5rem .75rem; align-items: center; margin-bottom: .75rem; border-radius: 14px; }
+.page-hint .hint-icon { width: 1.9rem; height: 1.9rem; font-size: .95rem; }
+.page-hint .hint-text { font-size: .88rem; line-height: 1.5; }
+main > .alert { border-radius: 14px; margin-bottom: .75rem; }
+main > .alert.py-2 { padding-block: .45rem !important; }
+
+/* File pickers: a real button instead of the browser's grey one */
+.form-control[type=file] { padding: .35rem; }
+.form-control::file-selector-button { margin: 0; margin-inline-end: .75rem; padding: .4rem .9rem; border: 0; border-radius: 9px; background: var(--section-soft); color: var(--section); font-weight: 600; transition: background-color var(--fast), color var(--fast); }
+.form-control:hover:not(:disabled)::file-selector-button { background: var(--section); color: #fff; }
+
+/* An empty list: a soft inbox picture over the sentence */
+td.text-muted:only-child::before, .empty-row::before { content: "\f42d"; font-family: bootstrap-icons; display: block; margin: 0 auto .4rem; width: 2.8rem; height: 2.8rem; line-height: 2.8rem; border-radius: 50%; font-size: 1.25rem; background: var(--section-soft); color: var(--section); }
+
+/* Page numbers: round, with the current page filled */
+.pagination { --bs-pagination-border-radius: 10px; gap: .3rem; }
+.pagination .page-link { border-radius: 10px !important; border-color: var(--line); color: var(--ink-2); min-width: 2.3rem; text-align: center; transition: background-color var(--fast), color var(--fast), transform var(--fast) var(--ease); }
+.pagination .page-link:hover { background: var(--section-soft); color: var(--section); transform: translateY(-1px); }
+.pagination .active > .page-link { background: var(--section); border-color: var(--section); color: #fff; box-shadow: 0 6px 14px -8px var(--section); }
+
+/* Back: a pill that leans the way it goes */
+.back-link { padding: .3rem .85rem; transition: color var(--fast), border-color var(--fast), box-shadow var(--fast); }
+.back-link .bi { transition: transform var(--normal) var(--ease); }
+.back-link:hover { box-shadow: 0 6px 14px -10px var(--section); }
+[dir=rtl] .back-link:hover .bi { transform: translateX(2px); }
+
+/* Switches and check boxes in the section colour */
+.form-check-input:checked { background-color: var(--section); border-color: var(--section); }
+.form-switch .form-check-input { width: 2.4em; cursor: pointer; }
+.form-check-label { cursor: pointer; }
+
+/* Filter bars above the lists: one clean card */
+form.card .card-body, .filter-card .card-body { padding: .85rem 1rem; }
+
+/* The bell's list and the notifications: rows that respond */
+.list-group-item { transition: background-color var(--fast); }
+.list-group-flush > .list-group-item:last-child { border-bottom-left-radius: inherit; border-bottom-right-radius: inherit; }
+
+/* Text selection and the sticky save bar in the section colour */
+.form-actions.is-sticky { background: color-mix(in srgb, var(--surface) 94%, transparent); }
+
+/* The rail's colours, used by the rail (wide screens) and by the top bar (tablets and phones) */
+body:has(> .app-navbar) { --rail-a: color-mix(in srgb, var(--place) 34%, #0c1410); --rail-b: color-mix(in srgb, var(--place) 14%, #070b09); }
+
+/* Tablets and phones: the top bar takes the rail's dark colour, so the look is the same on every screen */
+@media (max-width: 1199.98px) {
+  body .app-navbar.app-navbar { box-shadow: 0 6px 20px -10px rgba(0,0,0,.45); }
+  body .app-navbar.app-navbar::before { background: linear-gradient(100deg, var(--rail-a), var(--rail-b)); backdrop-filter: none; }
+  body .app-navbar.app-navbar::after { height: 2px; background: linear-gradient(90deg, transparent, var(--place-light), transparent); }
+  .app-navbar .navbar-brand { color: #fff; }
+  .app-navbar .navbar-brand img { height: 40px; width: 40px; object-fit: contain; background: #fff; border-radius: 11px; padding: 4px; }
+  .app-navbar .brand-name { color: #fff; border-inline-start-color: rgba(255,255,255,.3); }
+  .app-navbar .place-pill { background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+  .app-navbar .place-pill .place-dot { background: var(--place-light); }
+  .app-navbar > .container-fluid > .nav-icons .nav-link { color: rgba(255,255,255,.9); }
+  .app-navbar > .container-fluid > .nav-icons .nav-link .bi { color: #fff; }
+  .app-navbar > .container-fluid > .nav-icons .nav-link:hover { background: rgba(255,255,255,.1); }
+  .app-navbar .navbar-toggler { border-color: rgba(255,255,255,.35); --bs-navbar-toggler-icon-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e"); }
+  .app-navbar .navbar-toggler:hover { background: rgba(255,255,255,.1); }
+  /* The menu that slides in: a dark head with the person, then the light list */
+  .app-navbar .offcanvas-header { background: linear-gradient(100deg, var(--rail-a), var(--rail-b)) !important; color: #fff; border-bottom: 0 !important; }
+  .app-navbar .offcanvas-header .text-muted { color: rgba(255,255,255,.7) !important; }
+  .app-navbar .offcanvas-header .btn-close { filter: invert(1) grayscale(1) brightness(1.8); }
+  .app-navbar .offcanvas .nav-link.is-active { box-shadow: inset 3px 0 0 var(--section); }
+  [dir=rtl] .app-navbar .offcanvas .nav-link.is-active { box-shadow: inset -3px 0 0 var(--section); }
+}

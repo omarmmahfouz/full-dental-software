@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import translation
 
-from apps.core.models import Notification
+from apps.core.models import Branch, Notification
 from apps.core.notify import notify_roles
 from apps.core.roles import SUPERVISOR, has_role
 from apps.core.testing import PASSWORD, make_user, setup_clinic
@@ -1368,3 +1368,27 @@ class InterfaceTests(TestCase):
         self.assertIn("app-navbar", page)
         self.assertIn('class="navbar-nav me-auto"', page)
         self.assertIn('class="navbar-nav user-menu"', page)
+
+    def test_rail_switch_is_on_every_page(self):
+        page = self.home("owner2", "owner")
+        self.assertIn("data-rail-toggle", page)
+        self.assertIn('localStorage.getItem("rail")', page)
+
+    def test_patient_file_opens_with_the_identity_card(self):
+        from apps.core.testing import make_patient
+
+        branch = Branch.objects.get(code="CIA")
+        patient = make_patient(branch, birth_date=date(1990, 5, 1))
+        make_user("own", "owner")
+        self.client.login(username="own", password=PASSWORD)
+        page = self.client.get(f"/patients/{patient.pk}/").content.decode()
+        self.assertIn("patient-header", page)
+        self.assertIn("patient-avatar", page)
+        self.assertIn('class="patient-facts"', page)
+
+    def test_planner_arrows_follow_the_language(self):
+        make_user("own", "owner")
+        self.client.login(username="own", password=PASSWORD)
+        page = self.client.get("/schedule/day/").content.decode()
+        self.assertIn("title=\"Previous day\"><i class=\"bi bi-chevron-left\"></i>", page)
+        self.assertIn("title=\"Next day\"><i class=\"bi bi-chevron-right\"></i>", page)

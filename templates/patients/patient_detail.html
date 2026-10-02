@@ -2,14 +2,23 @@
 {% load i18n clinic %}
 {% block title %}{{ patient.full_name }}{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1>{{ patient.full_name }} <small class="text-muted fs-6">{{ patient.file_number }}</small> {% status_badge patient %}</h1>
+<div class="page-header patient-header">
+  <div class="patient-id">
+    <span class="patient-avatar{% if patient.gender %} g-{{ patient.gender }}{% endif %}" aria-hidden="true"><i class="bi bi-person-fill"></i></span>
+    <div class="patient-id-text">
+    <h1>{{ patient.full_name }} <small class="patient-file-no">{{ patient.file_number }}</small> {% status_badge patient %}</h1>
+    <div class="patient-facts">
+      {% if patient.age is not None %}<span><i class="bi bi-hourglass-split"></i> {% blocktrans with age=patient.age %}{{ age }} years{% endblocktrans %}</span>{% endif %}
+      {% if patient.gender %}<span><i class="bi bi-person"></i> {{ patient.get_gender_display }}</span>{% endif %}
+      {% if patient.assigned_dentist %}<span><i class="bi bi-person-badge"></i> {{ patient.assigned_dentist }}</span>{% endif %}
+      <span><i class="bi bi-calendar3"></i> {{ patient.registered_on|date:"d/m/Y" }}</span>
+    </div>
     {% if patient.status == "out" %}<div class="alert alert-danger py-1 px-2 small d-inline-block mb-1"><i class="bi bi-box-arrow-right"></i> {% trans "Out" %}: {{ patient.out_reason|default:"" }}{% if patient.out_notes %} — {{ patient.out_notes }}{% endif %}
       {% if moved_to %}· {% if moved_to_opens %}<a href="{{ moved_to.get_absolute_url }}" class="alert-link">{% blocktrans with place=moved_to.branch.badge file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}</a>{% else %}{% blocktrans with place=moved_to.branch.badge file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}{% endif %}{% endif %}</div>{% endif %}
     <div class="mt-1">
       {% for lr in open_labs %}<span class="lab-flag"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}: {{ lr.work_type }} — {{ lr.get_status_display }}</span> {% endfor %}
       {% for c in complaints %}{% if c.is_open %}<span class="complaint-flag"><i class="bi bi-exclamation-circle"></i> {% trans "Open complaint" %} {{ c.number }}</span> {% endif %}{% endfor %}
+    </div>
     </div>
   </div>
   <div class="d-flex gap-2 flex-wrap no-print patient-actions">

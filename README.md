@@ -70,6 +70,20 @@ secretary's) and V (the dentist's and the owner's).
    even white rows with a coloured icon (it fills with colour and an arrow shows when pointed at); the bookings the
    head must approve are a short list; links in the week, *Coming next* and the other home lists are plain until
    pointed at. The lab's home uses the same buttons.
+12. **Narrow menu (icons only)**: on screens under 1600 px the rail shows only its icons, so long lists (like the
+   reception board) get the whole width; point at it (or tap it) and it opens over the page with the names. The button
+   at the top of the rail switches between names and icons only, and each PC remembers the choice.
+13. **The patient file opens with an identity card**: a round picture in the patient's colour (blue for men, pink for
+   women), the name, the file number, the status, the age, the responsible dentist and the date the file was opened,
+   with the buttons beside it. The tabs are a clean strip with a coloured line under the open tab; the medical alerts
+   are red pills.
+14. **The day planner**: the bookings are soft cards with a coloured edge for their state (booked, arrived, in the
+   room, left, did not come); the free places are lighter; the line of "now" glows; the week above is a row of day
+   cards. The arrows for the day and the week now point the right way in English too.
+15. **Tablets and phones**: the top bar takes the place's dark colour, like the rail, and the menu that slides in has a
+   dark head.
+16. **Small things everywhere**: slimmer hints and warnings; file pickers with a real button; an empty list shows a
+   soft inbox picture over its sentence; round page numbers; status dots only on statuses (not on counters).
 9. **Pages that come alive**: each page opens with its parts rising in one after the other; cards have more depth and
    lift when pointed at; the big home buttons have a glow of their own colour and a bigger icon; main buttons have a
    light sweep when pointed at; a coloured bar marks the row you point at in a list; table headings are quieter and

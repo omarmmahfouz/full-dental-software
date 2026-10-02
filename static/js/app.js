@@ -519,6 +519,15 @@
     window.requestAnimationFrame(step);
   });
 
+  // Wide screens: the side rail can show icons only (it opens over the page when pointed at); each PC remembers it.
+  document.querySelectorAll("[data-rail-toggle]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var compact = document.body.classList.toggle("rail-compact");
+      try { localStorage.setItem("rail", compact ? "compact" : "wide"); } catch (e) {}
+      button.blur();
+    });
+  });
+
   // The menu entry of the page being shown is marked (the longest address that matches wins).
   (function markActive() {
     var path = window.location.pathname, best = null, bestLink = null, bestLength = 0;

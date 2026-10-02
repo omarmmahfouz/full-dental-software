@@ -16,6 +16,7 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="sec-{{ section }}{% if current_branch %} place-{{ current_branch.code }} theme-{{ current_branch.theme }}{% endif %}{% if user.is_authenticated and bottom_nav %} has-bottom-bar{% endif %} {% block body_class %}{% endblock %}"{% if user.is_authenticated %} data-poll-url="{% url 'core:notification_poll' %}" data-last-notification="{{ last_notification_id }}" data-user="{{ user.pk }}"{% if hints_reset %} data-hints-reset{% endif %}{% if current_branch.color %} style="--place: {{ current_branch.color }}; --place-light: color-mix(in srgb, {{ current_branch.color }} 55%, #fff)"{% endif %}{% endif %} data-saving-text="{% trans 'Saving…' %}" data-vendor-html2canvas="{% static 'vendor/html2canvas/html2canvas.min.js' %}" data-vendor-jspdf="{% static 'vendor/jspdf/jspdf.umd.min.js' %}">
+{% if user.is_authenticated %}<script>(function () { try { var v = localStorage.getItem("rail"); if (v ? v === "compact" : window.innerWidth < 1600) document.body.classList.add("rail-compact"); } catch (e) {} })();</script>{% endif %}
 <div class="nav-progress no-print" data-nav-progress aria-hidden="true"></div>
 {% if test_copy %}<div class="test-copy-banner" role="alert"><i class="bi bi-cone-striped"></i> {% trans "TEST COPY: for trying things out. Nothing done here changes the real system, and nothing here is kept." %}</div>{% endif %}
 {% if user.is_authenticated %}
@@ -25,6 +26,7 @@
       {% if current_branch.kind == "lab" and not current_branch.has_mark %}<span class="place-letterhead-code brand-code">{{ current_branch.badge }}</span>{% else %}<img src="{% if current_branch %}{{ current_branch.mark_url }}{% else %}{% static 'img/cia-mark.png' %}{% endif %}" alt="{{ current_branch.badge|default:'CIA' }}">{% endif %}
       <span class="brand-name">{% if current_branch %}{{ current_branch.name }}{% else %}{% trans "Cairo Implant Academy" %}{% endif %}</span>
     </a>
+    <button type="button" class="rail-toggle" data-rail-toggle title="{% trans 'Show or hide the names in the menu' %}" aria-label="{% trans 'Show or hide the names in the menu' %}"><i class="bi bi-layout-sidebar-inset"></i></button>
     {% if working_places %}
     <div class="dropdown place-switch">
       <button type="button" class="place-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="{% trans 'The place you work in now' %}">

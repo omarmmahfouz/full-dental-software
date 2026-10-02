@@ -366,3 +366,11 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
      `owner`, the bookings to approve are a list with their number; the quick buttons are white rows: point at one and
      its icon fills with colour and an arrow shows. As `dentist1`: the band, then the numbers and *My week* (names not
      underlined).
+155. On a 1366 px screen the rail shows **icons only**: point at it and it opens over the page; leave it and it
+     closes. Tap the small button at its top to keep the names; open another page: it stays as you chose.
+156. **Patient file** (`/patients/121/`): the card at the top has a blue round picture (a man), the name, the file
+     number, *Under treatment*, *34 years*, the dentist and the opening date. Change the tab: a coloured line moves
+     under the open one.
+157. **Day planner**: bookings are soft cards with a coloured edge; arrived = yellow, in the room = blue-green, left =
+     grey, did not come = red. In English the left arrow goes to the day before.
+158. On a tablet (1024 px) the top bar is dark in the place's colour (navy at El Khadem, teal at the lab).
