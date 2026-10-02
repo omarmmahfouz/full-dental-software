@@ -129,3 +129,11 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
     stopped is offered back (**Put it back**).
 46. Whatever is deleted at CIC (a doctor's payout, a booking shift, a document) is kept in *Security → Deleted
     records*, with who deleted it. See the dentists' checklist, section U.
+
+## M. New in this version (13)
+47. As `secretary` at **CIC**: register a patient with the **camera** and the ID card read (see the secretary's
+    checklist, section X); the city list follows the governorate; mobile 2, marital status and occupation are needed.
+48. A CIC receipt names its services and carries the secretary's and the doctor's signatures (`cicdoctor` drew his).
+49. *Fawry machine*: the secretary sees only the moves she did; `owner` sees all, by person and by machine.
+50. `owner`'s home: CIC is one of the **four places, the same size**, also when working at El Khadem.
+51. `moderator`: the CIC doctors without a login can sign on their page (*Signature*).

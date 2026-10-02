@@ -1,0 +1,7 @@
+{% load i18n %}<form method="post" action="{% url 'complaints:comment' complaint.pk %}" class="complaint-comment no-print" data-complaint-comment data-no-leave-warning data-no-draft>{% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  <label class="visually-hidden" for="comment-{{ complaint.pk }}">{% trans "Write a comment" %}</label>
+  <textarea class="form-control" id="comment-{{ complaint.pk }}" name="note" rows="2" maxlength="4000" required placeholder="{% trans 'Write a comment: what was done, what the patient said…' %}"></textarea>
+  <div class="d-flex flex-wrap align-items-center gap-2 mt-2"><button class="btn btn-sm btn-primary"><i class="bi bi-send"></i> {% trans "Save the comment" %}</button>
+    <span class="small text-muted">{% trans "The people of the complaint are told." %}</span><span class="small text-danger" data-comment-error hidden></span></div>
+</form>

@@ -5,7 +5,7 @@
       <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
     </div>
   {% else %}
-    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required-mark">*</span>{% endif %}</label>
+    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required or field.field.marked_required %} <span class="required-mark">*</span>{% endif %}</label>
     {% if field|is_multi_checkbox %}<div class="checkbox-grid">{{ field }}</div>{% else %}{{ field }}{% endif %}
   {% endif %}
   {% if field.help_text %}<div class="form-text field-hint">{{ field.help_text }}</div>{% endif %}

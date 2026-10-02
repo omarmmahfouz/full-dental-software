@@ -1,5 +1,7 @@
 """Find treatment plans: by case difficulty, planned procedure (e.g. guided surgery),
-status, phase, teeth, dentist and patient - and send the patients to the reception to call."""
+status, phase, teeth, dentist and patient - and send the patients to the reception to call.
+Two pages (round 13): the implant and surgery part of the plans, and their restorative part
+(``TreatmentStepType.category``), each with its own procedures."""
 
 import csv
 
@@ -45,8 +47,9 @@ class PlanFinderForm(StyledForm):
     created_to = forms.DateField(label=gettext_lazy("planned to"), required=False)
     no_appointment = forms.BooleanField(label=gettext_lazy("no upcoming appointment"), required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, part=TreatmentStepType.Category.IMPLANT, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["procedures"].queryset = TreatmentStepType.objects.filter(is_active=True, category=part)
         self.fields["procedures"].widget.attrs["size"] = 8
 
     def clean_teeth(self):
@@ -60,8 +63,9 @@ def _years_ago(day, years):
         return day.replace(year=day.year - years, day=28)
 
 
-def find_plans(data):
-    """Returns [(plan, matching planned items)]."""
+def find_plans(data, part=None):
+    """Returns [(plan, matching planned items)]. With ``part`` (implant / restorative) only the plans with a
+    procedure of that part, and only those procedures."""
     plans = TreatmentPlan.objects.filter(patient__in=Patient.objects.here()).select_related(  # this place's
         "patient", "dentist", "approved_by").prefetch_related("items__step_type")
     plans = plans.filter(status__in=data.get("status") or OPEN)
@@ -97,6 +101,8 @@ def find_plans(data):
         for item in plan.items.all():
             if item.status == PlanItem.Status.CANCELLED:
                 continue
+            if part and item.step_type.category != part:
+                continue
             if pending_only and item.status != PlanItem.Status.PLANNED:
                 continue
             if wanted_types and item.step_type_id not in wanted_types:
@@ -106,7 +112,7 @@ def find_plans(data):
             if wanted_teeth and not wanted_teeth & set(parse_teeth(item.teeth) if item.teeth else []):
                 continue
             items.append(item)
-        if items or not item_filters:
+        if items or (not item_filters and not part):
             results.append((plan, items))
     return results
 
@@ -120,16 +126,16 @@ def _reception_summary(items):
     return "; ".join(f"{item.step_type.name_ar} {item.teeth}".strip() for item in items)
 
 
-def plan_finder(request):
+def plan_finder(request, part=TreatmentStepType.Category.IMPLANT):
     if not has_role(request.user, *MANAGEMENT, TEAM_HEAD):
         raise PermissionDenied
     bound = bool(request.GET)
-    form = PlanFinderForm(request.GET if bound else None)
+    form = PlanFinderForm(request.GET if bound else None, part=part)
     data = form.cleaned_data if bound and form.is_valid() else {}
-    results = find_plans(data)
+    results = find_plans(data, part)
     if request.GET.get("export") == "csv":
         response = HttpResponse(content_type="text/csv; charset=utf-8")
-        response["Content-Disposition"] = 'attachment; filename="treatment-plans.csv"'
+        response["Content-Disposition"] = f'attachment; filename="treatment-plans-{part}.csv"'
         response.write("﻿")
         writer = csv.writer(response)
         writer.writerow(["file", "patient", "mobile", "gender", "age", "plan", "difficulty", "status", "planned_by",
@@ -155,7 +161,11 @@ def plan_finder(request):
     chosen = "، ".join(t.name_ar for t in data.get("procedures") or [])
     with translation.override("ar"):  # the list is read by the reception
         call_title = _("Treatment plans: %(what)s") % {"what": chosen} if chosen else _("Treatment plans")
+    implant = part == TreatmentStepType.Category.IMPLANT
     return render(request, "charting/plan_finder.html", {
+        "part": part, "implant": implant,
+        "title": _("Treatment plan finder: implant and surgery") if implant else
+        _("Treatment plan finder: restorative work"),
         "form": form, "page_obj": page, "count": len(rows), "query": params.urlencode(),
         "call_rows": [(plan.patient, _reception_summary(items)) for plan, items, _summary_text, _next in rows],
         "call_title": call_title,

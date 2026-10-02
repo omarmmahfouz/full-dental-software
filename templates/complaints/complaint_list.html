@@ -18,8 +18,8 @@
   <thead><tr><th>{% trans "No." %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Category" %}</th><th>{% trans "Severity" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Current situation" %}</th><th>{% trans "Followed up by" %}</th><th>{% trans "Next follow-up" %}</th><th>{% trans "Status" %}</th></tr></thead>
   <tbody>
   {% for c in page_obj %}
-  <tr>
-    <td><a href="{{ c.get_absolute_url }}" class="fw-semibold">{{ c.number }}</a></td>
+  <tr class="complaint-row" data-expand-row aria-expanded="false" tabindex="0">
+    <td><i class="bi bi-chevron-down complaint-chevron" aria-hidden="true"></i> <a href="{{ c.get_absolute_url }}" class="fw-semibold">{{ c.number }}</a></td>
     <td class="nowrap">{{ c.created_at|date:"d/m/Y" }}</td>
     <td><a href="{{ c.patient.get_absolute_url }}">{{ c.patient.full_name }}</a></td>
     <td>{{ c.get_category_display }}</td>
@@ -30,6 +30,13 @@
     <td class="nowrap">{{ c.follow_up_due|date:"d/m/Y"|default:"—" }}{% if c.is_overdue %} <span class="badge text-bg-danger">{% trans "Overdue" %}</span>{% endif %}</td>
     <td>{% status_badge c %}</td>
   </tr>
+  <tr class="complaint-panel" hidden><td colspan="10"><div class="complaint-open">
+    <div class="complaint-open-text"><div class="small text-muted mb-1">{% trans "Complaint (in the patient's words)" %}</div>{{ c.description|linebreaksbr }}
+      {% if c.current_situation %}<div class="small text-muted mt-2 mb-1">{% trans "Current situation" %}</div>{{ c.current_situation|linebreaksbr }}{% endif %}
+      <div class="mt-2"><a class="btn btn-sm btn-outline-secondary" href="{{ c.get_absolute_url }}"><i class="bi bi-box-arrow-up-right"></i> {% trans "Open the whole complaint" %}</a></div></div>
+    <div class="complaint-open-talk"><ul class="timeline mb-2" data-comment-list>{% for f in c.follow_ups.all|slice:":4" reversed %}{% include "complaints/_follow_up.html" with complaint=c %}{% empty %}<li class="text-muted small">{% trans "No follow-up yet." %}</li>{% endfor %}</ul>
+      {% include "complaints/_comment_form.html" with complaint=c next=request.get_full_path %}</div>
+  </div></td></tr>
   {% empty %}<tr><td colspan="10" class="text-center text-muted py-4">{% trans "No complaints." %}</td></tr>{% endfor %}
   </tbody>
 </table>

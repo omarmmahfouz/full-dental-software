@@ -140,8 +140,11 @@ def item_detail(request, pk):
                         branch=data["branch"] or item.branch or branch_for_user(request.user))
         messages.success(request, _("Stock updated."))
         return redirect(item)
+    from .prices import history
+
+    prices, price_summary = history(item)
     return render(request, "stock/item_detail.html", {
-        "item": item, "form": form,
+        "item": item, "form": form, "prices": prices[:30], "price_summary": price_summary,
         "movements": item.movements.select_related("created_by", "purchase_item__purchase", "branch")[:200],
         "today": timezone.localdate(),
     })
@@ -265,3 +268,28 @@ def import_list(request):
                              % {"n": len(entries), "c": created, "u": updated})
             return redirect("stock:item_list")
     return render(request, "stock/import.html", {"form": form})
+
+
+@role_required(*STOCK_ROLES)
+def price_changes(request):
+    """Round 13: the materials and instruments whose price changed when we bought them, biggest rise first."""
+    from apps.core.forms import DateRangeForm
+
+    from .models import StockCategory
+    from .prices import changes
+
+    form = DateRangeForm(request.GET or None)
+    today = timezone.localdate()
+    date_from, date_to = today - timedelta(days=90), today
+    if form.is_valid():
+        date_from = form.cleaned_data.get("date_from") or date_from
+        date_to = form.cleaned_data.get("date_to") or date_to
+    category = StockCategory.objects.filter(pk=request.GET.get("category")).first() \
+        if request.GET.get("category", "").isdigit() else None
+    rows = changes(date_from, date_to, category)
+    return render(request, "stock/price_changes.html", {
+        "form": form, "rows": rows, "date_from": date_from, "date_to": date_to, "category": category,
+        "categories": StockCategory.objects.filter(items__movements__unit_cost__isnull=False).distinct(),
+        "rises": sum(1 for row in rows if (row["change"] or 0) > 0),
+        "falls": sum(1 for row in rows if (row["change"] or 0) < 0),
+    })

@@ -165,6 +165,9 @@ class UserProfile(models.Model):
     notes = models.TextField(_("notes"), blank=True)
     show_hints = models.BooleanField(
         _("show hints"), default=True, help_text=_("A short tip at the top of each page on what to do there."))
+    signature = models.TextField(
+        _("signature"), blank=True, editable=False,
+        help_text=_("Drawn once on the screen (user menu → My signature): printed on receipts and prescriptions."))
     read_only = models.BooleanField(
         _("read only"), default=False, help_text=_("Can open the pages of their role but cannot save or change anything.")
     )
@@ -442,6 +445,8 @@ class ProblemReport(models.Model):
     page = models.CharField(_("page"), max_length=500, blank=True)
     description = models.TextField(_("what happened"), blank=True)
     screenshot = models.FileField(_("screenshot or photo"), upload_to="problems/%Y/%m/", blank=True)
+    video = models.FileField(_("video of the screen"), upload_to="problems/%Y/%m/", blank=True,
+                             help_text=_("Recorded on the screen while the problem happens, or filmed with a phone."))
     error = models.TextField(_("technical details"), blank=True)
     signature = models.CharField(max_length=64, blank=True, db_index=True)  # the same page error is counted, not repeated
     times = models.PositiveIntegerField(_("times"), default=1)

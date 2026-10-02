@@ -367,9 +367,14 @@ class NetworkFenceMiddleware:
         return self.get_response(request)
 
 
-CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+# 'wasm-unsafe-eval': the ID card reader (static/vendor/tesseract) runs WebAssembly; it does not allow eval().
+# form-action: a WhatsApp "Send" button is a form that records the message and then opens WhatsApp; Chrome applies
+# form-action to that last step too, so WhatsApp's addresses are allowed (round 13: it opened a blank page).
+WHATSAPP = "https://wa.me https://api.whatsapp.com https://web.whatsapp.com whatsapp:"
+CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
        "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; "
-       "worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; "
+       "worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; "
+       f"form-action 'self' {WHATSAPP}; "
        "frame-ancestors 'self'")
 PERMISSIONS = "camera=(self), microphone=(), geolocation=(), payment=(), usb=()"
 
@@ -517,4 +522,7 @@ def clean_old_records():
     limit = timezone.now() - timedelta(days=KEEP_DAYS)
     removed = SecurityEvent.objects.filter(at__lt=limit).delete()[0]
     removed += DeletedRecord.objects.filter(deleted_at__lt=limit).delete()[0]
+    from .kept_uploads import clean_old
+
+    removed += clean_old()  # photos kept for a form never sent again (round 13)
     return removed

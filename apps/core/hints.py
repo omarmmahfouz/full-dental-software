@@ -26,8 +26,9 @@ HINTS = {
     "core:notifications": _("Tap a notification to open what it is about. New ones are marked in blue."),
     "core:approvals": _("Changes made at the reception wait here. Compare the old and the new values, then approve or refuse."),
     "patients:list": _("Type part of a name, a mobile or a file number. Tap a row to open the patient's file."),
-    "patients:create": _("Type the national ID first: the date of birth and the gender fill in by themselves. "
-                         "Fields with a red * are needed. The medical history is the dentist's: skip it if you like."),
+    "patients:create": _("Start with the ID card: press Camera and hold the card in the frame (or choose a photo). "
+                         "The number, the name, the address and the birth date are read and written in yellow: "
+                         "check them. Fields with a red * are needed."),
     "patients:detail": {
         "dentist": _("The file step by step: the yellow button opens the next step. Record opens a treatment, a "
                      "surgery chart, a request or a prescription."),
@@ -78,7 +79,12 @@ HINTS = {
                                        "record what was done."),
     "charting:chart": _("Tap a tooth to see its history. The buttons above the chart open the examination, "
                         "the plan and the photos."),
-    "charting:plan_finder": _("Choose the filters, then send the patients found to the reception to call them."),
+    "charting:plan_finder": _("The implant and surgery part of the plans. Choose the filters, then send the patients "
+                              "found to the reception to call them."),
+    "charting:plan_finder_restorative": _("The restorative part of the plans (crowns, fillings, root canals, "
+                                          "dentures…). Choose the filters, then send the patients to the reception."),
+    "clinical:restorative_finder": _("Every restorative step of the treatment log. Tap a group button for the "
+                                     "statistics, or a kind of work to see only its steps."),
     "surgery:list": _("Every surgery chart. Tap one to open it, or start a new surgery chart."),
     "surgery:create": _("Choose a tool (implant, pontic, extraction...) and tap the teeth, like on a scanner. Choose "
                         "the implant company once, then the sizes and lots implant by implant."),
@@ -87,7 +93,8 @@ HINTS = {
                                 "the implants become loaded on the chart."),
     "surgery:finder": _("Choose filters, then group by one or two columns for the statistics. "
                         "Export to Excel for publications."),
-    "complaints:list": _("Open complaints come first. Tap one to follow it up or to write what was done."),
+    "complaints:list": _("Open complaints come first. Tap one: it opens here with its story, and you can write a "
+                         "comment at once. The number opens the whole complaint."),
     "complaints:create": _("Write what the patient said, in their words. The supervisors and the owner are told at once."),
     "academy:candidate_list": _("Course candidates. Tap one for the enrollment, the installments and the implants done."),
     "academy:installments_month": _("What each candidate pays this month. Tap the WhatsApp button to remind them."),
@@ -124,6 +131,13 @@ HINTS = {
     "stock:item_list": _("Red rows are below their reorder level. Tap an item to receive, take out or count it."),
     "stock:use": _("Choose who takes the items, then add one line per item. The stock goes down when you save."),
     "stock:movement_list": _("Every stock movement, with who and for whom. Filter by item or date."),
+    "stock:prices": _("What was bought at a new price: the last price against the one before. Tap an item for all "
+                      "its prices."),
+    "purchasing:return_list": _("Items given back to the suppliers. The open ones come first: tap one to finish its "
+                                "next step."),
+    "purchasing:return_create": _("Write how many of each item go back and why. They go out of the stock when you "
+                                  "save."),
+    "core:my_signature": _("Sign once in the box: your signature is printed on the receipts and the prescriptions."),
     "purchasing:purchase_list": _("Every purchase with what is still owed. Tap one for its lines and invoice photo."),
     "purchasing:purchase_create": _("Add one line per item with its category. Link a line to a stock item to fill the stock."),
     "reports:index": _("Choose a report. Each one can be filtered by dates, and most can be exported."),

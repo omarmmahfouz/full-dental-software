@@ -51,7 +51,8 @@ def sync(source):
             move.delete()
         return None
     if move is None:
-        move = FawryMove(**{field: source})
+        # Who took the payment (or entered the purchase): each person sees the moves they did (round 13).
+        move = FawryMove(**{field: source}, created_by=getattr(source, "created_by", None))
         move.fee = fee_for(amount) if kind == FawryMove.Kind.COLLECTION and amount > 0 else Decimal("0")
     elif move.amount != amount and kind == FawryMove.Kind.COLLECTION:
         move.fee = fee_for(amount) if amount > 0 else Decimal("0")

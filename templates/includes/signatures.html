@@ -1,0 +1,5 @@
+{% load i18n %}{% comment %}The signatures at the foot of a printed paper: "people" is a list of (label, name, drawn picture).{% endcomment %}
+<div class="print-signatures">{% for label, name, picture in people %}
+  <div class="print-signature"><div class="print-signature-img">{% if picture %}<img src="{{ picture }}" alt="">{% endif %}</div>
+    <div class="print-signature-line"></div><div class="print-signature-who"><b>{{ label }}</b>{% if name %} {{ name }}{% endif %}</div></div>{% endfor %}
+</div>

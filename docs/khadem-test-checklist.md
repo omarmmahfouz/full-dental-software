@@ -157,3 +157,12 @@ In the sample data:
    offered back (**Put it back**).
 3. Whatever is deleted at El Khadem (a document, a photo, a room shift) is kept in the owner's *Security → Deleted
    records*, with who deleted it. See the dentists' checklist, section U.
+
+## M. New in this version (13)
+1. `khadem`: register a patient with the **camera** and the ID card read; the photos are kept if the form comes back
+   with an error; the city list follows the governorate; the visit preferences (see the secretary's checklist, X).
+2. `khadem` → user menu → **توقيعي**: sign once. A receipt now shows the services it pays and the signatures of
+   `khadem` and the doctor (`amr` and `endo` drew theirs).
+3. *Fawry machine*: `khadem` sees only El Khadem's moves she did.
+4. `amr`: tap a complaint in the list to open it and write a comment there.
+5. `owner`: work at El Khadem: the home page still shows CIA, El Khadem, CIC and the lab side by side.

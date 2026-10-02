@@ -14,7 +14,9 @@
     <dt>{% trans "Notes" %}</dt><dd>{{ supplier.notes|default:"—" }}</dd>
   </dl></div></div></div>
   <div class="col-md-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ total|money }}</div><div class="stat-label">{% trans "Total purchases" %}</div></div></div></div>
-  <div class="col-md-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-danger">{{ unpaid|money }}</div><div class="stat-label">{% trans "Still owed to supplier" %}</div></div></div></div>
+  <div class="col-md-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-danger">{{ unpaid|money }}</div><div class="stat-label">{% trans "Still owed to supplier" %}</div>
+    {% if credit %}<div class="small text-success mt-1"><i class="bi bi-journal-check"></i> {% blocktrans with amount=credit|money %}Our credit with him: {{ amount }} (take it off the next invoice){% endblocktrans %}</div>{% endif %}
+    {% if money_back %}<div class="small text-muted"><i class="bi bi-cash-coin"></i> {% blocktrans with amount=money_back|money %}Money given back to us: {{ amount }}{% endblocktrans %}</div>{% endif %}</div></div></div>
 </div>
 <div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
   <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Invoice no." %}</th><th>{% trans "Total" %}</th><th>{% trans "Payment" %}</th></tr></thead>
@@ -23,4 +25,9 @@
   {% empty %}<tr><td colspan="4" class="text-muted text-center py-3">{% trans "No purchases yet." %}</td></tr>{% endfor %}
   </tbody>
 </table></div></div>
+{% if returns %}
+<div class="card mt-3"><div class="card-header"><i class="bi bi-box-arrow-left"></i> {% trans "Items given back to this supplier" %}</div><div class="table-responsive"><table class="table mb-0">
+  <tbody>{% for r in returns %}<tr><td><a href="{{ r.get_absolute_url }}">#{{ r.pk }}</a> {{ r.returned_on|date:"d/m/Y" }}</td><td class="small">{% for line in r.lines.all %}{{ line.item.description }} × {{ line.quantity|floatformat:"-2" }}{% if not forloop.last %}، {% endif %}{% endfor %}</td><td>{{ r.value|money }}</td><td><span class="badge {% if r.status == 'done' %}text-bg-success{% elif r.status == 'cancelled' %}text-bg-secondary{% else %}text-bg-warning{% endif %}">{{ r.get_status_display }}</span></td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
 {% endblock %}

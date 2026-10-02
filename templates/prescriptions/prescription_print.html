@@ -30,10 +30,7 @@
     {% for line in lines %}<li><div class="fw-bold fs-5"><span class="rx-mark">Rx/</span> {{ line.drug.name }}</div><div dir="rtl" class="text-end rx-dose">{{ line.dose }}</div></li>{% endfor %}
   </ul>
   {% if prescription.notes %}<p class="mt-3">{{ prescription.notes }}</p>{% endif %}
-  <div class="d-flex justify-content-between mt-5 pt-3">
-    <div><b>الطبيب:</b> {{ prescription.dentist|default:"" }}</div>
-    <div>التوقيع: ____________________</div>
-  </div>
+  <div class="mt-4 pt-2">{% include "includes/signatures.html" with people=signatures %}</div>
 </div></div>
 {% endlanguage %}
 {% endblock %}

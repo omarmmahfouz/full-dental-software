@@ -18,7 +18,7 @@
     {% if a.status == "scheduled" or a.status == "confirmed" or a.status == "no_show" or a.status == "cancelled" %}<a class="btn btn-outline-primary" href="{% url 'scheduling:appointment_reschedule' a.pk %}"><i class="bi bi-arrow-left-right"></i> {% trans "Move to another time" %}</a>{% endif %}{% endif %}
     {% if is_clinical %}<a class="btn btn-primary" href="{% url 'scheduling:visit' a.pk %}"><i class="bi bi-person-video2"></i> {% trans "Visit page" %}</a>{% endif %}
     {% if is_clinical %}<a class="btn btn-outline-primary" href="{% url 'clinical:step_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-plus-square"></i> {% trans "Record treatment step" %}</a>{% endif %}
-    <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-box-seam"></i> {% trans "New lab request" %}</a>
+    <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ a.patient_id }}&appointment={{ a.pk }}"><i class="bi bi-lab-request"></i> {% trans "New lab request" %}</a>
     {% if is_front_desk and "billing" not in hidden_areas %}<a class="btn btn-outline-success" href="{% url 'billing:bill_create' %}?appointment={{ a.pk }}"><i class="bi bi-receipt"></i> {% trans "New bill" %}</a>{% endif %}
   </div>
 </div>

@@ -78,8 +78,10 @@ def dashboard(request):
         send_notes_alerts()  # visits left without notes in the patient's file
     if has_role(user, OWNER):
         from .backup import backup_status
+        from .overview import places_now
 
         context["backup"] = backup_status()
+        context["places_now"] = places_now(user, today)  # the four places, whatever place is chosen (round 13)
     if has_role(user, *PATIENT_VIEWERS):
         counts = dict(Patient.objects.here().values_list("status").annotate(n=Count("id")))
         context["patient_totals"] = {
@@ -485,6 +487,16 @@ def send_file(request, path):
     for key, value in headers.items():
         response[key] = value
     return response
+
+def kept_upload(request, token):
+    """A photo kept from a form that came back with an error (kept_uploads.py): only for the person who chose it."""
+    from .kept_uploads import kept
+
+    info = kept(request, token)
+    if info is None:
+        raise Http404
+    return send_file(request, info["path"])
+
 
 def permission_denied(request, exception=None):
     """A page refused: the security log keeps who tried and what (Settings → Security)."""

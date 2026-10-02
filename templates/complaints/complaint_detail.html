@@ -45,12 +45,11 @@
     </div></div>
     {% endif %}
     <div class="card mb-3"><div class="card-header">{% trans "Follow-up history" %}</div><div class="card-body">
-      <ul class="timeline">
+      <ul class="timeline" data-comment-list>
         <li><strong>{% trans "Complaint recorded" %}</strong> — {{ c.created_by|default:"" }} <span class="small text-muted">{{ c.created_at|date:"d/m/Y g:i A" }}</span></li>
-        {% for f in follow_ups %}
-        <li><strong>{{ f.get_action_display }}</strong> → {{ f.get_new_status_display }} — {{ f.created_by|default:"" }} <span class="small text-muted">{{ f.created_at|date:"d/m/Y g:i A" }}</span>{% if f.can_edit %} <a class="small no-print" href="{% url 'complaints:follow_up_edit' c.pk f.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}{% if f.edited_at %} <span class="small text-muted">({% trans "corrected" %} {{ f.edited_at|date:"d/m g:i A" }})</span>{% endif %}<div class="small">{{ f.note|linebreaksbr }}</div>{% if f.next_follow_up %}<div class="small text-muted">{% trans "Next follow-up" %}: {{ f.next_follow_up|date:"d/m/Y" }}</div>{% endif %}</li>
-        {% endfor %}
+        {% for f in follow_ups %}{% include "complaints/_follow_up.html" %}{% endfor %}
       </ul>
+      {% include "complaints/_comment_form.html" %}
     </div></div>
     {% if is_front_desk %}
     <div class="card no-print"><div class="card-header">{% trans "What I did: add a follow-up" %}</div><div class="card-body">

@@ -16,7 +16,7 @@ from .models import OutReason, Patient
 # The person's details that go with them to the new file.
 COPIED = ["full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "phone_primary",
           "phone_secondary", "preferred_phone", "address", "city", "governorate", "occupation", "missing_teeth",
-          "missing_teeth_notes", "medical_notes", "referral_source"]
+          "missing_teeth_notes", "medical_notes", "referral_source", "travel_minutes", "preferred_days", "preferred_times"]
 MOVED_REASON = "Moved to another of our places (new file)"
 
 

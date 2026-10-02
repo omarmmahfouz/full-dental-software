@@ -217,10 +217,10 @@
     if (event.target.matches && event.target.matches("input[data-autocomplete-url]")) setupAutocomplete(event.target);
   });
 
-  // A chosen picture (e.g. the ID scan) shows at once under the file box.
+  // A chosen picture shows at once under the file box (an ID card shows in its own check, static/js/idcard.js).
   document.addEventListener("change", function (event) {
     var input = event.target;
-    if (!input.matches || !input.matches("input[type=file]") || !input.files || !input.files[0]) return;
+    if (!input.matches || !input.matches("input[type=file]:not([data-id-card])") || !input.files || !input.files[0]) return;
     var file = input.files[0];
     var preview = input.parentNode.querySelector("img.file-preview");
     if (!/^image\//.test(file.type)) { if (preview) preview.remove(); return; }
@@ -319,9 +319,101 @@
     if (dirtyForm && !leaving && document.contains(dirtyForm)) { event.preventDefault(); event.returnValue = ""; }
   });
 
-  // "Report a problem" (user menu): sent without leaving the page, so nothing typed is lost.
-  var problemForm = document.querySelector("#report-problem form");
+  // "Report a problem" (user menu): sent without leaving the page, so nothing typed is lost. A picture of the page,
+  // a video of the screen (where the browser allows it) or a photo / video chosen goes with it (round 13).
+  var problemForm = document.querySelector("#report-problem form"), attached = null;
+  function attach(file) {
+    attached = file;
+    var box = problemForm.querySelector("[data-problem-attached]"), preview = box.querySelector("[data-problem-preview]");
+    if (preview._url) URL.revokeObjectURL(preview._url);
+    preview.innerHTML = "";
+    box.hidden = !file;
+    if (!file) return;
+    preview._url = URL.createObjectURL(file.blob);
+    var shown = document.createElement(file.field === "video" ? "video" : "img");
+    shown.src = preview._url;
+    if (file.field === "video") { shown.controls = true; shown.muted = true; }
+    preview.appendChild(shown);
+    box.querySelector("[data-problem-name]").textContent = file.name + " (" + Math.max(1, Math.round(file.blob.size / 1024)) + " KB)";
+  }
+  function stamp() {
+    var now = new Date(), pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    return now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + "-" + pad(now.getHours()) + pad(now.getMinutes());
+  }
   if (problemForm) {
+    var problemBox = document.getElementById("report-problem"), problemTexts = document.querySelector("[data-problem-texts]");
+    function problemModal(show) {
+      // Hiding waits until the window is gone (a window that is still closing cannot be opened again).
+      if (!window.bootstrap) return Promise.resolve();
+      var modal = window.bootstrap.Modal.getOrCreateInstance(problemBox);
+      if (show) { modal.show(); return Promise.resolve(); }
+      if (!problemBox.classList.contains("show")) return Promise.resolve();
+      return new Promise(function (resolve) {
+        problemBox.addEventListener("hidden.bs.modal", function () { setTimeout(resolve, 60); }, { once: true });
+        modal.hide();
+      });
+    }
+    problemForm.querySelector("[data-problem-file]").addEventListener("change", function (event) {
+      var file = event.target.files && event.target.files[0];
+      if (file) attach({ field: /^video\//.test(file.type) ? "video" : "screenshot", blob: file, name: file.name });
+      event.target.value = "";
+    });
+    problemForm.querySelector("[data-problem-remove]").addEventListener("click", function () { attach(null); });
+    // A picture of what is on the screen now (the page under the window), taken here.
+    problemForm.querySelector("[data-problem-shot]").addEventListener("click", function () {
+      problemModal(false).then(function () {
+        return loadScript(document.body.getAttribute("data-vendor-html2canvas")).then(function () {
+          return window.html2canvas(document.body, { scale: 1, backgroundColor: "#ffffff", x: window.scrollX, y: window.scrollY,
+                                                     width: window.innerWidth, height: window.innerHeight,
+                                                     onclone: function (doc) { doc.body.classList.add("is-snapshot"); plainColours(doc); },
+                                                     ignoreElements: function (el) { return el.id === "report-problem" || el.classList.contains("modal-backdrop"); } });
+        }).then(function (canvas) {
+          return new Promise(function (resolve) { canvas.toBlob(resolve, "image/jpeg", 0.85); });
+        }).then(function (blob) {
+          if (blob) attach({ field: "screenshot", blob: blob, name: "page-" + stamp() + ".jpg" });
+        });
+      }).catch(function () { window.alert(problemTexts.getAttribute("data-error")); })
+        .then(function () { problemModal(true); });
+    });
+    // A video of the screen: the browser asks which window or screen; Stop (or 3 minutes) ends it.
+    var recordButton = problemForm.querySelector("[data-problem-record]");
+    var canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.MediaRecorder);
+    recordButton.hidden = !canRecord;
+    problemForm.querySelector("[data-problem-record-help]").hidden = !canRecord;
+    problemForm.querySelector("[data-problem-film-help]").hidden = canRecord;
+    recordButton.addEventListener("click", function () {
+      var bar = document.querySelector("[data-problem-recording]"), clock = bar.querySelector("[data-problem-clock]");
+      // The browser asks for the screen at once (it must follow the tap), then the window closes.
+      var asked = navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 12 }, audio: false });
+      asked.catch(function () {});  // answered below
+      problemModal(false).then(function () { return asked; }).then(function (stream) {
+        var type = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"].filter(function (t) {
+          return !MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(t);
+        })[0];
+        var recorder = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 900000 } : undefined);
+        var parts = [], started = Date.now(), timer;
+        recorder.ondataavailable = function (event) { if (event.data && event.data.size) parts.push(event.data); };
+        recorder.onstop = function () {
+          clearInterval(timer); bar.hidden = true;
+          stream.getTracks().forEach(function (track) { track.stop(); });
+          if (parts.length) attach({ field: "video", blob: new Blob(parts, { type: "video/webm" }), name: "screen-" + stamp() + ".webm" });
+          problemModal(true);
+        };
+        function stop() { if (recorder.state !== "inactive") recorder.stop(); }
+        stream.getVideoTracks()[0].addEventListener("ended", stop);
+        bar.querySelector("[data-problem-stop]").onclick = stop;
+        timer = setInterval(function () {
+          var seconds = Math.floor((Date.now() - started) / 1000);
+          clock.textContent = Math.floor(seconds / 60) + ":" + (seconds % 60 < 10 ? "0" : "") + seconds % 60;
+          if (seconds >= 180) stop();
+        }, 500);
+        bar.hidden = false;
+        recorder.start(1000);
+      }).catch(function (problem) {
+        if (!problem || problem.name !== "NotAllowedError") window.alert(problemTexts.getAttribute("data-record-error"));
+        problemModal(true);
+      });
+    });
     problemForm.addEventListener("submit", function (event) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -330,15 +422,17 @@
       var send = problemForm.querySelector("[data-problem-send]");
       done.hidden = error.hidden = true;
       send.disabled = true;
+      var body = new FormData(problemForm);
+      if (attached) body.set(attached.field, attached.blob, attached.name);
       fetch(problemForm.action, {
-        method: "POST", body: new FormData(problemForm), credentials: "same-origin",
+        method: "POST", body: body, credentials: "same-origin",
         headers: { "X-Requested-With": "XMLHttpRequest" }
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (data.ok) {
           done.textContent = data.message;
           done.hidden = false;
           problemForm.querySelector("textarea").value = "";
-          problemForm.querySelector("input[type=file]").value = "";
+          attach(null);
         } else {
           error.textContent = (data.errors || []).join(" ");
           error.hidden = false;
@@ -635,6 +729,53 @@
     });
   });
 
+  // A row that opens in place (the complaints): one tap shows the row under it (the complaint and a comment box).
+  document.querySelectorAll("tr[data-expand-row]").forEach(function (row) {
+    var panel = row.nextElementSibling;
+    if (!panel) return;
+    function toggle() {
+      var open = panel.hidden;
+      panel.hidden = !open;
+      row.setAttribute("aria-expanded", open ? "true" : "false");
+      row.classList.toggle("is-open", open);
+      if (open) { var box = panel.querySelector("textarea"); if (box && window.matchMedia("(pointer: fine)").matches) box.focus(); }
+    }
+    row.addEventListener("click", function (event) {
+      if (event.target.closest("a, button, input, select, textarea, label") || (window.getSelection && String(window.getSelection()))) return;
+      toggle();
+    });
+    row.addEventListener("keydown", function (event) {
+      if ((event.key === "Enter" || event.key === " ") && event.target === row) { event.preventDefault(); toggle(); }
+    });
+  });
+  // A comment written on the spot is saved without leaving the page, and shows at once under the others.
+  document.querySelectorAll("form[data-complaint-comment]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.fetch || !window.FormData) return;
+      event.preventDefault();
+      var box = form.querySelector("textarea"), error = form.querySelector("[data-comment-error]"), button = form.querySelector("button");
+      error.hidden = true;
+      if (!box.value.trim()) { box.focus(); return; }
+      button.disabled = true;
+      fetch(form.action, { method: "POST", body: new FormData(form), credentials: "same-origin",
+                           headers: { "X-Requested-With": "fetch" } })
+        .then(function (response) { return response.json(); })
+        .then(function (answer) {
+          if (!answer.ok) throw new Error(answer.error || "");
+          var list = form.parentElement.querySelector("[data-comment-list]"), holder = document.createElement("ul");
+          holder.innerHTML = answer.html;
+          var empty = list.querySelector("li.text-muted.small:only-child");
+          if (empty && !empty.querySelector("strong")) empty.remove();
+          var item = holder.firstElementChild;
+          item.classList.add("is-new");
+          list.appendChild(item);
+          box.value = "";
+        })
+        .catch(function (problem) { error.textContent = (problem && problem.message) || "!"; error.hidden = false; })
+        .then(function () { button.disabled = false; });
+    });
+  });
+
   // Long forms: Save and Cancel stay at the bottom of the screen while scrolling.
   document.querySelectorAll("form[method=post], form[method=POST]").forEach(function (form) {
     if (form.closest(".modal") || form.offsetHeight < window.innerHeight * 1.15) return;
@@ -683,11 +824,34 @@
       document.head.appendChild(script);
     });
   }
+  // html2canvas reads rgb() colours only: the colours the page mixes (color-mix gives "color(srgb …)") are written
+  // back as rgba() on the copy it draws (its copies of ::before and ::after are elements there too).
+  function rgbOf(value) {
+    return value.replace(/color\(srgb\s+([-\d.e]+)\s+([-\d.e]+)\s+([-\d.e]+)(?:\s*\/\s*([-\d.e]+%?))?\)/g,
+      function (whole, r, g, b, a) {
+        function c(v) { return Math.round(Math.max(0, Math.min(1, parseFloat(v))) * 255); }
+        var alpha = a === undefined ? 1 : (a.slice(-1) === "%" ? parseFloat(a) / 100 : parseFloat(a));
+        return "rgba(" + c(r) + ", " + c(g) + ", " + c(b) + ", " + alpha + ")";
+      });
+  }
+  function plainColours(doc) {
+    var view = doc.defaultView;
+    var names = Array.prototype.filter.call(view.getComputedStyle(doc.documentElement), function (name) {
+      return /color|shadow|image|^fill$|^stroke$/.test(name);
+    });
+    doc.querySelectorAll("*").forEach(function (el) {
+      var style = view.getComputedStyle(el);
+      names.forEach(function (prop) {
+        var value = style.getPropertyValue(prop);
+        if (value && value.indexOf("color(") >= 0) el.style.setProperty(prop, rgbOf(value), "important");
+      });
+    });
+  }
   function snapshot(target) {
     return loadScript(document.body.getAttribute("data-vendor-html2canvas")).then(function () {
       document.body.classList.add("is-snapshot");
       return window.html2canvas(target, { scale: 2, backgroundColor: "#ffffff", useCORS: true,
-                                          onclone: function (doc) { doc.body.classList.add("is-snapshot"); } })
+                                          onclone: function (doc) { doc.body.classList.add("is-snapshot"); plainColours(doc); } })
         .finally(function () { document.body.classList.remove("is-snapshot"); });
     });
   }
@@ -944,390 +1108,130 @@
     frame.innerHTML = '<span class="photo-crop-corner" data-crop-corner></span>';
   });
 
-  // ID card photos taken with the tablet (the patient form, the documents): check the photo is good (sharp, light,
-  // near enough), cut the card out of the background, and read the national ID number from it. The reading is
-  // done here on the tablet (static/vendor/tesseract), without internet; the secretary checks the number.
-  var idTexts = document.querySelector("[data-id-check-texts]");
-  var GOVERNORATES = ["01", "02", "03", "04", "11", "12", "13", "14", "15", "16", "17", "18", "19", "21", "22", "23",
-                      "24", "25", "26", "27", "28", "29", "31", "32", "33", "34", "35", "88"];
-  function idText(name) { return idTexts.getAttribute("data-" + name) || ""; }
-  function scaledCanvas(source, maxSide) {
-    var w = source.naturalWidth || source.width, h = source.naturalHeight || source.height;
-    var scale = Math.min(1, maxSide / Math.max(w, h)), canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(w * scale)); canvas.height = Math.max(1, Math.round(h * scale));
-    canvas.getContext("2d").drawImage(source, 0, 0, canvas.width, canvas.height);
-    return canvas;
-  }
-  function turned(source, turn) {
-    var canvas = document.createElement("canvas"), side = turn % 180 !== 0;
-    canvas.width = side ? source.height : source.width; canvas.height = side ? source.width : source.height;
-    var ctx = canvas.getContext("2d");
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(turn * Math.PI / 180);
-    ctx.drawImage(source, -source.width / 2, -source.height / 2);
-    return canvas;
-  }
-  function greys(canvas) {
-    var small = scaledCanvas(canvas, 500), px = small.getContext("2d").getImageData(0, 0, small.width, small.height).data;
-    var out = new Float32Array(small.width * small.height);
-    for (var i = 0, j = 0; i < px.length; i += 4, j++) out[j] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-    return { g: out, w: small.width, h: small.height, rgba: px };
-  }
-  function photoQuality(card, photo) {
-    // Light, glare and sharpness of the card; sharpness is the edges (Laplacian) against the contrast.
-    var q = greys(card), g = q.g, w = q.w, h = q.h, n = g.length, sum = 0, glare = 0;
-    for (var i = 0; i < n; i++) { sum += g[i]; if (g[i] > 250) glare++; }
-    var mean = sum / n, varG = 0, lapSum = 0, lapSq = 0, count = 0;
-    for (i = 0; i < n; i++) varG += (g[i] - mean) * (g[i] - mean);
-    varG /= n;
-    for (var y = 1; y < h - 1; y++) for (var x = 1; x < w - 1; x++) {
-      var k = y * w + x, lap = 4 * g[k] - g[k - 1] - g[k + 1] - g[k - w] - g[k + w];
-      lapSum += lap; lapSq += lap * lap; count++;
+  // The city list follows the governorate (the patient form): input[data-city-list] gets a list of the cities of the
+  // governorate chosen, and "Other" to write a place that is not on it (apps/core/egypt.py). The text box keeps the
+  // value that is saved; without JavaScript it is an ordinary box.
+  document.querySelectorAll("input[data-city-list]").forEach(function (input) {
+    var lists, OTHER = "__other__";
+    try { lists = JSON.parse(input.getAttribute("data-city-list")); } catch (e) { return; }
+    var form = input.form, governorate = form && form.querySelector("[name='" + (input.getAttribute("data-governorate") || "governorate") + "']");
+    if (!governorate) return;
+    var select = document.createElement("select"), shownFor = governorate.value;
+    select.className = "form-select city-select" + (input.classList.contains("is-invalid") ? " is-invalid" : "");
+    select.id = input.id + "_list";
+    input.insertAdjacentElement("beforebegin", select);
+    var label = form.querySelector("label[for='" + input.id + "']");
+    if (label) label.setAttribute("for", select.id);
+    function cities() { return lists[governorate.value] || []; }
+    function add(value, text) {
+      var option = document.createElement("option");
+      option.value = value; option.textContent = text;
+      select.appendChild(option);
     }
-    var lapVar = lapSq / count - (lapSum / count) * (lapSum / count);
-    var sharp = varG ? lapVar / varG * 100 : 0, checks = [];
-    var shortSide = Math.min(photo.width, photo.height);
-    if (mean < 60) checks.push(["bad", idText("dark")]);
-    else if (mean > 215) checks.push(["bad", idText("bright")]);
-    if (glare / n > 0.06) checks.push(["warn", idText("glare")]);
-    if (sharp < 8) checks.push(["bad", idText("blurry")]);
-    else if (sharp < 20) checks.push(["warn", idText("soft")]);
-    if (shortSide < 700 || Math.max(card.width, card.height) < 700) checks.push(["warn", idText("small")]);
-    return checks;
-  }
-  function findCard(photo) {
-    // Like apps/patients/idcard.py: the card is what differs from the colour around the edges of the photo.
-    var q = greys(photo), w = q.w, h = q.h, px = q.rgba, edge = [[], [], []];
-    function take(x, y) { var k = (y * w + x) * 4; edge[0].push(px[k]); edge[1].push(px[k + 1]); edge[2].push(px[k + 2]); }
-    for (var x = 0; x < w; x += 3) { take(x, 0); take(x, h - 1); }
-    for (var y = 0; y < h; y += 3) { take(0, y); take(w - 1, y); }
-    var bg = edge.map(function (band) { band.sort(function (a, b) { return a - b; }); return band[band.length >> 1]; });
-    var rows = new Uint16Array(h), cols = new Uint16Array(w);
-    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
-      var k = (y * w + x) * 4;
-      var d = 0.299 * Math.abs(px[k] - bg[0]) + 0.587 * Math.abs(px[k + 1] - bg[1]) + 0.114 * Math.abs(px[k + 2] - bg[2]);
-      if (d > 35) { rows[y]++; cols[x]++; }
+    function sync() {
+      var list = cities();
+      select.hidden = !list.length;
+      if (!list.length) { input.hidden = false; return; }
+      if (!input.value) { select.value = ""; input.hidden = true; }
+      else if (list.indexOf(input.value) >= 0) { select.value = input.value; input.hidden = true; }
+      else { select.value = OTHER; input.hidden = false; }
     }
-    function span(list, size, length) {
-      var first = -1, last = -1;
-      for (var i = 0; i < length; i++) if (list[i] > size * 0.08) { if (first < 0) first = i; last = i; }
-      return [first, last];
+    function build() {
+      select.innerHTML = "";
+      add("", input.getAttribute("data-choose-label") || "—");
+      cities().forEach(function (city) { add(city, city); });
+      add(OTHER, input.getAttribute("data-other-label") || "…");
+      sync();
     }
-    var ys = span(rows, w, h), xs = span(cols, h, w);
-    if (ys[0] < 0 || xs[0] < 0) return null;
-    var bw = xs[1] - xs[0] + 1, bh = ys[1] - ys[0] + 1, area = bw * bh / (w * h);
-    var ratio = Math.max(bw, bh) / Math.max(1, Math.min(bw, bh));
-    if (area < 0.15 || area > 0.92 || ratio < 1.3 || ratio > 1.9) return null;
-    var scale = photo.width / w, margin = 0.01 * Math.max(photo.width, photo.height);
-    var left = Math.max(0, xs[0] * scale - margin), top = Math.max(0, ys[0] * scale - margin);
-    return { x: left, y: top, w: Math.min(photo.width - left, bw * scale + 2 * margin),
-             h: Math.min(photo.height - top, bh * scale + 2 * margin) };
-  }
-  function validNationalId(n) {
-    if (!/^[23]\d{13}$/.test(n)) return false;
-    var year = (n[0] === "2" ? 1900 : 2000) + parseInt(n.substr(1, 2), 10);
-    var month = parseInt(n.substr(3, 2), 10), day = parseInt(n.substr(5, 2), 10);
-    var born = new Date(year, month - 1, day);
-    return month >= 1 && month <= 12 && born.getDate() === day && born <= new Date() &&
-      GOVERNORATES.indexOf(n.substr(7, 2)) >= 0;
-  }
-  function nationalIdIn(text) {
-    var latin = text.replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x0660); })
-                    .replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 0x06F0); })
-                    .replace(/(\d)[ .\-]+(?=\d)/g, "$1");
-    var runs = latin.match(/\d{14,}/g) || [];
-    for (var r = 0; r < runs.length; r++) {
-      for (var i = 0; i + 14 <= runs[r].length; i++) {
-        if (validNationalId(runs[r].substr(i, 14))) return runs[r].substr(i, 14);
-      }
-    }
-    return "";
-  }
-  // Reading the national ID number: the 14 Arabic digits (٠١٢٣٤٥٦٧٨٩) printed at the bottom of the card. Each mark
-  // on a line of the card is cut out and compared with the ten digits drawn in a few fonts; the number is kept only
-  // when it is a valid national ID (a real date of birth, a governorate), so a wrong reading is not written.
-  var DIGITS = "٠١٢٣٤٥٦٧٨٩", GRID_W = 20, GRID_H = 30, digitModels = null;
-  function inkOf(canvas) {
-    var ctx = canvas.getContext("2d"), px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    var n = canvas.width * canvas.height, grey = new Uint8Array(n), hist = new Uint32Array(256);
-    for (var i = 0, j = 0; j < n; i += 4, j++) {
-      grey[j] = Math.round(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]); hist[grey[j]]++;
-    }
-    // Otsu: the grey level that best splits the ink from the card.
-    var total = 0, sumB = 0, wB = 0, best = 0, threshold = 128;
-    for (i = 0; i < 256; i++) total += i * hist[i];
-    for (i = 0; i < 256; i++) {
-      wB += hist[i]; if (!wB) continue;
-      var wF = n - wB; if (!wF) break;
-      sumB += i * hist[i];
-      var between = wB * wF * Math.pow(sumB / wB - (total - sumB) / wF, 2);
-      if (between > best) { best = between; threshold = i; }
-    }
-    var ink = new Uint8Array(n);
-    for (j = 0; j < n; j++) ink[j] = grey[j] <= threshold ? 1 : 0;
-    return { ink: ink, w: canvas.width, h: canvas.height };
-  }
-  function features(bits, box, lineTop, lineHeight) {
-    // The mark shrunk into a small grid (keeping its shape), with its size and place on the line.
-    var grid = new Float32Array(GRID_W * GRID_H), bw = box.r - box.l + 1, bh = box.b - box.t + 1;
-    var scale = Math.max(bw / GRID_W, bh / GRID_H), offX = (GRID_W - bw / scale) / 2, offY = (GRID_H - bh / scale) / 2;
-    var counts = new Float32Array(GRID_W * GRID_H);
-    for (var y = box.t; y <= box.b; y++) for (var x = box.l; x <= box.r; x++) {
-      var gx = Math.min(GRID_W - 1, Math.floor((x - box.l) / scale + offX)), gy = Math.min(GRID_H - 1, Math.floor((y - box.t) / scale + offY));
-      counts[gy * GRID_W + gx]++; grid[gy * GRID_W + gx] += bits.ink[y * bits.w + x];
-    }
-    for (var k = 0; k < grid.length; k++) grid[k] = counts[k] ? grid[k] / counts[k] : 0;
-    // The teeth on top (٢ has one, ٣ two): the most separate pieces of ink met across the top third.
-    var teeth = 0;
-    for (y = box.t; y <= box.t + Math.round(bh * 0.35); y++) {
-      var runs = 0, was = 0;
-      for (x = box.l; x <= box.r; x++) { var on = bits.ink[y * bits.w + x]; if (on && !was) runs++; was = on; }
-      teeth = Math.max(teeth, runs);
-    }
-    return { grid: grid, aspect: bw / bh, height: bh / lineHeight, middle: ((box.t + box.b) / 2 - lineTop) / lineHeight,
-             teeth: Math.min(teeth, 4) };
-  }
-  function boxesOf(bits, top, bottom) {
-    // The marks of one line, left to right: runs of columns with ink.
-    var boxes = [], inRun = false, start = 0;
-    function close(end) {
-      var t = bottom, b = top, count = 0;
-      for (var y = top; y <= bottom; y++) for (var x = start; x <= end; x++) if (bits.ink[y * bits.w + x]) {
-        count++; if (y < t) t = y; if (y > b) b = y;
-      }
-      if (count > 2) boxes.push({ l: start, r: end, t: t, b: b });
-    }
-    for (var x = 0; x < bits.w; x++) {
-      var any = false;
-      for (var y = top; y <= bottom && !any; y++) any = bits.ink[y * bits.w + x] === 1;
-      if (any && !inRun) { inRun = true; start = x; }
-      if (!any && inRun) { inRun = false; close(x - 1); }
-    }
-    if (inRun) close(bits.w - 1);
-    // Two digits that touch (a blurred photo) make one mark wider than it is tall (a digit is taller than wide):
-    // cut it where the ink is thinnest.
-    var split = [];
-    boxes.forEach(function (box) {
-      var width = box.r - box.l + 1;
-      if (boxes.length < 6 || width < (bottom - top + 1) * 1.15) { split.push(box); return; }
-      var best = -1, least = Infinity;
-      for (var x = box.l + Math.round(width * 0.3); x <= box.l + Math.round(width * 0.7); x++) {
-        var ink = 0;
-        for (var y = box.t; y <= box.b; y++) ink += bits.ink[y * bits.w + x];
-        if (ink < least) { least = ink; best = x; }
-      }
-      [[box.l, best - 1], [best + 1, box.r]].forEach(function (cols) {
-        var t = box.b, b = box.t;
-        for (var y = box.t; y <= box.b; y++) for (var x = cols[0]; x <= cols[1]; x++) if (bits.ink[y * bits.w + x]) {
-          if (y < t) t = y; if (y > b) b = y;
-        }
-        if (b >= t) split.push({ l: cols[0], r: cols[1], t: t, b: b });
-      });
+    select.addEventListener("change", function () {
+      if (select.value === OTHER) {
+        if (cities().indexOf(input.value) >= 0) input.value = "";
+        input.hidden = false; input.focus();
+      } else { input.value = select.value; input.hidden = true; }
     });
-    return split;
-  }
-  function buildDigitModels() {
-    var fonts = ["700 60px Cairo", "400 60px Cairo", "bold 60px serif", "60px serif", "bold 60px sans-serif",
-                 "60px sans-serif", "bold 60px monospace", "bold 60px Tahoma", "bold 60px Arial"];
-    var models = [];
-    fonts.forEach(function (font) {
-      var canvas = document.createElement("canvas"); canvas.width = 900; canvas.height = 110;
-      var ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#000"; ctx.font = font; ctx.textBaseline = "alphabetic";
-      for (var d = 0; d < 10; d++) ctx.fillText(DIGITS[d], 20 + d * 85, 80);
-      var bits = inkOf(canvas), boxes = boxesOf(bits, 0, canvas.height - 1);
-      if (boxes.length !== 10) return;  // this font does not draw the ten digits apart
-      var top = Math.min.apply(null, boxes.map(function (b) { return b.t; }));
-      var bottom = Math.max.apply(null, boxes.map(function (b) { return b.b; }));
-      boxes.forEach(function (box, d) {
-        var f = features(bits, box, top, bottom - top + 1); f.digit = d; models.push(f);
-      });
+    governorate.addEventListener("change", function () {
+      // A city chosen from the list of the governorate before is cleared; a place written by hand stays.
+      if (input.value && (lists[shownFor] || []).indexOf(input.value) >= 0 && cities().indexOf(input.value) < 0) input.value = "";
+      shownFor = governorate.value;
+      build();
     });
-    return models;
-  }
-  function classify(f) {
-    var ranked = digitModels.map(function (m) {
-      var d = 0;
-      for (var k = 0; k < f.grid.length; k++) d += (f.grid[k] - m.grid[k]) * (f.grid[k] - m.grid[k]);
-      d = d / f.grid.length + 0.6 * Math.pow(f.height - m.height, 2) + 0.25 * Math.pow(Math.log(f.aspect / m.aspect), 2) +
-          0.3 * Math.pow(f.middle - m.middle, 2) + 0.04 * Math.abs(f.teeth - m.teeth);
-      return { digit: m.digit, d: d };
-    }).sort(function (a, b) { return a.d - b.d; });
-    var second = ranked.find(function (r) { return r.digit !== ranked[0].digit; });
-    return [ranked[0].digit, second ? second.digit : ranked[0].digit];
-  }
-  function numberOnLines(bits) {
-    // Lines of the card (rows with ink), then every run of 14 marks that reads as a valid national ID.
-    var rows = new Uint32Array(bits.h), lines = [], y, x;
-    for (y = 0; y < bits.h; y++) for (x = 0; x < bits.w; x++) rows[y] += bits.ink[y * bits.w + x];
-    var inLine = false, start = 0;
-    for (y = 0; y <= bits.h; y++) {
-      var has = y < bits.h && rows[y] > bits.w * 0.004;
-      if (has && !inLine) { inLine = true; start = y; }
-      if (!has && inLine) { inLine = false; if (y - start >= bits.h * 0.018) lines.push([start, y - 1]); }
+    input.addEventListener("change", sync);
+    build();
+  });
+
+  // The signature pad (user menu → My signature, a doctor's page): drawn with a finger, the tablet's pen or the
+  // mouse, and saved as a picture cut to the signature. A photo of a signature on paper becomes a drawing too: the
+  // paper turns transparent and the ink dark blue (apps/core/signatures.py).
+  document.querySelectorAll("canvas[data-signature-pad]").forEach(function (canvas) {
+    var form = canvas.closest("form"), ctx = canvas.getContext("2d", { willReadFrequently: true }), drawing = false, drawn = false, last = null;
+    var INK = "#0b2a6b";
+    canvas.style.touchAction = "none";
+    function point(event) {
+      var box = canvas.getBoundingClientRect();
+      return { x: (event.clientX - box.left) * canvas.width / box.width, y: (event.clientY - box.top) * canvas.height / box.height };
     }
-    for (var l = lines.length - 1; l >= 0; l--) {  // the number is near the bottom
-      var boxes = boxesOf(bits, lines[l][0], lines[l][1]);
-      if (boxes.length < 14) continue;
-      var height = lines[l][1] - lines[l][0] + 1;
-      var reads = boxes.map(function (box) { return classify(features(bits, box, lines[l][0], height)); });
-      for (var i = 0; i + 14 <= reads.length; i++) {
-        var first = reads.slice(i, i + 14).map(function (r) { return DIGITS[r[0]]; }).join("");
-        var found = nationalIdIn(first);
-        if (found) return found;
-        for (var k = 0; k < 14; k++) {  // one digit read wrong: try its second choice
-          var fixed = first.slice(0, k) + DIGITS[reads[i + k][1]] + first.slice(k + 1);
-          found = nationalIdIn(fixed);
-          if (found) return found;
-        }
-      }
-    }
-    return "";
-  }
-  function part(canvas, left, top, right, bottom) {
-    // A part of the card, as fractions of its width and height.
-    var out = document.createElement("canvas"), x = Math.round(canvas.width * left), y = Math.round(canvas.height * top);
-    out.width = Math.round(canvas.width * (right - left)); out.height = Math.round(canvas.height * (bottom - top));
-    out.getContext("2d").drawImage(canvas, x, y, out.width, out.height, 0, 0, out.width, out.height);
-    return out;
-  }
-  function readCard(card) {
-    var ready = document.fonts && document.fonts.load ? document.fonts.load("700 60px Cairo", DIGITS) : Promise.resolve();
-    return ready.catch(function () {}).then(function () {
-      if (!digitModels) digitModels = buildDigitModels();
-      var big = scaledCanvas(card, 2000);
-      if (big.width < 1800) {
-        var up = document.createElement("canvas");
-        up.width = 1800; up.height = Math.round(big.height * 1800 / big.width);
-        up.getContext("2d").drawImage(big, 0, 0, up.width, up.height);
-        big = up;
-      }
-      // The whole card, then its right part only (the photo on the left can reach the number's line), then the same
-      // upside down.
-      var upside = turned(big, 180), tries = [];
-      [big, upside].forEach(function (side) {  // without the edges of the photo around the card
-        [0.03, 0.3, 0.38, 0.45].forEach(function (left) { tries.push(part(side, left, 0.03, 0.97, 0.97)); });
-      });
-      for (var i = 0; i < tries.length; i++) {
-        var found = numberOnLines(inkOf(tries[i]));
-        if (found) return found;
-      }
-      return "";
+    canvas.addEventListener("pointerdown", function (event) {
+      event.preventDefault();
+      if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
+      drawing = true; drawn = true; last = point(event);
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(last.x, last.y, 2.4, 0, Math.PI * 2); ctx.fill();
+      form.querySelector("[data-signature-empty]").hidden = true;
     });
-  }
-  function setupIdCheck(input) {
-    var panel = document.createElement("div"), state = null;
-    panel.className = "id-check card mt-2"; panel.hidden = true;
-    input.insertAdjacentElement("afterend", panel);
-    var form = input.form, reads = input.getAttribute("data-id-card") === "front";
-    function nidField() { return form && form.querySelector("input[name='national_id']"); }
-    function idTypeIsCard() {
-      var type = form && form.querySelector("[name='id_type']");
-      return !type || !type.value || type.value === "nid";
-    }
-    function kindIsCard() {
-      var kind = form && form.querySelector("select[name='kind']");
-      return !kind || ["id_front", "id_back", "passport"].indexOf(kind.value) >= 0;
-    }
-    function button(label, icon, action) {
-      return '<button type="button" class="btn btn-sm btn-outline-secondary" data-id-action="' + action + '"><i class="bi ' +
-        icon + '"></i> ' + label + "</button>";
-    }
-    function show() {
-      var photo = turned(state.photo, state.turn);
-      var box = state.whole ? null : findCard(photo);
-      var card = photo;
-      if (box) {
-        card = document.createElement("canvas");
-        card.width = Math.round(box.w); card.height = Math.round(box.h);
-        card.getContext("2d").drawImage(photo, box.x, box.y, box.w, box.h, 0, 0, card.width, card.height);
-      }
-      var checks = photoQuality(card, photo);
-      if (!state.whole && !box) checks.push(["warn", idText("no-card")]);
-      if (card.height > card.width) checks.push(["warn", idText("upright")]);
-      var good = !checks.some(function (c) { return c[0] === "bad"; });
-      panel.innerHTML = '<div class="card-body d-flex flex-wrap gap-3 align-items-start"><img class="id-check-preview" alt="">' +
-        '<div class="flex-grow-1"><div class="fw-semibold mb-1">' + (good ? '<i class="bi bi-check-circle-fill text-success"></i> ' + idText(checks.length ? "fair" : "good")
-        : '<i class="bi bi-x-octagon-fill text-danger"></i> ' + idText("retake")) + '</div><ul class="id-check-list"></ul>' +
-        '<div class="id-check-read small mb-2"></div><div class="d-flex flex-wrap gap-2">' +
-        button(idText("turn-left"), "bi-arrow-counterclockwise", "left") + button(idText("turn-right"), "bi-arrow-clockwise", "right") +
-        (box || state.whole ? button(state.whole ? idText("card-only") : idText("whole"), "bi-bounding-box", "whole") : "") +
-        button(idText("again"), "bi-camera", "again") + "</div></div></div>";
-      panel.querySelector(".id-check-preview").src = card.toDataURL("image/jpeg", 0.8);
-      var list = panel.querySelector(".id-check-list");
-      checks.forEach(function (c) {
-        var li = document.createElement("li");
-        li.className = "is-" + c[0];
-        li.textContent = c[1];
-        list.appendChild(li);
-      });
-      if (box) { var li = document.createElement("li"); li.className = "is-ok"; li.textContent = idText("card-found"); list.appendChild(li); }
-      panel.hidden = false;
-      // What is uploaded: the card cut out (smaller, quicker on the Wi-Fi), as a JPEG.
-      var sized = scaledCanvas(card, 1600);
-      sized.toBlob(function (blob) {
-        if (!blob || typeof DataTransfer === "undefined") return;
-        try {
-          var transfer = new DataTransfer();
-          transfer.items.add(new File([blob], state.name.replace(/\.[^.]+$/, "") + "-card.jpg", { type: "image/jpeg" }));
-          input.files = transfer.files;
-        } catch (error) { /* this browser keeps the photo as taken; the server cuts the card out */ }
-      }, "image/jpeg", 0.9);
-      if (reads && good && idTypeIsCard() && nidField()) read(sized);
-    }
-    function read(card) {
-      var place = panel.querySelector(".id-check-read"), field = nidField();
-      place.innerHTML = '<span class="spinner-border spinner-border-sm"></span> ' + idText("reading");
-      var token = state.token = {};
-      readCard(card).then(function (number) {
-        if (token !== state.token) return;
-        if (!number) { place.textContent = idText("read-none"); return; }
-        var current = (field.value || "").replace(/\s/g, "");
-        if (!current) {
-          field.value = number;
-          field.dispatchEvent(new Event("input", { bubbles: true }));
-          field.dispatchEvent(new Event("change", { bubbles: true }));
-          field.classList.add("is-filled-from-card");
-          place.innerHTML = '<i class="bi bi-magic text-success"></i> ' + idText("filled").replace("%s", '<b class="ltr">' + number + "</b>");
-        } else if (current !== number) {
-          place.innerHTML = '<i class="bi bi-exclamation-triangle text-warning"></i> ' +
-            idText("differs").replace("%s", '<b class="ltr">' + number + "</b>") +
-            ' <button type="button" class="btn btn-sm btn-link p-0 align-baseline" data-id-action="use">' + idText("use") + "</button>";
-          place.querySelector("[data-id-action='use']").addEventListener("click", function () {
-            field.value = number; field.dispatchEvent(new Event("change", { bubbles: true }));
-            place.innerHTML = '<i class="bi bi-check2 text-success"></i> ' + idText("filled").replace("%s", '<b class="ltr">' + number + "</b>");
-          });
-        } else {
-          place.innerHTML = '<i class="bi bi-check2-all text-success"></i> ' + idText("same");
-        }
-      }).catch(function () { if (token === state.token) place.textContent = idText("read-none"); });
-    }
-    panel.addEventListener("click", function (event) {
-      var action = event.target.closest("[data-id-action]");
-      if (!action || !state) return;
-      var what = action.getAttribute("data-id-action");
-      if (what === "left") { state.turn = (state.turn + 270) % 360; show(); }
-      else if (what === "right") { state.turn = (state.turn + 90) % 360; show(); }
-      else if (what === "whole") { state.whole = !state.whole; show(); }
-      else if (what === "again") { input.value = ""; panel.hidden = true; state = null; input.click(); }
+    canvas.addEventListener("pointermove", function (event) {
+      if (!drawing) return;
+      event.preventDefault();
+      var now = point(event);
+      ctx.strokeStyle = INK; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.lineWidth = event.pointerType === "pen" && event.pressure ? 2.5 + 4 * event.pressure : 4.5;
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(now.x, now.y); ctx.stroke();
+      last = now;
     });
-    input.addEventListener("change", function () {
-      var file = input.files && input.files[0];
-      if (!file || !/^image\//.test(file.type) || /-card\.jpg$/.test(file.name) || !kindIsCard()) {
-        if (!file || !/-card\.jpg$/.test(file.name)) panel.hidden = true;
-        return;
-      }
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (name) {
+      canvas.addEventListener(name, function () { drawing = false; });
+    });
+    form.querySelector("[data-signature-clear]").addEventListener("click", function () {
+      ctx.clearRect(0, 0, canvas.width, canvas.height); drawn = false;
+    });
+    var photo = form.querySelector("[data-signature-photo]");
+    if (photo) photo.addEventListener("change", function () {
+      var file = photo.files && photo.files[0];
+      if (!file) return;
       var image = new Image(), url = URL.createObjectURL(file);
       image.onload = function () {
-        state = { photo: scaledCanvas(image, 2400), turn: 0, whole: false, name: file.name };
-        URL.revokeObjectURL(url);
-        show();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        var scale = Math.min(canvas.width / image.width, canvas.height / image.height);
+        var w = image.width * scale, h = image.height * scale;
+        ctx.drawImage(image, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+        var data = ctx.getImageData(0, 0, canvas.width, canvas.height), px = data.data;
+        for (var i = 0; i < px.length; i += 4) {
+          var light = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+          if (light > 150) px[i + 3] = 0;
+          else { px[i] = 11; px[i + 1] = 42; px[i + 2] = 107; px[i + 3] = Math.min(255, Math.round((150 - light) * 3)); }
+        }
+        ctx.putImageData(data, 0, 0);
+        URL.revokeObjectURL(url); drawn = true; photo.value = "";
       };
       image.src = url;
     });
-  }
-  if (idTexts) document.querySelectorAll("input[type=file][data-id-card]").forEach(setupIdCheck);
+    function trimmed() {
+      // Only the part that holds the signature, with a small margin.
+      var px = ctx.getImageData(0, 0, canvas.width, canvas.height).data, top = canvas.height, left = canvas.width, right = -1, bottom = -1;
+      for (var y = 0; y < canvas.height; y++) for (var x = 0; x < canvas.width; x++) {
+        if (px[(y * canvas.width + x) * 4 + 3] > 20) { if (x < left) left = x; if (x > right) right = x; if (y < top) top = y; if (y > bottom) bottom = y; }
+      }
+      if (right < 0) return null;
+      var pad = 12, out = document.createElement("canvas");
+      left = Math.max(0, left - pad); top = Math.max(0, top - pad);
+      out.width = Math.min(canvas.width, right + pad) - left; out.height = Math.min(canvas.height, bottom + pad) - top;
+      out.getContext("2d").drawImage(canvas, left, top, out.width, out.height, 0, 0, out.width, out.height);
+      return out;
+    }
+    form.addEventListener("submit", function (event) {
+      var cut = drawn ? trimmed() : null;
+      if (!cut) { event.preventDefault(); form.querySelector("[data-signature-empty]").hidden = false; return; }
+      form.querySelector("[data-signature-value]").value = cut.toDataURL("image/png");
+    });
+  });
 
   // Dynamic formsets: <div data-formset="prefix"> with a <template> row and "add" buttons.
   // A page can have several row lists (e.g. the plan's implant and restorative parts):

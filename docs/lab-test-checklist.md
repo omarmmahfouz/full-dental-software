@@ -116,3 +116,9 @@ In the sample data:
    open only on the clinic's network.
 3. Five wrong passwords close `labsec`'s login for 15 minutes; `labsec`'s PC logs out after the minutes without use, and
    a case typed when the network stopped is offered back (**Put it back**).
+
+## J. New in this version (13)
+1. `owner`'s home: the lab is one of the **four places, the same size**: cases in the lab, late, received and
+   delivered today, and the money of the month; *The lab report* opens it.
+2. In the clinics, every lab request button has the new **lab request icon** (a sheet with a tooth).
+3. `labsec`: *Report a problem* → *Picture of this page* (or a video filmed with the phone).

@@ -739,3 +739,22 @@ class WhatsAppRequestTests(TestCase):
         self.assertTrue(Notification.objects.filter(recipient=self.dentist.user, title__contains="WhatsApp").exists())
         self.client.login(username="dentist", password=PASSWORD)
         self.assertEqual(self.client.post("/schedule/whatsapp/asked/done/", {"request": asked.pk}).status_code, 403)
+
+
+class Round13PreferredTimesTests(TestCase):
+    """The nearest free times can keep to the days and hours the patient prefers."""
+
+    setUp = SmartBookingTests.setUp
+
+    def test_free_times_that_fit_the_patient(self):
+        from apps.patients.models import Patient
+
+        RoomShift.objects.filter(dentist=self.dentist).update(end_time=time(20))
+        Patient.objects.filter(pk=self.patient.pk).update(preferred_times="evening")
+        url = f"/schedule/free-times/?dentist={self.dentist.pk}&duration=30"
+        first = self.client.get(url).json()["results"][0]
+        self.assertEqual(first["time"], "09:00")  # without the choice: the first free time
+        fits = self.client.get(f"{url}&fits=1&patient={self.patient.file_number}").json()["results"][0]
+        self.assertEqual(fits["time"], "18:00")  # the first time in his evening
+        page = self.client.get(f"/schedule/appointments/new/?patient={self.patient.pk}")
+        self.assertContains(page, "data-prefs-url")

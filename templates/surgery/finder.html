@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% trans "Case finder" %}{% endblock %}
+{% block title %}{% trans "Implant cases: finder and statistics" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-funnel"></i> {% trans "Case finder & statistics" %}</h1>
+  <h1><i class="bi bi-funnel"></i> {% trans "Implant cases: finder and statistics" %}</h1>
   <div class="d-flex flex-wrap gap-2 no-print">
     <a class="btn btn-outline-success" href="?{{ query }}{% if query %}&{% endif %}export=csv"><i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Export to Excel (CSV)" %}</a>
     <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
   </div>
 </div>
 
+{% include "includes/finder_tabs.html" with here="implant_cases" %}
+<div class="quick-groups mb-2 no-print"><span class="small text-muted me-1">{% trans "Group quickly:" %}</span>
+  {% for g in quick_groups %}<a class="btn btn-sm {% if g.active %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?{{ g.query }}">{{ g.label }}</a>{% endfor %}
+</div>
 <div class="d-flex flex-wrap gap-1 mb-2 no-print">
   <span class="small text-muted me-1">{% trans "Quick:" %}</span>
   {% for label, q in quick %}<a class="btn btn-sm btn-outline-primary" href="?{{ q }}">{{ label }}</a>{% endfor %}
@@ -87,12 +91,12 @@
     {% if groups %}
     <div class="card mb-3"><div class="card-header">{% trans "Statistics by" %} {{ group_label }}{% if group_label_2 and groups.0.key2 %} / {{ group_label_2 }}{% endif %}</div>
       <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
-        <thead><tr><th>{{ group_label }}</th>{% if groups.0.key2 %}<th>{{ group_label_2 }}</th>{% endif %}<th>{% trans "Sites" %}</th><th>{% trans "Implants" %}</th><th>{% trans "Patients" %}</th><th>{% trans "Failed" %}</th><th style="min-width:160px">{% trans "Survival" %}</th><th>{% trans "Loaded" %}</th><th>{% trans "Days to loading" %}</th><th>{% trans "Torque" %}</th></tr></thead>
+        <thead><tr><th>{{ group_label }}</th>{% if groups.0.key2 %}<th>{{ group_label_2 }}</th>{% endif %}<th>{% trans "Sites" %}</th><th>{% trans "Implants" %}</th><th>{% trans "Patients" %}</th><th>{% trans "Surgeries" %}</th><th>{% trans "Failed" %}</th><th style="min-width:160px">{% trans "Survival" %}</th><th>{% trans "Loaded" %}</th><th>{% trans "Days to loading" %}</th><th>{% trans "Torque" %}</th><th>ISQ</th></tr></thead>
         <tbody>{% for g in groups %}<tr>
           <td class="fw-semibold">{{ g.key }}</td>{% if g.key2 %}<td>{{ g.key2 }}</td>{% endif %}
-          <td>{{ g.sites }}</td><td>{{ g.implants }}</td><td>{{ g.patients }}</td><td class="{% if g.failed %}text-danger fw-bold{% endif %}">{{ g.failed }}</td>
+          <td>{{ g.sites }}</td><td>{{ g.implants }}</td><td>{{ g.patients }}</td><td>{{ g.surgeries }}</td><td class="{% if g.failed %}text-danger fw-bold{% endif %}">{{ g.failed }}</td>
           <td>{% if g.survival is not None %}<div class="d-flex align-items-center gap-2"><div class="bar" style="width:{{ g.survival|floatformat:0 }}%;max-width:110px"></div><span>{{ g.survival }}%</span></div>{% else %}—{% endif %}</td>
-          <td>{{ g.loaded }}</td><td>{{ g.days_to_loading|default:"—" }}</td><td>{{ g.torque|default:"—" }}</td>
+          <td>{{ g.loaded }}</td><td>{{ g.days_to_loading|default:"—" }}</td><td>{{ g.torque|default:"—" }}</td><td>{{ g.isq|default:"—" }}</td>
         </tr>{% endfor %}</tbody>
       </table></div>
     </div>

@@ -684,6 +684,9 @@ class Command(BaseCommand):
         from apps.core.demo import load_round_eleven
 
         load_round_eleven(patients, secretary)
+        from apps.core.demo import load_round_thirteen
+
+        load_round_thirteen(today, patients, secretary, stock_user, owner)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "

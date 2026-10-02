@@ -43,7 +43,63 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: a new professional interface (new)
+### New in this version: the ID card read by the camera, signatures, prices and returns, the finders (new)
+The steps to try are in every checklist, in its last section (the secretary's **X**, the dentists' and the owner's
+**W**, the stock manager's **Q**, CIC's **M**, El Khadem's **M**, the lab's **J**).
+1. **The ID card with the camera (new)**: *Camera* beside each ID box opens the camera inside the page with a frame the
+   size of the card: hold the card in it and press the white button. The photo keeps only the card, cut again at its
+   edges. Then the card is **read on the PC or tablet, without internet**: the **ID number** (and from it the date of
+   birth, the gender and the governorate), the **name**, the **address** and the **city** on the front, the
+   **occupation** and the **marital status** on the back. What is read fills the empty boxes of the form in yellow:
+   **every box stays editable**, the ID number too; a box already written differently shows *The card reads: … Use it*.
+   Choosing a photo instead of the camera works as before and is read the same way.
+   **The ID photos are now saved**: they were lost when the form came back with an error (e.g. a box left empty) and
+   was saved again. Now the photos are kept and shown (*This photo is kept from the last try*), and saved with the form.
+   ID photos can also be added from *Edit* (the old ones stay).
+2. **Registration (new)**: **mobile 2, gender, date of birth, marital status, occupation, governorate and city** are
+   needed (the date of birth, the gender and the governorate fill in from the ID number at once). The **city list
+   follows the governorate** chosen (*Other* to write a place that is not on it); the occupation offers a list.
+3. **How far he lives and when he can come (new)**: *minutes to the clinic*, the **days** and the **times of the day**
+   he prefers (morning, midday, afternoon, evening). Shown on the file; when booking, the page shows them and warns when
+   the time chosen is not one he prefers; *Nearest free times* can keep to his days and times.
+4. **Referred by one of our patients (new)**: choosing the patient is **optional** now (type him only if you know him).
+5. **Signatures (new)**: each person draws their signature once (user menu → **My signature**, with a finger, the
+   tablet's pen or the mouse, or from a photo of a signature on paper); a doctor without a login gets his on his page.
+   The **receipt** prints the secretary's and the doctor's signatures; the **prescription** the doctor's and the
+   reception's.
+6. **The receipt names the services (new)**: each service the receipt pays (with its teeth), and how much of each when
+   it pays several; *Paid in advance* when nothing is given yet.
+7. **WhatsApp opened a blank page: fixed (new)**. Since round 11 the browser refused to leave the page for WhatsApp after
+   pressing *Send*; WhatsApp's addresses are now allowed.
+8. **Stock: prices and giving back (new)**: each stock item has its **prices paid** (each purchase, the change in %,
+   the lowest, highest, average and the cheapest supplier); a **Price changes** page (*Stock → Price changes*) lists
+   what was bought dearer or cheaper; while buying, each line shows the last price and how much dearer or cheaper; a
+   rise of 10% or more is told to the owner and the stock manager. **Give back to the supplier** (on a purchase) in
+   three steps: 1. what goes back and why (it leaves the stock at once), 2. the supplier takes it, 3. the money, a
+   credit or new items come back. *Purchases → Returns to suppliers* lists them; the supplier's page shows our credit;
+   the balance sheet counts the money back. A return written by mistake is cancelled (the items come back).
+9. **Complaints (new)**: one tap on a complaint opens it in the list (its story and its last steps) with a **comment
+   box**: the comment is saved without leaving the page and the people of the complaint are told.
+10. **A lab request icon (new)**: a sheet with a tooth, on every lab request button and page, and a *Lab request*
+    button beside the dental chart on the patient's file.
+11. **Fawry machine (new)**: **each person sees the moves they did** (the card payments they took, the bills they paid
+    through the machine, the moves they wrote); the owner and the head of CIA see all, with *done by*. **Fawry's
+    percentage** is changed by the owner at the top of the Fawry page (it is also in *Settings → Clinic options*).
+12. **Report a problem (new)**: **Picture of this page** (taken at once), **Record the screen** (a video, where the
+    browser allows it) or choose a photo or a video filmed with a phone. The owner sees and plays it.
+13. **The owner's home page (new)**: the **four places side by side, the same size**, always in the same order
+    (**CIA, El Khadem, CIC, the lab**), whatever place is chosen in the switch: booked today, here now, finished, new
+    files and money of each clinic; the lab's cases, late, received and delivered. *Work at …* switches place.
+14. **The finders on their own pages (new)**: a **Finders** menu with four pages and tabs between them: **Plans:
+    implant and surgery**, **Plans: restorative**, **Cases and statistics: implants**, and the new **Cases and
+    statistics: restorative** (every restorative step of the treatment log: by kind of work, step, operator, material,
+    tooth, month…, with the prostheses on implants by kind, material and retention).
+15. **Easy grouping (new)**: one tap groups the implant cases by **full arch or not** (a full-arch prosthesis, or 4
+    implants or more in one jaw), **guided or freehand**, **crown, bridge or full arch**, **splitting**, **expansion**,
+    **sinus lift**, **immediate or delayed**, GBR, company or operator, each with its survival, loading, torque and ISQ;
+    new quick searches: full-arch cases, guided implants, single crowns, bridges, splitting and expansion cases.
+
+### Round 12: a new professional interface
 A look-and-feel round on top of the existing design (`static/css/app.css`, last block "Round 12"). No page works
 differently; everything looks and feels more finished. The steps to try are in the checklists, section W (the
 secretary's) and V (the dentist's and the owner's).
@@ -391,9 +447,12 @@ Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**:
   - When the patient comes in, one click turns the call into a full patient file.
 - **Patient registration**:
   - Full name and national ID. The date of birth and gender are read from the Egyptian national ID. Passports are supported too.
-  - Mobiles.
-  - **ID card scan upload** (front and back, from a scanner or a tablet camera).
-  - **Who referred you**: the source, and the referring patient if another patient referred them.
+  - Mobiles (two), marital status, occupation, governorate and **city from the governorate's list**.
+  - **ID card** with the camera inside the page (a frame the size of the card), or a scan: the card is cut out and
+    **read** (number, name, address, city; occupation and marital status on the back), and the photos are kept when
+    the form comes back with an error.
+  - **How far he lives** and the **days and times he prefers**.
+  - **Who referred you**: the source, and (optional) the referring patient if another patient referred them.
   - **Relatives or friends among our patients**.
   - The **responsible dentist**.
 - **No duplicates**:
@@ -445,7 +504,8 @@ Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**:
 - **Patients the dentists asked for**: each CIA dentist sends the list of patients he wants on his days (step, time needed, order, and a backup list). After the head of CIA approves it, the reception calls them in order and books them with one click (patient, dentist, time and step filled in). When a patient cannot come, the page says which backup patient to call next.
 - **Medical and dental history at the reception**: the same questions as the paper chart (blood pressure, sugar, allergies, smoking…), from the patient file. The dentist sees them at the next examination.
 - **Save before leaving?**: leaving a page with data not saved yet asks *Save*, *Leave without saving* or *Stay*.
-- **Report a problem**: user menu → *Report a problem*, with a screenshot if wanted. The owner reads them, answers, and the person is told.
+- **Report a problem**: user menu → *Report a problem*, with a picture of the page, a video of the screen, or a photo
+  or video chosen. The owner reads them, answers, and the person is told.
 - **Reception now**: the home page and *Reception today* sort the day's patients by the time on the PC, updated every minute: *late — not here yet*, *expected now*, *next 2 hours*, *waiting*, *here now*. Filters (all / still to come / here / finished), a search box and a short list make a busy day easy to read.
 - **Walk-ins and the next visit**:
   - A patient who comes without an appointment but has other bookings: the reception is asked to cancel or move them.
@@ -462,7 +522,8 @@ Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**:
 - **Waiting list**: patients who want a place on a busy day (also short 5–10 minute visits). When an appointment is cancelled, missed or moved, the reception is told that a place is free and who is waiting.
 - **Lab cycle**: the dentist makes the request → the reception **takes the impression / model from the dentist** (a digital scan goes by itself) → sends it → receives the work → the patient is booked for the fitting (the reception is told when the work is back).
 - **Complaints**: the concerned dentist is told at once; the reception writes **what she did** and the **current situation** of the case (shown in the list), and can correct her notes.
-- **Fawry machine**: *Patients → Fawry machine*. Card payments taken on the machine for patients and course candidates appear by themselves with Fawry's percentage; the reception adds bills paid through the machine (mobile, electricity, internet…), money put on it and Fawry's transfers to the bank, for the academy, the private clinic or CIC. The page shows what Fawry still holds.
+- **Fawry machine**: *Patients → Fawry machine*. Each person sees the moves they did; the owner sees all and changes
+  Fawry's percentage at the top of the page. Card payments taken on the machine for patients and course candidates appear by themselves with Fawry's percentage; the reception adds bills paid through the machine (mobile, electricity, internet…), money put on it and Fawry's transfers to the bank, for the academy, the private clinic or CIC. The page shows what Fawry still holds.
 - **Up button**: a round arrow at the bottom corner of long pages goes back to the top.
 - **Purchases**:
   - Dental and non-dental purchases from different suppliers.
@@ -539,6 +600,7 @@ What dentists do:
 - Follows up complaints.
 
 ### Treatment plan finder, and patients to call (head of CIA, team head, owner)
+- Two pages (*Finders* menu): the **implant and surgery** part of the plans and the **restorative** part.
 - Find plans by case difficulty (e.g. simple or moderate), planned procedure (e.g. **every case planned for guided surgery**), status, phase, teeth, planned by, patient's gender and age, and **no upcoming appointment**.
 - Export to Excel.
 - **Send the patients to the reception** with one button, and a line on what to tell them. The secretaries are notified, call each patient, and **write each answer**: booked, call again, not interested, no answer or wrong number. The sender sees the answers, and is told when the list is finished.
@@ -549,10 +611,16 @@ What dentists do:
 - Quantity, unit, place, **reorder level**, last price and stock value.
 - Received, taken out (one item, or several at once for a room or the kitchen), damaged / expired, and stock counts. Every movement is kept with who and for whom.
 - **Low stock** and **expiring soon** (within 60 days, changeable in the settings), on the home page and as notifications.
-- Purchase lines can be added to a stock item, so buying fills the stock.
+- Purchase lines can be added to a stock item, so buying fills the stock; each item keeps the **prices paid** and
+  *Price changes* lists what was bought dearer or cheaper.
+- **Giving back to the supplier** in three steps (written → taken → money, credit or new items).
 - **Import a list** from Excel or CSV, like your *Dental_Material_and_Instrument* list (it is already loaded in the practice copy).
 
 ### Case finder & statistics (owner and head of CIA)
+- Two pages (*Finders* menu): **implants** (below) and **restorative work** (the treatment log without surgery, grouped
+  by kind of work, step, operator, material, tooth or month, and the prostheses on implants).
+- **Group quickly** with one tap: full arch or not, guided or freehand, crown / bridge / full arch, splitting,
+  expansion, sinus lift, immediate or delayed.
 - Filter every documented implant or surgical site by:
   - the patient: gender, age, smoker, diabetic, medical conditions, governorate, referral source
   - the team: dentist in any role, operator 1, dentist type, batch, instructor
@@ -610,8 +678,8 @@ User menu → **Settings**.
 - **Clinic options**: appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, the e-mail for CBCT files, and **Fawry's percentage** on card payments.
 - **Lists**: the **usual days at the lab** for each lab work type, which paid services get a **quick button** on a new bill, and implants in stock (company, diameter and length on the stock item).
 - **Backup and export** (owner): each backup is **checked after saving** and copied to a **second disk** when one is
-  set (new). One button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones. The page shows the last good backup of each part and any error. *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
-- **Security and health** (owner, new): the checks (what is right and what to fix), who is logged in now (log a person
+  set. One button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones. The page shows the last good backup of each part and any error. *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
+- **Security and health** (owner): the checks (what is right and what to fix), who is logged in now (log a person
   out), the logins closed after wrong passwords (open them), the security log (logins, wrong passwords, files taken
   out, pages refused), the disks' free space and the slow pages, and **Deleted records** (whatever was deleted, kept a
   year). *Clinic options* has **log out after (minutes without use)** and **people with an easy password must change
@@ -629,7 +697,10 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (now also **the dental lab**: its head, manager, secretary
+This makes a **practice copy on your PC** with sample data (round 13 adds: the patients' visit preferences, how far
+they live and their city, drawn signatures for the reception and the doctors, the articaine bought dearer and the tea
+cheaper, two returns to a supplier (one waiting for the refund, one finished with a credit), comments on a complaint
+and a problem reported with a picture of the page; earlier: **the dental lab**: its head, manager, secretary
 and designers (Dr. Sherif of CIA designs too), four technicians without a login, CIA, CIC, El Khadem and three outside
 clinics with their price lists, the lab's stock and blocks, six weeks of cases in every step with the time of each
 step, two remakes, a case at another lab, one on hold and one at a try-in, receipts and WhatsApp messages; **El Khadem**: Dr. Amr, its reception, six specialists with their own prices and the 40% / 30% rules, eight `EK-…` patients (two brought by Dr. Tarek), a month of visits in the 4 shared rooms and today's and tomorrow's bookings, referrals, two endodontic cases, a TMJ examination with its follow-ups, an orthodontic case, a shade record and its lab request, and a full-rehabilitation treatment plan; also **X-rays and two CBCTs kept on the server and on a centre's viewer** for one patient, and a **backup history** with one failed night; **CIC**: three doctors paid in three ways, a month of CIC visits with bills and payments, some on the second Fawry machine, a payment to a doctor, CIC's own implants and drapes in stock, and each place's use of the shared stock; hints are on for every sample login; also bills, the waiting list, the Fawry machine, implants in stock by lot, prostheses, a late patient, a visit without notes and two dentists in one room): patients, visits, lab work and installments, plus dentists of every type, dental charts, treatment plans, 14 implant surgeries with implants at every stage, the stock list, a prescription, a list of patients to call, and next week's appointments waiting for their WhatsApp reminders. Nothing you do there touches real data, and nothing goes to the cloud.

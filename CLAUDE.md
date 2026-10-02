@@ -72,23 +72,37 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 
 ## Code map and conventions
 - Apps are in `apps/`:
-  - `core`: settings, notifications, approvals, backups
+  - `core`: settings, notifications, approvals, backups; `egypt.py` (the cities of each governorate, `city_in`);
+    `kept_uploads.py` (photos chosen in a form that comes back with an error are kept in the session, `carry` /
+    `chosen`, `KeptPhotoInput`); `signatures.py` (`UserProfile.signature` / `Dentist.signature` = a drawn PNG kept as
+    a `data:` address, `person_signature`, `includes/signatures.html` on the receipt and the prescription)
   - `patients`: the file's steps (`sequence.py`, the dentist's order), the medical follow-up (`medical.py`: the
-    readings above the limits of `ClinicSettings`; `MedicalConsult` = the letter to the physician, `consults.py`)
+    readings above the limits of `ClinicSettings`; `MedicalConsult` = the letter to the physician, `consults.py`);
+    the ID card is read on the PC or tablet by `static/js/idcard.js` (camera frame, crop, the number by a digit
+    matcher, the Arabic words by tesseract.js in `static/vendor/tesseract`, offline); `Patient.travel_minutes`,
+    `preferred_days`, `preferred_times` (`prefers(moment)`; the booking form's "only the times he prefers")
   - `dentists`
   - `scheduling`: board, day grid, free times, waiting list, WhatsApp
   - `clinical`: treatment log (`TreatmentStepType.group` = the kind of work, `shots` = the photos and X-rays a step
-    asks for, kept as `ClinicalPhoto.treatment_step`/`shot`), lab cycle, visit notes
+    asks for, kept as `ClinicalPhoto.treatment_step`/`shot`), lab cycle, visit notes; `finder.py` = the restorative
+    work finder and statistics (the implant cases are in `surgery/finder.py`, the plans in `charting/plan_finder.py`
+    with `part` implant / restorative; `includes/finder_tabs.html` joins the four pages under *Finders*)
   - `charting`: examination, tooth chart rules, plans, photos
   - `surgery`: surgery chart (the design like a scanner: `templates/surgery/_arch_designer.html`,
     `static/js/surgery-arch.js`, `Surgery.pontics`, `prostheses.plan_from_surgery`), implants, prostheses and their
-    `DeliveryCheck`, the visit after a surgery (`followup.py`), case finder; `demo.py` = the round 10 sample data
+    `DeliveryCheck`, the visit after a surgery (`followup.py`), case finder (`SiteFacts`: full arch = 4+ implants in
+    a jaw, guided, immediate, splitting, expansion, sinus, graft; `QUICK_GROUPS`); `demo.py` = the round 10 sample data
   - `prescriptions`
   - `billing`: services, charges, bills, payments, **Fawry ledger** in `billing/fawry.py`; receipts are never deleted:
     `billing/receipts.py` corrects, cancels (`PatientPayment.every` still has them) or refunds (a negative receipt),
     with a `PaymentLog`; `DayClosing` is the end of the day at a place
-  - `stock`: every change goes through `stock.services.record_movement`; implants by lot are in `stock/implants.py`
-  - `complaints`, `academy`, `purchasing`, `reports` (money and balance sheet are owner-only)
+  - `stock`: every change goes through `stock.services.record_movement`; implants by lot are in `stock/implants.py`;
+    `prices.py` = the prices paid (read from the `IN` movements with a `unit_cost`; `changes`, `last_prices`)
+  - `purchasing`: purchases, suppliers; `returns.py` = giving goods back to a supplier in three steps (written →
+    taken by the supplier, which moves the stock out as `RETURN` → money back or credit); a rise of 10% or more is
+    told to the owner and the stock manager
+  - `complaints` (a comment is added from the list: `complaint_comment`), `academy`, `reports` (money and balance
+    sheet are owner-only)
   - `clinics`: `FeeRule` (percent of what was paid / fixed per unit / fixed per visit, per doctor and place; for
     `patient_source` own / clinic, `deduct_costs` = percent of paid less `Charge.cost`), `DoctorPrice` + `prices.py`
     (`price_and_cost`), `DoctorPayout`, `shares.py` (statement, owed, summary; `pick_rule`), the clinic report
@@ -147,6 +161,10 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   A POST form is sent once: the button shows *Saving…* (`data-saving-text` on `<body>`).
 - **SQLite** (trial, single PC) runs in WAL mode with `transaction_mode=IMMEDIATE` and a 20 s timeout (`settings.py`).
 - **Dashboard**: `core/overview.py` (`/dashboard/`, owner / head of CIA / moderators; money for owner and moderators).
+  The owner's home page always shows the four places side by side (`places_now`: CIA, EK, CIC, LAB), whatever place
+  is open.
+- **Fawry**: each person sees only the moves they did (`FawryMove.created_by`); the owner and the head of CIA see all,
+  and the owner changes the percentage on the Fawry page.
 - The JavaScript is in `static/js/app.js`, with no build step. Its hooks:
   - `data-formset` / `data-formset-add`
   - `data-teeth-picker="multi|single"`
@@ -176,7 +194,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - **Security** (round 11, `apps/core/security.py`): `LockoutBackend` + the `user_login_failed` receiver close a username
   after `LOGIN_LOCK_AFTER` wrong passwords (and a device after `LOGIN_IP_LOCK_AFTER`) for `LOGIN_LOCK_MINUTES`;
   `SecurityEvent` is the security log (`log_event`); `NetworkFenceMiddleware` (`ALLOWED_NETWORKS`, `TRUSTED_PROXIES`
-  for our nginx's X-Real-IP; `OUTSIDE_ALLOWED_PATHS` = the lab's WhatsApp hook); `SecurityHeadersMiddleware` (CSP,
+  for our nginx's X-Real-IP; `OUTSIDE_ALLOWED_PATHS` = the lab's WhatsApp hook); `SecurityHeadersMiddleware` (CSP:
+  `form-action` names WhatsApp's addresses (`WHATSAPP`) or the forms that open WhatsApp give a blank page, and
+  `'wasm-unsafe-eval'` lets the ID card reader run;
   Permissions-Policy, logs every `attachment` response as an export); `IdleLogoutMiddleware`
   (`ClinicSettings.idle_logout_minutes`; the bell's poll does not count; 401 JSON for AJAX); a `pre_delete` receiver
   keeps every deleted record of our apps as `DeletedRecord` (`working_as(user)` outside a request). Easy passwords:
@@ -228,10 +248,15 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - Fawry is a ledger typed by the reception; there is no link to the machine itself.
   - WhatsApp opens one message per click; there is no automatic sending.
   - The alert sound needs one click on the page first.
-  - The ID card photo is checked and cropped, and the 14-digit number is read on the tablet (made-up cards only were
-    tested); the name and the address are typed.
+  - The ID card is read on the PC or tablet itself (the number, the name, the address, the job and the marital
+    status), only made-up cards were tested: the reception checks every word, the empty boxes are filled and coloured,
+    the typed ones are never changed. The camera inside the page (and the screen video of *Report a problem*) needs
+    the server PC itself or HTTPS; elsewhere the tablet's own camera opens and a phone video can be chosen. A card
+    photographed at a slant is not straightened.
   - The drug doses need a doctor's review in Settings.
-  - There is no freehand pen drawing or on-screen signature yet.
+  - A signature is a picture drawn once with the finger or the mouse and printed on receipts and prescriptions; it is
+    not a legal e-signature. There is no freehand pen drawing on the chart yet.
+  - The price history of an item comes from purchases and receipts into stock that name the item and a price.
   - A doctor's percentage is taken of what the patient has paid so far, counted on the date the service was given;
     nothing is taken off first (e.g. lab or implant cost) unless the owner asks for it.
   - CIC and the lab (GDIL) use the logos the owner sent (`static/img/cic-logo.jpg`, `gdil-logo.jpg`, on their grey

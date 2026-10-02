@@ -1,0 +1,2 @@
+{% load i18n %}{% include "django/forms/widgets/input.html" %}{% if widget.kept %}
+<div class="kept-photo" data-kept-photo><input type="hidden" name="{{ widget.name }}_kept" value="{{ widget.kept }}"><img src="{{ widget.kept_url }}" alt=""><span><i class="bi bi-check-circle-fill text-success"></i> {% trans "This photo is kept from the last try and is saved with the form: no need to choose it again." %}</span></div>{% endif %}

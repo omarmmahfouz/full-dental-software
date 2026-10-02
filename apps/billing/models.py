@@ -318,16 +318,17 @@ class DayClosing(models.Model):
         return self.cash_counted - self.cash_expected
 
 
-def _share_payments(charges, payments):
+def _share_payments(charges, payments, detail=None):
     """What is paid on each service ({charge pk: paid}): a payment made for a service pays that service,
     one made for a bill pays that bill's services; other payments pay the oldest unpaid services first.
-    ``charges`` and ``payments`` are one patient's, oldest first."""
+    ``charges`` and ``payments`` are one patient's, oldest first. With ``detail`` (a dict), each payment's part
+    of each service is written in it: {payment pk: [(charge pk, amount)]} (the receipt shows what it paid)."""
     paid = {charge.pk: Decimal("0") for charge in charges}
     nets = {charge.pk: charge.net for charge in charges}
     by_bill = {}
     for charge in charges:
         by_bill.setdefault(charge.bill_id, []).append(charge.pk)
-    free = Decimal("0")
+    free, marks = Decimal("0"), []
     for payment in payments:
         if payment.charge_id in paid:
             targets = [payment.charge_id]
@@ -340,12 +341,42 @@ def _share_payments(charges, payments):
             take = min(left, nets[pk] - paid[pk])
             paid[pk] += take
             left -= take
+            if detail is not None and take > 0:
+                detail.setdefault(payment.pk, []).append((pk, take))
+        marks.append((getattr(payment, "pk", None), free, free + left))
         free += left
+    if detail is not None:
+        # The money left over pays the oldest services first, one receipt after the other.
+        start, spans = Decimal("0"), []
+        for charge in charges:
+            room = nets[charge.pk] - paid[charge.pk]
+            spans.append((charge.pk, start, start + room))
+            start += room
+        for payment_pk, before, after in marks:
+            before, after = max(before, Decimal("0")), max(after, Decimal("0"))
+            for charge_pk, first, last in spans:
+                part = min(after, last) - max(before, first)
+                if part > 0:
+                    detail.setdefault(payment_pk, []).append((charge_pk, part))
     for charge in charges:
         take = min(free, nets[charge.pk] - paid[charge.pk])
         paid[charge.pk] += take
         free -= take
     return paid
+
+
+def paid_services(payment):
+    """The services a receipt pays, [(charge, amount)], shared as on the patient's account. A cancelled receipt or a
+    refund names only the service or the bill it was written for."""
+    charges = list(payment.patient.charges.select_related("service", "dentist").order_by("charged_on", "pk"))
+    if payment.is_cancelled or payment.amount <= 0:
+        if payment.charge_id:
+            return [(charge, None) for charge in charges if charge.pk == payment.charge_id]
+        return [(charge, None) for charge in charges if payment.bill_id and charge.bill_id == payment.bill_id]
+    detail = {}
+    _share_payments(charges, list(payment.patient.patient_payments.order_by("paid_on", "pk")), detail)
+    by_pk = {charge.pk: charge for charge in charges}
+    return [(by_pk[pk], amount) for pk, amount in detail.get(payment.pk, [])]
 
 
 def account(patient):

@@ -514,3 +514,41 @@ class DesignTests(TestCase):
         self.assertEqual(request.wanted_from, surgery.date + timedelta(days=7))
         page = self.client.get(f"/prescriptions/patient/{self.patient.pk}/instructions/?surgery={surgery.pk}")
         self.assertContains(page, "follow-up-print")
+
+
+class Round13GroupingTests(TestCase):
+    """One-tap groupings: full arch or not, guided or freehand, crown / bridge / full arch, splitting, expansion."""
+
+    setUp = FinderTests.setUp
+    find = FinderTests.find
+
+    def test_full_arch_guided_splitting_and_expansion(self):
+        from apps.surgery.models import Prosthesis
+
+        woman = SurgerySite.objects.get(tooth=26).surgery.patient
+        all_on_four = Surgery.objects.create(branch=self.branch, patient=woman, operator_1=self.dentist,
+                                             date=timezone.localdate() - timedelta(days=30))
+        sites = []
+        for tooth in (32, 34, 42, 44):
+            obj = SurgerySite.objects.create(surgery=all_on_four, tooth=tooth, guided=True, simple_implant=True,
+                                             splitting=tooth == 34, expansion=tooth == 44, isq=70)
+            SurgerySite.objects.filter(pk=obj.pk).update(implant_status="placed")
+            sites.append(obj)
+        bridge = Prosthesis.objects.create(patient=woman, kind=Prosthesis.Kind.BRIDGE, teeth="35-37")
+        bridge.implants.add(SurgerySite.objects.get(tooth=36))
+        self.assertEqual(self.find(full_arch="yes").context["overall"]["implants"], 4)
+        self.assertEqual(self.find(full_arch="no").context["overall"]["implants"], 4)
+        groups = {g["key"]: g for g in self.find(group_by="full_arch").context["groups"]}
+        self.assertEqual((groups["Full-arch case"]["implants"], groups["Not full arch"]["implants"]), (4, 4))
+        self.assertEqual(groups["Full-arch case"]["isq"], 70)
+        guided = {g["key"]: g["implants"] for g in self.find(group_by="guided").context["groups"]}
+        self.assertEqual(guided, {"Guided (surgical guide)": 4, "Freehand": 4})
+        self.assertEqual({g["key"]: g["implants"] for g in self.find(group_by="splitting").context["groups"]},
+                         {"Splitting": 1, "No splitting": 7})
+        self.assertEqual({g["key"]: g["implants"] for g in self.find(group_by="expansion").context["groups"]},
+                         {"Expansion": 1, "No expansion": 7})
+        kinds = {g["key"]: g["implants"] for g in self.find(group_by="prosthesis").context["groups"]}
+        self.assertEqual(kinds["Bridge on implants"], 1)
+        page = self.find()
+        self.assertTrue(any(g["query"].endswith("group_by=full_arch") for g in page.context["quick_groups"]))
+        self.assertContains(page, "Full-arch cases")

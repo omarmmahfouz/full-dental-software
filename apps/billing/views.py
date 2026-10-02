@@ -33,6 +33,7 @@ from .forms import (
     DayReviewForm,
     FawryFilterForm,
     FawryMoveForm,
+    FawryPercentForm,
     PatientPaymentForm,
     PaymentFilterForm,
     PayNowForm,
@@ -42,7 +43,7 @@ from .forms import (
     chosen_places,
 )
 from .models import (
-    Bill, DayClosing, FawryMachine, FawryMove, PatientPayment, Service, account, bill_totals, create_bill,
+    Bill, DayClosing, FawryMachine, FawryMove, PatientPayment, Service, account, bill_totals, create_bill, paid_services,
 )
 
 
@@ -83,11 +84,21 @@ def patient_account(request, pk):
 @role_required(*FRONT_DESK)
 def receipt(request, pk):
     """The receipt (80 mm, for the receipt printer), with its changes and what can be done with it."""
+    from apps.core.signatures import person_signature
+
     payment = get_object_or_404(PatientPayment.every.select_related(
-        "patient", "charge__service", "created_by", "branch", "fawry_machine", "refund_of", "cancelled_by"), pk=pk)
+        "patient", "charge__service", "created_by__profile", "branch", "fawry_machine", "refund_of", "cancelled_by",
+        "bill__dentist__user__profile"), pk=pk)
+    services = paid_services(payment)
+    # The doctor who signs: the one of the bill, else of the (first) service paid.
+    doctor = payment.bill.dentist if payment.bill_id and payment.bill.dentist_id else next(
+        (charge.dentist for charge, _amount in services if charge.dentist_id), None)
     return render(request, "billing/receipt.html", {
         "payment": payment, "account": account(payment.patient), "can_change": receipts.can_change(request.user, payment),
         "log": payment.log.select_related("done_by"), "refunds": PatientPayment.every.filter(refund_of=payment),
+        "services": services,
+        "signatures": [(_("Received by"), *person_signature(payment.created_by)),
+                       (_("Doctor"), str(doctor) if doctor else "", doctor.signature_image if doctor else "")],
     })
 
 
@@ -353,17 +364,23 @@ def bill_list(request):
 # ------------------------------------------------------------ the Fawry machine
 @role_required(*FRONT_DESK)
 def fawry_ledger(request):
-    """Every move through the Fawry POS machine, with the money still held at Fawry."""
+    """Every move through the Fawry POS machine, with the money still held at Fawry. Each person sees the moves they
+    did (round 13); the owner and the head of CIA see every move, the money held at Fawry and the percentage."""
     today = timezone.localdate()
-    form = FawryFilterForm(request.GET or None)
+    sees_all = has_role(request.user, OWNER, HEAD_CIA)
+    form = FawryFilterForm(request.GET or None, sees_all=sees_all)
     data = form.cleaned_data if form.is_valid() else {}
     date_from = data.get("date_from") or today.replace(day=1)
     date_to = data.get("date_to") or today
     if not form.is_bound:
-        form = FawryFilterForm(initial={"date_from": date_from, "date_to": date_to})
+        form = FawryFilterForm(initial={"date_from": date_from, "date_to": date_to}, sees_all=sees_all)
     moves = FawryMove.objects.filter(moved_on__range=(date_from, date_to)).select_related(
         "branch", "machine", "created_by", "patient_payment__patient", "academy_payment__enrollment", "purchase")
-    filtered = bool(data.get("branch") or data.get("kind"))
+    if not sees_all:
+        moves = moves.filter(created_by=request.user)
+    elif data.get("person"):
+        moves = moves.filter(created_by=data["person"])
+    filtered = bool(data.get("branch") or data.get("kind") or data.get("person")) or not sees_all
     machine = data.get("machine")
     if machine is not None:
         moves = moves.filter(machine=machine)
@@ -372,23 +389,47 @@ def fawry_ledger(request):
     if data.get("kind"):
         moves = moves.filter(kind=data["kind"])
     on_machine = FawryMove.objects.filter(machine=machine) if machine is not None else None
-    opening = fawry.held_at_fawry(until=date_from - timedelta(days=1), moves=on_machine)
+    opening = fawry.held_at_fawry(until=date_from - timedelta(days=1), moves=on_machine) if sees_all else None
     rows = list(moves.order_by("moved_on", "pk"))
-    running = opening
+    running = opening or Decimal("0")
     for move in rows:
         running += move.balance_change
         move.running = running
     rows.reverse()
     totals = fawry.totals(moves)
-    return render(request, "billing/fawry.html", {
+    options = ClinicSettings.get()
+    context = {
         "form": form, "date_from": date_from, "date_to": date_to, "moves": rows, "filtered": filtered,
-        "totals": totals, "kept": totals["fees"] + totals[FawryMove.Kind.CHARGE], "opening": opening,
-        "closing": fawry.held_at_fawry(until=date_to, moves=on_machine), "machine": machine,
-        "held_now": fawry.held_at_fawry(), "fee_percent": ClinicSettings.get().fawry_fee_percent,
-        "per_machine": [(m, fawry.held_at_fawry(moves=FawryMove.objects.filter(machine=m)))
-                        for m in FawryMachine.objects.all() if m.is_active or m.moves.exists()],
-        "can_correct": has_role(request.user, OWNER, HEAD_CIA),
-    })
+        "totals": totals, "kept": totals["fees"] + totals[FawryMove.Kind.CHARGE], "machine": machine,
+        "fee_percent": options.fawry_fee_percent, "can_correct": sees_all, "sees_all": sees_all,
+    }
+    if sees_all:
+        context.update({
+            "opening": opening, "closing": fawry.held_at_fawry(until=date_to, moves=on_machine),
+            "held_now": fawry.held_at_fawry(),
+            "per_machine": [(m, fawry.held_at_fawry(moves=FawryMove.objects.filter(machine=m)))
+                            for m in FawryMachine.objects.all() if m.is_active or m.moves.exists()],
+        })
+    if has_role(request.user, OWNER):
+        context["percent_form"] = FawryPercentForm(initial={"percent": options.fawry_fee_percent})
+    return render(request, "billing/fawry.html", context)
+
+
+@role_required(OWNER)
+@require_POST
+def fawry_percent(request):
+    """The owner changes Fawry's percentage here (also in Settings → Clinic options). Card payments taken from now on
+    use it; the moves already written keep theirs (each can be corrected)."""
+    form = FawryPercentForm(request.POST)
+    if form.is_valid():
+        options = ClinicSettings.get()
+        options.fawry_fee_percent = form.cleaned_data["percent"]
+        options.save(update_fields=["fawry_fee_percent"])
+        messages.success(request, _("Fawry's percentage is now %(percent)s%%. It is used for the card payments taken "
+                                    "from now on.") % {"percent": f"{form.cleaned_data['percent']:g}"})
+    else:
+        messages.error(request, _("Write the percentage as a number from 0 to 20, e.g. 1.5."))
+    return redirect("billing:fawry")
 
 
 @role_required(*FRONT_DESK)

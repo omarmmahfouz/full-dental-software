@@ -16,12 +16,15 @@ from apps.core.forms import (
 )
 from apps.core.models import current_place
 from apps.core.utils import normalize_phone, parse_egyptian_national_id
-from apps.core.widgets import AutocompleteInput, ChoiceButtons, DatalistInput
+from apps.core.egypt import cities_json
+from apps.core.widgets import (
+    AutocompleteInput, ChoiceButtons, CommaChecksWidget, DatalistInput, KeptPhotoInput, WeekdaysWidget,
+)
 
 from apps.dentists.forms import DentistChoiceField
 
 from .models import (
-    Lead, LeadCall, MedicalCondition, MedicalConsult, OutReason, Patient, PatientDocument, PatientRelation,
+    DayPart, Lead, LeadCall, MedicalCondition, MedicalConsult, OutReason, Patient, PatientDocument, PatientRelation,
     ReferralSource,
 )
 
@@ -178,7 +181,7 @@ class LeadCallForm(StyledModelForm):
 class PatientForm(StyledModelForm):
     referred_by_lookup = PatientLookupField(
         label=_("referring patient"), required=False,
-        help_text=_("If referred by one of our patients: type their file number or mobile."),
+        help_text=_("Optional: if you know which of our patients sent him, type the name, file number or mobile."),
     )
     relative_lookup = PatientLookupField(
         label=_("relative / friend who is our patient"), required=False,
@@ -188,18 +191,26 @@ class PatientForm(StyledModelForm):
         label=_("relation"), required=False, choices=[("", "—")] + list(PatientRelation.Relation.choices)
     )
     id_front = forms.FileField(
-        label=_("ID scan - front"), required=False, validators=[validate_upload],
-        help_text=_("Scanned image or photo (JPG, PNG or PDF)."),
+        label=_("ID scan - front"), required=False, validators=[validate_upload], widget=KeptPhotoInput,
+        help_text=_("Take it with the camera (the card is cut out and read) or choose a scan (JPG, PNG or PDF)."),
     )
-    id_back = forms.FileField(label=_("ID scan - back"), required=False, validators=[validate_upload])
+    id_back = forms.FileField(label=_("ID scan - back"), required=False, validators=[validate_upload],
+                              widget=KeptPhotoInput)
     assigned_dentist = DentistChoiceField(label=_("responsible dentist"), required=False)
     brought_by = DentistChoiceField(label=_("the doctor's own patient (brought by)"), required=False,
                                     empty_label=_("No: a patient of the clinic"))
 
+    # Required at registration (round 13). The date of birth, the gender and the governorate are read from the
+    # national ID when left empty, so they are checked in clean() after that.
+    REQUIRED = ["phone_secondary", "marital_status", "occupation", "city"]
+    FROM_ID = ["birth_date", "gender", "governorate"]
+    ID_PHOTOS = ["id_front", "id_back"]
+
     fieldsets = [
+        (_("ID scan"), ["id_front", "id_back"]),
         (_("Personal data"), ["full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "occupation"]),
         (_("Contact"), ["phone_primary", "phone_secondary", "preferred_phone", "governorate", "city", "address"]),
-        (_("ID scan"), ["id_front", "id_back"]),
+        (_("Visits"), ["travel_minutes", "preferred_days", "preferred_times"]),
         (_("Teeth and medical history (as told by the patient)"),
          ["missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes"]),
         (_("Who referred you?"), ["referral_source", "referred_by_lookup", "referral_notes", "brought_by"]),
@@ -214,26 +225,47 @@ class PatientForm(StyledModelForm):
         fields = [
             "full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "occupation",
             "phone_primary", "phone_secondary", "preferred_phone", "governorate", "city", "address",
+            "travel_minutes", "preferred_days", "preferred_times",
             "missing_teeth", "missing_teeth_notes", "medical_conditions", "medical_notes",
             "referral_source", "referral_notes", "brought_by", "registered_on", "assigned_dentist", "status",
             "out_reason", "out_notes", "notes",
         ]
-        widgets = {"medical_conditions": forms.CheckboxSelectMultiple}
+        widgets = {"medical_conditions": forms.CheckboxSelectMultiple, "preferred_days": WeekdaysWidget,
+                   "preferred_times": CommaChecksWidget(choices=DayPart.choices)}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["medical_conditions"].queryset = MedicalCondition.objects.filter(is_active=True)
         self.fields["referral_source"].queryset = ReferralSource.objects.filter(is_active=True)
         self.fields["referral_source"].required = True
+        for name in self.REQUIRED:
+            self.fields[name].required = True
+        for name in self.FROM_ID:
+            self.fields[name].required = False
+            self.fields[name].marked_required = True
         for name in ("phone_primary", "phone_secondary"):
             self.fields[name].widget.input_type = "tel"
             self.fields[name].widget.attrs["data-phone-check-url"] = _phone_check_url("patient", self.instance, name)
-        self.fields["national_id"].widget.attrs.update({"data-digits": "1", "autocomplete": "off"})
+        self.fields["national_id"].widget.attrs.update({"data-digits": "1", "autocomplete": "off",
+                                                        "data-nid-fills": "1"})
         self.fields["full_name"].widget.attrs.update({"lang": "ar", "dir": "rtl", "autocomplete": "off"})
         self.fields["full_name"].help_text = _("In Arabic, at least three names, as on the ID.")
         self.fields["birth_date"].help_text = _("Filled automatically from the national ID.")
         self.fields["gender"].help_text = _("Filled automatically from the national ID.")
-        self.fields["governorate"].help_text = _("Filled automatically from the national ID.")
+        self.fields["governorate"].help_text = _("Filled automatically from the national ID: change it if he lives "
+                                                 "in another governorate.")
+        self.fields["city"].help_text = _("The list follows the governorate. Not on the list: choose “Other”.")
+        self.fields["city"].widget.attrs.update({
+            "data-city-list": cities_json(), "data-governorate": "governorate",
+            "data-choose-label": _("— choose —"), "data-other-label": _("Other: write the area")})
+        self.fields["occupation"].widget = DatalistInput(OCCUPATIONS, attrs=self.fields["occupation"].widget.attrs)
+        self.fields["travel_minutes"].widget.attrs.update({"min": 0, "max": 600, "step": 5, "inputmode": "numeric"})
+        self.fields["travel_minutes"].help_text = Patient._meta.get_field("travel_minutes").help_text
+        self.fields["preferred_days"].help_text = _("Empty = any day.")
+        self.fields["preferred_times"].help_text = _("Empty = any time.")
+        for name in ("preferred_days", "preferred_times"):
+            self.fields[name].col = "col-md-6 col-lg-4"
+        self.fields["travel_minutes"].col = "col-md-6 col-lg-4"
         self.fields["registered_on"].required = False
         # At a clinic (El Khadem, CIC) a doctor may bring his own patient: it decides his share.
         place = self.instance.branch if self.instance.pk else current_place()
@@ -243,14 +275,16 @@ class PatientForm(StyledModelForm):
             self.fields["brought_by"].queryset = self.fields["brought_by"].queryset.working_at(place)
             self.fields["brought_by"].help_text = Patient._meta.get_field("brought_by").help_text
         for name, side in (("id_front", "front"), ("id_back", "back")):
-            # data-id-card: the tablet checks the photo, cuts the card out and reads the number (app.js).
+            # data-id-card: the camera or the photo is checked, the card cut out and read (static/js/idcard.js).
             self.fields[name].widget.attrs.update({"accept": "image/*,application/pdf", "data-id-card": side})
+            self.fields[name].col = "col-md-6"
         if self.instance.pk:
-            # Documents and relations are managed from the patient file after registration.
-            for name in ("id_front", "id_back", "relative_lookup", "relative_relation"):
+            # Relations are managed from the patient file after registration; new ID photos can be added here.
+            for name in ("relative_lookup", "relative_relation"):
                 del self.fields[name]
+            self.fields["id_front"].help_text = _("Only to add or replace the photo: the ones saved stay in the file.")
             if self.instance.referred_by_id:
-                self.fields["referred_by_lookup"].initial = self.instance.referred_by.file_number
+                self.fields["referred_by_lookup"].initial = lookup_value(self.instance.referred_by)
             self.fields["out_reason"].queryset = OutReason.objects.filter(is_active=True)
             self.fields["out_reason"].help_text = _("Needed when the status is “Out”.")
         else:
@@ -304,12 +338,14 @@ class PatientForm(StyledModelForm):
             data["governorate"] = data.get("governorate") or nid["governorate_code"]
             if data["birth_date"] != nid["birth_date"]:
                 self.add_error("birth_date", _("The date of birth does not match the national ID."))
+        for name in self.FROM_ID:
+            if not data.get(name) and name not in self.errors:
+                self.add_error(name, forms.ValidationError(self.fields[name].error_messages["required"],
+                                                           code="required"))
         if data.get("phone_primary") and data.get("phone_primary") == data.get("phone_secondary"):
             self.add_error("phone_secondary", _("The second mobile is the same as the first one."))
-        source = data.get("referral_source")
+        # "Referred by one of our patients": choosing the patient is optional (round 13).
         referred_by = data.get("referred_by_lookup")
-        if source and source.asks_for_patient and not referred_by:
-            self.add_error("referred_by_lookup", _("Type the file number or mobile of the referring patient."))
         if referred_by and self.instance.pk and referred_by.pk == self.instance.pk:
             self.add_error("referred_by_lookup", _("A patient cannot refer himself."))
         if data.get("relative_lookup") and not data.get("relative_relation"):
@@ -387,6 +423,14 @@ class PatientFilterForm(StyledForm):
     dentist = DentistChoiceField(label=_("dentist"), required=False, empty_label=_("All"))
     lab = forms.BooleanField(label=_("has open lab work"), required=False)
     mine = forms.BooleanField(label=_("only my patients"), required=False)
+
+
+# Suggestions for the occupation box (anything else can be typed).
+OCCUPATIONS = [
+    "طالب", "طالبة", "ربة منزل", "موظف", "موظفة", "موظف حكومي", "موظف قطاع خاص", "مدرس", "مدرسة", "طبيب", "طبيبة",
+    "مهندس", "مهندسة", "محاسب", "محامي", "صيدلي", "ممرض", "ممرضة", "تاجر", "صاحب عمل", "عامل", "حرفي", "سائق",
+    "فلاح", "ضابط", "أمين شرطة", "عسكري", "رجل أعمال", "بالمعاش", "لا يعمل", "عمل حر",
+]
 
 
 ANESTHESIA_CHOICES = [

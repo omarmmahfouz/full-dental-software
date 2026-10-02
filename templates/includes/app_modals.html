@@ -23,8 +23,19 @@
       <input type="hidden" name="page" value="{{ request.get_full_path }}">
       <label class="form-label" for="problem-description">{% trans "What happened?" %}</label>
       <textarea class="form-control mb-2" id="problem-description" name="description" rows="4" maxlength="4000" required placeholder="{% trans 'What you were doing, what you expected and what you saw instead.' %}"></textarea>
-      <label class="form-label" for="problem-screenshot">{% trans "Screenshot or photo (optional)" %}</label>
-      <input class="form-control" type="file" id="problem-screenshot" name="screenshot" accept="image/*">
+      <div class="problem-attach">
+        <div class="form-label mb-1">{% trans "Show what happened (optional)" %}</div>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-problem-shot><i class="bi bi-camera"></i> {% trans "Picture of this page" %}</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-problem-record hidden><i class="bi bi-record-circle"></i> {% trans "Record the screen (video)" %}</button>
+          <label class="btn btn-sm btn-outline-secondary mb-0"><i class="bi bi-paperclip"></i> {% trans "Choose a photo or a video" %}<input type="file" hidden accept="image/*,video/*" data-problem-file></label>
+        </div>
+        <div class="problem-attached" data-problem-attached hidden><div data-problem-preview></div>
+          <div class="small"><span data-problem-name></span> <button type="button" class="btn btn-sm btn-link text-danger p-0" data-problem-remove>{% trans "Remove" %}</button></div></div>
+        <div class="form-text" data-problem-record-help hidden>{% trans "Record the screen: choose this window or the whole screen, do what goes wrong, then press Stop. Up to 3 minutes. Or film the screen with your phone and choose the video." %}</div>
+        <div class="form-text" data-problem-film-help>{% trans "To show something that moves, film the screen with your phone and choose the video." %}</div>
+      </div>
+      <input type="file" name="screenshot" hidden tabindex="-1"><input type="file" name="video" hidden tabindex="-1">
       <div class="alert alert-success mt-3 mb-0" data-problem-done hidden></div>
       <div class="alert alert-danger mt-3 mb-0" data-problem-error hidden></div>
     </div>
@@ -35,6 +46,11 @@
     </div>
   </form></div>
 </div>
+
+<div class="problem-recording no-print" data-problem-recording hidden role="status"><span class="problem-recording-dot"></span>
+  <span>{% trans "Recording the screen" %} <b data-problem-clock>0:00</b></span>
+  <button type="button" class="btn btn-sm btn-light" data-problem-stop><i class="bi bi-stop-fill"></i> {% trans "Stop" %}</button></div>
+<div hidden data-problem-texts data-error="{% trans 'The picture could not be taken: choose a photo instead.' %}" data-record-error="{% trans 'The screen could not be recorded on this computer: film it with your phone and choose the video.' %}"></div>
 
 <template id="draft-bar"><div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 no-print draft-bar" role="status">
   <i class="bi bi-cloud-slash"></i> <span>{% blocktrans %}What you typed here at <b data-draft-time></b> was not saved (the network or the server stopped).{% endblocktrans %}</span>

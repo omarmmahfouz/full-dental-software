@@ -201,8 +201,14 @@ def free_times_json(request):
         parsed = _parse_day(day, None)
         start = timezone.make_aware(datetime.combine(parsed, datetime.min.time())) if parsed > timezone.localdate() \
             else None
+    fits = None
+    if request.GET.get("patient") and request.GET.get("fits"):
+        from apps.patients.forms import find_patient
+
+        patient = find_patient(request.GET["patient"])
+        fits = patient.prefers if patient is not None else None
     rows = []
-    for item in free_times(branch_for_user(request.user), duration, dentist, start):
+    for item in free_times(branch_for_user(request.user), duration, dentist, start, fits=fits):
         local, room, doctor = timezone.localtime(item["at"]), item["room"], item["dentist"]
         rows.append({"date": local.strftime("%d/%m/%Y"), "time": local.strftime("%H:%M"),
                      "room": room.pk if room else "", "dentist": doctor.pk if doctor else "",

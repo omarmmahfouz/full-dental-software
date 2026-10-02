@@ -1,0 +1,9 @@
+{% load i18n %}{% comment %}The finders and their statistics, each on its own page (round 13): implant work and restorative work kept apart.{% endcomment %}
+<nav class="finder-tabs no-print mb-3" aria-label="{% trans 'Finders' %}">
+  <a class="finder-tab{% if here == 'implant_plans' %} is-active{% endif %}" href="{% url 'charting:plan_finder' %}"><i class="bi bi-implant"></i><span>{% trans "Plans: implant and surgery" %}</span></a>
+  <a class="finder-tab{% if here == 'restorative_plans' %} is-active{% endif %}" href="{% url 'charting:plan_finder_restorative' %}"><i class="bi bi-gem"></i><span>{% trans "Plans: restorative" %}</span></a>
+  {% if is_management %}
+  <a class="finder-tab{% if here == 'implant_cases' %} is-active{% endif %}" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i><span>{% trans "Cases and statistics: implants" %}</span></a>
+  <a class="finder-tab{% if here == 'restorative_cases' %} is-active{% endif %}" href="{% url 'clinical:restorative_finder' %}"><i class="bi bi-bar-chart-line"></i><span>{% trans "Cases and statistics: restorative" %}</span></a>
+  {% endif %}
+</nav>

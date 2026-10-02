@@ -374,3 +374,36 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
 157. **Day planner**: bookings are soft cards with a coloured edge; arrived = yellow, in the room = blue-green, left =
      grey, did not come = red. In English the left arrow goes to the day before.
 158. On a tablet (1024 px) the top bar is dark in the place's colour (navy at El Khadem, teal at the lab).
+
+## W. New in this version (13): the ID card read, signatures, prices and returns, the finders
+159. **The owner's home** (`owner`): the **four places** side by side, the same size: CIA, El Khadem, CIC and the lab.
+     Switch to **El Khadem** (the place at the top of the menu): CIA is still there; the El Khadem card is outlined
+     (*you work here now*); *Work at CIC* switches to CIC. At 1024 px they are two by two.
+160. **Finders** menu: four pages with tabs between them. *Plans: implant and surgery* offers only implant and surgery
+     procedures; *Plans: restorative* only the restorative ones (crowns, fillings, root canals…).
+161. **Cases and statistics: implants**: *Group quickly* → **Full arch or not** (a full-arch prosthesis, or 4 implants
+     or more in one jaw), **Guided or freehand**, **Crown, bridge or full arch**, **Splitting**, **Expansion**, **Sinus
+     lift**, **Immediate or delayed**: each group with its survival, loading, torque and ISQ. Quick searches: *Full-arch
+     cases*, *Guided implants*, *Single crowns*, *Bridges*, *Splitting cases*, *Expansion cases*.
+162. **Cases and statistics: restorative**: every restorative step of the treatment log by kind of work (tap
+     *Fillings* to keep only the fillings), *Group quickly* by step, operator, material, tooth type or month, the
+     prostheses on implants (kind, units, delivered, material, retention), and *Export to Excel*.
+163. **My signature** (`dentist1`): user menu → *My signature*: sign with the mouse or a finger, save. Print a
+     prescription of yours: your signature is on it. A doctor without a login (*Academy → Dentists → Dr. Hala Mostafa*):
+     the owner presses *Signature* on his page and he signs on the tablet.
+164. **Lab request**: on a patient's file a *Lab request* button with the new icon (a sheet with a tooth) beside *Dental
+     chart*; the same icon in the menu and on the lab pages.
+165. **Complaints** (`dentist1` or `headcia`): tap a complaint in the list: it opens in place with a comment box; the
+     comment shows at once and the reception is told.
+166. **Fawry** (`owner`): *Patients → Fawry machine*: at the top the percentage box (change 1.5 to 1.75 and save); a
+     *Done by* column and filter. As `secretary`: only her own moves, without the money held at Fawry.
+167. **Prices** (`owner` or `stock`): *Stock → Price changes*: the articaine went up **16.7%** (18 → 21, invoice
+     INV-1043) and the tea went down; the bell has *Price up 16.7%*. The articaine's page shows *Prices paid*.
+168. **Returns** (`owner`): *Purchases → Returns to suppliers*: #1 waits for the refund (step 2), #2 is finished with a
+     credit of 36; the supplier's page says *Our credit with him: 36.00*; the balance sheet of this month has *Given
+     back by suppliers*.
+169. **Problem reports** (`owner`): the secretary's report has a picture of the page; a report with a video plays on
+     the page. Report one yourself with *Picture of this page*.
+170. **WhatsApp**: *Schedule → WhatsApp* → *Send*: WhatsApp opens with the message (it opened a blank page before).
+171. **Registration** (see the secretary's checklist, section X): the ID card read by the camera, the required boxes,
+     the city list, the visit preferences.

@@ -17,6 +17,7 @@ urlpatterns = [
     path("bills/<int:pk>/pay/", views.bill_pay, name="bill_pay"),
     path("fawry/", views.fawry_ledger, name="fawry"),
     path("fawry/new/", views.fawry_move_create, name="fawry_create"),
+    path("fawry/percent/", views.fawry_percent, name="fawry_percent"),
     path("fawry/<int:pk>/edit/", views.fawry_move_update, name="fawry_update"),
     path("fawry/<int:pk>/delete/", views.fawry_move_delete, name="fawry_delete"),
 ]

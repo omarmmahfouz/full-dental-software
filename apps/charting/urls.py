@@ -24,4 +24,5 @@ urlpatterns = [
     path("photo/<int:pk>/edit/", views.photo_edit, name="photo_edit"),
     path("preview/", views.chart_preview, name="preview"),
     path("plans/", plan_finder.plan_finder, name="plan_finder"),
+    path("plans/restorative/", plan_finder.plan_finder, {"part": "restorative"}, name="plan_finder_restorative"),
 ]

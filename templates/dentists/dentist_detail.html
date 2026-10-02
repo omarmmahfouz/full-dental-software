@@ -8,6 +8,7 @@
   <div class="d-flex flex-wrap gap-2 no-print">
     {% if roles.owner or roles.head_cia %}<a class="btn btn-outline-secondary" href="{% url 'dentists:update' dentist.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>{% endif %}
     {% if dentist.candidate and opens.academy %}<a class="btn btn-outline-primary" href="{{ dentist.candidate.get_absolute_url }}"><i class="bi bi-mortarboard"></i> {% trans "Academy file" %}</a>{% endif %}
+    {% if not dentist.user %}{% if roles.owner or roles.head_cia or roles.moderator %}<a class="btn btn-outline-secondary" href="{% url 'dentists:signature' dentist.pk %}"><i class="bi bi-pen"></i> {% trans "Signature" %}{% if not dentist.signature %} <span class="badge rounded-pill text-bg-warning">{% trans "not drawn yet" %}</span>{% endif %}</a>{% endif %}{% endif %}
     {% if can_manage and not dentist.user and dentist.can_have_login %}<form method="post" action="{% url 'dentists:create_login' dentist.pk %}">{% csrf_token %}<button class="btn btn-outline-success" data-confirm="{% trans 'Create a system login for this dentist?' %}"><i class="bi bi-key"></i> {% trans "Create login" %}</button></form>{% endif %}
     <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
   </div>
@@ -44,6 +45,7 @@
       <dt>{% trans "Treatments" %}</dt><dd>{% blocktrans with a=counts.treatments b=counts.assisted %}{{ a }} as operator · {{ b }} as assistant{% endblocktrans %}{% if counts.supervised %} · {% blocktrans with c=counts.supervised %}{{ c }} supervised{% endblocktrans %}{% endif %}</dd>
       <dt>{% trans "Average grade" %}</dt><dd>{% if grade %}{{ grade }}/5{% else %}—{% endif %}</dd>
       <dt>{% trans "Login" %}</dt><dd>{{ dentist.user.username|default:"—" }}</dd>
+      <dt>{% trans "Signature" %}</dt><dd>{% if dentist.signature_image %}<img class="signature-saved signature-small" src="{{ dentist.signature_image }}" alt="">{% else %}<span class="text-muted">{% if dentist.user %}{% trans "not drawn yet (he draws it from his user menu → My signature)" %}{% else %}{% trans "not drawn yet" %}{% endif %}</span>{% endif %}</dd>
       <dt>{% trans "Mobile" %}</dt><dd><span class="ltr">{{ dentist.phone|default:"—" }}</span></dd>
     </dl>
   </div></div></div>

@@ -47,7 +47,14 @@ GROUP_CHOICES = [
     ("instructor", _("Instructor")),
     ("bone_particle", _("Bone particle")),
     ("temporary", _("Temporary")),
-    ("prosthesis", _("Prosthesis")),
+    ("prosthesis", _("Single crown, bridge or full arch")),
+    ("full_arch", _("Full-arch case or not")),
+    ("guided", _("Guided or freehand")),
+    ("immediate", _("Immediate or delayed implant")),
+    ("splitting", _("Splitting or not")),
+    ("expansion", _("Expansion or not")),
+    ("sinus", _("Sinus lift")),
+    ("graft", _("GBR or not")),
     ("year", _("Year")),
     ("month", _("Month")),
 ]
@@ -114,6 +121,8 @@ class FinderForm(StyledForm):
     status = forms.MultipleChoiceField(label=_("implant status"), required=False, choices=SurgerySite.ImplantStatus.choices)
     prosthesis = forms.MultipleChoiceField(label=_("prosthesis on it"), required=False,
                                            choices=list(Prosthesis.Kind.choices) + [("none", _("No prosthesis yet"))])
+    full_arch = forms.ChoiceField(label=_("full-arch case"), required=False, choices=YES_NO,
+                                  help_text=_("A full-arch prosthesis, or 4 implants or more in one jaw in the surgery."))
     group_by = forms.ChoiceField(label=_("statistics by"), required=False, choices=GROUP_CHOICES)
     group_by_2 = forms.ChoiceField(label=_("then by"), required=False, choices=GROUP_CHOICES)
 
@@ -123,7 +132,7 @@ class FinderForm(StyledForm):
         (_("Team"), ["dentist", "operator", "dentist_kind", "course", "instructor"]),
         (_("Site and procedure"), ["teeth", "jaw", "region", "tooth_type", "procedures_any", "procedures_all"]),
         (_("Implant"), ["company", "system", "diameter_min", "diameter_max", "length_min", "length_max",
-                        "torque_min", "torque_max", "subcrestal", "status", "prosthesis"]),
+                        "torque_min", "torque_max", "subcrestal", "status", "prosthesis", "full_arch"]),
         (_("Surgery details"), ["difficulty", "bone_particle", "block_graft", "block_donor", "membrane_used",
                                 "soft_tissue_graft", "temporary", "suture_material"]),
     ]
@@ -257,11 +266,21 @@ def filter_sites(data):
     return qs.distinct().prefetch_related("prostheses").order_by("-surgery__date", "surgery__pk", "tooth")
 
 
+FULL_ARCH_IMPLANTS = 4  # implants in one jaw in one surgery that make a full-arch case
+
+
 class SiteFacts:
     """Per-site values used for grouping and export (computed once)."""
 
-    def __init__(self, sites):
+    def __init__(self, sites, full_arch=""):
         self.sites = list(sites)
+        per_jaw = defaultdict(int)  # implants of each surgery in each jaw
+        for site in SurgerySite.objects.filter(surgery__in={s.surgery_id for s in self.sites}).exclude(
+                implant_status="").values_list("surgery_id", "tooth"):
+            per_jaw[(site[0], jaw(site[1]))] += 1
+        self.per_jaw = per_jaw
+        if full_arch:  # "yes" / "no": the full-arch cases, or the others
+            self.sites = [s for s in self.sites if self.is_full_arch(s) == (full_arch == "yes")]
         patient_ids = {s.surgery.patient_id for s in self.sites}
         self.smokers = _flag_patient_ids(smoker=True) & patient_ids
         self.diabetics = _flag_patient_ids("diabet") & patient_ids
@@ -274,6 +293,11 @@ class SiteFacts:
 
     def age(self, site):
         return age_from_birth_date(site.surgery.patient.birth_date, today=site.surgery.date)
+
+    def is_full_arch(self, site):
+        """A full-arch prosthesis on it, or 4 implants or more in that jaw in the same surgery."""
+        return any(p.kind in Prosthesis.FULL_ARCH for p in site.prostheses.all()) or \
+            self.per_jaw.get((site.surgery_id, jaw(site.tooth)), 0) >= FULL_ARCH_IMPLANTS
 
     def values(self, site, key):
         s = site.surgery
@@ -320,6 +344,21 @@ class SiteFacts:
             return [s.get_temporary_display() or "—"]
         if key == "prosthesis":
             return [p.get_kind_display() for p in site.prostheses.all()] or [str(_("No prosthesis yet"))]
+        if key == "full_arch":
+            return [str(_("Full-arch case") if self.is_full_arch(site) else _("Not full arch"))]
+        if key == "guided":
+            return [str(_("Guided (surgical guide)") if site.guided else _("Freehand"))]
+        if key == "immediate":
+            return [str(_("Immediate implant") if site.immediate_implant else _("Delayed (healed site)"))]
+        if key == "splitting":
+            return [str(_("Splitting") if site.splitting else _("No splitting"))]
+        if key == "expansion":
+            return [str(_("Expansion") if site.expansion else _("No expansion"))]
+        if key == "sinus":
+            return [str(_("Open sinus") if site.open_sinus else _("Closed sinus") if site.closed_sinus
+                        else _("No sinus lift"))]
+        if key == "graft":
+            return [str(_("GBR") if site.gbr else _("No GBR"))]
         if key == "year":
             return [str(s.date.year)]
         if key == "month":
@@ -333,6 +372,7 @@ def _stats(sites):
     loaded = sum(1 for s in implants if s.implant_status == SurgerySite.ImplantStatus.LOADED)
     days = [s.days_to_loading for s in implants if s.days_to_loading is not None]
     torques = [s.insertion_torque for s in implants if s.insertion_torque]
+    isqs = [s.isq for s in implants if s.isq]
     return {
         "sites": len(sites),
         "implants": len(implants),
@@ -344,6 +384,7 @@ def _stats(sites):
         "waiting": len(implants) - failed - loaded,
         "days_to_loading": round(mean(days)) if days else None,
         "torque": round(mean(torques)) if torques else None,
+        "isq": round(mean(isqs)) if isqs else None,
     }
 
 

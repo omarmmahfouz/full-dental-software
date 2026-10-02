@@ -136,7 +136,8 @@ class KhademPlaceTests(KhademMixin, TestCase):
         data = {"full_name": self.patient.full_name, "id_type": "nid", "national_id": self.patient.national_id,
                 "phone_primary": self.patient.phone_primary, "preferred_phone": "primary", "missing_teeth": "unknown",
                 "referral_source": ReferralSource.objects.filter(asks_for_patient=False).first().pk,
-                "status": "active", "phone_secondary": "01223344556"}
+                "status": "active", "phone_secondary": "01223344556", "marital_status": "married", "occupation": "تاجر",
+                "city": "الدقي"}
         self.client.post(f"/patients/{self.patient.pk}/edit/", data)
         change = ChangeRequest.objects.get()
         self.assertEqual(change.branch, self.place)

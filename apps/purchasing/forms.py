@@ -3,12 +3,14 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.forms import inlineformset_factory
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.forms import BootstrapFormMixin, StyledForm, StyledModelForm, validate_upload
+from apps.core.widgets import ChoiceButtons
 from apps.stock.models import StockItem
 
-from .models import Purchase, PurchaseCategory, PurchaseItem, Supplier
+from .models import Purchase, PurchaseCategory, PurchaseItem, PurchaseReturn, Supplier
 
 
 class SupplierForm(StyledModelForm):
@@ -78,3 +80,80 @@ class PurchaseFilterForm(StyledForm):
         label=_("category"), queryset=PurchaseCategory.objects.all(), required=False, empty_label=_("All")
     )
     kind = forms.ChoiceField(label=_("type"), required=False, choices=[("", _("All"))] + list(PurchaseCategory.Kind.choices))
+
+
+class ReturnForm(StyledModelForm):
+    """Step 1: what goes back and why. The quantities are typed per line of the purchase (see the view)."""
+
+    class Meta:
+        model = PurchaseReturn
+        fields = ["returned_on", "reason", "notes"]
+
+    def __init__(self, *args, purchase=None, **kwargs):
+        self.purchase = purchase
+        super().__init__(*args, **kwargs)
+        self.lines = []
+        for line in purchase.items.select_related("stock_item"):
+            left = line.quantity - line.returned_quantity()
+            name = f"line_{line.pk}"
+            self.fields[name] = forms.DecimalField(
+                label=line.description, required=False, min_value=0, max_value=left, decimal_places=2,
+                help_text=_("bought %(qty)s, can give back %(left)s") % {"qty": f"{line.quantity:g}",
+                                                                         "left": f"{left:g}"})
+            self.fields[name].widget.attrs.update({"step": "any", "inputmode": "decimal", "class": "form-control"})
+            self.fields[name].col = "col-md-6 col-lg-4"
+            self.lines.append((line, name))
+        self.fields["notes"].col = "col-12"
+
+    def clean(self):
+        data = super().clean()
+        self.chosen = [(line, data[name]) for line, name in self.lines if data.get(name)]
+        if not self.chosen:
+            raise forms.ValidationError(_("Write how many of each item go back to the supplier."))
+        for line, quantity in self.chosen:
+            if line.stock_item_id and quantity > line.stock_item.quantity:
+                self.add_error(f"line_{line.pk}", _("Only %(n)s left in the stock.") % {"n": f"{line.stock_item.quantity:g}"})
+        return data
+
+
+class ReturnTakenForm(StyledModelForm):
+    """Step 2: the supplier took the items."""
+
+    class Meta:
+        model = PurchaseReturn
+        fields = ["taken_on", "taken_by"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["taken_on"].required = True
+        self.fields["taken_on"].initial = timezone.localdate()
+        for field in self.fields.values():
+            field.col = "col-md-6"
+
+
+class ReturnSettleForm(StyledModelForm):
+    """Step 3: the money (or a credit) came back, or new items came instead."""
+
+    class Meta:
+        model = PurchaseReturn
+        fields = ["settlement", "amount", "method", "settled_on"]
+        widgets = {"settlement": ChoiceButtons(icons={"money": "bi-cash-coin", "credit": "bi-journal-check",
+                                                      "replaced": "bi-arrow-repeat"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["settlement"].required = True
+        self.fields["settlement"].choices = PurchaseReturn.Settlement.choices
+        self.fields["settled_on"].required = True
+        self.fields["settled_on"].initial = timezone.localdate()
+        self.fields["amount"].initial = self.instance.value
+        for name in ("amount", "method", "settled_on"):
+            self.fields[name].col = "col-md-4"
+
+    def clean(self):
+        data = super().clean()
+        if data.get("settlement") == PurchaseReturn.Settlement.MONEY and not data.get("method"):
+            self.add_error("method", _("Choose how the money came back."))
+        if data.get("settlement") == PurchaseReturn.Settlement.REPLACED:
+            data["amount"], data["method"] = None, ""
+        return data

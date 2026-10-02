@@ -7,7 +7,7 @@
   <h1><i class="bi bi-palette2"></i> {% trans "Shade for the prosthesis" %} <small class="text-muted fs-6">{{ record.taken_on|date:"d/m/Y" }} · {{ record.dentist|default:"" }}</small></h1>
   <div class="d-flex flex-wrap gap-2 no-print">
     <a class="btn btn-outline-secondary" href="{% url 'specialties:shade_edit' record.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
-    <a class="btn btn-primary" href="{{ lab_url }}"><i class="bi bi-box-seam"></i> {% trans "Lab request with this shade" %}</a>
+    <a class="btn btn-primary" href="{{ lab_url }}"><i class="bi bi-lab-request"></i> {% trans "Lab request with this shade" %}</a>
     <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
   </div>
 </div>

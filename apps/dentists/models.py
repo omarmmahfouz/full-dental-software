@@ -84,6 +84,9 @@ class Dentist(TimeStampedModel):
         _("working now"), default=True, help_text=_("Untick when they leave, so they no longer appear in the lists.")
     )
     notes = models.TextField(_("notes"), blank=True)
+    signature = models.TextField(
+        _("signature"), blank=True, editable=False,
+        help_text=_("For a doctor without a login: drawn on his page, printed on his prescriptions and receipts."))
 
     objects = DentistQuerySet.as_manager()
 
@@ -98,6 +101,12 @@ class Dentist(TimeStampedModel):
         if self.name_ar and (get_language() or "").startswith("ar"):
             return self.name_ar
         return self.full_name
+
+    @property
+    def signature_image(self):
+        """The drawn signature to print: his own (My signature) when he logs in, else the one drawn on his page."""
+        profile = getattr(self.user, "profile", None) if self.user_id else None
+        return (profile.signature if profile is not None else "") or self.signature
 
     @property
     def can_have_login(self):

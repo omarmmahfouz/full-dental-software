@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Restorative work: finder and statistics" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-bar-chart-line"></i> {% trans "Restorative work: finder and statistics" %}</h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-success" href="?{{ query }}{% if query %}&{% endif %}export=csv"><i class="bi bi-file-earmark-spreadsheet"></i> {% trans "Export to Excel (CSV)" %}</a>
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i></button>
+  </div>
+</div>
+{% include "includes/finder_tabs.html" with here="restorative_cases" %}
+<div class="quick-groups mb-3 no-print"><span class="small text-muted me-1">{% trans "Group quickly:" %}</span>
+  {% for g in quick %}<a class="btn btn-sm {% if g.active %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?{{ g.query }}">{{ g.label }}</a>{% endfor %}
+</div>
+<div class="row g-3">
+  <div class="col-xl-3 no-print">
+    <form method="get" class="card"><div class="card-body p-2">
+      {% if form.errors %}<div class="alert alert-danger small">{% trans "Please correct the filters." %}</div>{% endif %}
+      {% for field in form %}
+      <div class="mb-2"><label class="form-label small mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.name == "groups" %}<div class="small">{{ field }}</div>{% else %}{{ field }}{% endif %}
+        {% if field.help_text %}<div class="form-text small mt-0">{{ field.help_text }}</div>{% endif %}
+        {% for e in field.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</div>
+      {% endfor %}
+      <div class="d-flex gap-2"><button class="btn btn-primary flex-fill"><i class="bi bi-search"></i> {% trans "Find" %}</button><a class="btn btn-outline-secondary" href="?">{% trans "Clear" %}</a></div>
+    </div></form>
+  </div>
+  <div class="col-xl-9">
+    <div class="row g-2 mb-3">
+      <div class="col-6 col-md-3"><div class="card stat-card h-100 border-primary"><div class="card-body p-2"><div class="stat-value text-primary">{{ overall.steps }}</div><div class="stat-label">{% trans "Steps done" %}</div></div></div></div>
+      <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.teeth }}</div><div class="stat-label">{% trans "Teeth" %}</div></div></div></div>
+      <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.patients }}</div><div class="stat-label">{% trans "Patients" %}</div></div></div></div>
+      <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{% if overall.checked is not None %}{{ overall.checked }}%{% else %}—{% endif %}</div><div class="stat-label">{% trans "Checked by a supervisor" %}</div><div class="small text-muted">{% trans "mean grade" %}: {{ overall.grade|default:"—" }}</div></div></div></div>
+    </div>
+    <div class="card mb-3"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span class="fw-semibold"><i class="bi bi-ui-checks-grid"></i> {% trans "By kind of work" %}</span><span class="small text-muted">{% trans "Click a kind of work to show only its steps; click again to remove it." %}</span></div>
+      <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
+        <thead><tr><th>{% trans "Kind of work" %}</th><th class="text-end">{% trans "Steps" %}</th><th class="text-end">{% trans "Teeth" %}</th><th class="text-end">{% trans "Patients" %}</th><th class="text-end">{% trans "Checked" %}</th></tr></thead>
+        <tbody>{% for r in kinds %}<tr class="{% if r.active %}table-primary{% endif %}">
+          <td><a class="fw-semibold text-decoration-none" href="?{{ r.query }}">{% if r.active %}<i class="bi bi-check2-square"></i>{% else %}<i class="bi bi-square"></i>{% endif %} {{ r.label }}</a></td>
+          <td class="text-end fw-bold">{{ r.steps }}</td><td class="text-end">{{ r.teeth }}</td><td class="text-end">{{ r.patients }}</td><td class="text-end">{% if r.checked is not None %}{{ r.checked }}%{% else %}—{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="5" class="text-muted">—</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% if prostheses %}
+    <div class="card mb-3"><div class="card-header fw-semibold"><i class="bi bi-bricks"></i> {% trans "Prostheses on implants" %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+        <thead><tr><th>{% trans "Prosthesis" %}</th><th class="text-end">{% trans "Number" %}</th><th class="text-end">{% trans "Units" %}</th><th class="text-end">{% trans "Implants" %}</th><th class="text-end">{% trans "Delivered" %}</th><th class="text-end">{% trans "Patients" %}</th><th>{% trans "Material" %}</th><th>{% trans "Retention" %}</th></tr></thead>
+        <tbody>{% for r in prostheses %}<tr><td class="fw-semibold">{{ r.label }}</td><td class="text-end fw-bold">{{ r.number }}</td><td class="text-end">{{ r.units }}</td><td class="text-end">{{ r.implants }}</td><td class="text-end">{{ r.delivered }}</td><td class="text-end">{{ r.patients }}</td>
+          <td class="small">{% for name, n in r.materials %}{{ name }} ({{ n }}){% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+          <td class="small">{% for name, n in r.retention %}{{ name }} ({{ n }}){% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% endif %}
+    {% if groups %}
+    <div class="card mb-3"><div class="card-header">{% trans "Statistics by" %} {{ group_label }}{% if group_label_2 and groups.0.key2 %} / {{ group_label_2 }}{% endif %}</div>
+      <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
+        <thead><tr><th>{{ group_label }}</th>{% if groups.0.key2 %}<th>{{ group_label_2 }}</th>{% endif %}<th>{% trans "Steps" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Patients" %}</th><th>{% trans "Operators" %}</th><th style="min-width:150px">{% trans "Checked" %}</th><th>{% trans "Mean grade" %}</th></tr></thead>
+        <tbody>{% for g in groups %}<tr>
+          <td class="fw-semibold">{{ g.key }}</td>{% if g.key2 %}<td>{{ g.key2 }}</td>{% endif %}
+          <td>{{ g.steps }}</td><td>{{ g.teeth }}</td><td>{{ g.patients }}</td><td>{{ g.operators }}</td>
+          <td>{% if g.checked is not None %}<div class="d-flex align-items-center gap-2"><div class="bar" style="width:{{ g.checked }}%;max-width:100px"></div><span>{{ g.checked }}%</span></div>{% else %}—{% endif %}</td>
+          <td>{{ g.grade|default:"—" }}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% endif %}
+    <div class="card"><div class="card-header">{% blocktrans with n=page_obj.paginator.count %}{{ n }} results{% endblocktrans %}</div>
+      <div class="table-responsive"><table class="table table-sm table-hover mb-0">
+        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Step" %}</th><th>{% trans "Material" %}</th><th>{% trans "Operator" %}</th><th>{% trans "Checked" %}</th></tr></thead>
+        <tbody>{% for step in page_obj %}<tr>
+          <td class="nowrap"><a href="{% url 'clinical:step_detail' step.pk %}">{{ step.performed_at|date:"d/m/Y" }}</a></td>
+          <td><a href="{% url 'charting:chart' step.patient_id %}">{{ step.patient.file_number }}</a> <span class="small text-muted">{{ step.patient.get_gender_display }}{% if step.patient.age is not None %}, {{ step.patient.age }}{% endif %}</span></td>
+          <td class="fw-bold">{{ step.teeth|default:"—" }}{% if step.surfaces %} <span class="small text-muted">{{ step.surfaces }}</span>{% endif %}</td>
+          <td class="small">{{ step.step_type }}<div class="text-muted">{{ step.step_type.get_group_display }}</div></td>
+          <td class="small">{{ step.material|default:"—" }}</td>
+          <td class="small">{{ step.operator|default:"—" }}</td>
+          <td class="small">{% if step.verified_at %}<i class="bi bi-check2-circle text-success"></i>{% if step.grade %} {{ step.grade }}{% endif %}{% else %}—{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No steps match these filters." %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% include "includes/pagination.html" %}
+  </div>
+</div>
+{% endblock %}

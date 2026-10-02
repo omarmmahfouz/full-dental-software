@@ -24,6 +24,7 @@ from apps.complaints.models import Complaint
 from apps.core import previews
 from apps.core.forms import clean_digits_value
 from apps.core.approvals import needs_approval, pending_for, request_change
+from apps.core.kept_uploads import carry, chosen
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_required
 from apps.core.models import Branch, ChangeRequest, branch_for_user, working_places
 from apps.core.roles import CLINICAL, FRONT_DESK, PATIENT_VIEWERS, has_role
@@ -41,7 +42,7 @@ from .forms import (
     LeadCallForm, LeadForm, PatientDocumentForm, PatientFilterForm, PatientForm, PatientRelationForm,
     duplicate_phone_error,
 )
-from .models import Lead, LeadCall, Patient, PatientDocument, PatientRelation
+from .models import DayPart, Lead, LeadCall, Patient, PatientDocument, PatientRelation
 from .sequence import file_steps, next_step
 
 
@@ -71,6 +72,29 @@ def patient_lookup(request):
         {"value": p.file_number, "label": f"{p.full_name} — {p.file_number} — {p.phone_primary}"}
         for p in patients.order_by("full_name")[:12]
     ]})
+
+
+def patient_prefs(request):
+    """For the booking page: how far the patient lives and the days and times he prefers (round 13)."""
+    from .forms import find_patient
+
+    if not has_role(request.user, *FRONT_DESK):
+        return JsonResponse({})
+    patient = find_patient(request.GET.get("q", ""))
+    if patient is None:
+        return JsonResponse({})
+    parts = []
+    if patient.travel_minutes:
+        parts.append(_("lives %(n)s minutes away") % {"n": patient.travel_minutes})
+    if patient.preferred_days:
+        parts.append(_("prefers: %(days)s") % {"days": "، ".join(patient.preferred_day_list)})
+    if patient.preferred_times:
+        parts.append(", ".join(patient.preferred_time_list))
+    return JsonResponse({
+        "text": " · ".join(str(part) for part in parts),
+        "days": [int(day) for day in patient.preferred_days.split(",") if day.isdigit()],
+        "times": [DayPart.hours(code) for code in patient.preferred_times.split(",") if code in DayPart.values],
+    })
 
 
 def phone_check(request):
@@ -272,17 +296,16 @@ class PatientCreateView(RoleRequiredMixin, AuditMixin, CreateView):
         context["title"] = _("Register new patient")
         return context
 
+    def form_invalid(self, form):
+        carry(self.request, form, PatientForm.ID_PHOTOS)  # the ID photos are kept for the next try
+        return super().form_invalid(form)
+
     @transaction.atomic
     def form_valid(self, form):
         form.instance.branch = branch_for_user(self.request.user)
         response = super().form_valid(form)
         patient = self.object
-        for field, kind in (("id_front", PatientDocument.Kind.ID_FRONT), ("id_back", PatientDocument.Kind.ID_BACK)):
-            upload = form.cleaned_data.get(field)
-            if upload:
-                if patient.id_type == Patient.IdType.PASSPORT and kind == PatientDocument.Kind.ID_FRONT:
-                    kind = PatientDocument.Kind.PASSPORT
-                PatientDocument.objects.create(patient=patient, kind=kind, file=upload, created_by=self.request.user)
+        save_id_photos(self.request, form, patient)
         relative = form.cleaned_data.get("relative_lookup")
         if relative:
             PatientRelation.objects.create(
@@ -301,11 +324,28 @@ class PatientCreateView(RoleRequiredMixin, AuditMixin, CreateView):
         return response
 
 
+def save_id_photos(request, form, patient):
+    """The ID photos of the patient form (chosen now, or kept from a try that came back with an error)."""
+    saved = 0
+    for field, kind in (("id_front", PatientDocument.Kind.ID_FRONT), ("id_back", PatientDocument.Kind.ID_BACK)):
+        upload = chosen(request, form, field) if field in form.fields else None
+        if upload:
+            if patient.id_type == Patient.IdType.PASSPORT and kind == PatientDocument.Kind.ID_FRONT:
+                kind = PatientDocument.Kind.PASSPORT
+            PatientDocument.objects.create(patient=patient, kind=kind, file=upload, created_by=request.user)
+            saved += 1
+    return saved
+
+
 class PatientUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
     allowed_roles = FRONT_DESK
     model = Patient
     form_class = PatientForm
     template_name = "patients/patient_form.html"
+
+    def form_invalid(self, form):
+        carry(self.request, form, PatientForm.ID_PHOTOS)
+        return super().form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -315,11 +355,15 @@ class PatientUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
         return context
 
     def form_valid(self, form):
+        # New ID photos are saved at once, like a document added to the file (no approval needed).
+        photos = save_id_photos(self.request, form, Patient.objects.get(pk=self.object.pk))
         if not needs_approval(self.request.user):
             return super().form_valid(form)
         original = Patient.objects.get(pk=self.object.pk)  # the form already changed self.object in memory
         values = {}
         for name in form.changed_data:
+            if name in PatientForm.ID_PHOTOS:
+                continue
             if name == "referred_by_lookup":
                 values["referred_by"] = form.cleaned_data[name]
             elif name in form._meta.fields:
@@ -328,6 +372,8 @@ class PatientUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
             values.update(out_reason=form.cleaned_data.get("out_reason"), out_notes=form.cleaned_data.get("out_notes", ""))
         if request_change(ChangeRequest.Kind.PATIENT, original, values, self.request.user):
             messages.warning(self.request, _("Sent to the head of CIA for approval. The file changes once it is approved."))
+        elif photos:
+            messages.success(self.request, _("The ID photos were saved."))
         else:
             messages.info(self.request, _("Nothing was changed."))
         return redirect(original)

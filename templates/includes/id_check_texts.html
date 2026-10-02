@@ -1,5 +1,5 @@
-{% load i18n static %}{% comment %}The words and the files of the ID photo check (app.js, input[data-id-card]).{% endcomment %}
-<div hidden data-id-check-texts
+{% load i18n static %}{% comment %}The words and the files of the ID card camera and reader (static/js/idcard.js, input[data-id-card]).{% endcomment %}
+<div hidden data-id-check-texts data-ocr-base="{% static 'vendor/tesseract/' %}"
   data-good="{% trans 'The photo is good.' %}"
   data-fair="{% trans 'The photo can be used, but:' %}"
   data-retake="{% trans 'Take the photo again:' %}"
@@ -15,9 +15,17 @@
   data-turn-left="{% trans 'Turn left' %}" data-turn-right="{% trans 'Turn right' %}"
   data-whole="{% trans 'Keep the whole photo' %}" data-card-only="{% trans 'Only the card' %}"
   data-again="{% trans 'Take again' %}"
-  data-reading="{% trans 'Reading the ID number from the card…' %}"
-  data-read-none="{% trans 'The number could not be read from the photo: write it.' %}"
-  data-filled="{% trans 'The ID number %s was read from the card and written above: check it.' %}"
-  data-differs="{% trans 'The card reads %s, not the number written above.' %}"
-  data-same="{% trans 'The number on the card is the one written above.' %}"
+  data-camera="{% trans 'Camera' %}"
+  data-camera-tip="{% trans 'Hold the card inside the frame, on a plain dark table, then press the white button.' %}"
+  data-camera-error="{% trans 'The camera could not be opened: allow the camera for this page, or choose a photo.' %}"
+  data-take="{% trans 'Take the photo' %}" data-cancel="{% trans 'Cancel' %}" data-switch-camera="{% trans 'Other camera' %}"
+  data-reading="{% trans 'Reading the card: the ID number, the name and the address…' %}"
+  data-reading-back="{% trans 'Reading the back of the card: the occupation and the marital status…' %}"
+  data-read-none="{% trans 'Nothing could be read clearly from the photo: write the details.' %}"
+  data-filled-list="{% trans 'Read from the card and written in the form (in yellow, check them and correct them if needed):' %}"
+  data-card-says="{% trans 'The card reads:' %}"
+  data-label-number="{% trans 'ID number' %}" data-label-name="{% trans 'name' %}" data-label-address="{% trans 'address' %}"
+  data-label-city="{% trans 'city / area' %}" data-label-marital="{% trans 'marital status' %}"
+  data-label-occupation="{% trans 'occupation' %}"
   data-use="{% trans 'Use it' %}"></div>
+<script src="{% static 'js/idcard.js' %}"></script>

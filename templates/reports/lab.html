@@ -2,7 +2,7 @@
 {% load i18n clinic %}
 {% block title %}{% trans "Lab work" %}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><i class="bi bi-box-seam"></i> {% trans "Lab work" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1></div>
+<div class="page-header"><h1><i class="bi bi-lab-request"></i> {% trans "Lab work" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1></div>
 {% include "reports/_period.html" %}
 <div class="row g-3 mb-3">
   <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% blocktrans %}Requests ({{ total }}){% endblocktrans %}</div><ul class="list-group list-group-flush">

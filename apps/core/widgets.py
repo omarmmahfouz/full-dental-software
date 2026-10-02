@@ -168,3 +168,34 @@ class ChoiceButtons(forms.RadioSelect):
                 '<label class="btn btn-outline-primary" for="{}"><i class="bi {}"></i> {}</label>', rows)
         return format_html('<div class="choice-buttons" role="radiogroup" data-choice-buttons="{}">{}</div>', name,
                            buttons)
+
+
+class CommaChecksWidget(forms.CheckboxSelectMultiple):
+    """Ticks kept in a text field as "a,b" (e.g. the times of the day a patient prefers)."""
+
+    def format_value(self, value):
+        if isinstance(value, str):
+            value = [code for code in value.split(",") if code]
+        return super().format_value(value)
+
+    def value_from_datadict(self, data, files, name):
+        codes = data.getlist(name) if hasattr(data, "getlist") else data.get(name) or []
+        order = [str(code) for code, _ in self.choices]
+        return ",".join(sorted((code for code in codes if code in order), key=order.index))
+
+
+class KeptPhotoInput(forms.FileInput):
+    """A photo box that shows a photo kept from a try that came back with an error (apps/core/kept_uploads.py):
+    it is saved with the form unless another photo is chosen. ``kept_token`` is set by the view."""
+
+    template_name = "core_widgets/kept_photo.html"
+    kept_token = ""
+
+    def get_context(self, name, value, attrs):
+        from django.urls import reverse
+
+        context = super().get_context(name, value, attrs)
+        if self.kept_token:
+            context["widget"]["kept"] = self.kept_token
+            context["widget"]["kept_url"] = reverse("core:kept_upload", args=[self.kept_token])
+        return context

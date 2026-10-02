@@ -307,7 +307,9 @@ class ApprovalTests(TestCase):
 
         data = {"full_name": self.patient.full_name, "id_type": "nid", "national_id": self.patient.national_id,
                 "phone_primary": self.patient.phone_primary, "preferred_phone": "primary", "missing_teeth": "unknown",
-                "referral_source": ReferralSource.objects.filter(asks_for_patient=False).first().pk, "status": "active"}
+                "referral_source": ReferralSource.objects.filter(asks_for_patient=False).first().pk, "status": "active",
+                # required since round 13
+                "phone_secondary": "01501234567", "marital_status": "single", "occupation": "طالب", "city": "شبرا"}
         data.update(changes)
         return data
 
@@ -744,6 +746,14 @@ class SpeedTests(TestCase):
         ("secretary", "/patients/medical-follow-up/", 40),
         ("owner", "/settings/security/", 40),
         ("owner", "/settings/security/deleted/", 30),
+        # Round 13
+        ("owner", "/stock/prices/", 40),
+        ("owner", "/purchases/returns/", 40),
+        ("owner", "/clinical/restorative-finder/", 60),
+        ("owner", "/chart/plans/restorative/", 60),
+        ("secretary", "/complaints/", 40),
+        ("secretary", "/billing/fawry/", 40),
+        ("owner", "/billing/fawry/", 40),
     ]
 
     @classmethod
@@ -1392,3 +1402,76 @@ class InterfaceTests(TestCase):
         page = self.client.get("/schedule/day/").content.decode()
         self.assertIn("title=\"Previous day\"><i class=\"bi bi-chevron-left\"></i>", page)
         self.assertIn("title=\"Next day\"><i class=\"bi bi-chevron-right\"></i>", page)
+
+
+class Round13CoreTests(TestCase):
+    """WhatsApp allowed after a form, the signature pad, the four places on the owner's home page and a video
+    with a problem report."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+
+    def test_whatsapp_and_the_id_reader_are_allowed_by_the_security_header(self):
+        from apps.core.security import CSP
+
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        header = self.client.get("/").headers["Content-Security-Policy"]
+        self.assertEqual(header, CSP)
+        form_action = next(part for part in CSP.split(";") if part.strip().startswith("form-action"))
+        for address in ("'self'", "https://wa.me", "https://api.whatsapp.com", "https://web.whatsapp.com"):
+            self.assertIn(address, form_action)
+        self.assertIn("'wasm-unsafe-eval'", CSP)
+        self.assertNotIn("'unsafe-eval'", CSP)
+
+    def test_my_signature_is_drawn_once_and_checked(self):
+        import base64
+
+        from apps.core.models import UserProfile
+        from apps.core.signatures import clean_signature
+
+        user = make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/signature/").status_code, 200)
+        png = "data:image/png;base64," + base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"0" * 40).decode()
+        self.client.post("/signature/?next=/patients/", {"signature": png})
+        self.assertEqual(UserProfile.objects.get(user=user).signature, png)
+        for bad in ("", "data:image/svg+xml;base64,PHN2Zz4=", "data:image/png;base64," +
+                    base64.b64encode(b"<script>").decode(), "javascript:alert(1)"):
+            with self.assertRaises(ValidationError):
+                clean_signature(bad)
+        response = self.client.post("/signature/?next=https://evil.example/", {"clear": "1"})
+        self.assertEqual(response["Location"], "/")  # never sent to another site
+        self.assertEqual(UserProfile.objects.get(user=user).signature, "")
+
+    def test_owner_sees_the_four_places_whatever_place_is_chosen(self):
+        from apps.core.models import Branch
+
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post("/place/", {"place": "PVT", "next": "/"})
+        cards = self.client.get("/").context["places_now"]
+        self.assertEqual([card["place"].code for card in cards], ["CIA", "PVT", "CIC", "LAB"])
+        self.assertTrue(cards[3]["lab"])
+        self.assertEqual(len({len(card["stats"]) for card in cards[:3]}), 1)  # the clinics show the same numbers
+        self.assertEqual(Branch.objects.filter(is_active=True).count(), 4)
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertNotIn("places_now", self.client.get("/").context)
+
+    def test_a_problem_can_be_reported_with_a_video_of_the_screen(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from apps.core.models import ProblemReport
+
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        video = SimpleUploadedFile("screen.webm", b"\x1a\x45\xdf\xa3" + b"0" * 64, content_type="video/webm")
+        answer = self.client.post("/problems/report/", {"description": "The page closes", "video": video},
+                                  HTTP_X_REQUESTED_WITH="XMLHttpRequest").json()
+        self.assertTrue(answer["ok"])
+        self.assertTrue(ProblemReport.objects.get().video.name.endswith(".webm"))
+        fake = SimpleUploadedFile("screen.webm", b"MZ not a video", content_type="video/webm")
+        answer = self.client.post("/problems/report/", {"description": "x", "video": fake},
+                                  HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        self.assertEqual(answer.status_code, 400)

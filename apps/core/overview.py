@@ -170,7 +170,7 @@ def attention(user, clinics, today):
     late_lab = LabRequest.objects.filter(status=LabRequest.Status.SENT, due_date__lt=today,
                                          branch__in=clinics).count()
     if late_lab:
-        items.append(("bi-box-seam", _("Lab work late (past the date it was needed)"), late_lab,
+        items.append(("bi-lab-request", _("Lab work late (past the date it was needed)"), late_lab,
                       reverse("clinical:lab_list") + "?overdue=1"))
     overdue = Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES, follow_up_due__lt=today,
                                        branch__in=clinics).count()
@@ -185,3 +185,75 @@ def attention(user, clinics, today):
         if asked:
             items.append(("bi-key", _("Forgotten passwords to answer"), asked, reverse("settings:users")))
     return items
+
+
+def places_now(user, today):
+    """The owner's home page (round 13): every place side by side, the same size and in the same order (CIA, El
+    Khadem, CIC, the lab), whatever place is chosen in the switch: today's visits, this month's new files and money,
+    the open complaints; for the lab its cases."""
+    from apps.billing.models import PatientPayment
+    from apps.complaints.models import Complaint
+    from apps.patients.models import Patient
+    from apps.scheduling.models import Appointment, day_bounds
+
+    places = sorted(switch_places(user), key=lambda place: (place.kind == Branch.Kind.LAB, place.sort_order, place.pk))
+    clinics = [place for place in places if place.kind != Branch.Kind.LAB]
+    start, end = day_bounds(today)
+    month = today.replace(day=1)
+    money = has_role(user, OWNER, MODERATOR)
+    visits = {}
+    for branch_id, status, n in (Appointment.objects.filter(scheduled_at__gte=start, scheduled_at__lt=end,
+                                                            branch__in=clinics)
+                                 .values_list("branch", "status").annotate(n=Count("id")).order_by()):
+        visits.setdefault(branch_id, {})[status] = n
+    new_files = dict(Patient.objects.filter(registered_on__gte=month, branch__in=clinics)
+                     .values("branch").annotate(n=Count("id")).values_list("branch", "n").order_by())
+    complaints = dict(Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES, branch__in=clinics)
+                      .values("branch").annotate(n=Count("id")).values_list("branch", "n").order_by())
+    paid_today = paid_month = {}
+    if money:
+        payments = PatientPayment.objects.filter(branch__in=clinics)
+        paid_today = dict(payments.filter(paid_on=today).values("branch").annotate(t=Sum("amount"))
+                          .values_list("branch", "t").order_by())
+        paid_month = dict(payments.filter(paid_on__gte=month).values("branch").annotate(t=Sum("amount"))
+                          .values_list("branch", "t").order_by())
+    S = Appointment.Status
+    cards = []
+    for place in places:
+        if place.kind == Branch.Kind.LAB:
+            cards.append({"place": place, "lab": True, "stats": lab_now(user, today)})
+            continue
+        counts = visits.get(place.pk, {})
+        stats = [
+            (_("booked today"), sum(n for status, n in counts.items() if status != S.CANCELLED), ""),
+            (_("here now"), counts.get(S.ARRIVED, 0) + counts.get(S.IN_ROOM, 0), "text-primary"),
+            (_("finished"), counts.get(S.COMPLETED, 0), "text-success"),
+            (_("new files this month"), new_files.get(place.pk, 0), ""),
+        ]
+        if money:
+            stats += [(_("paid today"), paid_today.get(place.pk) or Decimal("0"), "money"),
+                      (_("paid this month"), paid_month.get(place.pk) or Decimal("0"), "money")]
+        stats.append((_("open complaints"), complaints.get(place.pk, 0), "text-danger" if complaints.get(place.pk) else ""))
+        cards.append({"place": place, "lab": False, "stats": stats})
+    return cards
+
+
+def lab_now(user, today):
+    """The lab's numbers for the owner's home page: cases in the lab, late, received and delivered today."""
+    from apps.lab.models import CLOSED_STEPS, LabCase, LabPayment, Step
+    from apps.lab.stats import bounds
+
+    start, end = bounds(today, today)
+    cases = LabCase.objects.all()
+    stats = [
+        (_("cases in the lab"), cases.exclude(step__in=CLOSED_STEPS).count(), ""),
+        (_("late"), cases.exclude(step__in=CLOSED_STEPS).filter(due_date__lt=today).count(), "text-danger"),
+        (_("received today"), cases.filter(received_at__gte=start, received_at__lt=end).count(), ""),
+        (_("delivered today"), cases.filter(step=Step.DELIVERED, delivered_at__gte=start, delivered_at__lt=end).count(),
+         "text-success"),
+    ]
+    if has_role(user, *LAB_MONEY):
+        stats.append((_("paid this month"), LabPayment.objects.filter(
+            cancelled_at__isnull=True, paid_on__gte=today.replace(day=1)).aggregate(t=Sum("amount"))["t"]
+            or Decimal("0"), "money"))
+    return stats

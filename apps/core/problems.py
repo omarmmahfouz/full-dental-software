@@ -26,6 +26,24 @@ from .roles import HEAD_CIA, OWNER
 READERS = (OWNER, HEAD_CIA)
 
 
+VIDEO_EXTENSIONS = (".webm", ".mp4", ".mov", ".m4v")
+MAX_VIDEO_MB = 100
+
+
+def validate_video(file):
+    """A short video of the problem (round 13): recorded on the screen (webm) or filmed with a phone (mp4, mov)."""
+    if not file:
+        return file
+    from .uploads import looks_right
+
+    if not file.name.lower().endswith(VIDEO_EXTENSIONS) or not looks_right(file):
+        raise forms.ValidationError(_("Only a video (WebM, MP4 or MOV) can be added here."))
+    if file.size > MAX_VIDEO_MB * 1024 * 1024:
+        raise forms.ValidationError(_("The video is too large (maximum %(size)s MB): record a shorter one.")
+                                    % {"size": MAX_VIDEO_MB})
+    return file
+
+
 class ProblemForm(StyledForm):
     description = forms.CharField(
         label=gettext_lazy("What happened?"), max_length=4000, widget=forms.Textarea(attrs={"rows": 4}),
@@ -33,11 +51,13 @@ class ProblemForm(StyledForm):
     )
     screenshot = forms.FileField(label=gettext_lazy("Screenshot or photo (optional)"), required=False,
                                  validators=[validate_upload])
+    video = forms.FileField(label=gettext_lazy("Video (optional)"), required=False, validators=[validate_video])
     page = forms.CharField(required=False, max_length=500, widget=forms.HiddenInput)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["screenshot"].widget.attrs["accept"] = "image/*"
+        self.fields["video"].widget.attrs["accept"] = "video/*"
 
 
 def _safe_page(request, page):
@@ -53,7 +73,8 @@ def problem_report(request):
         if form.is_valid():
             report = ProblemReport.objects.create(
                 page=page, description=form.cleaned_data["description"],
-                screenshot=form.cleaned_data.get("screenshot"), reported_by=request.user,
+                screenshot=form.cleaned_data.get("screenshot"), video=form.cleaned_data.get("video"),
+                reported_by=request.user,
                 error=f"Browser: {request.META.get('HTTP_USER_AGENT', '')[:300]}",
             )
             notify_roles((OWNER,), gettext_lazy("Problem reported by %(user)s"), report.description[:300],

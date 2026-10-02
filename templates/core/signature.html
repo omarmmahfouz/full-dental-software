@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-pen"></i> {{ title }}</h1></div>
+<div class="card signature-card"><div class="card-body">
+  <p class="text-muted small">{% trans "Sign in the box with your finger, the pen of the tablet or the mouse, as you sign on paper. It is printed on the receipts and prescriptions." %}</p>
+  {% if error %}<div class="alert alert-danger py-2">{{ error }}</div>{% endif %}
+  <form method="post" data-signature-form data-no-leave-warning>
+    {% csrf_token %}
+    <input type="hidden" name="signature" data-signature-value>
+    <div class="signature-pad-wrap"><canvas class="signature-pad" data-signature-pad width="900" height="320" aria-label="{% trans 'Signature box' %}"></canvas>
+      <span class="signature-pad-line" aria-hidden="true"></span></div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <button class="btn btn-primary btn-lg px-4" data-signature-save><i class="bi bi-check2-circle"></i> {% trans "Save the signature" %}</button>
+      <button type="button" class="btn btn-outline-secondary btn-lg" data-signature-clear><i class="bi bi-eraser"></i> {% trans "Clear and sign again" %}</button>
+      <label class="btn btn-outline-secondary btn-lg mb-0"><i class="bi bi-image"></i> {% trans "From a photo of the signature" %}
+        <input type="file" accept="image/*" hidden data-signature-photo></label>
+      <a class="btn btn-link btn-lg ms-auto" href="{{ back }}">{% trans "Cancel" %}</a>
+    </div>
+    <div class="text-danger small mt-2" data-signature-empty hidden>{% trans "Sign in the box first." %}</div>
+  </form>
+  {% if current %}
+  <hr>
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div><div class="small text-muted mb-1">{% trans "The signature saved now" %}</div><img class="signature-saved" src="{{ current }}" alt="{% trans 'Signature' %}"></div>
+    <form method="post" class="ms-auto" data-no-leave-warning>{% csrf_token %}<button class="btn btn-outline-danger" name="clear" value="1" data-confirm="{% trans 'Remove the saved signature?' %}"><i class="bi bi-trash"></i> {% trans "Remove it" %}</button></form>
+  </div>
+  {% endif %}
+</div></div>
+{% endblock %}

@@ -73,10 +73,18 @@ def prescription_print(request, pk):
         Prescription.objects.select_related("patient", "dentist", "surgery"), pk=pk
     )
     get_visible_patient_or_403(request.user, prescription.patient_id)
+    from apps.core.roles import FRONT_DESK
+    from apps.core.signatures import person_signature
+
+    # The doctor's signature, and the reception's when the reception prints it (else a line to sign by hand).
+    doctor = prescription.dentist
+    desk = person_signature(request.user) if has_role(request.user, *FRONT_DESK) else ("", "")
     return render(request, "prescriptions/prescription_print.html", {
         "prescription": prescription, "patient": prescription.patient,
         "lines": prescription.lines.select_related("drug"),
         "branch": prescription.patient.branch or branch_for_user(request.user),
+        "signatures": [("الطبيب:", (doctor.name_ar or doctor.full_name) if doctor else "", doctor.signature_image if doctor else ""),
+                       ("الاستقبال:", *desk)],
     })
 
 

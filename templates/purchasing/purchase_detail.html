@@ -5,7 +5,10 @@
 {% with p=purchase %}
 <div class="page-header">
   <h1><i class="bi bi-receipt"></i> {% trans "Purchase" %} — {{ p.supplier }} — {{ p.purchase_date|date:"d/m/Y" }}</h1>
-  <a class="btn btn-outline-secondary no-print" href="{% url 'purchasing:purchase_update' p.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'purchasing:purchase_update' p.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    <a class="btn btn-outline-warning" href="{% url 'purchasing:return_create' p.pk %}"><i class="bi bi-box-arrow-left"></i> {% trans "Give back to the supplier" %}</a>
+  </div>
 </div>
 <div class="row g-3">
   <div class="col-lg-4"><div class="card h-100"><div class="card-body">
@@ -24,10 +27,19 @@
   <div class="col-lg-8"><div class="card h-100"><div class="table-responsive"><table class="table mb-0">
     <thead><tr><th>{% trans "Category" %}</th><th>{% trans "Item" %}</th><th>{% trans "Quantity" %}</th><th>{% trans "Unit price" %}</th><th>{% trans "Total" %}</th></tr></thead>
     <tbody>
-    {% for i in items %}<tr><td>{{ i.category }}</td><td>{{ i.description }}</td><td>{{ i.quantity|floatformat:"-2" }} {{ i.unit }}</td><td>{{ i.unit_price|money }}</td><td class="fw-bold">{{ i.total|money }}</td></tr>{% endfor %}
+    {% for i in items %}<tr><td>{{ i.category }}</td><td>{{ i.description }}{% if i.stock_item %} <a class="small" href="{{ i.stock_item.get_absolute_url }}#prices"><i class="bi bi-graph-up"></i></a>{% endif %}</td>
+      <td>{{ i.quantity|floatformat:"-2" }} {{ i.unit }}{% if i.given_back %}<div class="small text-warning-emphasis">{% blocktrans with n=i.given_back|floatformat:"-2" %}{{ n }} given back{% endblocktrans %}</div>{% endif %}</td>
+      <td>{{ i.unit_price|money }}{% if i.change is not None %}<div class="price-hint">{% if i.change > 0 %}<span class="price-up"><i class="bi bi-arrow-up"></i> <span class="ltr">{{ i.change }}%</span></span>{% elif i.change < 0 %}<span class="price-down"><i class="bi bi-arrow-down"></i> <span class="ltr">{{ i.change }}%</span></span>{% else %}<span class="text-muted">=</span>{% endif %} <span class="text-muted">{% blocktrans with before=i.before|money %}was {{ before }}{% endblocktrans %}</span></div>{% endif %}</td>
+      <td class="fw-bold">{{ i.total|money }}</td></tr>{% endfor %}
     </tbody>
-    <tfoot><tr><th colspan="4">{% trans "Total" %}</th><th>{{ p.total|money }} {{ CLINIC.CURRENCY }}</th></tr></tfoot>
+    <tfoot><tr><th colspan="4">{% trans "Total" %}</th><th>{{ p.total|money }} {{ CLINIC.CURRENCY }}</th></tr>
+    {% if p.refunded %}<tr><th colspan="4" class="text-success">{% trans "Given back to us (money or credit)" %}</th><th class="text-success">− {{ p.refunded|money }}</th></tr>{% endif %}</tfoot>
   </table></div></div></div>
 </div>
+{% if returns %}
+<div class="card mt-3"><div class="card-header"><i class="bi bi-box-arrow-left"></i> {% trans "Given back to the supplier" %}</div><div class="table-responsive"><table class="table mb-0">
+  <tbody>{% for r in returns %}<tr><td><a href="{{ r.get_absolute_url }}">#{{ r.pk }}</a> {{ r.returned_on|date:"d/m/Y" }}</td><td class="small">{% for line in r.lines.all %}{{ line.item.description }} × {{ line.quantity|floatformat:"-2" }}{% if not forloop.last %}، {% endif %}{% endfor %}</td><td>{{ r.get_reason_display }}</td><td><span class="badge {% if r.status == 'done' %}text-bg-success{% elif r.status == 'cancelled' %}text-bg-secondary{% else %}text-bg-warning{% endif %}">{{ r.get_status_display }}</span></td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
 {% endwith %}
 {% endblock %}

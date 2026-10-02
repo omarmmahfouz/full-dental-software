@@ -368,6 +368,13 @@ def balance_sheet(request):
         if key not in purchase_lines:
             purchase_lines.append(key)
         table[key][row["purchase__branch"]] += row["total"]
+    # Items given back to a supplier: the money or the credit that came back lowers the purchases (round 13).
+    from apps.purchasing.models import PurchaseReturn
+
+    for back in PurchaseReturn.objects.filter(status=PurchaseReturn.Status.DONE, settled_on__range=(date_from, date_to)) \
+            .select_related("purchase").prefetch_related("lines__item"):
+        if back.refunded:
+            table["purchase_refunds"][back.purchase.branch_id] -= back.refunded
 
     income_lines = [("patients", _("Patient payments (services, bills)")), ("courses", _("Course installments")),
                     ("bills_cash", _("Cash taken for bills paid on the Fawry machine"))]
@@ -376,6 +383,8 @@ def balance_sheet(request):
                   ("doctors", _("Paid to the doctors (their shares)"))]
     cost_lines += [(key, _("Purchases: %(kind)s") % {"kind": kinds.get(key.split("_", 1)[1], key)})
                    for key in sorted(purchase_lines)]
+    if any(table["purchase_refunds"].values()):
+        cost_lines.append(("purchase_refunds", _("Given back by suppliers (money or credit)")))
     used = {branch for line in table.values() for branch, amount in line.items() if amount}
     columns = [b for b in branches if b.pk in used or (b.is_active and b.kind != Branch.Kind.LAB)]
 

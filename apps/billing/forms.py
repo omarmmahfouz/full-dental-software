@@ -296,12 +296,27 @@ class FawryFilterForm(StyledForm):
                                      queryset=FawryMachine.objects.all())
     branch = forms.ModelChoiceField(label=_("for"), required=False, queryset=None, empty_label=_("All"))
     kind = forms.ChoiceField(label=_("move"), required=False, choices=[("", _("All"))] + list(FawryMove.Kind.choices))
+    person = forms.ModelChoiceField(label=_("done by"), required=False, empty_label=_("Everyone"), queryset=None)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, sees_all=False, **kwargs):
+        from django.contrib.auth import get_user_model
+
         from apps.core.models import Branch
 
         super().__init__(*args, **kwargs)
         self.fields["branch"].queryset = Branch.objects.exclude(kind=Branch.Kind.LAB).order_by("sort_order", "pk")
+        if sees_all:  # the owner and the head of CIA: the moves of one person
+            self.fields["person"].queryset = get_user_model().objects.filter(
+                pk__in=FawryMove.objects.exclude(created_by=None).values("created_by")).order_by("first_name")
+        else:
+            del self.fields["person"]
+
+
+class FawryPercentForm(forms.Form):
+    """The owner changes Fawry's percentage from the Fawry page (it is also in Settings → Clinic options)."""
+
+    percent = forms.DecimalField(label=_("Fawry percentage on card payments (%)"), min_value=0, max_value=20,
+                                 decimal_places=2, max_digits=5)
 
 
 class ReceiptCorrectForm(StyledForm):

@@ -22,11 +22,12 @@ def _at(day, minute):
     return timezone.make_aware(datetime.combine(day, datetime.min.time()) + timedelta(minutes=minute))
 
 
-def free_times(branch, duration, dentist=None, start=None, days=45, limit=8):
+def free_times(branch, duration, dentist=None, start=None, days=45, limit=8, fits=None):
     """The first free time of each shift, day after day, from ``start`` (default: now): [{"at", "room", "dentist"}].
-    Where the rooms are shared, the first time a room and the doctor are both free."""
+    Where the rooms are shared, the first time a room and the doctor are both free. ``fits(moment)``, when given,
+    keeps only the times it accepts (e.g. the days and hours the patient prefers, ``Patient.prefers``)."""
     if branch is not None and branch.rooms_shared:
-        return shared_free_times(branch, duration, dentist, start, days, limit)
+        return shared_free_times(branch, duration, dentist, start, days, limit, fits)
     now = timezone.localtime()
     start = timezone.localtime(start) if start else now
     duration = max(int(duration or 30), 5)
@@ -51,6 +52,9 @@ def free_times(branch, duration, dentist=None, start=None, days=45, limit=8):
                 slot_start, slot_end = _at(day, minute), _at(day, minute + duration)
                 clash = [a for a in booked if (a.room_id == shift.room_id or a.dentist_id == shift.dentist_id)
                          and a.scheduled_at < slot_end and a.scheduled_end > slot_start]
+                if not clash and fits is not None and not fits(timezone.localtime(slot_start)):
+                    minute += STEP
+                    continue
                 if not clash:
                     found.append({"at": slot_start, "shift": shift, "room": shift.room, "dentist": shift.dentist})
                     break
@@ -74,7 +78,7 @@ def _windows(branch, dentist, day, with_shifts):
     return [(_minutes(opens), _minutes(closes))]
 
 
-def shared_free_times(branch, duration, dentist=None, start=None, days=45, limit=8):
+def shared_free_times(branch, duration, dentist=None, start=None, days=45, limit=8, fits=None):
     """Shared rooms: the first time of each day when a room is free and the doctor has no other patient."""
     from .models import Room
 
@@ -106,7 +110,7 @@ def shared_free_times(branch, duration, dentist=None, start=None, days=45, limit
                 doctor_busy = dentist is not None and any(a.dentist_id == dentist.pk for a in overlapping)
                 taken = {a.room_id for a in overlapping}
                 room = next((r for r in rooms if r.pk not in taken), None)
-                if room is not None and not doctor_busy:
+                if room is not None and not doctor_busy and (fits is None or fits(timezone.localtime(slot_start))):
                     placed = {"at": slot_start, "shift": None, "room": room, "dentist": dentist}
                 minute += STEP
             if placed:

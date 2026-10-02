@@ -447,6 +447,20 @@ QUICK_SEARCHES = [
     (gettext_lazy("Sinus lift cases"), {"procedures_any": ["open_sinus", "closed_sinus"], "result": "sites"}),
     (gettext_lazy("GBR / block graft cases"), {"procedures_any": "gbr", "result": "sites"}),
     (gettext_lazy("Immediate implants"), {"procedures_any": "immediate_implant"}),
+    (gettext_lazy("Full-arch cases"), {"full_arch": "yes"}),
+    (gettext_lazy("Guided implants"), {"procedures_any": "guided"}),
+    (gettext_lazy("Single crowns"), {"prosthesis": "single"}),
+    (gettext_lazy("Bridges"), {"prosthesis": "bridge"}),
+    (gettext_lazy("Splitting cases"), {"procedures_any": "splitting", "result": "sites"}),
+    (gettext_lazy("Expansion cases"), {"procedures_any": "expansion", "result": "sites"}),
+]
+# One tap groups the results found (the filters stay), with the survival and the loading of each group.
+QUICK_GROUPS = [
+    (gettext_lazy("Full arch or not"), "full_arch"), (gettext_lazy("Guided or freehand"), "guided"),
+    (gettext_lazy("Crown, bridge or full arch"), "prosthesis"), (gettext_lazy("Splitting"), "splitting"),
+    (gettext_lazy("Expansion"), "expansion"), (gettext_lazy("Sinus lift"), "sinus"),
+    (gettext_lazy("Immediate or delayed"), "immediate"), (gettext_lazy("GBR"), "graft"),
+    (gettext_lazy("Implant company"), "company"), (gettext_lazy("Operator"), "operator"),
 ]
 
 
@@ -455,7 +469,7 @@ def finder(request):
     form = FinderForm(request.GET or None)
     data = form.cleaned_data if form.is_bound and form.is_valid() else {}
     sites = filter_sites(data)
-    facts = SiteFacts(sites)
+    facts = SiteFacts(sites, data.get("full_arch", ""))
     if request.GET.get("export") == "csv":
         return export_csv(facts, filename="cia-cases.csv")
     overall, groups = statistics(facts, data.get("group_by", ""), data.get("group_by_2", ""))
@@ -465,6 +479,12 @@ def finder(request):
     page = Paginator(facts.sites, 50).get_page(request.GET.get("page"))
     saved = SavedSearch.objects.filter(Q(owner=request.user) | Q(shared=True))
     quick = [(label, urlencode(query, doseq=True)) for label, query in QUICK_SEARCHES]
+    quick_groups = []
+    for label, code in QUICK_GROUPS:
+        query = params.copy()
+        query["group_by"] = code
+        query.pop("group_by_2", None)
+        quick_groups.append({"label": label, "query": query.urlencode(), "active": data.get("group_by") == code})
     reasons = {}
     with translation.override("ar"):  # the reasons and the title are read by the reception
         for site in facts.sites:
@@ -495,7 +515,7 @@ def finder(request):
         "call_rows": call_rows,
         "call_title": call_title,
         "form": form, "page_obj": page, "overall": overall, "groups": groups, "query": params.urlencode(),
-        "saved": saved, "quick": quick, "group_label": dict(form.fields["group_by"].choices).get(data.get("group_by")),
+        "saved": saved, "quick": quick, "quick_groups": quick_groups, "group_label": dict(form.fields["group_by"].choices).get(data.get("group_by")),
         "group_label_2": dict(form.fields["group_by_2"].choices).get(data.get("group_by_2")),
     })
 

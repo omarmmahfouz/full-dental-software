@@ -1804,3 +1804,131 @@ body:has(> .app-navbar) { --rail-a: color-mix(in srgb, var(--place) 34%, #0c1410
   .app-navbar .offcanvas .nav-link.is-active { box-shadow: inset 3px 0 0 var(--section); }
   [dir=rtl] .app-navbar .offcanvas .nav-link.is-active { box-shadow: inset -3px 0 0 var(--section); }
 }
+
+/* ==========================================================================
+   Round 13
+   ========================================================================== */
+/* The ID card camera inside the page: the live picture, a frame the size of the card, the white button */
+body.id-camera-open { overflow: hidden; }
+.id-camera { position: fixed; inset: 0; z-index: 2100; background: #000; display: flex; flex-direction: column; }
+.id-camera video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.id-camera-frame { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.id-camera-frame span { width: min(86vw, calc((100vh - 220px) * 1.586)); aspect-ratio: 1.586; border: 3px solid #fff; border-radius: 16px;
+  box-shadow: 0 0 0 100vmax rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.35); }
+.id-camera.is-taken .id-camera-frame span { border-color: var(--brand-green); }
+.id-camera-tip { position: absolute; top: max(14px, env(safe-area-inset-top)); inset-inline: 16px; text-align: center; color: #fff; font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0,0,0,.8); font-size: 1.05rem; }
+.id-camera-bar { position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); inset-inline: 0; display: flex; align-items: center; justify-content: center; gap: 2rem; }
+.id-camera-bar .btn { border-radius: 999px; min-height: 48px; }
+.id-camera-shutter { width: 78px; height: 78px; border-radius: 50%; border: 5px solid rgba(255,255,255,.55); background: #fff; background-clip: padding-box; }
+.id-camera-shutter:active { background: #ddd; }
+.id-camera-open-btn { margin-bottom: .5rem; }
+@media (prefers-reduced-motion: no-preference) { .id-camera.is-taken video { opacity: .4; transition: opacity .12s; } }
+
+/* A photo kept from a try that came back with an error */
+.kept-photo { display: flex; gap: .75rem; align-items: center; margin-top: .5rem; padding: .5rem .65rem; border: 1px dashed var(--bs-success);
+  border-radius: var(--radius-xs); background: #F1FAF3; font-size: .88rem; }
+.kept-photo img { width: 7.5rem; max-width: 40%; border-radius: var(--radius-xs); box-shadow: var(--shadow-1); background: #fff; }
+
+/* The city list under the governorate: the box to write another place opens under the list */
+.city-select + input:not([hidden]) { margin-top: .5rem; }
+
+/* The signature pad and the signatures on the printed papers */
+.signature-card { max-width: 980px; }
+.signature-pad-wrap { position: relative; border: 2px dashed var(--line-strong); border-radius: var(--radius); background: #fff; }
+.signature-pad { display: block; width: 100%; height: auto; aspect-ratio: 900 / 320; cursor: crosshair; border-radius: var(--radius); }
+.signature-pad-line { position: absolute; inset-inline: 8%; bottom: 22%; border-bottom: 1px solid var(--line-strong); pointer-events: none; }
+.signature-saved { max-height: 90px; max-width: 280px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 4px; }
+.signature-small { max-height: 54px; }
+.print-signatures { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; }
+.print-signature { flex: 1 1 0; min-width: 0; text-align: center; font-size: .8rem; }
+.print-signature-img { height: 46px; display: flex; align-items: flex-end; justify-content: center; }
+.print-signature-img img { max-height: 46px; max-width: 100%; }
+.print-signature-line { border-bottom: 1px solid #333; margin: 2px 8% 3px; }
+.print-signature-who { line-height: 1.25; }
+.prescription-a5 .print-signature-img { height: 60px; }
+.prescription-a5 .print-signature-img img { max-height: 60px; }
+.receipt-service { display: flex; justify-content: space-between; gap: .5rem; }
+.receipt-80 .print-signatures { margin-top: .9rem; }
+.receipt-80 .print-signature { font-size: .72rem; }
+
+/* The steps of a purchase return */
+.return-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.return-step { padding: .6rem .75rem; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-3); font-size: .9rem; }
+.return-step b { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--line); color: var(--ink-2); margin-inline-end: .35rem; }
+.return-step.is-done { color: var(--ink); border-color: #b7dfc2; background: #F1FAF3; }
+.return-step.is-done b { background: var(--bs-success); color: #fff; }
+.return-step.is-now { color: var(--ink); border-color: var(--bs-warning); background: #FFF8E6; font-weight: 600; }
+.return-step.is-now b { background: var(--bs-warning); color: #222; }
+@media (max-width: 767.98px) { .return-steps { grid-template-columns: 1fr; } }
+/* Price changes */
+.price-up { color: var(--bs-danger); font-weight: 600; white-space: nowrap; }
+.price-down { color: var(--bs-success); font-weight: 600; white-space: nowrap; }
+.price-hint { font-size: .78rem; margin-top: .2rem; line-height: 1.2; }
+
+/* A complaint opened in place in the list, with its comment box */
+tr.complaint-row { cursor: pointer; }
+tr.complaint-row.is-open > td { background: var(--section-soft); border-bottom-color: transparent; }
+.complaint-chevron { font-size: .75rem; color: var(--ink-3); transition: transform var(--fast) var(--ease); display: inline-block; }
+tr.complaint-row.is-open .complaint-chevron { transform: rotate(180deg); }
+tr.complaint-panel > td { background: var(--section-soft); padding: .25rem .75rem 1rem; }
+.complaint-open { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 1rem; }
+.complaint-open-text { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .75rem; white-space: normal; }
+.complaint-open-talk { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: .75rem; }
+.complaint-comment textarea { min-height: 3.2rem; }
+.timeline li.is-new { animation: comment-in .6s var(--ease); }
+@keyframes comment-in { from { background: #FFF3C4; } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .timeline li.is-new { animation: none; } .complaint-chevron { transition: none; } }
+@media (max-width: 991.98px) { .complaint-open { grid-template-columns: 1fr; } }
+
+/* The lab request icon (round 13): a request sheet with a tooth, drawn like the implant icon and used like the
+   others, <i class="bi bi-lab-request"></i>, taking the colour and size of the text. */
+.bi-lab-request::before {
+  content: "";
+  width: 1em;
+  height: 1em;
+  background-color: currentColor;
+  -webkit-mask: var(--icon-lab-request) center / contain no-repeat;
+  mask: var(--icon-lab-request) center / contain no-repeat;
+}
+:root {
+  --icon-lab-request: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.15' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M5.4 2.2H4A1.4 1.4 0 0 0 2.6 3.6v10A1.4 1.4 0 0 0 4 15h8a1.4 1.4 0 0 0 1.4-1.4v-10A1.4 1.4 0 0 0 12 2.2h-1.4'/%3E%3Crect x='5.4' y='1' width='5.2' height='2.3' rx='.7'/%3E%3Cpath d='M5.5 6.1c.9-.7 1.75-.35 2.5.05.75-.4 1.6-.75 2.5-.05.95.75.8 2.25.3 3.45-.35.85-.45 2.75-1.2 2.75-.65 0-.65-1.75-1.6-1.75s-.95 1.75-1.6 1.75c-.75 0-.85-1.9-1.2-2.75-.5-1.2-.65-2.7.3-3.45z'/%3E%3C/svg%3E");
+}
+
+/* Report a problem: the picture or the video that goes with it, and the bar while the screen is recorded */
+.problem-attach { border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); padding: .6rem .7rem; background: var(--surface-2); }
+.problem-attached { display: flex; gap: .6rem; align-items: center; margin-top: .5rem; }
+.problem-attached img, .problem-attached video { max-width: 9rem; max-height: 6rem; border-radius: var(--radius-xs); box-shadow: var(--shadow-1); background: #000; }
+.problem-recording { position: fixed; z-index: 2000; bottom: calc(var(--bottom-bar) + 16px); inset-inline-start: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: .6rem; padding: .45rem .6rem .45rem .9rem; border-radius: 999px; background: #B42318; color: #fff;
+  box-shadow: var(--shadow-3); font-size: .92rem; }
+[dir=rtl] .problem-recording { transform: translateX(50%); }
+.problem-recording-dot { width: .7rem; height: .7rem; border-radius: 50%; background: #fff; }
+@media (prefers-reduced-motion: no-preference) { .problem-recording-dot { animation: rec-blink 1s steps(2, start) infinite; } }
+@keyframes rec-blink { to { visibility: hidden; } }
+.problem-video { max-width: min(100%, 36rem); max-height: 320px; border-radius: var(--radius-xs); background: #000; }
+
+/* The owner's home: the four places side by side, the same size whatever place is chosen */
+.places-now { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+@media (max-width: 1199.98px) { .places-now { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 575.98px) { .places-now { grid-template-columns: 1fr; } }
+.place-now { border-top: 4px solid var(--place, var(--brand-green-dark)); display: flex; flex-direction: column; }
+.place-now.is-current { box-shadow: 0 0 0 2px var(--place, var(--brand-green-dark)), var(--shadow-2); }
+.place-now-head { display: flex; align-items: center; gap: .6rem; padding: .75rem .85rem .5rem; }
+.place-now-mark { width: 44px; height: 44px; object-fit: contain; border-radius: 10px; background: #fff; box-shadow: var(--shadow-1); padding: 3px; flex: none; }
+.place-now-name { font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.place-now-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem .75rem; padding: .25rem .85rem .6rem; flex: 1; }
+.place-now-stats div { display: flex; flex-direction: column; min-width: 0; }
+.place-now-stats b { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.place-now-stats span { font-size: .75rem; color: var(--ink-3); }
+.place-now-foot { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; padding: .5rem .85rem .7rem; border-top: 1px solid var(--line); }
+.place-now-foot form { margin: 0; }
+.min-w-0 { min-width: 0; }
+
+/* The finders, each on its own page: a row of tabs between them */
+.finder-tabs { display: flex; flex-wrap: wrap; gap: .4rem; }
+.finder-tab { display: inline-flex; align-items: center; gap: .45rem; padding: .45rem .8rem; border-radius: 999px; border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--ink-2); text-decoration: none; font-size: .9rem; }
+.finder-tab:hover { border-color: var(--section); color: var(--section); }
+.finder-tab.is-active { background: var(--section); border-color: var(--section); color: #fff; }
+.quick-groups { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }

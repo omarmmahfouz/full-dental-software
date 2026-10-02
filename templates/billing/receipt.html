@@ -13,15 +13,15 @@
     <tr><th>{% trans "Receipt number" %}</th><td class="fw-bold">{{ payment.receipt_number }}</td></tr>
     <tr><th>{% trans "Date" %}</th><td>{{ payment.paid_on|date:"d/m/Y" }} {{ payment.created_at|date:"g:i A" }}</td></tr>
     <tr><th>{% if payment.is_refund %}{% trans "Given back to" %}{% else %}{% trans "Received from" %}{% endif %}</th><td>{{ payment.patient.full_name }}<br><span class="ltr">{{ payment.patient.file_number }}</span></td></tr>
-    {% if payment.charge %}<tr><th>{% trans "For" %}</th><td>{{ payment.charge.service }}</td></tr>{% elif payment.bill %}<tr><th>{% trans "Bill" %}</th><td>{{ payment.bill.number }}</td></tr>{% endif %}
+    {% if payment.bill %}<tr><th>{% trans "Bill" %}</th><td>{{ payment.bill.number }}</td></tr>{% endif %}
+    <tr class="receipt-services"><th>{% trans "For" %}</th><td>{% for charge, amount in services %}<div class="receipt-service"><span>{{ charge.service }}{% if charge.teeth %} <span class="ltr">({{ charge.teeth }})</span>{% endif %}</span>{% if amount is not None and services|length > 1 %} <b class="text-nowrap">{{ amount|money }}</b>{% endif %}</div>{% empty %}{% if payment.is_refund %}{% trans "Money given back" %}{% else %}{% trans "Paid in advance (no service given yet)" %}{% endif %}{% endfor %}</td></tr>
     {% if payment.refund_of %}<tr><th>{% trans "Refund of" %}</th><td>{{ payment.refund_of.receipt_number }}</td></tr>{% endif %}
     <tr class="receipt-amount"><th>{% trans "Amount" %}</th><td>{{ payment.amount|money }} {{ CLINIC.CURRENCY }}</td></tr>
     <tr><th>{% trans "Payment method" %}</th><td>{{ payment.get_method_display }}{% if payment.fawry_machine %} — {{ payment.fawry_machine }}{% endif %}{% if payment.reference %}<br><span class="ltr">#{{ payment.reference }}</span>{% endif %}</td></tr>
     <tr><th>{% trans "Still to pay" %}</th><td>{{ account.balance|money }} {{ CLINIC.CURRENCY }}</td></tr>
     {% if payment.notes %}<tr><th>{% trans "Notes" %}</th><td>{{ payment.notes }}</td></tr>{% endif %}
-    <tr><th>{% trans "Received by" %}</th><td>{{ payment.created_by|default:"—" }}</td></tr>
   </table>
-  <div class="receipt-foot">{% trans "Signature" %}: ______________</div>
+  {% include "includes/signatures.html" with people=signatures %}
 </div>
 
 <div class="d-flex flex-wrap justify-content-center gap-2 mt-3 no-print">

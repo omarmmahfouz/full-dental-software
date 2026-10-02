@@ -56,9 +56,16 @@ def supplier_detail(request, pk):
     purchases = supplier.purchases.prefetch_related("items")
     total = PurchaseItem.objects.filter(purchase__supplier=supplier).aggregate(total=Sum(LINE_TOTAL))["total"]
     unpaid = sum((p.unpaid for p in purchases), Decimal("0"))
+    from .models import PurchaseReturn
+
+    returns = list(PurchaseReturn.objects.filter(purchase__supplier=supplier).select_related("purchase")
+                   .prefetch_related("lines__item"))
+    credit = sum((r.refunded for r in returns if r.settlement == PurchaseReturn.Settlement.CREDIT), Decimal("0"))
+    money_back = sum((r.refunded for r in returns if r.settlement == PurchaseReturn.Settlement.MONEY), Decimal("0"))
     return render(
         request, "purchasing/supplier_detail.html",
-        {"supplier": supplier, "purchases": purchases, "total": total or Decimal("0"), "unpaid": unpaid},
+        {"supplier": supplier, "purchases": purchases, "total": total or Decimal("0"), "unpaid": unpaid,
+         "returns": returns, "credit": credit, "money_back": money_back},
     )
 
 
@@ -101,6 +108,27 @@ def purchase_list(request):
     )
 
 
+PRICE_RISE_WARNING = 10  # percent: a stock item bought dearer than this is told to the owner and the stock manager
+
+
+def _tell_price_rises(purchase, user):
+    """Round 13: a price that went up a lot since the last purchase is told at once."""
+    from apps.core.models import Notification
+    from apps.core.notify import notify_roles
+    from apps.core.roles import OWNER, STOCK
+    from apps.stock.prices import before_purchase
+
+    changes = before_purchase(purchase)
+    for line in purchase.items.select_related("stock_item"):
+        before, change = changes.get(line.pk, (None, None))
+        if change is not None and change >= PRICE_RISE_WARNING:
+            notify_roles((OWNER, STOCK), gettext_lazy("Price up %(change)s%%: %(item)s"),
+                         gettext_lazy("From %(before)s to %(price)s (%(supplier)s)."),
+                         line.stock_item.get_absolute_url(), Notification.Level.WARNING, exclude=user,
+                         params={"change": f"{change:g}", "item": line.stock_item.name, "before": f"{before:g}",
+                                 "price": f"{line.unit_price:g}", "supplier": str(purchase.supplier)})
+
+
 def _purchase_form(request, purchase=None):
     form = PurchaseForm(request.POST or None, request.FILES or None, instance=purchase)
     formset = PurchaseItemFormSet(request.POST or None, instance=purchase or Purchase(), prefix="items")
@@ -115,14 +143,18 @@ def _purchase_form(request, purchase=None):
             formset.save()
             received = sync_purchase(purchase, request.user)
             fawry.sync(purchase)
+            _tell_price_rises(purchase, request.user)
         message = _("Purchase saved. Total: %(total)s") % {"total": purchase.total}
         if received:
             message += " " + _("%(n)s items added to stock.") % {"n": received}
         messages.success(request, message)
         return redirect(purchase)
+    from apps.stock.prices import last_prices
+
     return render(
         request, "purchasing/purchase_form.html",
-        {"form": form, "formset": formset, "title": _("Edit purchase") if purchase else _("New purchase")},
+        {"form": form, "formset": formset, "title": _("Edit purchase") if purchase else _("New purchase"),
+         "last_prices": last_prices(None)},
     )
 
 
@@ -138,8 +170,16 @@ def purchase_update(request, pk):
 
 @role_required(*PURCHASE_ROLES)
 def purchase_detail(request, pk):
+    from apps.stock.prices import before_purchase
+
     purchase = get_object_or_404(Purchase.objects.select_related("supplier", "created_by"), pk=pk)
+    changes = before_purchase(purchase)
+    items = list(purchase.items.select_related("category", "stock_item"))
+    for item in items:  # the price paid before this purchase, and the change
+        item.before, item.change = changes.get(item.pk, (None, None))
+        item.given_back = item.returned_quantity()
     return render(
         request, "purchasing/purchase_detail.html",
-        {"purchase": purchase, "items": purchase.items.select_related("category")},
+        {"purchase": purchase, "items": items,
+         "returns": purchase.returns.prefetch_related("lines__item").order_by("-returned_on", "-pk")},
     )

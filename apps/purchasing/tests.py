@@ -44,3 +44,117 @@ class PurchaseTests(TestCase):
     def test_supervisor_cannot_open_purchases(self):
         self.client.login(username="sup", password=PASSWORD)
         self.assertEqual(self.client.get("/purchases/").status_code, 403)
+
+
+class Round13PricesAndReturnsTests(TestCase):
+    """The price of each stock item followed purchase after purchase, and giving bought items back to the
+    supplier in three steps."""
+
+    def setUp(self):
+        from datetime import date
+
+        from apps.stock.models import StockCategory, StockItem
+        from apps.stock.services import sync_purchase
+
+        self.branch = setup_clinic()
+        self.stock = make_user("stock", "stock")
+        self.owner = make_user("owner", "owner")
+        self.client.login(username="stock", password=PASSWORD)
+        self.supplier = Supplier.objects.create(name="Dental Co")
+        self.category = PurchaseCategory.objects.get(name_en="Anaesthesia")
+        self.item = StockItem.objects.create(name="Articaine", category=StockCategory.objects.first(), unit="carpule")
+        self.first = Purchase.objects.create(branch=self.branch, supplier=self.supplier, purchase_date=date(2026, 9, 1),
+                                             created_by=self.stock)
+        self.line = self.first.items.create(category=self.category, description="Articaine", quantity=50,
+                                            unit_price=Decimal("18"), stock_item=self.item)
+        sync_purchase(self.first, self.stock)
+        self.sync = sync_purchase
+
+    def buy_again(self, price, day):
+        from datetime import date
+
+        purchase = Purchase.objects.create(branch=self.branch, supplier=self.supplier,
+                                           purchase_date=date(2026, 9, day), created_by=self.stock)
+        purchase.items.create(category=self.category, description="Articaine", quantity=10, unit_price=Decimal(price),
+                              stock_item=self.item)
+        self.sync(purchase, self.stock)
+        return purchase
+
+    def test_the_price_of_each_purchase_is_followed(self):
+        from apps.core.models import Notification
+        from apps.purchasing.views import _tell_price_rises
+        from apps.stock.prices import before_purchase, changes, history, last_prices
+
+        dearer = self.buy_again("21", 20)
+        line = dearer.items.get()
+        self.assertEqual(before_purchase(dearer)[line.pk], (Decimal("18"), Decimal("16.7")))
+        _tell_price_rises(dearer, self.stock)
+        self.assertTrue(Notification.objects.filter(recipient=self.owner, url=self.item.get_absolute_url()).exists())
+        rows, summary = history(self.item)
+        self.assertEqual([row["price"] for row in rows], [Decimal("21"), Decimal("18")])
+        self.assertEqual((summary["lowest"], summary["highest"], summary["times"]), (Decimal("18"), Decimal("21"), 2))
+        from datetime import date
+
+        found = changes(date(2026, 9, 10), date(2026, 9, 30))
+        self.assertEqual([(row["item"], row["before"], row["price"]) for row in found],
+                         [(self.item, Decimal("18"), Decimal("21"))])
+        self.assertEqual(last_prices([self.item])[self.item.pk]["price"], "21.00")
+        page = self.client.get("/stock/prices/?date_from=01/09/2026&date_to=30/09/2026")
+        self.assertContains(page, "16.7")
+        item_page = self.client.get(self.item.get_absolute_url())
+        self.assertContains(item_page, 'id="prices"')  # the stock manager reads it in Arabic
+        self.assertEqual(len(item_page.context["prices"]), 2)
+        self.assertContains(self.client.get(dearer.get_absolute_url()), "16.7")
+        cheaper = self.buy_again("17", 25)  # cheaper: no warning
+        Notification.objects.all().delete()
+        _tell_price_rises(cheaper, self.stock)
+        self.assertFalse(Notification.objects.exists())
+
+    def test_giving_back_to_the_supplier_step_by_step(self):
+        from apps.purchasing.models import PurchaseReturn
+
+        url = f"/purchases/{self.first.pk}/give-back/"
+        too_many = self.client.post(url, {"returned_on": "02/10/2026", "reason": "expired", f"line_{self.line.pk}": "60"})
+        self.assertIn(f"line_{self.line.pk}", too_many.context["form"].errors)
+        nothing = self.client.post(url, {"returned_on": "02/10/2026", "reason": "expired"})
+        self.assertTrue(nothing.context["form"].non_field_errors())
+        response = self.client.post(url, {"returned_on": "02/10/2026", "reason": "expired",
+                                          f"line_{self.line.pk}": "10"})
+        back = PurchaseReturn.objects.get()
+        self.assertRedirects(response, back.get_absolute_url(), fetch_redirect_response=False)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, Decimal("40"))  # step 1: out of the stock at once
+        self.assertEqual((back.status, back.value), (PurchaseReturn.Status.WAITING, Decimal("180.00")))
+        self.client.post(f"/purchases/returns/{back.pk}/taken/", {"t-taken_on": "03/10/2026", "t-taken_by": "Sameh"})
+        back.refresh_from_db()
+        self.assertEqual(back.status, PurchaseReturn.Status.TAKEN)
+        missing = self.client.post(f"/purchases/returns/{back.pk}/refund/", {"s-settlement": "money",
+                                                                            "s-settled_on": "05/10/2026"})
+        self.assertIn("method", missing.context["settle_form"].errors)
+        self.client.post(f"/purchases/returns/{back.pk}/refund/", {"s-settlement": "money", "s-method": "cash",
+                                                                  "s-settled_on": "05/10/2026"})
+        back.refresh_from_db()
+        self.assertEqual((back.status, back.refunded), (PurchaseReturn.Status.DONE, Decimal("180.00")))
+        self.assertEqual(self.first.refunded, Decimal("180.00"))
+        self.assertContains(self.client.get(self.first.get_absolute_url()), "180")
+        self.assertContains(self.client.get("/purchases/returns/"), "Dental Co")
+        # The owner's balance sheet counts the money back.
+        self.client.login(username="owner", password=PASSWORD)
+        sheet = self.client.get("/reports/balance/", {"date_from": "01/10/2026", "date_to": "31/10/2026"})
+        refunds = [row for row in sheet.context["cost_rows"] if "suppliers" in str(row["label"])]
+        self.assertEqual(refunds[0]["total"], Decimal("-180.00"))
+
+    def test_a_return_written_by_mistake_is_cancelled_and_the_items_come_back(self):
+        from apps.purchasing.models import PurchaseReturn
+
+        self.client.post(f"/purchases/{self.first.pk}/give-back/", {"returned_on": "02/10/2026", "reason": "wrong",
+                                                                    f"line_{self.line.pk}": "5"})
+        back = PurchaseReturn.objects.get()
+        self.client.post(f"/purchases/returns/{back.pk}/cancel/", {"reason": ""})  # a reason is needed
+        back.refresh_from_db()
+        self.assertEqual(back.status, PurchaseReturn.Status.WAITING)
+        self.client.post(f"/purchases/returns/{back.pk}/cancel/", {"reason": "Wrong purchase chosen"})
+        back.refresh_from_db()
+        self.item.refresh_from_db()
+        self.assertEqual((back.status, self.item.quantity), (PurchaseReturn.Status.CANCELLED, Decimal("50")))
+        self.assertEqual(self.first.items.get().returned_quantity(), 0)

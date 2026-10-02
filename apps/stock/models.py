@@ -126,6 +126,7 @@ class StockMovement(models.Model):
         OUT = "out", _("Taken out / used")
         WASTE = "waste", _("Damaged / expired")
         COUNT = "count", _("Stock count (correct the quantity)")
+        RETURN = "return", _("Given back to the supplier")
 
     item = models.ForeignKey(StockItem, verbose_name=_("item"), on_delete=models.CASCADE, related_name="movements")
     kind = models.CharField(_("movement"), max_length=10, choices=Kind.choices)

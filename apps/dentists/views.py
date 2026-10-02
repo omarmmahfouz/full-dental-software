@@ -16,7 +16,9 @@ from apps.clinical.models import TreatmentStep
 from apps.core.access import area_levels
 from apps.core.mixins import role_required
 from apps.core.models import AreaAccess, UserProfile, branch_for_user
-from apps.core.roles import CLINICAL, DENTIST, FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, TEAM_HEAD, has_role
+from apps.core.roles import (
+    CLINICAL, DENTIST, FRONT_DESK, HEAD_CIA, MODERATOR, OWNER, PATIENT_VIEWERS, TEAM_HEAD, has_role,
+)
 from apps.core.utils import normalize_phone
 from apps.patients.models import Patient
 from apps.surgery.models import Surgery, SurgerySite
@@ -135,6 +137,15 @@ def dentist_detail(request, pk):
         "opens": _opens(request.user),
         "lang_en": (request.LANGUAGE_CODE or "").startswith("en"),
     })
+
+
+@role_required(OWNER, HEAD_CIA, MODERATOR)
+def dentist_signature(request, pk):
+    """The signature of a doctor without a login, drawn on the screen (he signs on the tablet once)."""
+    from apps.core.signatures import signature_page
+
+    dentist = get_object_or_404(Dentist, pk=pk)
+    return signature_page(request, dentist, _("Signature of %(name)s") % {"name": dentist}, dentist.get_absolute_url())
 
 
 @role_required(OWNER, HEAD_CIA)

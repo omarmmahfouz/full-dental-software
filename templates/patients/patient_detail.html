@@ -16,7 +16,7 @@
     {% if patient.status == "out" %}<div class="alert alert-danger py-1 px-2 small d-inline-block mb-1"><i class="bi bi-box-arrow-right"></i> {% trans "Out" %}: {{ patient.out_reason|default:"" }}{% if patient.out_notes %} — {{ patient.out_notes }}{% endif %}
       {% if moved_to %}· {% if moved_to_opens %}<a href="{{ moved_to.get_absolute_url }}" class="alert-link">{% blocktrans with place=moved_to.branch.badge file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}</a>{% else %}{% blocktrans with place=moved_to.branch.badge file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}{% endif %}{% endif %}</div>{% endif %}
     <div class="mt-1">
-      {% for lr in open_labs %}<span class="lab-flag"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}: {{ lr.work_type }} — {{ lr.get_status_display }}</span> {% endfor %}
+      {% for lr in open_labs %}<span class="lab-flag"><i class="bi bi-lab-request"></i> {% trans "Lab work" %}: {{ lr.work_type }} — {{ lr.get_status_display }}</span> {% endfor %}
       {% for c in complaints %}{% if c.is_open %}<span class="complaint-flag"><i class="bi bi-exclamation-circle"></i> {% trans "Open complaint" %} {{ c.number }}</span> {% endif %}{% endfor %}
     </div>
     </div>
@@ -25,12 +25,13 @@
     {% if is_clinical %}
     {% if next_step %}<a class="btn btn-warning" href="{{ next_step.url }}"><i class="bi {{ next_step.icon }}"></i> {% trans "Next" %}: {{ next_step.label }}</a>{% endif %}
     <a class="btn btn-success" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i> {% trans "Dental chart" %}</a>
+    <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-lab-request"></i> {% trans "Lab request" %}</a>
     <div class="btn-group">
       <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-plus-square"></i> {% trans "Record" %}</button>
       <ul class="dropdown-menu">
         <li><a class="dropdown-item" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}"><i class="bi bi-plus-square"></i> {% trans "Treatment step" %}</a></li>
         <li><a class="dropdown-item" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-implant"></i> {% trans "Surgery chart" %}</a></li>
-        <li><a class="dropdown-item" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-box-seam"></i> {% trans "Lab request" %}</a></li>
+        <li><a class="dropdown-item" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-lab-request"></i> {% trans "Lab request" %}</a></li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="{% url 'clinical:outside_create' %}?patient={{ patient.pk }}&amp;kind=cbct"><i class="bi bi-radioactive"></i> {% trans "CBCT request" %}</a></li>
         <li><a class="dropdown-item" href="{% url 'clinical:outside_create' %}?patient={{ patient.pk }}&amp;kind=medical_lab"><i class="bi bi-droplet"></i> {% trans "Medical lab request" %}</a></li>
@@ -116,6 +117,8 @@
           <dt>{% trans "Mobile 1" %}</dt><dd><span class="ltr">{{ patient.phone_primary }}</span>{% if patient.preferred_phone == "primary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
           <dt>{% trans "Mobile 2" %}</dt><dd><span class="ltr">{{ patient.phone_secondary|default:"—" }}</span>{% if patient.preferred_phone == "secondary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
           <dt>{% trans "Address" %}</dt><dd>{{ patient.get_governorate_display }}{% if patient.governorate and patient.city %} — {% endif %}{{ patient.city }} {{ patient.address }}</dd>
+          <dt>{% trans "How far he lives" %}</dt><dd>{% if patient.travel_minutes %}{% blocktrans with n=patient.travel_minutes %}{{ n }} minutes{% endblocktrans %}{% else %}—{% endif %}</dd>
+          <dt>{% trans "Visits he prefers" %}</dt><dd>{% if patient.preferred_days or patient.preferred_times %}{{ patient.preferred_day_list|join:"، " }}{% if patient.preferred_days and patient.preferred_times %} · {% endif %}{{ patient.preferred_time_list|join:", " }}{% else %}{% trans "any day, any time" %}{% endif %}</dd>
           <dt>{% trans "Responsible dentist" %}</dt><dd class="fw-bold">{{ patient.assigned_dentist|default:"—" }}</dd>
           {% if patient.brought_by %}<dt>{% trans "The doctor's own patient" %}</dt><dd><span class="badge text-bg-warning">{% blocktrans with doctor=patient.brought_by %}brought by {{ doctor }}{% endblocktrans %}</span></dd>{% endif %}
           <dt>{% trans "Registered" %}</dt><dd class="small text-muted">{{ patient.created_at|date:"d/m/Y" }} — {{ patient.created_by|default:"" }}</dd>

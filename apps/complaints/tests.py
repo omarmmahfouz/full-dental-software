@@ -173,3 +173,38 @@ class OwnComplaintsTests(TestCase):
         self.client.login(username="dentist", password=PASSWORD)
         self.assertEqual(self.client.get(f"/complaints/{self.about_me.pk}/follow-up/{follow_up.pk}/edit/").status_code, 403)
         self.assertEqual(self.client.post(f"/complaints/{self.about_me.pk}/situation/", {"current_situation": "x"}).status_code, 403)
+
+
+class Round13CommentTests(TestCase):
+    """One tap opens a complaint in the list, and a comment is written there at once."""
+
+    setUp = OwnComplaintsTests.setUp
+
+    def test_a_comment_is_written_on_the_spot_and_the_people_are_told(self):
+        from apps.complaints.models import ComplaintFollowUp
+
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/complaints/")
+        self.assertContains(page, "data-expand-row")
+        self.assertContains(page, f'action="/complaints/{self.about_me.pk}/comment/"')
+        answer = self.client.post(f"/complaints/{self.about_me.pk}/comment/", {"note": "Called him: better today"},
+                                  HTTP_X_REQUESTED_WITH="fetch").json()
+        self.assertTrue(answer["ok"])
+        self.assertIn("Called him: better today", answer["html"])
+        comment = ComplaintFollowUp.objects.get()
+        self.assertEqual((comment.action, comment.new_status), (ComplaintFollowUp.Action.NOTE, self.about_me.status))
+        self.assertTrue(Notification.objects.filter(recipient=self.mine.user,
+                                                    url=self.about_me.get_absolute_url()).exists())
+        empty = self.client.post(f"/complaints/{self.about_me.pk}/comment/", {"note": " "},
+                                 HTTP_X_REQUESTED_WITH="fetch")
+        self.assertEqual(empty.status_code, 400)
+        # Without the page's script it is an ordinary form that goes back to the list.
+        back = self.client.post(f"/complaints/{self.about_me.pk}/comment/", {"note": "again", "next": "/complaints/"})
+        self.assertEqual(back["Location"], "/complaints/")
+
+    def test_a_dentist_comments_only_on_the_complaints_he_sees(self):
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.client.post(f"/complaints/{self.about_me.pk}/comment/", {"note": "Seen"}).status_code,
+                         302)
+        self.assertEqual(self.client.post(f"/complaints/{self.about_other.pk}/comment/", {"note": "x"}).status_code,
+                         404)

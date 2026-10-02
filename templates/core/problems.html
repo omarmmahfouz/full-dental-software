@@ -24,6 +24,8 @@
     {% if r.page %}<div class="small mb-1"><b>{% trans "Page" %}:</b> <a href="{{ r.page }}" dir="ltr">{{ r.page }}</a></div>{% endif %}
     <div>{{ r.description|linebreaksbr }}</div>
     {% if r.screenshot %}<a href="{{ r.screenshot.url }}" target="_blank"><img src="{{ r.screenshot|preview }}" alt="" loading="lazy" class="img-thumbnail mt-2" style="max-height: 180px"></a>{% endif %}
+    {% if r.video %}<div class="mt-2"><video src="{{ r.video.url }}" controls preload="metadata" class="problem-video"></video>
+      <div class="small"><a href="{{ r.video.url }}" target="_blank"><i class="bi bi-camera-video"></i> {% trans "Open the video" %}</a></div></div>{% endif %}
     {% if r.error %}<details class="mt-2"><summary class="small text-muted">{% trans "Technical details" %}</summary><pre class="small bg-body-tertiary p-2 mb-0" dir="ltr" style="white-space: pre-wrap">{{ r.error }}</pre></details>{% endif %}
     <form method="post" action="{% url 'core:problem_update' r.pk %}" class="d-flex flex-wrap gap-2 align-items-start mt-3">{% csrf_token %}
       <input type="hidden" name="back" value="{{ status }}">

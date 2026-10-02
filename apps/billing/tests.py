@@ -217,8 +217,15 @@ class FawryTests(TestCase):
         self.assertEqual(FawryMove.objects.count(), 4)
         self.assertEqual(held_at_fawry(), Decimal("180"))  # 980 - 200 - 100 - 500
         page = self.client.get("/billing/fawry/")
+        # Round 13: the reception sees the moves she did herself, not the money held at Fawry.
+        self.assertNotIn("held_now", page.context)
+        self.assertEqual(len(page.context["moves"]), 3)
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/billing/fawry/")
         self.assertEqual(page.context["held_now"], Decimal("180"))
         self.assertEqual(page.context["moves"][0].running, Decimal("180"))
+        self.assertEqual(len(page.context["moves"]), 4)
+        self.client.login(username="sec", password=PASSWORD)
         # A bill paid through the machine needs to say which bill.
         response = self.client.post("/billing/fawry/new/", {"kind": "service", "branch": self.cic.pk, "moved_on": today,
                                                             "amount": "50"})
@@ -338,3 +345,74 @@ class ReceiptReviewTests(TestCase):
         self.assertEqual(closing.reviewed_by, self.owner)
         month = self.client.get("/billing/month/")
         self.assertEqual(month.context["rows"][0]["closing"], closing)
+
+
+class Round13ReceiptAndFawryTests(TestCase):
+    """The receipt names the services it pays and carries the signatures; each person sees the Fawry moves they
+    did; the owner changes Fawry's percentage on the Fawry page."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.patient = make_patient(self.branch)
+        self.sec = make_user("sec", "secretary", first_name="Mona")
+        self.client.login(username="sec", password=PASSWORD)
+        self.cbct = Service.objects.get(name_en="CBCT")
+        self.consult = Service.objects.get(name_en="Consultation")
+
+    def test_receipt_shows_each_service_it_pays_and_the_signatures(self):
+        from apps.billing.models import paid_services
+        from apps.core.models import UserProfile
+        from apps.core.testing import make_dentist
+
+        doctor = make_dentist("drmona", kind="fulltime", name="Dr. Mona")
+        UserProfile.objects.update_or_create(user=doctor.user, defaults={"signature": "data:image/png;base64,QUJD"})
+        UserProfile.objects.update_or_create(user=self.sec, defaults={"signature": "data:image/png;base64,REVG"})
+        first = Charge.objects.create(patient=self.patient, service=self.consult, price=Decimal("300"), teeth="",
+                                      dentist=doctor, charged_on=timezone.localdate())
+        second = Charge.objects.create(patient=self.patient, service=self.cbct, price=Decimal("1000"), teeth="36",
+                                       charged_on=timezone.localdate())
+        one = PatientPayment.objects.create(patient=self.patient, amount=Decimal("500"), created_by=self.sec)
+        two = PatientPayment.objects.create(patient=self.patient, amount=Decimal("400"), created_by=self.sec)
+        # Paid oldest first, one receipt after the other.
+        self.assertEqual([(c.pk, a) for c, a in paid_services(one)], [(first.pk, Decimal("300")), (second.pk, Decimal("200"))])
+        self.assertEqual([(c.pk, a) for c, a in paid_services(two)], [(second.pk, Decimal("400"))])
+        page = self.client.get(one.get_absolute_url())
+        self.assertContains(page, str(self.cbct))
+        self.assertContains(page, "(36)")
+        self.assertContains(page, "data:image/png;base64,REVG")  # the secretary's signature
+        self.assertContains(page, "data:image/png;base64,QUJD")  # the doctor of the first service
+        advance = PatientPayment.objects.create(patient=make_patient(self.branch, nid="29001011234568",
+                                                                     phone="01001234568"), amount=Decimal("100"))
+        self.assertEqual(paid_services(advance), [])
+        self.assertContains(self.client.get(advance.get_absolute_url()), "مدفوع مقدمًا")  # the secretary reads Arabic
+
+    def test_each_person_sees_the_fawry_moves_they_did(self):
+        from apps.billing.models import FawryMove
+
+        other = make_user("sec2", "secretary")
+        PatientPayment.objects.create(patient=self.patient, amount=Decimal("300"), method="fawry", created_by=self.sec)
+        PatientPayment.objects.create(patient=self.patient, amount=Decimal("200"), method="fawry", created_by=other)
+        self.assertEqual(set(FawryMove.objects.values_list("created_by__username", flat=True)), {"sec", "sec2"})
+        page = self.client.get("/billing/fawry/")
+        self.assertEqual([m.created_by for m in page.context["moves"]], [self.sec])
+        self.assertNotIn("held_now", page.context)
+        self.assertNotIn("person", page.context["form"].fields)
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/billing/fawry/")
+        self.assertEqual(len(page.context["moves"]), 2)
+        page = self.client.get(f"/billing/fawry/?person={other.pk}")
+        self.assertEqual([m.created_by for m in page.context["moves"]], [other])
+
+    def test_the_owner_changes_the_fawry_percentage_on_the_fawry_page(self):
+        from apps.core.models import ClinicSettings
+
+        self.assertNotIn("percent_form", self.client.get("/billing/fawry/").context)
+        self.assertEqual(self.client.post("/billing/fawry/percent/", {"percent": "3"}).status_code, 403)
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertIn("percent_form", self.client.get("/billing/fawry/").context)
+        self.client.post("/billing/fawry/percent/", {"percent": "1.75"})
+        self.assertEqual(ClinicSettings.objects.get().fawry_fee_percent, Decimal("1.75"))
+        self.client.post("/billing/fawry/percent/", {"percent": "50"})  # refused: not a real percentage
+        self.assertEqual(ClinicSettings.objects.get().fawry_fee_percent, Decimal("1.75"))

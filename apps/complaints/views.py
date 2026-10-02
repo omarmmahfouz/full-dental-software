@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -28,7 +29,8 @@ class ComplaintListView(RoleRequiredMixin, ListView):
         qs = Complaint.objects.visible_to(self.request.user).filter(
             branch=branch_for_user(self.request.user)).select_related(  # each place has its own complaints
             "patient", "assigned_to", "concerned_staff", "concerned_dentist"
-        )
+        ).prefetch_related(Prefetch("follow_ups", queryset=ComplaintFollowUp.objects.select_related("created_by")
+                                    .order_by("-created_at")))
         if self.filter_form.is_valid():
             data = self.filter_form.cleaned_data
             if data.get("status") == "open":
@@ -205,6 +207,43 @@ def complaint_follow_up(request, pk):
         params={"number": complaint.number, "status": complaint.get_status_display(), "note": follow_up.note[:300]},
     )
     messages.success(request, _("Follow-up saved."))
+    return redirect(complaint)
+
+
+@role_required(*PATIENT_VIEWERS)
+@require_POST
+def complaint_comment(request, pk):
+    """Round 13: a comment written on the spot (the list opens a complaint in place, or the top of its page). It is
+    kept as a follow-up step that does not change the status; the people of the complaint are told."""
+    from django.http import JsonResponse
+    from django.template.loader import render_to_string
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    complaint = get_object_or_404(Complaint.objects.visible_to(request.user).select_related("concerned_dentist"),
+                                  pk=pk)
+    note = (request.POST.get("note") or "").strip()
+    wants_json = request.headers.get("x-requested-with") == "fetch"
+    if not note:
+        if wants_json:
+            return JsonResponse({"ok": False, "error": _("Write the comment first.")}, status=400)
+        messages.error(request, _("Write the comment first."))
+        return redirect(complaint)
+    follow_up = ComplaintFollowUp.objects.create(
+        complaint=complaint, action=ComplaintFollowUp.Action.NOTE, note=note[:4000], new_status=complaint.status,
+        created_by=request.user)
+    complaint.save(update_fields=["updated_at"])
+    dentist_user = complaint.concerned_dentist.user if complaint.concerned_dentist_id else None
+    notify_users([complaint.created_by, complaint.assigned_to, dentist_user],
+                 gettext_lazy("%(who)s commented on complaint %(number)s"), "%(note)s", complaint.get_absolute_url(),
+                 exclude=request.user, params={"number": complaint.number, "who": request.user, "note": note[:300]})
+    if wants_json:
+        follow_up.can_edit = _can_edit_follow_up(request.user, follow_up)
+        return JsonResponse({"ok": True, "html": render_to_string("complaints/_follow_up.html", {
+            "f": follow_up, "complaint": complaint}, request=request)})
+    messages.success(request, _("Comment saved."))
+    back = request.POST.get("next") or ""
+    if back and url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}):
+        return redirect(back)
     return redirect(complaint)
 
 

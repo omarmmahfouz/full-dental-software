@@ -98,3 +98,16 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
 43. Five wrong passwords close the `stock` login for 15 minutes (the owner can open it); a PC left open logs out by itself.
 44. A movement typed when the network stopped is offered back on the same page (**Put it back** / **No, throw it away**).
     The owner keeps every deleted record for a year.
+
+## Q. New in this version (13): prices and giving back to the supplier
+45. Open the item **Carpule articaine (Spain)**: *Prices paid*: 21 (INV-1043, +16.7%) and 18 before; the lowest, the
+    highest, the average and the cheapest supplier.
+46. "المخزن" → **تغيّر الأسعار**: what was bought dearer (articaine +16.7%) or cheaper (tea −8%), from any dates.
+47. "فاتورة شراء جديدة": choose a stock item on a line: under the price shows the last price paid and how much dearer
+    or cheaper the new one is. Save a price 10% higher or more: the owner and you get a notification.
+48. Open the invoice **INV-1043**: each line shows its change from the time before.
+49. **مرتجع للمورّد**: open the first invoice of «شركة المستلزمات الطبية» → «مرتجع للمورّد»: write how many go back
+    and why → step 1 (the stock goes down at once). Then «المورّد استلمهم» (step 2), then «المبلغ رجع» (step 3: money,
+    credit or new items; new items come back into the stock). «المرتجعات للموردين» lists them, the open ones first.
+50. A return written by mistake: «إلغاء المرتجع» with the reason: its items come back into the stock.
+51. "حركة مخزن" no longer offers «مرتجع للمورّد»: it is done from the invoice only.

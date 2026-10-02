@@ -373,3 +373,34 @@ class StepKindsTests(TestCase):
         text = SimpleUploadedFile("notes.txt", b"hello", content_type="text/plain")
         self.client.post(f"/clinical/steps/{step.pk}/photo/", {"shot": "pa_before", "file": text})
         self.assertEqual(ClinicalPhoto.objects.count(), 1)  # only photos or PDF
+
+
+class Round13RestorativeFinderTests(TestCase):
+    """Restorative work on its own page: the treatment log without surgery, grouped for statistics."""
+
+    def setUp(self):
+        from apps.clinical.models import TreatmentStep, TreatmentStepType
+        from apps.core.testing import make_dentist, make_patient
+
+        self.branch = setup_clinic()
+        make_user("head", "head_cia")
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        patient = make_patient(self.branch)
+        types = {t.group: t for t in TreatmentStepType.objects.all()}
+        for group, teeth in (("fillings", "36"), ("fillings", "11"), ("endo", "46"), ("surgery", "36")):
+            TreatmentStep.objects.create(patient=patient, step_type=types[group], teeth=teeth, operator=self.dentist)
+
+    def test_restorative_work_is_found_and_grouped_apart_from_surgery(self):
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.client.get("/clinical/restorative-finder/").status_code, 403)
+        self.client.login(username="head", password=PASSWORD)
+        page = self.client.get("/clinical/restorative-finder/")
+        self.assertEqual(page.context["overall"]["steps"], 3)  # the surgery is not restorative work
+        kinds = {row["code"]: row["steps"] for row in page.context["kinds"]}
+        self.assertEqual(kinds, {"fillings": 2, "endo": 1})
+        grouped = self.client.get("/clinical/restorative-finder/", {"group_by": "region"}).context["groups"]
+        self.assertEqual({g["key"]: g["steps"] for g in grouped}, {"Posterior": 2, "Anterior": 1})
+        self.assertEqual(self.client.get("/clinical/restorative-finder/", {"groups": "endo"}).context["overall"]["steps"], 1)
+        self.assertEqual(self.client.get("/clinical/restorative-finder/", {"teeth": "11"}).context["overall"]["steps"], 1)
+        csv = self.client.get("/clinical/restorative-finder/", {"export": "csv"}).content.decode("utf-8-sig")
+        self.assertEqual(len(csv.strip().splitlines()), 4)

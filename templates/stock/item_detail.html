@@ -30,6 +30,22 @@
       {% for l in lots %}<tr><td class="ltr">{{ l.lot|default:_("without lot number") }}</td><td class="small">{% if l.expiry %}<span class="{% if l.expiry <= today %}text-danger{% endif %}">{{ l.expiry|date:"m/Y" }}</span>{% endif %}</td><td class="text-end fw-semibold">{{ l.left|floatformat:"-2" }}</td></tr>{% endfor %}
     </tbody></table>{% if item.is_implant %}<div class="card-footer small text-muted">{% trans "The surgery chart takes implants out of stock by lot." %}</div>{% endif %}</div>
     {% endif %}{% endwith %}
+    {% if price_summary %}
+    <div class="card mt-3" id="prices"><div class="card-header"><i class="bi bi-graph-up"></i> {% trans "Prices paid" %}</div>
+      <div class="card-body pb-2"><dl class="dl-grid mb-2">
+        <dt>{% trans "Last" %}</dt><dd class="fw-semibold">{{ price_summary.last|money }}</dd>
+        <dt>{% trans "Lowest / highest" %}</dt><dd>{{ price_summary.lowest|money }} / {{ price_summary.highest|money }}</dd>
+        <dt>{% trans "Average" %}</dt><dd>{{ price_summary.average|money }} <span class="small text-muted">({% blocktrans count n=price_summary.times %}{{ n }} purchase{% plural %}{{ n }} purchases{% endblocktrans %})</span></dd>
+        {% if price_summary.cheapest_supplier %}<dt>{% trans "Cheapest" %}</dt><dd>{{ price_summary.cheapest_supplier }}</dd>{% endif %}
+      </dl></div>
+      <table class="table table-sm mb-0"><tbody>{% for p in prices %}<tr>
+        <td class="small text-nowrap">{% if p.purchase %}<a href="{% url 'purchasing:purchase_detail' p.purchase %}">{{ p.at|date:"d/m/Y" }}</a>{% else %}{{ p.at|date:"d/m/Y" }}{% endif %}</td>
+        <td class="small">{{ p.supplier|default:"—" }}</td>
+        <td class="text-end fw-semibold">{{ p.price|money }}</td>
+        <td class="text-end small">{% if p.change is not None %}{% if p.change > 0 %}<span class="price-up ltr">+{{ p.change }}%</span>{% elif p.change < 0 %}<span class="price-down ltr">{{ p.change }}%</span>{% else %}<span class="text-muted">=</span>{% endif %}{% endif %}</td>
+      </tr>{% endfor %}</tbody></table>
+    </div>
+    {% endif %}
   </div>
   <div class="col-lg-8">
     <div class="card mb-3 no-print"><div class="card-header">{% trans "Record a stock movement" %}</div><div class="card-body">

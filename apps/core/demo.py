@@ -1,5 +1,6 @@
 """Round 11 sample data: the security log (logins, wrong passwords, a login closed after wrong passwords, a visit
-from outside the clinic's network, files taken out, a page refused) and a record deleted by mistake."""
+from outside the clinic's network, files taken out, a page refused) and a record deleted by mistake. Round 13
+sample data: ``load_round_thirteen``."""
 
 from datetime import timedelta
 
@@ -72,3 +73,136 @@ def load_round_eleven(patients, secretary):
     with working_as(secretary, f"/patients/{patient.pk}/documents/{paper.pk}/delete/"):
         paper.delete()
     DeletedRecord.objects.filter(deleted_by=secretary).update(deleted_at=now - timedelta(hours=20))
+
+
+def signature_png(seed):
+    """A made-up handwritten signature (a few loops and a line under them) as a PNG data: address."""
+    import base64
+    import io
+    import math
+    import random
+
+    from PIL import Image, ImageDraw
+
+    rng = random.Random(seed)
+    image = Image.new("RGBA", (420, 140), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(image)
+    points, x = [], 18
+    loops = rng.randint(4, 7)
+    for n in range(loops * 12):
+        t = n / 12
+        x += 4.2 + rng.random() * 1.5
+        y = 70 + 28 * math.sin(t * math.pi * 1.6) * (0.6 + 0.4 * math.cos(t)) + rng.uniform(-3, 3)
+        points.append((x, y))
+    draw.line(points, fill=(11, 42, 107, 255), width=4, joint="curve")
+    draw.line([(30, 112), (x + 10, 104)], fill=(11, 42, 107, 255), width=3)
+    output = io.BytesIO()
+    image.save(output, "PNG")
+    return "data:image/png;base64," + base64.b64encode(output.getvalue()).decode()
+
+
+def load_round_thirteen(today, patients, secretary, stock_user, owner):
+    """Round 13 sample data: the patients' visit preferences and the new registration details, drawn signatures,
+    stock prices that changed, items given back to a supplier, comments on complaints and a problem reported with a
+    picture of the page."""
+    import random
+    from decimal import Decimal
+
+    from apps.complaints.models import Complaint, ComplaintFollowUp
+    from apps.dentists.models import Dentist
+    from apps.patients.models import DayPart, Patient
+    from apps.purchasing.models import Purchase, PurchaseCategory, PurchaseItem, PurchaseReturn, PurchaseReturnLine
+    from apps.purchasing.views import _tell_price_rises
+    from apps.stock.models import StockItem, StockMovement
+    from apps.stock.services import record_movement, sync_purchase
+
+    from .egypt import CITIES
+    from .models import ProblemReport, UserProfile
+
+    rng = random.Random(13)
+    jobs = ["مهندس", "مدرسة", "محاسب", "ربة منزل", "موظف", "طالب", "تاجر", "بالمعاش", "طبيب", "سائق"]
+    times = [code for code, _label in DayPart.choices]
+    for n, patient in enumerate(Patient.objects.filter(pk__in=[p.pk for p in patients]).order_by("pk")):
+        governorate = patient.governorate or rng.choice(["01", "21", "14"])
+        patient.governorate = governorate
+        patient.city = patient.city or rng.choice(CITIES.get(governorate, ["القاهرة"]))
+        patient.marital_status = patient.marital_status or rng.choice(["married", "married", "single", "widowed"])
+        patient.occupation = patient.occupation or rng.choice(jobs)
+        if not patient.phone_secondary:
+            patient.phone_secondary = f"0111{5000000 + patient.pk * 37:07d}"
+        if n % 3 != 2:  # most patients say how far they live and when they can come
+            patient.travel_minutes = rng.choice([15, 20, 30, 45, 60, 90, 120])
+            patient.preferred_days = ",".join(sorted(rng.sample(["5", "6", "0", "1", "2", "3"], rng.randint(1, 3))))
+            patient.preferred_times = ",".join(sorted(rng.sample(times, rng.randint(1, 2)), key=times.index))
+        Patient.objects.filter(pk=patient.pk).update(
+            governorate=patient.governorate, city=patient.city, marital_status=patient.marital_status,
+            occupation=patient.occupation, phone_secondary=patient.phone_secondary,
+            travel_minutes=patient.travel_minutes, preferred_days=patient.preferred_days,
+            preferred_times=patient.preferred_times)
+
+    # Signatures: the reception and the doctors drew theirs (user menu → My signature); a doctor without a login
+    # had his drawn on his page.
+    users = get_user_model().objects.in_bulk(field_name="username")
+    for seed, username in enumerate(["secretary", "khadem", "dentist1", "dentist2", "amr", "endo", "cicdoctor"]):
+        user = users.get(username)
+        if user is not None:
+            UserProfile.objects.update_or_create(user=user, defaults={"signature": signature_png(seed)})
+    no_login = Dentist.objects.filter(user__isnull=True, kind__in=Dentist.LOGIN_KINDS).first()
+    if no_login is not None:
+        Dentist.objects.filter(pk=no_login.pk).update(signature=signature_png(99))
+
+    # Prices that changed: the gloves and the articaine bought again, dearer and cheaper.
+    articaine = StockItem.objects.filter(name="Carpule articaine (Spain)").first()
+    tea = StockItem.objects.filter(name="Tea").first()
+    first = Purchase.objects.filter(items__stock_item=articaine).order_by("pk").first()
+    if articaine is not None and first is not None:
+        categories = {c.name_en: c for c in PurchaseCategory.objects.all()}
+        again = Purchase.objects.create(branch=first.branch, supplier=first.supplier, purchase_date=today,
+                                        invoice_number="INV-1043", created_by=stock_user)
+        PurchaseItem.objects.create(purchase=again, category=categories["Anaesthesia"], description="Articaine carpules",
+                                    quantity=40, unit="carpule", unit_price=Decimal("21"), stock_item=articaine)
+        if tea is not None:
+            PurchaseItem.objects.create(purchase=again, category=categories["Tea, coffee & sugar"], description="Tea",
+                                        quantity=1, unit="box", unit_price=Decimal("115"), stock_item=tea)
+        sync_purchase(again, stock_user)
+        _tell_price_rises(again, stock_user)  # +16.7%: the owner and the stock manager are told
+
+        # Given back to the supplier: 10 carpules near expiry (step 2: taken, waiting for the refund), and 2 more
+        # finished with a credit off the next invoice.
+        line = first.items.get(stock_item=articaine)
+        for quantity, step, reason in [(10, PurchaseReturn.Status.TAKEN, PurchaseReturn.Reason.EXPIRED),
+                                       (2, PurchaseReturn.Status.DONE, PurchaseReturn.Reason.DAMAGED)]:
+            back = PurchaseReturn.objects.create(purchase=first, returned_on=today - timedelta(days=2), reason=reason,
+                                                 notes="", created_by=stock_user, status=step,
+                                                 taken_on=today - timedelta(days=1), taken_by="أ. سامح (المندوب)")
+            PurchaseReturnLine.objects.create(purchase_return=back, item=line, quantity=quantity)
+            record_movement(articaine, StockMovement.Kind.RETURN, quantity, stock_user, branch=first.branch,
+                            notes=f"Given back #{back.pk} — {first.supplier}")
+            if step == PurchaseReturn.Status.DONE:
+                PurchaseReturn.objects.filter(pk=back.pk).update(
+                    settlement=PurchaseReturn.Settlement.CREDIT, settled_on=today, amount=Decimal("36"))
+
+    # Comments written on the spot on an open complaint (the list opens it in place).
+    complaint = Complaint.objects.filter(status__in=Complaint.OPEN_STATUSES).order_by("pk").first()
+    if complaint is not None:
+        dentist_user = complaint.concerned_dentist.user if complaint.concerned_dentist_id else None
+        for author, text in [(secretary, "كلمت المريض الصبح، قال إن الألم خف شوية وهييجي يوم السبت."),
+                             (dentist_user or owner, "Seen. I will check the bite on Saturday and adjust it.")]:
+            ComplaintFollowUp.objects.create(complaint=complaint, action=ComplaintFollowUp.Action.NOTE, note=text,
+                                             new_status=complaint.status, created_by=author)
+
+    # A problem reported with a picture of the page (Report a problem → Picture of this page).
+    from django.core.files.base import ContentFile
+    from PIL import Image, ImageDraw
+    import io
+
+    picture = Image.new("RGB", (1280, 720), (243, 245, 240))
+    ImageDraw.Draw(picture).rectangle((0, 0, 76, 720), fill=(20, 32, 16))
+    ImageDraw.Draw(picture).rectangle((110, 120, 1240, 680), fill=(255, 255, 255), outline=(220, 225, 215))
+    output = io.BytesIO()
+    picture.save(output, "JPEG", quality=80)
+    report = ProblemReport(page="/billing/fawry/", reported_by=secretary,
+                           description="الصفحة بتاخد وقت عشان تفتح لما أختار شهر كامل.",
+                           error="Browser: Chrome on Windows")
+    report.screenshot.save("page-demo.jpg", ContentFile(output.getvalue()), save=False)
+    report.save()

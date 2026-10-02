@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Returns to suppliers" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-box-arrow-left"></i> {% trans "Returns to suppliers" %}</h1>
+  <a class="btn btn-outline-secondary" href="{% url 'purchasing:purchase_list' %}"><i class="bi bi-receipt"></i> {% trans "Purchases" %}</a></div>
+<div class="card"><div class="table-responsive"><table class="table align-middle mb-0">
+  <thead><tr><th>#</th><th>{% trans "Date" %}</th><th>{% trans "Supplier" %}</th><th>{% trans "Items" %}</th><th>{% trans "Value" %}</th><th>{% trans "Step" %}</th><th>{% trans "Refund" %}</th></tr></thead>
+  <tbody>{% for r in returns %}<tr>
+    <td><a href="{{ r.get_absolute_url }}">{{ r.pk }}</a></td>
+    <td class="text-nowrap">{{ r.returned_on|date:"d/m/Y" }}</td>
+    <td>{{ r.purchase.supplier }}</td>
+    <td class="small">{% for line in r.lines.all %}{{ line.item.description }} × {{ line.quantity|floatformat:"-2" }}{% if not forloop.last %}، {% endif %}{% endfor %}</td>
+    <td>{{ r.value|money }}</td>
+    <td><span class="badge {% if r.status == 'done' %}text-bg-success{% elif r.status == 'cancelled' %}text-bg-secondary{% else %}text-bg-warning{% endif %}">{{ r.get_status_display }}</span></td>
+    <td>{% if r.status == "done" %}{{ r.get_settlement_display }}{% if r.settlement != "replaced" %}: {{ r.refunded|money }}{% endif %}{% else %}—{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="7" class="text-muted">{% trans "Nothing given back yet. To give back items, open the purchase and press “Give back to the supplier”." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

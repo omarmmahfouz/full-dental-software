@@ -1,11 +1,12 @@
 from django.urls import path
 
-from . import views
+from . import finder, views
 
 app_name = "clinical"
 
 urlpatterns = [
     path("steps/", views.StepListView.as_view(), name="step_list"),
+    path("restorative-finder/", finder.restorative_finder, name="restorative_finder"),
     path("steps/new/", views.step_create, name="step_create"),
     path("steps/<int:pk>/", views.step_detail, name="step_detail"),
     path("steps/<int:pk>/operator/", views.step_operator, name="step_operator"),

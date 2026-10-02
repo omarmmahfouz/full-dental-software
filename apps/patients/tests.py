@@ -38,6 +38,11 @@ class PatientRegistrationTests(TestCase):
             "missing_teeth": "single",
             "referral_source": self.facebook.pk,
             "assigned_dentist": self.dentist.pk,
+            # Required at registration since round 13 (the birth date, gender and governorate come from the ID).
+            "phone_secondary": "01101234567",
+            "marital_status": "married",
+            "occupation": "مهندس",
+            "city": "مدينة نصر",
         }
         data.update(overrides)
         return data
@@ -76,11 +81,14 @@ class PatientRegistrationTests(TestCase):
         response = self.client.post("/patients/new/", self.form_data(national_id="123"))
         self.assertIn("national_id", response.context["form"].errors)
 
-    def test_referral_by_patient_requires_the_referring_patient(self):
+    def test_referral_by_patient_choosing_the_patient_is_optional(self):
+        # Round 13: "referred by someone we have" no longer asks to type the referring patient.
         by_patient = ReferralSource.objects.get(asks_for_patient=True)
         referrer = make_patient(self.branch, nid="28501010101235", phone="01112223334")
-        response = self.client.post("/patients/new/", self.form_data(referral_source=by_patient.pk))
-        self.assertIn("referred_by_lookup", response.context["form"].errors)
+        self.client.post("/patients/new/", self.form_data(referral_source=by_patient.pk))
+        patient = Patient.objects.get(national_id="29001150101234")
+        self.assertIsNone(patient.referred_by)
+        patient.delete()
         self.client.post("/patients/new/", self.form_data(referral_source=by_patient.pk, referred_by_lookup="01112223334"))
         self.assertEqual(Patient.objects.get(national_id="29001150101234").referred_by, referrer)
 
@@ -297,7 +305,8 @@ class PatientDataTests(TestCase):
         self.client.post("/patients/new/", {
             "full_name": "محمد أحمد علي", "id_type": "nid", "national_id": "29001152101234", "phone_primary": "01001234567",
             "preferred_phone": "primary", "missing_teeth": "single", "referral_source": self.source.pk,
-            "registered_on": "03/02/2019",
+            "registered_on": "03/02/2019", "phone_secondary": "01101234567", "marital_status": "married",
+            "occupation": "محاسب", "city": "الدقي",
         })
         patient = Patient.objects.get()
         self.assertEqual((patient.registered_on, patient.governorate), (date(2019, 2, 3), "21"))  # Giza
@@ -755,3 +764,123 @@ class JourneyTests(TestCase):
         self.client.login(username="sec", password=PASSWORD)
         page = self.client.get("/patients/new/")
         self.assertContains(page, 'class="form-fold')
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class Round13RegistrationTests(TestCase):
+    """The ID photos kept after an error, the details required at registration, the city list, the visit
+    preferences and the referring patient made optional."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.secretary = make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.source = ReferralSource.objects.get(name_en="Facebook")
+
+    def data(self, **overrides):
+        data = {"full_name": "محمد أحمد علي حسن", "id_type": "nid", "national_id": "29001152101234",
+                "phone_primary": "01001234567", "phone_secondary": "01101234567", "preferred_phone": "primary",
+                "missing_teeth": "single", "referral_source": self.source.pk, "marital_status": "married",
+                "occupation": "مهندس", "city": "الدقي"}
+        data.update(overrides)
+        return data
+
+    @staticmethod
+    def photo(name="id.jpg"):
+        return SimpleUploadedFile(name, b"\xff\xd8\xff fake-image", content_type="image/jpeg")
+
+    def test_mobile_2_marital_status_occupation_and_city_are_required(self):
+        response = self.client.post("/patients/new/", self.data(phone_secondary="", marital_status="", occupation="",
+                                                                city=""))
+        errors = response.context["form"].errors
+        for name in ("phone_secondary", "marital_status", "occupation", "city"):
+            self.assertIn(name, errors, name)
+        self.assertFalse(Patient.objects.exists())
+
+    def test_birth_date_gender_and_governorate_come_from_the_id_or_are_required(self):
+        self.client.post("/patients/new/", self.data())
+        patient = Patient.objects.get()
+        self.assertEqual((patient.birth_date, patient.gender, patient.governorate), (date(1990, 1, 15), "M", "21"))
+        response = self.client.post("/patients/new/", self.data(id_type="passport", national_id="A1234567",
+                                                                phone_primary="01001234568",
+                                                                phone_secondary="01101234568"))
+        errors = response.context["form"].errors
+        for name in ("birth_date", "gender", "governorate"):
+            self.assertIn(name, errors, name)
+
+    def test_the_id_photos_are_kept_when_the_form_comes_back_with_an_error(self):
+        response = self.client.post("/patients/new/", self.data(occupation="", id_front=self.photo(),
+                                                                id_back=self.photo("back.jpg")))
+        self.assertIn("occupation", response.context["form"].errors)
+        tokens = {name: response.context["form"].fields[name].widget.kept_token for name in ("id_front", "id_back")}
+        self.assertTrue(all(tokens.values()))
+        self.assertContains(response, "id_front_kept")
+        # The kept photo opens for this person only.
+        self.assertEqual(self.client.get(f"/kept/{tokens['id_front']}/").status_code, 200)
+        other = self.client_class()
+        make_user("sec2", "secretary")
+        other.login(username="sec2", password=PASSWORD)
+        self.assertEqual(other.get(f"/kept/{tokens['id_front']}/").status_code, 404)
+        # The next save takes them without choosing them again.
+        self.client.post("/patients/new/", self.data(id_front_kept=tokens["id_front"], id_back_kept=tokens["id_back"]))
+        patient = Patient.objects.get()
+        self.assertEqual(sorted(patient.documents.values_list("kind", flat=True)), ["id_back", "id_front"])
+        self.assertEqual(self.client.get(f"/kept/{tokens['id_front']}/").status_code, 404)  # used once
+
+    def test_id_photos_can_be_added_from_the_edit_page(self):
+        patient = make_patient(self.branch, nid="29001152101234")
+        data = self.data(status="active", id_front=self.photo())
+        self.client.post(f"/patients/{patient.pk}/edit/", data)
+        self.assertEqual(list(patient.documents.values_list("kind", flat=True)), ["id_front"])
+
+    def test_visit_preferences_and_how_far_he_lives(self):
+        self.client.post("/patients/new/", self.data(travel_minutes="45", preferred_days=["5", "1"],
+                                                     preferred_times=["evening", "morning"]))
+        patient = Patient.objects.get()
+        self.assertEqual((patient.travel_minutes, patient.preferred_days, patient.preferred_times),
+                         (45, "5,1", "morning,evening"))
+        saturday_morning = timezone.make_aware(timezone.datetime(2026, 10, 3, 10, 0))
+        sunday_morning = timezone.make_aware(timezone.datetime(2026, 10, 4, 10, 0))
+        saturday_noon = timezone.make_aware(timezone.datetime(2026, 10, 3, 13, 0))
+        self.assertTrue(patient.prefers(saturday_morning))
+        self.assertFalse(patient.prefers(sunday_morning))
+        self.assertFalse(patient.prefers(saturday_noon))
+        answer = self.client.get(f"/patients/prefers/?q={patient.file_number}").json()
+        self.assertEqual(answer["days"], [5, 1])
+        self.assertEqual(answer["times"], [[9, 12], [18, 21]])
+        self.assertIn("45", answer["text"])
+        self.assertContains(self.client.get(patient.get_absolute_url()), "45")
+
+    def test_the_city_list_follows_the_governorate(self):
+        from apps.core.egypt import CITIES, city_in
+
+        page = self.client.get("/patients/new/").content.decode()
+        self.assertIn("data-city-list", page)
+        self.assertIn("مدينة نصر", CITIES["01"])
+        self.assertEqual(city_in("12 ش التحرير - الدقى - الجيزة", "21"), "الدقي")
+        self.assertEqual(city_in("مدينه نصر اول", "01"), "مدينة نصر")
+        self.assertEqual(city_in("لا شيء هنا", "01"), "")
+
+
+class Round13PlanFinderPartsTests(TestCase):
+    """The plan finder has two pages: the implant and surgery part of the plans, and the restorative part."""
+
+    setUp = PlanFinderAndCallListTests.setUp
+
+    def test_implant_and_restorative_plans_on_their_own_pages(self):
+        from apps.charting.models import PlanItem, TreatmentPlan
+        from apps.clinical.models import TreatmentStepType
+
+        crown = TreatmentStepType.objects.filter(category=TreatmentStepType.Category.RESTORATIVE).first()
+        p4 = make_patient(self.branch, nid="28501010101237", phone="01112223336")
+        plan = TreatmentPlan.objects.create(patient=p4)
+        PlanItem.objects.create(plan=plan, step_type=crown, teeth="11")
+        self.client.login(username="head", password=PASSWORD)
+        implant = self.client.get("/chart/plans/")
+        self.assertEqual({p.patient for p, *_rest in implant.context["page_obj"]}, {self.p1, self.p2, self.p3})
+        self.assertNotIn(crown, implant.context["form"].fields["procedures"].queryset)
+        restorative = self.client.get("/chart/plans/restorative/")
+        self.assertEqual({p.patient for p, *_rest in restorative.context["page_obj"]}, {p4})
+        self.assertIn(crown, restorative.context["form"].fields["procedures"].queryset)
+        self.assertNotIn(self.guided, restorative.context["form"].fields["procedures"].queryset)
+        self.assertContains(restorative, 'href="/chart/plans/"')  # the tabs between the finders

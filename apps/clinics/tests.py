@@ -150,14 +150,16 @@ class BillingPlaceTests(PlaceMixin, TestCase):
         self.assertEqual((move.branch, move.machine), (self.cic, self.machines[1]))
         page = self.client.get(f"/billing/fawry/?machine={self.machines[1].pk}")
         self.assertEqual(page.context["machine"], self.machines[1])
-        self.assertEqual(len(page.context["per_machine"]), 2)
+        self.assertEqual([m.pk for m in page.context["moves"]], [move.pk])  # the card payment she took
+        self.assertEqual(move.created_by.username, "sec")
         # The payments of the day: the place worked in, or all places.
         self.assertEqual(self.client.get("/billing/payments/").context["page_obj"].paginator.count, 1)
         self.work_at("sec", "CIA")
         self.assertEqual(self.client.get("/billing/payments/").context["page_obj"].paginator.count, 0)
         self.assertEqual(self.client.get("/billing/payments/?place=all").context["page_obj"].paginator.count, 1)
-        # The owner's balance sheet puts the money where it was paid.
+        # The owner's balance sheet puts the money where it was paid; the owner sees what each machine holds.
         self.client.login(username="owner", password=PASSWORD)
+        self.assertEqual(len(self.client.get(f"/billing/fawry/?machine={self.machines[1].pk}").context["per_machine"]), 2)
         page = self.client.get("/reports/balance/")
         cic_column = [c.code for c in page.context["columns"]].index("CIC")
         patients_row = page.context["income_rows"][0]

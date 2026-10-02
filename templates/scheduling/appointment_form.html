@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header"><h1>{{ title }}</h1></div>
 <div class="card mb-3"><div class="card-body">
-  <form method="post" novalidate id="appointment-form" data-free-url="{% url 'scheduling:free_times' %}" data-day-url="{% url 'scheduling:dentist_day' %}">
+  <form method="post" novalidate id="appointment-form" data-free-url="{% url 'scheduling:free_times' %}" data-day-url="{% url 'scheduling:dentist_day' %}" data-prefs-url="{% url 'patients:prefs' %}">
     {% csrf_token %}
     {% if others %}
     <div class="alert alert-warning others-check" role="alert">
@@ -17,10 +17,13 @@
     {% endif %}
     {% include "includes/form_fields.html" %}
     <div class="booking-helper mt-3 no-print">
+      <div class="alert alert-info py-2 small mb-2" data-patient-prefs hidden><i class="bi bi-person-heart"></i> <span></span>
+        <div class="text-warning-emphasis fw-semibold mt-1" data-prefs-off hidden><i class="bi bi-exclamation-triangle"></i> {% trans "The time chosen is not one he prefers." %}</div></div>
       <div class="alert py-2 small mb-2" data-dentist-day hidden></div>
       <div class="d-flex flex-wrap align-items-center gap-2">
         <button type="button" class="btn btn-sm btn-outline-primary" data-find-free><i class="bi bi-search"></i> {% trans "Nearest free times" %}</button>
         <span class="small text-muted">{% trans "For the chosen dentist, or for any dentist when none is chosen." %}</span>
+        <label class="form-check small mb-0" data-fits-box hidden><input class="form-check-input" type="checkbox" data-fits checked> {% trans "Only the days and times he prefers" %}</label>
         <a class="btn btn-sm btn-outline-secondary ms-auto" href="{% url 'scheduling:waiting_list' %}{% if request.GET.patient %}?patient={{ request.GET.patient }}{% endif %}"><i class="bi bi-hourglass-split"></i> {% trans "Day full? Add to the waiting list" %}</a>
       </div>
       <div class="free-times mt-2" data-free-results></div>
@@ -79,11 +82,41 @@
   dateInput.addEventListener("change", checkDentistDay);
   checkDentistDay();
 
+  // The patient's preferred days and times (and how far he lives): shown, and a time outside them is pointed out.
+  var patientBox = document.getElementById("id_patient_lookup"), prefsBox = form.querySelector("[data-patient-prefs]"), prefs = null;
+  function checkPrefs() {
+    var off = prefsBox.querySelector("[data-prefs-off]"), match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(dateInput.value.trim());
+    off.hidden = true;
+    if (!prefs || !match || !timeSelect || !timeSelect.value) return;
+    var day = new Date(+match[3], +match[2] - 1, +match[1]), weekday = (day.getDay() + 6) % 7, hour = parseInt(timeSelect.value, 10);
+    var dayOk = !prefs.days.length || prefs.days.indexOf(weekday) >= 0;
+    var timeOk = !prefs.times.length || prefs.times.some(function (span) { return hour >= span[0] && hour < span[1]; });
+    off.hidden = dayOk && timeOk;
+  }
+  function loadPrefs() {
+    if (!patientBox || !patientBox.value.trim()) { prefsBox.hidden = true; prefs = null; return; }
+    fetch(form.getAttribute("data-prefs-url") + "?q=" + encodeURIComponent(patientBox.value.trim()), { credentials: "same-origin" })
+      .then(function (r) { return r.json(); }).then(function (data) {
+        prefs = data.text !== undefined ? data : null;
+        prefsBox.hidden = !(prefs && prefs.text);
+        if (prefs) prefsBox.querySelector("span").textContent = prefs.text;
+        form.querySelector("[data-fits-box]").hidden = !(prefs && (prefs.days.length || prefs.times.length));
+        checkPrefs();
+      });
+  }
+  if (patientBox) { patientBox.addEventListener("change", loadPrefs); loadPrefs(); }
+  dateInput.addEventListener("change", checkPrefs);
+  if (timeSelect) timeSelect.addEventListener("change", checkPrefs);
+
   // The nearest free times.
   var results = form.querySelector("[data-free-results]");
   form.querySelector("[data-find-free]").addEventListener("click", function () {
     var url = form.getAttribute("data-free-url") + "?duration=" + (durationSelect ? durationSelect.value : 30) +
               "&from=" + encodeURIComponent(dateInput.value.trim()) + (dentistSelect && dentistSelect.value ? "&dentist=" + dentistSelect.value : "");
+    var fits = form.querySelector("[data-fits]");
+    if (patientBox && patientBox.value && !form.querySelector("[data-fits-box]").hidden && fits.checked) {
+      url += "&fits=1&patient=" + encodeURIComponent(patientBox.value);
+    }
     results.innerHTML = "<span class='small text-muted'>…</span>";
     fetch(url, { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (data) {
       results.innerHTML = "";

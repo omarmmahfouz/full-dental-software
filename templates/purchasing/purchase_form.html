@@ -51,7 +51,39 @@
 </form>
 {% endblock %}
 {% block extra_js %}
+{{ last_prices|json_script:"last-prices" }}
+<div hidden data-price-texts data-last="{% trans 'last time' %}" data-up="{% trans 'dearer' %}" data-down="{% trans 'cheaper' %}"></div>
 <script>
+  (function () {
+    // The last price paid for the stock item chosen, and how much dearer or cheaper this one is (round 13).
+    var last = JSON.parse(document.getElementById("last-prices").textContent || "{}");
+    var texts = document.querySelector("[data-price-texts]");
+    function hint(row) {
+      var item = row.querySelector("[name$='-stock_item']"), price = row.querySelector("[name$='-unit_price']");
+      if (!item || !price) return;
+      var box = row.querySelector(".price-hint");
+      if (!box) { box = document.createElement("div"); box.className = "price-hint"; price.insertAdjacentElement("afterend", box); }
+      var before = last[item.value];
+      box.textContent = "";
+      if (!before) return;
+      var was = parseFloat(before.price), now = parseFloat(price.value);
+      box.appendChild(document.createTextNode(texts.getAttribute("data-last") + ": " + was.toFixed(2) + " (" + before.at + (before.supplier ? ", " + before.supplier : "") + ")"));
+      if (was && now && now !== was) {
+        var change = (now - was) * 100 / was, span = document.createElement("span");
+        span.className = change > 0 ? "price-up" : "price-down";
+        var number = document.createElement("span");
+        number.className = "ltr";
+        number.textContent = (change > 0 ? "+" : "") + change.toFixed(1) + "%";
+        span.append(" " + (change > 0 ? "▲ " : "▼ "), number, " " + texts.getAttribute(change > 0 ? "data-up" : "data-down"));
+        box.appendChild(span);
+      }
+    }
+    function hints() { document.querySelectorAll(".item-row").forEach(hint); }
+    document.addEventListener("change", hints);
+    document.addEventListener("input", function (event) { var row = event.target.closest(".item-row"); if (row) hint(row); });
+    document.addEventListener("formset:added", hints);
+    hints();
+  })();
   (function () {
     function recalc() {
       var grand = 0;

@@ -32,6 +32,25 @@ class MaritalStatus(models.TextChoices):
     WIDOWED = "widowed", _("Widowed")
 
 
+# The days and parts of the day a patient prefers for his visits (round 13), kept as "5,0" and "morning,evening".
+WEEKDAY_CHOICES = [
+    ("5", _("Saturday")), ("6", _("Sunday")), ("0", _("Monday")), ("1", _("Tuesday")),
+    ("2", _("Wednesday")), ("3", _("Thursday")), ("4", _("Friday")),
+]
+
+
+class DayPart(models.TextChoices):
+    MORNING = "morning", _("Morning (9–12)")
+    MIDDAY = "midday", _("Midday (12–3)")
+    AFTERNOON = "afternoon", _("Afternoon (3–6)")
+    EVENING = "evening", _("Evening (6–9)")
+
+    @classmethod
+    def hours(cls, part):
+        """The hours (from, to) of a part of the day."""
+        return {"morning": (9, 12), "midday": (12, 15), "afternoon": (15, 18), "evening": (18, 21)}[part]
+
+
 class PreferredPhone(models.TextChoices):
     PRIMARY = "primary", _("First mobile")
     SECONDARY = "secondary", _("Second mobile")
@@ -203,6 +222,11 @@ class Patient(TimeStampedModel):
     city = models.CharField(_("city / area"), max_length=100, blank=True)
     governorate = models.CharField(_("governorate"), max_length=60, blank=True, choices=GOVERNORATE_CHOICES)
     occupation = models.CharField(_("occupation"), max_length=100, blank=True)
+    travel_minutes = models.PositiveSmallIntegerField(
+        _("how far he lives (minutes)"), null=True, blank=True,
+        help_text=_("About how many minutes the patient takes to come to the clinic."))
+    preferred_days = models.CharField(_("days he prefers"), max_length=20, blank=True)
+    preferred_times = models.CharField(_("times he prefers"), max_length=40, blank=True)
     missing_teeth = models.CharField(
         _("missing teeth"), max_length=20, choices=MissingTeeth.choices, default=MissingTeeth.UNKNOWN
     )
@@ -278,6 +302,27 @@ class Patient(TimeStampedModel):
     @property
     def age(self):
         return age_from_birth_date(self.birth_date)
+
+    @property
+    def preferred_day_list(self):
+        """The names of the days he prefers, Saturday first."""
+        days = set(self.preferred_days.split(","))
+        return [str(label) for code, label in WEEKDAY_CHOICES if code in days]
+
+    @property
+    def preferred_time_list(self):
+        times = set(self.preferred_times.split(","))
+        return [str(label) for code, label in DayPart.choices if code in times]
+
+    def prefers(self, moment):
+        """True when a date and time fits the days and times he prefers (or he has no preference)."""
+        days = {int(day) for day in self.preferred_days.split(",") if day.isdigit()}
+        times = [code for code in self.preferred_times.split(",") if code in DayPart.values]
+        if days and moment.weekday() not in days:
+            return False
+        if times and not any(DayPart.hours(code)[0] <= moment.hour < DayPart.hours(code)[1] for code in times):
+            return False
+        return True
 
     @property
     def preferred_number(self):

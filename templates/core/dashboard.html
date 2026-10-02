@@ -29,6 +29,8 @@
 </div>
 {% endif %}
 
+{% if places_now %}{% include "core/_places_now.html" %}{% endif %}
+
 {% if bookings_to_approve %}
 <div class="card attention-card mb-3">
   <div class="card-header"><i class="bi bi-hourglass-split"></i> {% trans "Bookings to approve (not the dentist's day or hours)" %} <span class="badge rounded-pill text-bg-warning">{{ bookings_to_approve|length }}</span></div>
@@ -185,7 +187,7 @@
   </div>
   <div class="col-lg-6">
     <div class="card h-100">
-      <div class="card-header"><i class="bi bi-box-seam"></i> {% trans "Lab work" %}</div>
+      <div class="card-header"><i class="bi bi-lab-request"></i> {% trans "Lab work" %}</div>
       <div class="list-group list-group-flush">
         <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{% url 'clinical:lab_list' %}?status=approved">{% trans "Reviewed, waiting to be sent to the lab" %} <span class="badge text-bg-primary">{{ lab_to_send }}</span></a>
         <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{% url 'clinical:lab_list' %}?overdue=1">{% trans "Late at the lab (past due date)" %} <span class="badge text-bg-danger">{{ lab_overdue }}</span></a>

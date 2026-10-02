@@ -87,6 +87,8 @@ class MovementForm(StyledModelForm):
         self.item = item
         super().__init__(*args, **kwargs)
         self.fields["quantity"].min_value = 0
+        # Giving back to a supplier is done from the purchase (Purchases → the purchase → Give back).
+        self.fields["kind"].choices = [c for c in self.fields["kind"].choices if c[0] != StockMovement.Kind.RETURN]
         self.fields["branch"].queryset = places()
         self.fields["branch"].help_text = _("Empty = the place you work in.")
         self.fields["branch"].col = "col-md-4"
