@@ -55,6 +55,8 @@
         <li><a class="dropdown-item" href="{% url 'patients:update' patient.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a></li>
         {% if "billing" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'billing:account' patient.pk %}"><i class="bi bi-wallet2"></i> {% trans "Account & payments" %}</a></li>{% endif %}
         <li><a class="dropdown-item" href="{% url 'complaints:create' %}?patient={{ patient.pk }}"><i class="bi bi-chat-left-dots"></i> {% trans "Record complaint" %}</a></li>
+        {% if "papers" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'papers:upload' %}?patient={{ patient.pk }}"><i class="bi bi-file-earmark-medical"></i> {% trans "Read the old paper file" %}</a></li>
+        <li><a class="dropdown-item" href="{% url 'papers:covers' %}?patient={{ patient.file_number|urlencode }}"><i class="bi bi-printer"></i> {% trans "Print the cover sheet" %}</a></li>{% endif %}
         {% if not is_clinical and "instructions" in parts %}<li><a class="dropdown-item" href="{% url 'prescriptions:instructions' patient.pk %}"><i class="bi bi-printer"></i> {% trans "Post-op instructions" %}</a></li>{% endif %}
         {% if move_places %}<li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header"><i class="bi bi-arrow-left-right"></i> {% trans "Move to another place" %}</h6></li>
         {% for place in move_places %}<li>
@@ -240,6 +242,8 @@
       </div></div></div>
       {% empty %}<div class="col-12"><div class="alert alert-warning">{% trans "No ID scan uploaded yet." %}</div></div>{% endfor %}
     </div>
+    {% if "papers" not in hidden_areas %}<div class="alert alert-light border d-flex flex-wrap align-items-center gap-2 py-2 small"><i class="bi bi-file-earmark-medical"></i> {% trans "An old paper file? Claude reads it and you check what goes into this file." %}
+      <a class="btn btn-sm btn-outline-primary ms-auto" href="{% url 'papers:upload' %}?patient={{ patient.pk }}">{% trans "Read the old paper file" %}</a></div>{% endif %}
     <div class="card"><div class="card-header">{% trans "Upload a document / ID scan" %}</div><div class="card-body">
       <form method="post" enctype="multipart/form-data" action="{% url 'patients:document_upload' patient.pk %}">{% csrf_token %}
         {% with form=document_form %}{% include "includes/form_fields.html" %}{% endwith %}

@@ -203,3 +203,20 @@ installing or changing the server: it prints what is right and what to fix. The 
   nothing. Keep Windows updated, keep its firewall on, and lock the server's screen (Win + L).
 - **Two backup disks**: set `BACKUP_COPY_DIR` to a second disk or a network folder (each night's ZIP is copied there
   and compared), and swap a disk kept outside the clinic every week.
+
+## Old paper files read by Claude (round 13)
+The reading of the old paper files is the one part of the system that uses the internet; everything else stays on the
+clinic's network. See [paper-files.md](paper-files.md) for what it does, the costs and the privacy questions.
+- **The key**: write `ANTHROPIC_API_KEY=sk-ant-…` in the server's `.env` file and start the server again (Docker:
+  `docker compose up -d`, which reads the same `.env`). Nothing is sent until the owner also switches the reading on in
+  *Settings → Old paper files (Claude)*; *Check the key* there tests it for free.
+- **The internet**: the server must reach `https://api.anthropic.com` (port 443, out only). Nothing needs to come in.
+  Behind a company proxy, set `HTTPS_PROXY=http://proxy:port` in `.env`.
+- **The reading runs inside the server** (a background thread), started when a file is sent and when the list of paper
+  files is opened. A batch is asked about every minute until it ends (usually within an hour, at most a day). After a
+  restart the reading goes on when someone opens *Patients → Old paper files*, or run
+  `python manage.py read_paper_files` (it waits until every file is read; `--once` does one round), for example after
+  the nightly backup.
+- **Space**: each page is kept as a picture (about 0.5 MB) next to the original scan, under `media/papers/<place>/`;
+  they are in the nightly copy of the files like the photos.
+- **Uploads**: one scanned file may be up to 120 MB (nginx already allows 320 MB).

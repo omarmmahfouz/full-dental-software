@@ -366,3 +366,29 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
      `owner`, the bookings to approve are a list with their number; the quick buttons are white rows: point at one and
      its icon fills with colour and an arrow shows. As `dentist1`: the band, then the numbers and *My week* (names not
      underlined).
+
+## W. New in this version (13): old paper files read by Claude
+The practice copy has two paper files already "read" (nothing is sent: there is no key). With a real key every step
+below works on real scans; see [paper-files.md](paper-files.md).
+155. As `owner`, **Settings → Old paper files (Claude)**: reading is off, the key is not set (with the three steps to
+     set it), Claude Opus 5.5, medium, two readings, in a batch, limit $100, and what this month cost. Press
+     **Check the key (free)**: *The key is not set*.
+156. **Patients → Old paper files**: *To check* (1), *Saved in the patient's file* (1) and the month's cost. Open the
+     file to check: the cost of the file (about $0.11), 19 sure, 2 to check, 1 cannot be read. Each yellow or red value
+     has its reasons and a cut-out of the paper; the job is red (a blot), the mobile yellow (the two readings differ),
+     the HbA1c yellow (8.2 written over, maybe 6.2). Birth date, gender and governorate came from the national ID.
+157. On the right, page 2 (the history) was scanned sideways and turned upright by itself. Change its kind or turn it
+     with the small buttons.
+158. Type the job, choose *A new patient file* and **Approve and save into the patient's file**: the new file has the
+     data, the history (taken by Dr. Mona Refaat on 12/09/2017: diabetes, high blood pressure, penicillin allergy,
+     Glucophage and Concor), and under *ID & documents* the whole paper file as one PDF. She is on the **Medical
+     follow-up** (HbA1c above 7%).
+159. Choose *A patient already registered* instead and pick a patient: values already in the file show *In the file
+     now* with a *replace* tick; untouched they stay, empty ones are filled. As `secretary`, a ticked replacement goes to
+     the head for approval.
+160. **Cover sheets**: one patient, the patients registered between two dates, or blank sheets; the number is very large.
+161. As `dentist1`: no *Old paper files* in the menu, and `/patients/papers/` is refused. As `owner`, *Settings → Access
+     by role* has a new part *Old paper files read by Claude* to close for a role.
+162. Optional, with a real key (costs a few cents a page): set `ANTHROPIC_API_KEY` in `.env`, start again, switch reading
+     on, send one real scanned file **now**: in about a minute it is ready to check, and *Settings → Security* shows
+     *Data taken out: Paper file sent to Claude to be read*.

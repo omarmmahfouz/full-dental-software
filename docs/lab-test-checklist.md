@@ -116,3 +116,6 @@ In the sample data:
    open only on the clinic's network.
 3. Five wrong passwords close `labsec`'s login for 15 minutes; `labsec`'s PC logs out after the minutes without use, and
    a case typed when the network stopped is offered back (**Put it back**).
+
+## J. New in this version (13)
+1. The lab's staff (`labsec`, `labmanager`, `labhead`) do not see *Old paper files* (it is for the clinics' reception).

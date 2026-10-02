@@ -317,6 +317,7 @@ class PatientDocument(TimeStampedModel):
         PASSPORT = "passport", _("Passport")
         CONSENT = "consent", _("Signed consent")
         XRAY = "xray", _("X-ray / CBCT")
+        OLD_FILE = "old_file", _("Old paper file (scanned)")
         OTHER = "other", _("Other")
 
     CARD_KINDS = (Kind.ID_FRONT, Kind.ID_BACK, Kind.PASSPORT)

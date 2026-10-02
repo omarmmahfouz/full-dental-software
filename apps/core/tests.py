@@ -744,6 +744,7 @@ class SpeedTests(TestCase):
         ("secretary", "/patients/medical-follow-up/", 40),
         ("owner", "/settings/security/", 40),
         ("owner", "/settings/security/deleted/", 30),
+        ("secretary", "/patients/papers/", 40),
     ]
 
     @classmethod

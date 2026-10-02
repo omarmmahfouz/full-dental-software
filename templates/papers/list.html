@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Old paper files" %}{% endblock %}
+{% block extra_head %}{% if busy %}<meta http-equiv="refresh" content="30">{% endif %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-file-earmark-medical"></i> {% trans "Old paper files" %}</h1>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-primary" href="{% url 'papers:upload' %}"><i class="bi bi-cloud-arrow-up"></i> {% trans "Send scanned files" %}</a>
+    <a class="btn btn-outline-secondary" href="{% url 'papers:covers' %}"><i class="bi bi-printer"></i> {% trans "Cover sheets" %}</a>
+    {% if roles.owner %}<a class="btn btn-outline-secondary" href="{% url 'papers:settings' %}"><i class="bi bi-gear"></i> {% trans "Settings" %}</a>{% endif %}
+  </div>
+</div>
+<p class="small text-muted">{% trans "Scan each paper file to a PDF and send it here. Claude reads it, the system checks every value, and you approve what goes into the patient's file: nothing is saved before you approve it." %}</p>
+{% if not options.enabled %}<div class="alert alert-warning py-2 small"><i class="bi bi-pause-circle"></i> {% trans "Reading is switched off: files sent now wait until the owner switches it on." %}{% if roles.owner %} <a class="alert-link" href="{% url 'papers:settings' %}">{% trans "Settings → Old paper files" %}</a>{% endif %}</div>
+{% elif not options.key_is_set %}<div class="alert alert-warning py-2 small"><i class="bi bi-key"></i> {% trans "The key to Claude is not set on the server yet." %}</div>{% endif %}
+{% if busy %}<div class="alert alert-info py-2 small"><span class="spinner-border spinner-border-sm"></span> {% trans "Files are being read. This page looks again by itself every 30 seconds." %}</div>{% endif %}
+
+<ul class="nav nav-pills mb-3 flex-wrap gap-1">
+  {% for value, label in statuses %}{% with n=counts|get_item:value %}{% if n or value == "review" %}
+  <li class="nav-item"><a class="nav-link {% if status == value %}active{% endif %}" href="?status={{ value }}">{{ label }} <span class="badge text-bg-light">{{ n|default:0 }}</span></a></li>
+  {% endif %}{% endwith %}{% endfor %}
+  <li class="nav-item"><a class="nav-link {% if status == 'all' %}active{% endif %}" href="?status=all">{% trans "All" %} <span class="badge text-bg-light">{{ total }}</span></a></li>
+</ul>
+{% if month_cost is not None %}<p class="small text-muted mb-2"><i class="bi bi-currency-dollar"></i> {% blocktrans with cost=month_cost|floatformat:2 %}Reading cost this month: about ${{ cost }}{% endblocktrans %}</p>{% endif %}
+
+<div class="card"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+  <thead><tr><th>{% trans "File" %}</th><th>{% trans "Patient" %}</th><th class="text-center">{% trans "Pages" %}</th><th>{% trans "Status" %}</th><th class="text-center">{% trans "To check" %}</th><th>{% trans "Sent" %}</th></tr></thead>
+  <tbody>
+  {% for paper in papers %}
+  <tr>
+    <td><a class="fw-semibold" href="{{ paper.get_absolute_url }}">{{ paper.original_name|truncatechars:48 }}</a>
+      {% if paper.cover_number %}<div class="small text-muted ltr">{{ paper.cover_number }}</div>{% endif %}</td>
+    <td>{% if paper.patient %}{{ paper.patient.full_name }} <span class="small text-muted ltr">{{ paper.patient.file_number }}</span>
+      {% elif paper.suggested %}<span class="text-muted">{% trans "seems to be" %}</span> {{ paper.suggested.full_name }} <span class="small text-muted ltr">{{ paper.suggested.file_number }}</span>
+      {% elif paper.status == "review" %}<span class="text-muted">{% trans "new patient?" %}</span>{% else %}—{% endif %}</td>
+    <td class="text-center">{{ paper.page_count|default:"—" }}</td>
+    <td>{% status_badge paper %}{% if paper.mode == "batch" and paper.status == "reading" %} <span class="small text-muted">{% trans "(batch, within hours)" %}</span>{% endif %}
+      {% if paper.error and paper.is_open %}<div class="small text-danger">{{ paper.problem }}</div>{% endif %}</td>
+    <td class="text-center">{% if paper.status == "review" %}{% if paper.to_check %}<span class="badge text-bg-warning">{{ paper.to_check }}</span>{% else %}<span class="badge text-bg-success"><i class="bi bi-check2"></i></span>{% endif %}{% else %}—{% endif %}</td>
+    <td class="text-nowrap small">{{ paper.created_at|date:"d/m/Y" }}<div class="text-muted">{{ paper.created_by|default:"" }}</div></td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="text-center text-muted py-4">{% trans "No paper files here." %} <a href="{% url 'papers:upload' %}">{% trans "Send scanned files" %}</a></td></tr>{% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

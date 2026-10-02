@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     "apps.clinics",
     "apps.specialties",
     "apps.lab",
+    "apps.papers",
 ]
 
 MIDDLEWARE = [
@@ -233,6 +234,9 @@ BACKUP_COPY_DIR = env("BACKUP_COPY_DIR", "")
 FILES_BACKUP_DIR = env("FILES_BACKUP_DIR", "")
 # "Make a backup now" works in the background when it takes long (not while the tests run).
 BACKUP_IN_BACKGROUND = "test" not in sys.argv[1:2]
+# Old paper files (round 13): read by Claude in the background (not while the tests run). The key is
+# ANTHROPIC_API_KEY in .env; nothing is sent until the owner switches reading on (Settings → Old paper files).
+PAPERS_IN_BACKGROUND = "test" not in sys.argv[1:2]
 FILE_UPLOAD_PERMISSIONS = 0o640
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 MAX_UPLOAD_SIZE_MB = int(env("MAX_UPLOAD_SIZE_MB", "15"))

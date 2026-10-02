@@ -1,0 +1,8 @@
+{% load i18n %}{% if form.non_field_errors %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+{% for title, fields in form.bound_fieldsets %}
+<fieldset class="mb-4">
+  {% if title %}<legend class="form-section-title">{{ title }}</legend>{% endif %}
+  <div class="row g-3">{% for field in fields %}{% include "papers/_field.html" %}{% endfor %}</div>
+</fieldset>
+{% endfor %}

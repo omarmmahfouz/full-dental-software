@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Cover sheets" %}{% endblock %}
+{% block content %}
+<div class="page-header no-print">
+  <h1><i class="bi bi-printer"></i> {% trans "Cover sheets" %}</h1>
+  <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+</div>
+{% for patient in sheets %}
+<section class="cover-sheet">
+  {% include "includes/place_letterhead.html" %}
+  <div class="cover-title">{% trans "OLD PAPER FILE" %}</div>
+  <div class="cover-number ltr">{{ patient.file_number }}</div>
+  <div class="cover-name">{{ patient.full_name }}</div>
+  <p class="cover-help">{% trans "Put this sheet on top of the patient's paper file, then scan the whole file." %}</p>
+</section>
+{% endfor %}
+{% for _sheet in blank %}
+<section class="cover-sheet">
+  {% include "includes/place_letterhead.html" %}
+  <div class="cover-title">{% trans "OLD PAPER FILE" %}</div>
+  <div class="cover-number ltr cover-blank">{{ place.badge }}-</div>
+  <div class="cover-name cover-line">{% trans "Name:" %}</div>
+  <p class="cover-help">{% trans "Write the file number in large clear digits after the place's letters, then put this sheet on top of the paper file." %}</p>
+</section>
+{% endfor %}
+{% endblock %}

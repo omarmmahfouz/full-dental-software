@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Send scanned files" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-cloud-arrow-up"></i> {% trans "Send scanned files" %}</h1></div>
+{% if patient %}<div class="alert alert-info py-2"><i class="bi bi-person"></i> {% blocktrans with name=patient.full_name file=patient.file_number %}The paper file of {{ name }} ({{ file }}): what is read goes into this file after you check it.{% endblocktrans %}</div>{% endif %}
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <form method="post" enctype="multipart/form-data" novalidate data-no-leave-warning>
+        {% csrf_token %}
+        {% include "includes/form_fields.html" %}
+        <div class="form-actions mt-4 d-flex gap-2">
+          <button class="btn btn-primary px-4"><i class="bi bi-send"></i> {% trans "Send" %}</button>
+          <a class="btn btn-outline-secondary" href="{% if patient %}{{ patient.get_absolute_url }}{% else %}{% url 'papers:list' %}{% endif %}">{% trans "Cancel" %}</a>
+        </div>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-header"><i class="bi bi-lightbulb"></i> {% trans "For the fewest mistakes" %}</div><div class="card-body small">
+      <ol class="mb-3 ps-3">
+        <li>{% trans "Scan at 300 dpi, in colour or grey, with the pages straight." %}</li>
+        <li>{% trans "One PDF for each patient. Put the printed cover sheet on top of a patient already registered: the system then knows whose file it is." %}</li>
+        <li>{% trans "Take the staples out; leave nothing covering the writing." %}</li>
+        <li>{% trans "Photos from the tablet also work: one photo per page, the page filling the photo." %}</li>
+      </ol>
+      <p class="mb-1"><b>{% trans "Now" %}:</b> {% blocktrans with price=page_price|floatformat:3 %}about ${{ price }} a page, ready in about a minute.{% endblocktrans %}</p>
+      <p class="mb-1"><b>{% trans "In a batch" %}:</b> {% blocktrans with price=page_price_batch|floatformat:3 %}about ${{ price }} a page, ready within a few hours (usually less than one).{% endblocktrans %}</p>
+      <p class="text-muted mb-0">{% if options.two_readings %}{% trans "Each page is read twice and the two readings are compared." %}{% else %}{% trans "Each page is read once." %}{% endif %} {% trans "X-rays and photos cost the same as a page." %}</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

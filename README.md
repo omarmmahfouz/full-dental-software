@@ -43,7 +43,55 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: a new professional interface (new)
+### New in this version: old paper files read by Claude (new)
+The CIA's old paper files no longer need typing: they are scanned, **Claude** (Anthropic's AI) reads them, the system
+checks every value, and a person approves what goes into the patient's file. *Patients → Old paper files* (the
+reception and the heads); the owner sets it up in *Settings → Old paper files (Claude)*. Setting up, costs, privacy and
+the limits are in [docs/paper-files.md](docs/paper-files.md). The steps to try are in each checklist, the new section
+(13). This is the first part: the patient's data, the medical and dental history, and the pages; the dental chart, the
+treatment plan, the visits and the old payments are the second part.
+1. **Send the scans**: one PDF for each patient (many at once), or the tablet's photos of the pages of one file
+   (*Send scanned files*), or from a patient's own page (*More → Read the old paper file*). Read **now** (full price,
+   about a minute) or **in a batch** (half price, usually within an hour, at most a day). The person who sent them is
+   told when they are ready.
+2. **Cover sheets**: a sheet with the file number in very large print, to put on top of a registered patient's paper
+   file before scanning: the file then goes to the right patient by itself (*Cover sheets*: one patient, the patients
+   registered between two dates, or blank sheets to write the number on).
+3. **The pages sorted**: each page is recognised (cover sheet, ID card front and back, registration, history,
+   examination, dental chart, plan, surgery chart, visits, prescription, lab paper, consent, receipt, X-ray or photo,
+   blank page) and **turned upright** when it was scanned sideways. When the file is saved the pages go into the
+   patient's documents **in order, as one clean PDF**; the ID card goes to the ID place (cut out of the page), the
+   X-rays to *X-rays & CBCT*, the consents to their place. Blank pages and cover sheets are left out; the original scan
+   is always kept.
+4. **The fewest mistakes**:
+   - Claude must answer in a fixed form made of the system's own fields and lists (governorates, diseases, how they
+     heard of us, the dentists' names): it cannot invent a field, and it must say how sure it is of each value. It is
+     told never to guess.
+   - **Each page is read twice** and the two readings are compared (the owner can choose once, for half the cost).
+   - **The system's checks**: the national ID (14 digits, and the date of birth, the gender and the governorate inside
+     it against what the paper says; they are filled from the ID when the paper does not say), the mobiles (11 digits,
+     010 / 011 / 012 / 015), real dates, readings in their usual range (blood pressure, sugar, HbA1c), Arabic names of
+     at least three words, values from the lists, the same value written differently on two pages, Arabic digits
+     turned into normal digits.
+   - The file is matched to a registered patient by the cover sheet, the national ID or a mobile, so no second file is
+     opened by mistake.
+5. **The review page, with the paper next to each value**: green = sure; **yellow = please check**, **red = cannot be
+   read**: each comes with the reasons (e.g. *the two readings differ: 01145567781 / 01145567787*) and a **cut-out of
+   the paper** around it, larger, so the reception checks it without opening the scan. Any value can show its piece of
+   the paper (*See it on the paper*). The same rules as the registration form apply when saving. *Save for later*,
+   *Keep only the pages* (into a chosen patient, typing the rest by hand), *Set aside* and *Read again* are there too;
+   a page can be turned or its kind changed.
+6. **Into a registered patient**: only the empty fields of the file are filled; a value already in the file stays
+   unless you tick *replace*, and a replacement asked by the reception goes to the head for approval (as any change).
+   The history is kept like one taken at the reception, so the dentist starts the next examination from it.
+7. **The owner's settings**: reading is **off until the owner switches it on** (after the patients' consent), the model
+   (Claude Opus 5.5, the most accurate, or Sonnet 5.5 at half the price), how hard it thinks, two readings or one, now or
+   in a batch, and a **monthly limit** in dollars (nothing more is sent when it is reached; the owner is told). The cost
+   of each file and of the month is shown to the owner. *Check the key* tests the key for free.
+8. **Safety**: the key stays in the server's `.env` file; each file sent is written in the security log (data taken
+   out); the paper files of a place are seen only at that place, by the reception and the heads.
+
+### Round 12: a new professional interface
 A look-and-feel round on top of the existing design (`static/css/app.css`, last block "Round 12"). No page works
 differently; everything looks and feels more finished. The steps to try are in the checklists, section W (the
 secretary's) and V (the dentist's and the owner's).
@@ -375,6 +423,8 @@ Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**:
   - Call log with the result of each call, and the next call date.
   - A "calls due today" list.
   - When the patient comes in, one click turns the call into a full patient file.
+- **Old paper files (new)**: send the scanned old files; Claude reads them and the secretary checks each yellow or red
+  value next to its cut-out of the paper, then approves it into the patient's file (*Patients → Old paper files*).
 - **Patient registration**:
   - Full name and national ID. The date of birth and gender are read from the Egyptian national ID. Passports are supported too.
   - Mobiles.
@@ -596,8 +646,10 @@ User menu → **Settings**.
 - **Clinic options**: appointment hours (9 to 5), the usual length (30 minutes), the usual surgery days, the e-mail for CBCT files, and **Fawry's percentage** on card payments.
 - **Lists**: the **usual days at the lab** for each lab work type, which paid services get a **quick button** on a new bill, and implants in stock (company, diameter and length on the stock item).
 - **Backup and export** (owner): each backup is **checked after saving** and copied to a **second disk** when one is
-  set (new). One button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones. The page shows the last good backup of each part and any error. *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
-- **Security and health** (owner, new): the checks (what is right and what to fix), who is logged in now (log a person
+  set. One button makes a **backup of all the data** (a ZIP with all records to put back into the system, and the same data as **Excel** and **CSV** to open in any other program). The photos and files are copied every night to the backup disk, only the new ones. The page shows the last good backup of each part and any error. *Download the Excel file* gives every table on its own sheet. Keep a copy outside the clinic, and always before a big change to the system. See [Backups](docs/deployment.md#backups-please-read).
+- **Old paper files (Claude)** (owner, new): switch the reading on, the model, one or two readings, now or in a batch,
+  the monthly limit in dollars, the month's cost, and *Check the key*. See [docs/paper-files.md](docs/paper-files.md).
+- **Security and health** (owner): the checks (what is right and what to fix), who is logged in now (log a person
   out), the logins closed after wrong passwords (open them), the security log (logins, wrong passwords, files taken
   out, pages refused), the disks' free space and the slow pages, and **Deleted records** (whatever was deleted, kept a
   year). *Clinic options* has **log out after (minutes without use)** and **people with an easy password must change
@@ -710,6 +762,11 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
     shares, payments to them, the doctors' own prices (`clinics/prices.py`) and the clinic report
   - `specialties`: referrals and the specialists' charts (endodontic, TMJ, orthodontic, shade); `shades.py` has the
     shade guides; `demo.py` fills El Khadem
+  - `papers` (round 13): old paper files read by Claude. `fields.py` (what is read, built from the patient and history
+    forms), `pages.py` (the PDF's pages as pictures with pypdfium2, turning, cut-outs, the clean PDF), `claude.py` (the
+    instructions, the answer form, sending now or in a batch; the key is `ANTHROPIC_API_KEY`), `checks.py` (cleaning,
+    the two readings, the national ID, the patient it seems to be), `worker.py` (the background reader;
+    `python manage.py read_paper_files`), `approve.py` (into the patient's file), `demo.py` / `demo_scans.py`
 - Places: `branch_for_user(user)` is the place the person works in now (the switch in the top bar keeps it in the session,
   `WorkingPlaceMiddleware`); `working_places(user)` lists the places they can choose. Bills, services given, payments,
   appointments, rooms and stock movements carry their place. A place with **shared rooms** (`Branch.rooms_shared`)
@@ -729,7 +786,7 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   DJANGO_DEBUG=1 python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests apps.clinical.tests \
     apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests apps.prescriptions.tests \
     apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests apps.surgery.tests apps.clinics.tests \
-    apps.specialties.tests apps.lab.tests
+    apps.specialties.tests apps.lab.tests apps.papers.tests
   ```
 - The dental lab is `apps/lab`: `models.py` (the steps `Step` and the usual road of each kind of work `ROUTES`,
   `LabCase` with its items and steps, clients, price lists, workers, blocks, receipts, messages), `services.py` (every

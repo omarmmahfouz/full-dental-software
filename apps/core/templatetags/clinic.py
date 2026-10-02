@@ -107,6 +107,8 @@ STATUS_COLORS = {
     "paid": "success", "partial": "warning", "due": "secondary", "overdue": "danger", "credit": "danger",
     # severity
     "low": "secondary", "medium": "warning", "high": "danger",
+    # old paper files
+    "waiting": "secondary", "reading": "info", "review": "warning", "set_aside": "dark", "failed": "danger",
     # lab blocks
     "in_use": "primary", "broken": "danger",
 }

@@ -405,6 +405,7 @@ MEDIA_FOLDER_ROLES = {
     "candidates": (OWNER, HEAD_CIA, SUPERVISOR, SECRETARY),
     "purchases": PURCHASE_ROLES,
     "problems": (OWNER, HEAD_CIA),
+    "papers": FRONT_DESK,  # old paper files being read (papers/<place>/…): only at that place
 }
 
 
@@ -414,6 +415,12 @@ def check_media_access(user, path):
     allowed = MEDIA_FOLDER_ROLES.get(folder)
     if allowed is None or not has_role(user, *allowed):
         raise PermissionDenied
+    if folder == "papers":
+        from .models import working_places
+
+        place = path.split("/")[1] if path.count("/") >= 2 else ""
+        if not working_places(user).filter(code=place).exists():
+            raise PermissionDenied
     if folder in ("patients", "Patient photos") and not has_role(user, *FRONT_DESK):
         # Only files of patients this user may see ("patients/<id>/…" or "Patient photos/<file number> <name>/…").
         part = path.split("/")[1] if path.count("/") >= 2 else ""

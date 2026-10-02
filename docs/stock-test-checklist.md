@@ -98,3 +98,6 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
 43. Five wrong passwords close the `stock` login for 15 minutes (the owner can open it); a PC left open logs out by itself.
 44. A movement typed when the network stopped is offered back on the same page (**Put it back** / **No, throw it away**).
     The owner keeps every deleted record for a year.
+
+## Q. New in this version (13)
+45. The `stock` login does not see *Old paper files* (it is for the reception and the heads).

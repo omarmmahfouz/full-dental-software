@@ -63,6 +63,7 @@
             <li><a class="dropdown-item" href="{% url 'patients:calllist_list' %}"><i class="bi bi-telephone-outbound"></i> {% trans "Patients to call" %}</a></li>
             {% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:create' %}"><i class="bi bi-person-plus"></i> {% trans "Register new patient" %}</a></li>
+            {% if "papers" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'papers:list' %}"><i class="bi bi-file-earmark-medical"></i> {% trans "Old paper files" %}</a></li>{% endif %}
             {% if "billing" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'billing:bill_create' %}"><i class="bi bi-receipt"></i> {% trans "New bill" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'billing:bill_list' %}"><i class="bi bi-receipt-cutoff"></i> {% trans "Bills" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'billing:payment_list' %}"><i class="bi bi-cash-stack"></i> {% trans "Patient payments" %}</a></li>

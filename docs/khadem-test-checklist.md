@@ -157,3 +157,7 @@ In the sample data:
    offered back (**Put it back**).
 3. Whatever is deleted at El Khadem (a document, a photo, a room shift) is kept in the owner's *Security → Deleted
    records*, with who deleted it. See the dentists' checklist, section U.
+
+## M. New in this version (13)
+1. As `khadem`: *Patients → Old paper files* shows only El Khadem's files; the cover sheets carry El Khadem's
+   letterhead and `EK-…` numbers. A paper file goes only into an El Khadem patient.

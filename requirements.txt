@@ -6,3 +6,6 @@ gunicorn>=23; sys_platform != "win32"
 waitress>=3,<4
 openpyxl>=3.1,<4
 python-docx>=1.1,<2
+# Old paper files (round 13): the pages of a scanned PDF as pictures (offline), and Claude reading them.
+pypdfium2>=4.30,<6
+anthropic>=1.11,<2

@@ -20,6 +20,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     re_path(r"^media/(?P<path>.+)$", protected_media, name="media"),
     path("", include("apps.core.urls")),
+    path("patients/papers/", include("apps.papers.urls")),
     path("patients/", include("apps.patients.urls")),
     path("schedule/", include("apps.scheduling.urls")),
     path("clinical/", include("apps.clinical.urls")),

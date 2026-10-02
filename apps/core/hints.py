@@ -41,6 +41,16 @@ HINTS = {
                                  "a photo of the paper: the dentist is told."),
     "patients:records": _("Tap what you did today: the impression, the scan or the CBCT. Or skip it: it is not "
                           "needed for every patient."),
+    "papers:list": _("Send the scanned paper files here. When one is read, open it from “To check” and approve what "
+                     "goes into the patient's file."),
+    "papers:upload": _("Choose one PDF for each patient (many at once), or the photos of the pages of one file, then "
+                       "Send. A batch costs half and is ready within a few hours."),
+    "papers:review": _("Green values are sure. Look at each yellow and red one next to the cut-out of the paper, "
+                       "correct it if needed, then press Approve."),
+    "papers:covers": _("Print a cover sheet for each registered patient and put it on top of the paper file before "
+                       "scanning: the file then goes to the right patient by itself."),
+    "papers:settings": _("Switch the reading on only after the patients' consent. The monthly limit stops the "
+                         "sending when the month's cost reaches it."),
     "patients:lead_list": _("People who called but have no file yet. When one comes in, open the call and turn it "
                             "into a patient file in one click."),
     "patients:calllist_list": _("Lists of patients to call, sent by the dentists or the heads. Open a list, call each "

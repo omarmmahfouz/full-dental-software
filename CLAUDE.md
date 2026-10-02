@@ -103,6 +103,18 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     `request_remade` (remake) and `clinic_received` (receive) when the lab is ours (`Lab.branch` is the LAB place).
     `stats.py` = the report; `whatsapp.py` = texts, the status answer, the WhatsApp Business webhook; `demo.py` =
     `load_lab`
+  - `papers` (round 13): the old paper files read by Claude (Anthropic's API; `docs/paper-files.md`). `PaperFile` (one
+    scanned file) → `PaperPage` (an upright picture of each page, its kind) → `PaperReading` (one or two per page, the
+    JSON answer and the tokens; `cost`) → `PaperField` (each value, cleaned, with its certainty, problems and box);
+    `PaperSettings` (the owner: on/off, model, effort, two readings, now/batch, monthly limit). `fields.py` = what is
+    read (built from `PatientForm` fields and `HISTORY_FIELDS`), `claude.py` = instructions + JSON schema + sending
+    (now with `fallbacks="default"`, or in a batch at half price; the key is `ANTHROPIC_API_KEY`, never in code),
+    `checks.py` (clean values, two readings, national ID, `suggest_patient`), `pages.py` (pypdfium2 pictures, turns,
+    `cut_out`, `clean_pdf`), `worker.py` (background thread `kick()`, `run_once`, `read_paper_files` command; each
+    reading is claimed by one worker), `approve.py` (into the patient's file through `PaperPatientForm` /
+    `PaperHistoryForm`; an existing patient only gets its empty fields, a ticked replacement goes through
+    `request_change`). Tests never call Claude: `FakeAnthropic` in `apps/papers/tests.py`. URLs live under
+    `/patients/papers/` (area "papers"); media under `papers/<place code>/` (front desk of that place only).
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
   through `WorkingPlaceMiddleware`); `working_places(user)` = the clinic places (the owner's all, else `profile.places`
   + `profile.branch`); `switch_places(user)` adds the LAB place for the lab staff and the owner (the switch, the login).
@@ -201,7 +213,7 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   DJANGO_DEBUG=1 .venv/bin/python manage.py test apps.academy.tests apps.billing.tests apps.charting.tests \
     apps.clinical.tests apps.complaints.tests apps.core.tests apps.dentists.tests apps.patients.tests \
     apps.prescriptions.tests apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests \
-    apps.surgery.tests apps.clinics.tests apps.specialties.tests apps.lab.tests
+    apps.surgery.tests apps.clinics.tests apps.specialties.tests apps.lab.tests apps.papers.tests
   ```
 - A throw-away demo copy. Keep it outside the repo, e.g. in a scratch folder:
   ```bash
@@ -256,5 +268,11 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     backup disks); the pages still allow inline scripts (the Content-Security-Policy blocks other sites, not a script
     already in a page); the clinic's-network rule trusts the addresses the server sees, so it depends on the router
     and, with Docker, on our nginx. Drafts stay in the browser of that PC for a day.
+  - The old paper files (round 13): Claude's reading is not 100% right (Arabic handwriting, shorthand and faded writing
+    are the weakest): every yellow / red value needs a person, and a wrong but valid-looking number can pass the
+    checks (reading twice is the guard). The pages leave the clinic (to Anthropic) only when the owner switches it on;
+    the server needs the internet for it. The cut-out is close, not exact. The teeth, the plan, the visits and the
+    payments are not read yet (second part). The costs are estimates until measured on real files; the demo's
+    readings are made up (no key in the practice copy).
   - The planned prosthesis made from a surgery's design is a best guess (a full arch from 10 units, a bridge when a
     pontic is between implants, else a crown for each implant): the dentist corrects it on the dental chart.

@@ -17,6 +17,7 @@ from .roles import OWNER, user_roles
 AREAS = [
     ("patients", gettext_lazy("Patients"), ["/patients/"]),
     ("calls", gettext_lazy("Call lists and patients to call"), ["/patients/calls/", "/patients/to-call/"]),
+    ("papers", gettext_lazy("Old paper files read by Claude"), ["/patients/papers/"]),
     ("schedule", gettext_lazy("Schedule and appointments"), ["/schedule/"]),
     ("charts", gettext_lazy("Dental charts, examinations and plans"), ["/chart/"]),
     ("treatments", gettext_lazy("Treatment log"), ["/clinical/steps/"]),
