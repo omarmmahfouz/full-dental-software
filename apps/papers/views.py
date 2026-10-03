@@ -13,11 +13,13 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_POST
 
 from apps.core.mixins import role_required
 from apps.core.models import branch_for_user
-from apps.core.roles import FRONT_DESK
+from apps.core.approvals import APPROVERS
+from apps.core.roles import FRONT_DESK, user_roles
 from apps.patients.models import Patient
 
 from . import importer
@@ -88,12 +90,16 @@ def import_detail(request, pk):
         results = importer.run(paper_import, place, request.user)
         done = sum(1 for result in results if result.status == ImportedFile.Status.IMPORTED)
         failed = sum(1 for result in results if result.status == ImportedFile.Status.FAILED)
-        messages.success(request, _("%(done)s files saved into the patients' files.") % {"done": done})
+        messages.success(request, ngettext("%(done)s file saved into the patients' files.",
+                                           "%(done)s files saved into the patients' files.", done) % {"done": done})
         if failed:
-            messages.warning(request, _("%(n)s files were not imported: the reasons are below. Correct them in the "
-                                        "Paper Reader (Open it again), then send them again.") % {"n": failed})
+            messages.warning(request, ngettext(
+                "%(n)s file was not imported: the reason is below. Correct it in the Paper Reader (Open it again), "
+                "then send it again.",
+                "%(n)s files were not imported: the reasons are below. Correct them in the Paper Reader (Open it "
+                "again), then send them again.", failed) % {"n": failed})
         return redirect(paper_import)
-    context = {"paper_import": paper_import}
+    context = {"paper_import": paper_import, "can_approve": bool(user_roles(request.user) & set(APPROVERS))}
     if paper_import.status == PaperImport.Status.CHECKED:
         context["rows"] = importer.plan(paper_import, place)
     else:

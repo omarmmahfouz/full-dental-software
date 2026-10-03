@@ -21,6 +21,8 @@ from .models import Export, KnownPatient, PaperFile, PaperPage, SystemLists
 from .pages import clean_pdf
 
 LISTS_KIND, PACKAGE_KIND, VERSION = "cia-paper-reader-lists", "cia-paper-reader-package", 1
+# A package stays under what the clinic server takes in one upload (320 MB); the files left go in the next package.
+PACKAGE_MB = 250
 
 
 @transaction.atomic
@@ -74,16 +76,21 @@ def documents(paper):
     return out
 
 
-def build_package(papers, user):
-    """Make one package of approved files; returns the Export (its ZIP is kept here too)."""
+def build_package(papers, user, limit_mb=PACKAGE_MB):
+    """Make one package of approved files (in order, until it reaches ``limit_mb``); returns the Export (its ZIP is
+    kept here too). The files that did not fit stay approved for the next package."""
     lists = SystemLists.get()
     now = timezone.localtime()
     manifest = {"kind": PACKAGE_KIND, "version": VERSION, "place": lists.place_code,
                 "lists_made_at": lists.data.get("made_at", ""), "made_at": now.isoformat(),
                 "made_by": user.get_username() if user else "", "files": []}
     output = io.BytesIO()
+    packed = []
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as package:
         for paper in papers:
+            if packed and output.tell() > limit_mb * 1024 * 1024:
+                break
+            packed.append(paper)
             approved = paper.approved or {}
             entry = {
                 "token": paper.token, "name": paper.original_name, "pages": paper.page_count,
@@ -105,6 +112,6 @@ def build_package(papers, user):
     export = Export(made_by=user, place_code=lists.place_code, name=name, count=len(manifest["files"]))
     export.package.save(name, ContentFile(output.getvalue()), save=False)
     export.save()
-    PaperFile.objects.filter(pk__in=[paper.pk for paper in papers]).update(
+    PaperFile.objects.filter(pk__in=[paper.pk for paper in packed]).update(
         status=PaperFile.Status.EXPORTED, exported_in=export)
     return export

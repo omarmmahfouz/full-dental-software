@@ -159,5 +159,6 @@ In the sample data:
    records*, with who deleted it. See the dentists' checklist, section U.
 
 ## M. New in this version (13)
-1. As `khadem`: *Patients → Old paper files* shows only El Khadem's files; the cover sheets carry El Khadem's
-   letterhead and `EK-…` numbers. A paper file goes only into an El Khadem patient.
+1. As `khadem`: *Patients → Old paper files* shows only El Khadem's packages; *Download the lists* gives El Khadem's
+   patients only (`EK-…`); the cover sheets carry El Khadem's letterhead and `EK-…` numbers. A package made for CIA is
+   refused here.

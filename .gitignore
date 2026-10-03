@@ -8,6 +8,7 @@ venv/
 .env
 /data/
 /reader/data/
+/reader/data-trial/
 backups/
 /logs/
 /test-copy/

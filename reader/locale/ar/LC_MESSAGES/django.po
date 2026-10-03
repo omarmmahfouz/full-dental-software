@@ -1,0 +1,1488 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 12:08+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#: reading/apps.py:8 templates/base.html:7 templates/base.html:20
+#: templates/registration/login.html:6
+msgid "Paper Reader"
+msgstr "قارئ الملفات"
+
+#: reading/checks.py:34
+msgid "Claude is not sure of the reading."
+msgstr "Claude مش متأكد من القراءة."
+
+#: reading/checks.py:35
+msgid "Claude could not read it."
+msgstr "Claude ما قدرش يقراها."
+
+#: reading/checks.py:36
+#, python-format
+msgid "The two readings differ: %(a)s / %(b)s."
+msgstr "القراءتين مختلفتين: %(a)s / %(b)s."
+
+#: reading/checks.py:37
+msgid "One of the two readings did not find it."
+msgstr "واحدة من القراءتين ما لقيتهاش."
+
+#: reading/checks.py:38
+#, python-format
+msgid "Written differently on two pages: %(a)s / %(b)s."
+msgstr "مكتوبة بشكل مختلف في صفحتين: %(a)s / %(b)s."
+
+#: reading/checks.py:39
+#, python-format
+msgid "Not one of the choices: %(value)s."
+msgstr "مش من الاختيارات: %(value)s."
+
+#: reading/checks.py:40
+#, python-format
+msgid "Not a real date: %(value)s."
+msgstr "تاريخ مش صحيح: %(value)s."
+
+#: reading/checks.py:41
+#, python-format
+msgid "The date %(value)s cannot be right here."
+msgstr "التاريخ %(value)s ما ينفعش يكون صح هنا."
+
+#: reading/checks.py:42
+#, python-format
+msgid "Not a number: %(value)s."
+msgstr "مش رقم: %(value)s."
+
+#: reading/checks.py:43
+#, python-format
+msgid "%(value)s is unusual here (usually %(low)s to %(high)s)."
+msgstr "%(value)s غريبة هنا (عادة من %(low)s إلى %(high)s)."
+
+#: reading/checks.py:44
+#, python-format
+msgid "The national ID says the date of birth is %(value)s."
+msgstr "الرقم القومي بيقول إن تاريخ الميلاد %(value)s."
+
+#: reading/checks.py:45
+#, python-format
+msgid "The national ID says: %(value)s."
+msgstr "الرقم القومي بيقول: %(value)s."
+
+#: reading/checks.py:46
+#, python-format
+msgid "The national ID says the governorate is %(value)s."
+msgstr "الرقم القومي بيقول إن المحافظة %(value)s."
+
+#: reading/checks.py:47
+#, python-format
+msgid "It does not agree with the %(what)s read on the paper."
+msgstr "مش متفق مع %(what)s المكتوب في الورقة."
+
+#: reading/checks.py:48
+msgid "Taken from the national ID."
+msgstr "مأخوذ من الرقم القومي."
+
+#: reading/checks.py:49
+#, python-format
+msgid "No dentist with this name in the system: %(value)s."
+msgstr "مفيش دكتور بالاسم ده في السيستم: %(value)s."
+
+#: reading/checks.py:50
+#, python-format
+msgid "Not in the list of diseases: %(value)s."
+msgstr "مش في قائمة الأمراض: %(value)s."
+
+#: reading/checks.py:51
+msgid "Diseases written that are not in the list."
+msgstr "أمراض مكتوبة ومش موجودة في القائمة."
+
+#: reading/checks.py:52
+#, python-format
+msgid "Claude's note: %(value)s"
+msgstr "ملاحظة Claude: %(value)s"
+
+#: reading/checks.py:65
+#, python-format
+msgid "Not a valid national ID: %(error)s"
+msgstr "رقم قومي غير صحيح: %(error)s"
+
+#: reading/checks.py:66
+msgid "Not a valid national ID."
+msgstr "رقم قومي غير صحيح."
+
+#: reading/checks.py:72
+msgid "Not a valid mobile number."
+msgstr "رقم موبايل غير صحيح."
+
+#: reading/checks.py:78 reading/rules.py:72
+msgid "Write the name in Arabic letters only, as on the ID."
+msgstr "اكتب الاسم بالحروف العربية فقط، كما في البطاقة."
+
+#: reading/checks.py:80
+msgid "male"
+msgstr "ذكر"
+
+#: reading/checks.py:80
+msgid "female"
+msgstr "أنثى"
+
+#: reading/checks.py:388
+msgid "the file number on the cover sheet"
+msgstr "رقم الملف المكتوب على ورقة الغلاف"
+
+#: reading/checks.py:389
+msgid "the same national ID"
+msgstr "نفس الرقم القومي"
+
+#: reading/checks.py:390
+msgid "the same mobile number"
+msgstr "نفس رقم الموبايل"
+
+#: reading/exchange.py:32 reading/views.py:501
+msgid "This is not a lists file of the dental system."
+msgstr "ده مش ملف قوائم من سيستم الأسنان."
+
+#: reading/exchange.py:34
+msgid ""
+"This lists file is from another version of the dental system: update both."
+msgstr "ملف القوائم ده من نسخة تانية من سيستم الأسنان: حدّثوا البرنامجين."
+
+#: reading/exchange.py:38
+msgid "This lists file is not complete."
+msgstr "ملف القوائم ده مش كامل."
+
+#: reading/forms.py:107
+msgid "Scanned files"
+msgstr "الملفات المتصورة (سكانر)"
+
+#: reading/forms.py:108
+msgid ""
+"One PDF for each patient (choose many at once), or the photos of the pages "
+"of one file."
+msgstr "ملف PDF لكل مريض (اختاري كذا ملف مرة واحدة)، أو صور صفحات ملف واحد."
+
+#: reading/forms.py:109 reading/models.py:274
+msgid "Read"
+msgstr "القراءة"
+
+#: reading/forms.py:114
+msgid "Choose at least one file."
+msgstr "اختاري ملف واحد على الأقل."
+
+#: reading/forms.py:116
+msgid "At most 200 files at once."
+msgstr "200 ملف بالكتير في المرة."
+
+#: reading/forms.py:119
+#, python-format
+msgid "%(name)s is not a real PDF or picture."
+msgstr "%(name)s مش PDF أو صورة حقيقية."
+
+#: reading/forms.py:121
+#, python-format
+msgid "%(name)s is too large (at most %(mb)s MB)."
+msgstr "%(name)s كبير جدًا (بالكتير %(mb)s ميجا)."
+
+#: reading/forms.py:131
+msgid "Save into"
+msgstr "الحفظ في"
+
+#: reading/forms.py:132
+msgid "A new patient file"
+msgstr "ملف مريض جديد"
+
+#: reading/forms.py:132
+msgid "A patient already registered"
+msgstr "مريض مسجل بالفعل"
+
+#: reading/forms.py:133 reading/models.py:76
+msgid "file number"
+msgstr "رقم الملف"
+
+#: reading/forms.py:134
+msgid "Type the file number or choose from the list (name or mobile)."
+msgstr "اكتبي رقم الملف أو اختاري من القائمة (الاسم أو الموبايل)."
+
+#: reading/forms.py:149
+msgid "Choose the patient."
+msgstr "اختاري المريض."
+
+#: reading/forms.py:151
+msgid ""
+"No registered patient with this file number in the lists from the system. "
+"Bring in new lists if the patient is new there."
+msgstr ""
+"مفيش مريض متسجل بالرقم ده في القوائم اللي جاية من السيستم. دخّلي قوائم جديدة"
+" لو المريض جديد هناك."
+
+#: reading/forms.py:299
+msgid "The lists file from the dental system"
+msgstr "ملف القوائم من سيستم الأسنان"
+
+#: reading/forms.py:300
+msgid ""
+"In the dental system: Patients → Old paper files → Lists for the reader."
+msgstr "في سيستم الأسنان: المرضى ← الملفات الورقية القديمة ← القوائم للقارئ."
+
+#: reading/forms.py:304 reading/forms.py:337 templates/reading/people.html:8
+#: templates/registration/login.html:10
+msgid "username"
+msgstr "اسم المستخدم"
+
+#: reading/forms.py:305 reading/forms.py:338 reading/models.py:77
+#: templates/reading/people.html:8
+msgid "name"
+msgstr "الاسم"
+
+#: reading/forms.py:306 reading/forms.py:339
+#: templates/registration/login.html:12
+msgid "password"
+msgstr "كلمة السر"
+
+#: reading/forms.py:307
+msgid "Leave empty to keep the password."
+msgstr "سيبيها فاضية علشان كلمة السر تفضل زي ما هي."
+
+#: reading/forms.py:308
+msgid "in charge (settings, lists and people)"
+msgstr "المسؤول (الإعدادات والقوائم والأشخاص)"
+
+#: reading/forms.py:309 templates/reading/people.html:8
+msgid "can log in"
+msgstr "يستطيع الدخول"
+
+#: reading/forms.py:324
+msgid "This username is taken."
+msgstr "اسم المستخدم هذا مستخدم بالفعل."
+
+#: reading/forms.py:340
+msgid "the password again"
+msgstr "كلمة السر تاني"
+
+#: reading/forms.py:345
+msgid "The two passwords are not the same."
+msgstr "كلمتين السر مش زي بعض."
+
+#: reading/models.py:52 reading/models.py:163 reading/models.py:351
+#: templates/reading/lists.html:10
+msgid "place"
+msgstr "المكان"
+
+#: reading/models.py:53 templates/reading/lists.html:14
+msgid "brought in at"
+msgstr "وقت الإدخال"
+
+#: reading/models.py:58
+msgid "lists from the dental system"
+msgstr "القوائم من سيستم الأسنان"
+
+#: reading/models.py:85
+msgid "registered patient"
+msgstr "مريض متسجل"
+
+#: reading/models.py:95
+msgid "Now (full price, about a minute a file)"
+msgstr "دلوقتي (السعر كامل، حوالي دقيقة للملف)"
+
+#: reading/models.py:96
+msgid "In a batch (half price, back within a few hours)"
+msgstr "كدفعة (نص السعر، ترجع خلال ساعات قليلة)"
+
+#: reading/models.py:99
+msgid "Claude Opus 5.5 (the most accurate)"
+msgstr "Claude Opus 5.5 (الأدق)"
+
+#: reading/models.py:100
+msgid "Claude Sonnet 5.5 (half the price)"
+msgstr "Claude Sonnet 5.5 (نص السعر)"
+
+#: reading/models.py:103
+msgid "Low (the cheapest)"
+msgstr "قليل (الأرخص)"
+
+#: reading/models.py:104
+msgid "Medium (usual)"
+msgstr "متوسط (المعتاد)"
+
+#: reading/models.py:105
+msgid "High (hard handwriting; costs more)"
+msgstr "عالي (للخط الصعب، تكلفته أكتر)"
+
+#: reading/models.py:109
+msgid "send the scanned pages to Claude to read"
+msgstr "إرسال الصفحات المتصورة لـ Claude عشان يقراها"
+
+#: reading/models.py:110
+msgid ""
+"The pages leave this PC and go to Anthropic (the company that makes Claude) "
+"over the internet to be read. Anthropic does not use them to train its "
+"models. Switch on only after the patients' consent and your lawyer's advice."
+msgstr ""
+"الصفحات بتخرج من الكمبيوتر ده وبتروح لـ Anthropic (الشركة اللي عاملة Claude)"
+" على الإنترنت علشان تتقري. Anthropic ما بتستخدمهاش في تدريب النماذج بتاعتها."
+" شغّليها بس بعد موافقة المرضى ورأي المحامي."
+
+#: reading/models.py:113
+msgid "model"
+msgstr "النموذج"
+
+#: reading/models.py:114
+msgid "how hard it thinks"
+msgstr "قد إيه يفكر"
+
+#: reading/models.py:116
+msgid "read each page twice and compare"
+msgstr "قراءة كل صفحة مرتين والمقارنة"
+
+#: reading/models.py:117
+msgid ""
+"Where the two readings differ, the field is marked for checking. It catches "
+"more mistakes and costs twice as much."
+msgstr ""
+"لما القراءتين يختلفوا، الخانة تتعلّم للمراجعة. بتمسك أخطاء أكتر وتكلفتها "
+"الضعف."
+
+#: reading/models.py:119
+msgid "usual way of sending"
+msgstr "طريقة الإرسال المعتادة"
+
+#: reading/models.py:122
+msgid "monthly limit (US dollars)"
+msgstr "الحد الشهري (دولار أمريكي)"
+
+#: reading/models.py:123
+msgid ""
+"Nothing more is sent this month when the month's cost reaches it. 0 = no "
+"limit."
+msgstr "لما تكلفة الشهر توصل له ما يتبعتش حاجة تاني الشهر ده. 0 = بدون حد."
+
+#: reading/models.py:127
+msgid "settings"
+msgstr "الإعدادات"
+
+#: reading/models.py:143
+msgid "Waiting to be read"
+msgstr "مستني القراءة"
+
+#: reading/models.py:144
+msgid "Being read"
+msgstr "بيتقري"
+
+#: reading/models.py:145 templates/reading/list.html:29
+msgid "To check"
+msgstr "للمراجعة"
+
+#: reading/models.py:146
+msgid "Approved: ready to send to the system"
+msgstr "اتوافق عليه: جاهز يتبعت للسيستم"
+
+#: reading/models.py:147
+msgid "Sent to the system"
+msgstr "اتبعت للسيستم"
+
+#: reading/models.py:148
+msgid "Set aside (typed by hand)"
+msgstr "متجنّب (يتكتب باليد)"
+
+#: reading/models.py:149
+msgid "Could not be read"
+msgstr "ما اتقراش"
+
+#: reading/models.py:153
+msgid "Reading is switched off (Settings)."
+msgstr "القراءة مقفولة (الإعدادات)."
+
+#: reading/models.py:154
+msgid ""
+"The key to Claude is not set on this PC (ANTHROPIC_API_KEY in the .env "
+"file)."
+msgstr ""
+"مفتاح Claude مش متسجل على الكمبيوتر ده (ANTHROPIC_API_KEY في ملف ‎.env‎)."
+
+#: reading/models.py:155
+msgid "This month's limit for reading is reached (Settings)."
+msgstr "حد الشهر للقراءة خلص (الإعدادات)."
+
+#: reading/models.py:156
+msgid ""
+"The key to Claude was refused: check ANTHROPIC_API_KEY in the .env file."
+msgstr "مفتاح Claude اترفض: راجعي ANTHROPIC_API_KEY في ملف ‎.env‎."
+
+#: reading/models.py:157
+#, python-format
+msgid ""
+"This file cannot be opened as a PDF (%(error)s). Scan it again or save it "
+"again as a PDF."
+msgstr ""
+"الملف ده مش بيتفتح كـ PDF (%(error)s). اعمليله سكانر تاني أو احفظيه تاني كـ "
+"PDF."
+
+#: reading/models.py:158
+msgid ""
+"Claude could not read this file. Check the scan, then press Read again, or "
+"type it by hand."
+msgstr ""
+"Claude ما قدرش يقرا الملف ده. راجعي السكانر واضغطي «اقرا تاني»، أو اكتبيه "
+"باليد."
+
+#: reading/models.py:164
+msgid "the scan as it was uploaded"
+msgstr "السكانر زي ما اترفع"
+
+#: reading/models.py:165 reading/models.py:352
+#: templates/reading/export.html:19
+msgid "file name"
+msgstr "اسم الملف"
+
+#: reading/models.py:166
+msgid "sent"
+msgstr "الإرسال"
+
+#: reading/models.py:168
+msgid "status"
+msgstr "الحالة"
+
+#: reading/models.py:170
+msgid "pages"
+msgstr "الصفحات"
+
+#: reading/models.py:171
+msgid "file number on the cover sheet"
+msgstr "رقم الملف على ورقة الغلاف"
+
+#: reading/models.py:172
+msgid "seems to be the file"
+msgstr "شكله ملف"
+
+#: reading/models.py:174
+msgid "problem"
+msgstr "مشكلة"
+
+#: reading/models.py:175
+msgid "read at"
+msgstr "وقت القراءة"
+
+#: reading/models.py:182
+msgid "approved at"
+msgstr "وقت الاعتماد"
+
+#: reading/models.py:191
+msgid "paper file"
+msgstr "ملف ورقي"
+
+#: reading/models.py:192
+msgid "paper files"
+msgstr "ملفات ورقية"
+
+#: reading/models.py:221
+msgid "Cover sheet (file number)"
+msgstr "ورقة غلاف (رقم الملف)"
+
+#: reading/models.py:222
+msgid "ID card - front"
+msgstr "البطاقة - الوجه"
+
+#: reading/models.py:223
+msgid "ID card - back"
+msgstr "البطاقة - الظهر"
+
+#: reading/models.py:224
+msgid "Registration (patient's data)"
+msgstr "التسجيل (بيانات المريض)"
+
+#: reading/models.py:225 templates/reading/review.html:61
+msgid "Medical and dental history"
+msgstr "التاريخ الطبي وتاريخ الأسنان"
+
+#: reading/models.py:226
+msgid "Examination"
+msgstr "الكشف"
+
+#: reading/models.py:227
+msgid "Dental chart (drawing of the teeth)"
+msgstr "شارت الأسنان (رسمة الأسنان)"
+
+#: reading/models.py:228
+msgid "Treatment plan"
+msgstr "خطة العلاج"
+
+#: reading/models.py:229
+msgid "Surgery chart"
+msgstr "شارت العملية"
+
+#: reading/models.py:230
+msgid "Treatment log (visits)"
+msgstr "سجل العلاج (الزيارات)"
+
+#: reading/models.py:231
+msgid "Prescription"
+msgstr "روشتة"
+
+#: reading/models.py:232
+msgid "Lab paper"
+msgstr "ورقة المعمل"
+
+#: reading/models.py:233
+msgid "Signed consent"
+msgstr "إقرار موقّع"
+
+#: reading/models.py:234
+msgid "Receipt or payments"
+msgstr "إيصال أو مدفوعات"
+
+#: reading/models.py:235
+msgid "X-ray, CBCT or photo"
+msgstr "أشعة أو CBCT أو صورة"
+
+#: reading/models.py:236
+msgid "Other"
+msgstr "أخرى"
+
+#: reading/models.py:237
+msgid "Blank page"
+msgstr "صفحة فاضية"
+
+#: reading/models.py:246
+msgid "page"
+msgstr "الصفحة"
+
+#: reading/models.py:247
+msgid "picture"
+msgstr "الصورة"
+
+#: reading/models.py:250 templates/reading/review.html:88
+msgid "what the page is"
+msgstr "الصفحة دي إيه"
+
+#: reading/models.py:251
+msgid "turned (degrees, clockwise)"
+msgstr "اتلفّت (درجات، مع عقارب الساعة)"
+
+#: reading/models.py:252
+msgid "notes"
+msgstr "ملاحظات"
+
+#: reading/models.py:271
+msgid "Waiting"
+msgstr "في الانتظار"
+
+#: reading/models.py:272
+msgid "Being sent"
+msgstr "بيتبعت"
+
+#: reading/models.py:273 templates/reading/list.html:29
+msgid "Sent"
+msgstr "أُرسل"
+
+#: reading/models.py:275
+msgid "Not read"
+msgstr "ما اتقراش"
+
+#: reading/models.py:312
+msgid "Sure"
+msgstr "مؤكد"
+
+#: reading/models.py:313
+msgid "Please check"
+msgstr "راجعيها"
+
+#: reading/models.py:314
+msgid "Cannot be read"
+msgstr "مش مقروءة"
+
+#: reading/models.py:348 templates/reading/export.html:19
+msgid "made at"
+msgstr "وقت العمل"
+
+#: reading/models.py:354 templates/reading/export.html:19
+msgid "files"
+msgstr "الملفات"
+
+#: reading/models.py:358
+msgid "package for the system"
+msgstr "حزمة للسيستم"
+
+#: reading/rules.py:47
+#, python-format
+msgid ""
+"This mobile has %(n)s digits: Egyptian mobiles have exactly 11 (e.g. "
+"01001234567)."
+msgstr ""
+"هذا الرقم %(n)s رقمًا: الموبايل المصري 11 رقمًا بالضبط (مثل 01001234567)."
+
+#: reading/rules.py:49
+msgid ""
+"Enter a valid mobile number, e.g. 01001234567 (or +country code for foreign "
+"numbers)."
+msgstr ""
+"أدخل رقم موبايل صحيح، مثل 01001234567 (أو + كود الدولة للأرقام الأجنبية)."
+
+#: reading/rules.py:56
+msgid "The national ID must be exactly 14 digits."
+msgstr "الرقم القومي يجب أن يكون 14 رقمًا بالضبط."
+
+#: reading/rules.py:59
+msgid "The national ID must start with 2 or 3."
+msgstr "الرقم القومي يجب أن يبدأ بـ 2 أو 3."
+
+#: reading/rules.py:63
+msgid "The birth date inside the national ID is not valid."
+msgstr "تاريخ الميلاد داخل الرقم القومي غير صحيح."
+
+#: reading/rules.py:65
+msgid "The birth date inside the national ID is in the future."
+msgstr "تاريخ الميلاد داخل الرقم القومي في المستقبل."
+
+#: reading/rules.py:74
+msgid ""
+"Write at least three names (the patient, the father and the grandfather), as"
+" on the ID."
+msgstr "اكتب ثلاثة أسماء على الأقل (المريض والأب والجد)، كما في البطاقة."
+
+#: reading/views.py:80
+msgid "Welcome. Bring in the lists from the dental system first."
+msgstr "أهلًا. دخّلي القوائم من سيستم الأسنان الأول."
+
+#: reading/views.py:123
+msgid "Bring in the lists from the dental system first (Settings → Lists)."
+msgstr "دخّلي القوائم من سيستم الأسنان الأول (الإعدادات ← القوائم)."
+
+#: reading/views.py:137
+msgid "The photos could not be opened: take them again."
+msgstr "الصور ما اتفتحتش: صوّريها تاني."
+
+#: reading/views.py:148
+#, python-format
+msgid ""
+"%(n)s file is being read. It appears under “To check” when it is ready."
+msgid_plural ""
+"%(n)s files are being read. They appear under “To check” when they are "
+"ready."
+msgstr[0] "%(n)s ملفات بتتقري. هتظهر تحت «للمراجعة» لما تجهز."
+msgstr[1] "ملف واحد بيتقري. هيظهر تحت «للمراجعة» لما يجهز."
+msgstr[2] "ملفين بيتقروا. هيظهروا تحت «للمراجعة» لما يجهزوا."
+msgstr[3] "%(n)s ملفات بتتقري. هتظهر تحت «للمراجعة» لما تجهز."
+msgstr[4] "%(n)s ملف بيتقروا. هيظهروا تحت «للمراجعة» لما يجهزوا."
+msgstr[5] "%(n)s ملف بيتقروا. هيظهروا تحت «للمراجعة» لما يجهزوا."
+
+#: reading/views.py:152
+msgid ""
+"Reading is switched off: the files wait until it is switched on (Settings)."
+msgstr "القراءة مقفولة: الملفات مستنية لحد ما تتشغّل (الإعدادات)."
+
+#: reading/views.py:233
+#, python-format
+msgid ""
+"This ID is already registered for %(name)s (file %(file)s): choose “A "
+"patient already registered”."
+msgstr ""
+"الرقم القومي ده متسجل لـ %(name)s (ملف %(file)s): اختاري «مريض متسجل قبل "
+"كده»."
+
+#: reading/views.py:240
+#, python-format
+msgid ""
+"This mobile belongs to the registered patient %(name)s (file %(file)s)."
+msgstr "هذا الموبايل خاص بالمريض المسجل %(name)s (ملف %(file)s)."
+
+#: reading/views.py:263
+msgid "Opened again: change it and approve it again."
+msgstr "اتفتح تاني: عدّليه ووافقي عليه تاني."
+
+#: reading/views.py:266
+msgid "This file is already done."
+msgstr "الملف ده خلص بالفعل."
+
+#: reading/views.py:270
+msgid "Saved. You can go on later."
+msgstr "اتحفظ. تقدري تكملي بعدين."
+
+#: reading/views.py:274
+msgid "Set aside: the scan stays here, to type by hand."
+msgstr "اتجنّب: السكانر فاضل هنا عشان يتكتب باليد."
+
+#: reading/views.py:280
+msgid "Choose the patient first."
+msgstr "اختاري المريض الأول."
+
+#: reading/views.py:297
+msgid ""
+"Approved: it goes to the dental system with the next package (Send to the "
+"system)."
+msgstr "اتوافق عليه: هيروح لسيستم الأسنان مع الحزمة الجاية (الإرسال للسيستم)."
+
+#: reading/views.py:300 reading/views.py:302
+msgid "Not approved yet: please correct the values marked in red."
+msgstr "لسه ما اتوافقش عليه: صححي القيم اللي عليها علامة حمرا."
+
+#: reading/views.py:376
+msgid "The file is read again."
+msgstr "الملف بيتقري تاني."
+
+#: reading/views.py:385
+msgid "A file sent to the system is kept."
+msgstr "الملف اللي اتبعت للسيستم بيفضل محفوظ."
+
+#: reading/views.py:388
+msgid "Deleted."
+msgstr "اتمسح."
+
+#: reading/views.py:428
+msgid "Nothing approved to send."
+msgstr "مفيش ملفات متوافق عليها تتبعت."
+
+#: reading/views.py:431
+msgid ""
+"The package is ready: download it, then import it in the dental system (Old "
+"paper files → Import a package)."
+msgstr ""
+"الحزمة جاهزة: نزّليها، وبعدين استورديها في سيستم الأسنان (الملفات الورقية "
+"القديمة ← استيراد حزمة)."
+
+#: reading/views.py:436
+#, python-format
+msgid ""
+"%(n)s file did not fit in this package: make another package after this one."
+msgid_plural ""
+"%(n)s files did not fit in this package: make another package after this "
+"one."
+msgstr[0] "%(n)s ملفات ما دخلتش في الحزمة دي: اعملي حزمة تانية بعدها."
+msgstr[1] "ملف واحد ما دخلش في الحزمة دي: اعملي حزمة تانية بعدها."
+msgstr[2] "ملفين ما دخلوش في الحزمة دي: اعملي حزمة تانية بعدها."
+msgstr[3] "%(n)s ملفات ما دخلتش في الحزمة دي: اعملي حزمة تانية بعدها."
+msgstr[4] "%(n)s ملف ما دخلوش في الحزمة دي: اعملي حزمة تانية بعدها."
+msgstr[5] "%(n)s ملف ما دخلوش في الحزمة دي: اعملي حزمة تانية بعدها."
+
+#: reading/views.py:459 reading/views.py:531
+msgid "Saved."
+msgstr "تم الحفظ."
+
+#: reading/views.py:477
+msgid ""
+"The key is not set: write ANTHROPIC_API_KEY=… in the reader's .env file and "
+"start the reader again."
+msgstr ""
+"المفتاح مش متسجل: اكتبي ANTHROPIC_API_KEY=… في ملف ‎.env‎ بتاع القارئ وشغّلي"
+" القارئ تاني."
+
+#: reading/views.py:483
+msgid "Anthropic refused the key: check it in the .env file."
+msgstr "Anthropic رفضت المفتاح: راجعه في ملف ‎.env."
+
+#: reading/views.py:485
+msgid "Anthropic cannot be reached now: check this PC's internet."
+msgstr "مش قادرين نوصل لـ Anthropic دلوقتي: راجعي الإنترنت على الكمبيوتر ده."
+
+#: reading/views.py:487
+#, python-format
+msgid "Anthropic answered: %(error)s"
+msgstr "رد Anthropic: %(error)s"
+
+#: reading/views.py:489
+msgid "The key works and the model is open to it."
+msgstr "المفتاح شغال والنموذج متاح له."
+
+#: reading/views.py:505
+#, python-format
+msgid ""
+"The lists of %(place)s are in: %(fields)s values to read, %(patients)s "
+"registered patients."
+msgstr ""
+"قوائم %(place)s دخلت: %(fields)s قيمة تتقري، و%(patients)s مريض متسجل."
+
+#: site_config/settings.py:120
+msgid "Arabic"
+msgstr "العربية"
+
+#: site_config/settings.py:120
+msgid "English"
+msgstr "الإنجليزية"
+
+#: templates/base.html:16
+msgid "Saving…"
+msgstr "جاري الحفظ…"
+
+#: templates/base.html:21
+msgid "Menu"
+msgstr "القائمة"
+
+#: templates/base.html:24 templates/reading/list.html:3
+#: templates/reading/list.html:7 templates/reading/settings.html:6
+msgid "The files"
+msgstr "الملفات"
+
+#: templates/base.html:25 templates/reading/list.html:9
+#: templates/reading/list.html:44 templates/reading/upload.html:3
+#: templates/reading/upload.html:5
+msgid "Send scanned files"
+msgstr "إرسال ملفات متصورة"
+
+#: templates/base.html:26 templates/reading/export.html:3
+#: templates/reading/export.html:5 templates/reading/list.html:10
+#: templates/reading/review.html:32
+msgid "Send to the dental system"
+msgstr "الإرسال لسيستم الأسنان"
+
+#: templates/base.html:28 templates/reading/list.html:15
+#: templates/reading/settings.html:3
+msgid "Settings"
+msgstr "الإعدادات"
+
+#: templates/base.html:30 templates/reading/settings.html:5
+msgid "Reading and the key"
+msgstr "القراءة والمفتاح"
+
+#: templates/base.html:31 templates/reading/lists.html:3
+#: templates/reading/lists.html:5
+msgid "Lists from the dental system"
+msgstr "القوائم من سيستم الأسنان"
+
+#: templates/base.html:32 templates/reading/people.html:3
+#: templates/reading/people.html:5
+msgid "People"
+msgstr "الأشخاص"
+
+#: templates/base.html:40
+msgid "Log out"
+msgstr "تسجيل الخروج"
+
+#: templates/base.html:47
+msgid "Close"
+msgstr "إغلاق"
+
+#: templates/reading/_chip.html:1
+msgid "checked"
+msgstr "اتراجعت"
+
+#: templates/reading/_chip.html:1
+msgid "sure"
+msgstr "مؤكدة"
+
+#: templates/reading/_chip.html:1
+msgid "check"
+msgstr "راجعيها"
+
+#: templates/reading/_chip.html:1
+msgid "cannot be read"
+msgstr "مش مقروءة"
+
+#: templates/reading/_field.html:11
+msgid "On the paper:"
+msgstr "في الورقة:"
+
+#: templates/reading/_field.html:13 templates/reading/_field.html:14
+msgid "the paper"
+msgstr "الورقة"
+
+#: templates/reading/_field.html:14
+msgid "See it on the paper"
+msgstr "شوفيها في الورقة"
+
+#: templates/reading/_field.html:16 templates/reading/review.html:83
+#, python-format
+msgid "page %(n)s"
+msgstr "صفحة %(n)s"
+
+#: templates/reading/_field.html:18
+msgid "In the file now:"
+msgstr "في الملف دلوقتي:"
+
+#: templates/reading/_field.html:19
+msgid "replace it with the paper's value"
+msgstr "غيّريها بقيمة الورقة"
+
+#: templates/reading/_pages_nav.html:3
+msgid "Previous"
+msgstr "السابق"
+
+#: templates/reading/_pages_nav.html:5
+msgid "Next"
+msgstr "التالي"
+
+#: templates/reading/export.html:6
+msgid ""
+"The approved files go to the dental system in one package file: download it,"
+" take it to the dental system (the network or a USB stick), and import it "
+"there in Patients → Old paper files → Import a package. The dental system "
+"checks every value again and saves it into the patients' files."
+msgstr ""
+"الملفات المتوافق عليها بتروح لسيستم الأسنان في ملف حزمة واحد: نزّليه، وخديه "
+"لسيستم الأسنان (على الشبكة أو فلاشة)، واستورديه هناك من المرضى ← الملفات "
+"الورقية القديمة ← استيراد حزمة. سيستم الأسنان بيراجع كل قيمة تاني وبيحفظها "
+"في ملفات المرضى."
+
+#: templates/reading/export.html:7
+#, python-format
+msgid "The package %(name)s is ready (%(n)s files)."
+msgstr "الحزمة %(name)s جاهزة (%(n)s ملف)."
+
+#: templates/reading/export.html:8
+msgid "Download it"
+msgstr "نزّليها"
+
+#: templates/reading/export.html:9
+#, python-format
+msgid "%(n)s approved file ready to send"
+msgid_plural "%(n)s approved files ready to send"
+msgstr[0] "%(n)s ملفات متوافق عليها جاهزة تتبعت"
+msgstr[1] "ملف واحد متوافق عليه جاهز يتبعت"
+msgstr[2] "ملفين متوافق عليهم جاهزين يتبعتوا"
+msgstr[3] "%(n)s ملفات متوافق عليها جاهزة تتبعت"
+msgstr[4] "%(n)s ملف متوافق عليه جاهزين يتبعتوا"
+msgstr[5] "%(n)s ملف متوافق عليه جاهزين يتبعتوا"
+
+#: templates/reading/export.html:10
+msgid "Make the package"
+msgstr "اعملي الحزمة"
+
+#: templates/reading/export.html:13
+msgid "pages only"
+msgstr "الصفحات بس"
+
+#: templates/reading/export.html:13 templates/reading/list.html:35
+msgid "a new patient"
+msgstr "مريض جديد"
+
+#: templates/reading/export.html:14
+msgid "No approved files waiting."
+msgstr "مفيش ملفات متوافق عليها مستنية."
+
+#: templates/reading/export.html:17
+#, python-format
+msgid ""
+"%(n)s approved file belongs to another place: bring in that place's lists to"
+" send it."
+msgid_plural ""
+"%(n)s approved files belong to another place: bring in that place's lists to"
+" send them."
+msgstr[0] ""
+"%(n)s ملفات متوافق عليها تبع مكان تاني: دخّلي قوائم المكان ده علشان تبعتيها."
+msgstr[1] ""
+"ملف واحد متوافق عليه تبع مكان تاني: دخّلي قوائم المكان ده علشان تبعتيه."
+msgstr[2] ""
+"ملفين متوافق عليهم تبع مكان تاني: دخّلي قوائم المكان ده علشان تبعتيهم."
+msgstr[3] ""
+"%(n)s ملفات متوافق عليها تبع مكان تاني: دخّلي قوائم المكان ده علشان تبعتيها."
+msgstr[4] ""
+"%(n)s ملف متوافق عليه تبع مكان تاني: دخّلي قوائم المكان ده علشان تبعتيهم."
+msgstr[5] ""
+"%(n)s ملف متوافق عليه تبع مكان تاني: دخّلي قوائم المكان ده علشان تبعتيهم."
+
+#: templates/reading/export.html:18
+msgid "Packages made"
+msgstr "الحزم اللي اتعملت"
+
+#: templates/reading/export.html:21
+msgid "None yet."
+msgstr "لا يوجد بعد."
+
+#: templates/reading/list.html:13
+msgid ""
+"Scan each paper file to a PDF and send it here. Claude reads it, the reader "
+"checks every value, and you approve it. The approved files go to the dental "
+"system in a package that it imports: nothing reaches a patient's file before"
+" that."
+msgstr ""
+"اعملي سكانر لكل ملف ورقي كـ PDF وابعتيه من هنا. Claude بيقراه، والقارئ "
+"بيراجع كل قيمة، وإنتي بتوافقي عليه. الملفات المتوافق عليها بتروح لسيستم "
+"الأسنان في حزمة بيستوردها: مفيش حاجة بتوصل لملف المريض قبل كده."
+
+#: templates/reading/list.html:14
+msgid "The lists from the dental system are not in yet."
+msgstr "القوائم من سيستم الأسنان لسه ما دخلتش."
+
+#: templates/reading/list.html:14
+msgid "Bring them in"
+msgstr "دخّليها"
+
+#: templates/reading/list.html:15
+msgid "Reading is switched off: files sent now wait until it is switched on."
+msgstr "القراءة مقفولة: الملفات اللي هتتبعت دلوقتي هتستنى لحد ما تتشغّل."
+
+#: templates/reading/list.html:16
+msgid "The key to Claude is not set on this PC yet."
+msgstr "مفتاح Claude لسه مش متسجل على الكمبيوتر ده."
+
+#: templates/reading/list.html:17
+msgid ""
+"Files are being read. This page looks again by itself every 30 seconds."
+msgstr "الملفات بتتقري. الصفحة دي بتتحدث لوحدها كل 30 ثانية."
+
+#: templates/reading/list.html:23
+msgid "All"
+msgstr "الكل"
+
+#: templates/reading/list.html:25
+#, python-format
+msgid "Reading cost this month: about $%(cost)s"
+msgstr "تكلفة القراءة الشهر ده: حوالي %(cost)s دولار"
+
+#: templates/reading/list.html:29
+msgid "File"
+msgstr "الملف"
+
+#: templates/reading/list.html:29
+msgid "Patient"
+msgstr "المريض"
+
+#: templates/reading/list.html:29
+msgid "Pages"
+msgstr "الصفحات"
+
+#: templates/reading/list.html:29
+msgid "Status"
+msgstr "الحالة"
+
+#: templates/reading/list.html:36
+msgid "seems to be"
+msgstr "شكله"
+
+#: templates/reading/list.html:37
+msgid "new patient?"
+msgstr "مريض جديد؟"
+
+#: templates/reading/list.html:39
+msgid "(batch, within hours)"
+msgstr "(دفعة، خلال ساعات)"
+
+#: templates/reading/list.html:44
+msgid "No paper files here."
+msgstr "مفيش ملفات ورقية هنا."
+
+#: templates/reading/lists.html:6
+msgid ""
+"The reader reads the values the dental system asks for, with its own lists "
+"(diseases, how patients heard of us, the dentists, the governorates), and "
+"finds whose file a paper file is among its registered patients. Bring the "
+"lists in again when they change, and before a big batch."
+msgstr ""
+"القارئ بيقرا القيم اللي سيستم الأسنان طالبها، بقوايمه هو (الأمراض، عرفونا "
+"منين، الدكاترة، المحافظات)، وبيلاقي الملف الورقي بتاع مين من مرضاه "
+"المتسجلين. دخّلي القوائم تاني لما تتغير، وقبل أي دفعة كبيرة."
+
+#: templates/reading/lists.html:8
+msgid "What is in now"
+msgstr "اللي موجود دلوقتي"
+
+#: templates/reading/lists.html:11
+msgid "values to read"
+msgstr "قيمة تتقري"
+
+#: templates/reading/lists.html:12
+msgid "registered patients"
+msgstr "مريض متسجل"
+
+#: templates/reading/lists.html:13
+msgid "made by the dental system at"
+msgstr "عملها سيستم الأسنان في"
+
+#: templates/reading/lists.html:15
+msgid "Nothing yet: nothing can be read before the lists are in."
+msgstr "لسه مفيش: مفيش حاجة تتقري قبل ما القوائم تدخل."
+
+#: templates/reading/lists.html:17
+msgid "Bring in a lists file"
+msgstr "إدخال ملف قوائم"
+
+#: templates/reading/lists.html:19
+msgid ""
+"In the dental system: Patients → Old paper files → Lists for the reader (it "
+"downloads a file)."
+msgstr ""
+"في سيستم الأسنان: المرضى ← الملفات الورقية القديمة ← القوائم للقارئ (بينزّل "
+"ملف)."
+
+#: templates/reading/lists.html:20
+msgid ""
+"Bring the file to this PC (the network or a USB stick), then choose it here."
+msgstr "هاتي الملف على الكمبيوتر ده (الشبكة أو فلاشة)، وبعدين اختاريه هنا."
+
+#: templates/reading/lists.html:24
+msgid "Bring it in"
+msgstr "دخّليه"
+
+#: templates/reading/people.html:8
+msgid "in charge"
+msgstr "المسؤول"
+
+#: templates/reading/people.html:11
+#, python-format
+msgid "Change %(name)s"
+msgstr "تعديل %(name)s"
+
+#: templates/reading/people.html:11 templates/reading/people.html:14
+msgid "Add a person"
+msgstr "ضيف شخص"
+
+#: templates/reading/people.html:14 templates/reading/review.html:89
+#: templates/reading/settings.html:13
+msgid "Save"
+msgstr "حفظ"
+
+#: templates/reading/review.html:8
+msgid "Check the paper file"
+msgstr "مراجعة الملف الورقي"
+
+#: templates/reading/review.html:9
+#, python-format
+msgid "%(n)s page"
+msgid_plural "%(n)s pages"
+msgstr[0] "%(n)s صفحة"
+msgstr[1] "صفحة واحدة"
+msgstr[2] "صفحتين"
+msgstr[3] "%(n)s صفحات"
+msgstr[4] "%(n)s صفحة"
+msgstr[5] "%(n)s صفحة"
+
+#: templates/reading/review.html:9
+#, python-format
+msgid "cost about $%(cost)s"
+msgstr "التكلفة حوالي %(cost)s دولار"
+
+#: templates/reading/review.html:12
+msgid "The scan"
+msgstr "السكانر"
+
+#: templates/reading/review.html:14
+msgid ""
+"Read the whole file again? It costs again, and what you typed here is lost."
+msgstr "نقرا الملف كله تاني؟ هيتكلف تاني، واللي كتبتيه هنا هيضيع."
+
+#: templates/reading/review.html:14
+msgid "Read again"
+msgstr "اقرا تاني"
+
+#: templates/reading/review.html:17
+msgid ""
+"Delete this paper file and what was read? The paper itself is not touched."
+msgstr "نمسح الملف الورقي ده واللي اتقرى منه؟ الورق نفسه مش هيتأثر."
+
+#: templates/reading/review.html:25
+msgid ""
+"Being read in a batch (half price): it is usually ready within an hour, at "
+"most a day. You are told when it is ready."
+msgstr ""
+"بيتقري كدفعة (نص السعر): عادة بيجهز خلال ساعة، وبالكتير يوم. هيوصلك إشعار "
+"لما يجهز."
+
+#: templates/reading/review.html:25
+msgid ""
+"Being read: it is ready in about a minute. This page looks again by itself."
+msgstr "بيتقري: هيجهز في حوالي دقيقة. الصفحة دي بتتحدث لوحدها."
+
+#: templates/reading/review.html:28
+msgid "This file could not be read."
+msgstr "الملف ده ما اتقراش."
+
+#: templates/reading/review.html:31
+#, python-format
+msgid ""
+"Approved on %(day)s by %(who)s: it goes to the dental system with the next "
+"package."
+msgstr ""
+"اتوافق عليه يوم %(day)s بواسطة %(who)s: هيروح لسيستم الأسنان مع الحزمة "
+"الجاية."
+
+#: templates/reading/review.html:33
+msgid "Open it again"
+msgstr "افتحيه تاني"
+
+#: templates/reading/review.html:35
+#, python-format
+msgid "Sent to the dental system in the package %(name)s."
+msgstr "اتبعت لسيستم الأسنان في الحزمة %(name)s."
+
+#: templates/reading/review.html:37
+msgid "Set aside: the scan is kept here, to type by hand."
+msgstr "اتجنّب: السكانر محفوظ هنا عشان يتكتب باليد."
+
+#: templates/reading/review.html:44
+#, python-format
+msgid "%(n)s sure"
+msgid_plural "%(n)s sure"
+msgstr[0] "%(n)s مؤكدة"
+msgstr[1] "%(n)s مؤكدة"
+msgstr[2] "%(n)s مؤكدة"
+msgstr[3] "%(n)s مؤكدة"
+msgstr[4] "%(n)s مؤكدة"
+msgstr[5] "%(n)s مؤكدة"
+
+#: templates/reading/review.html:45
+#, python-format
+msgid "%(n)s to check"
+msgid_plural "%(n)s to check"
+msgstr[0] "%(n)s للمراجعة"
+msgstr[1] "%(n)s للمراجعة"
+msgstr[2] "%(n)s للمراجعة"
+msgstr[3] "%(n)s للمراجعة"
+msgstr[4] "%(n)s للمراجعة"
+msgstr[5] "%(n)s للمراجعة"
+
+#: templates/reading/review.html:46
+#, python-format
+msgid "%(n)s cannot be read"
+msgid_plural "%(n)s cannot be read"
+msgstr[0] "%(n)s مش مقروءة"
+msgstr[1] "%(n)s مش مقروءة"
+msgstr[2] "%(n)s مش مقروءة"
+msgstr[3] "%(n)s مش مقروءة"
+msgstr[4] "%(n)s مش مقروءة"
+msgstr[5] "%(n)s مش مقروءة"
+
+#: templates/reading/review.html:47
+msgid ""
+"Look at each yellow and red value next to the paper, correct it if needed, "
+"then approve. Empty boxes were not found on the paper."
+msgstr ""
+"بصّي على كل قيمة صفرا وحمرا جنب الورقة، صححيها لو محتاجة، وبعدين وافقي. "
+"الخانات الفاضية ما اتلقتش في الورقة."
+
+#: templates/reading/review.html:49
+#, python-format
+msgid "Page %(n)s could not be read: type what it says yourself."
+msgstr "صفحة %(n)s ما اتقرتش: اكتبي اللي فيها بنفسك."
+
+#: templates/reading/review.html:49
+msgid "See the page"
+msgstr "شوفي الصفحة"
+
+#: templates/reading/review.html:52
+msgid "Whose file"
+msgstr "ملف مين"
+
+#: templates/reading/review.html:53
+#, python-format
+msgid "This seems to be the file of %(name)s (%(file)s): %(why)s."
+msgstr "شكله ملف %(name)s (%(file)s): %(why)s."
+
+#: templates/reading/review.html:56
+msgid ""
+"Into a registered patient: the empty fields of the file are filled; a value "
+"already in the file stays unless you tick “replace”."
+msgstr ""
+"في مريض مسجل: الخانات الفاضية في الملف بتتملي؛ والقيمة اللي موجودة في الملف "
+"بتفضل زي ما هي إلا لو علّمتي «غيّريها»."
+
+#: templates/reading/review.html:58
+msgid "The patient's data"
+msgstr "بيانات المريض"
+
+#: templates/reading/review.html:65
+msgid "Approve"
+msgstr "موافقة"
+
+#: templates/reading/review.html:66
+msgid "Save for later"
+msgstr "حفظ للكمال بعدين"
+
+#: templates/reading/review.html:67
+msgid ""
+"Keep only the pages in the chosen patient’s documents, without the values "
+"read?"
+msgstr "نحفظ الصفحات بس في مستندات المريض المختار، من غير القيم المقروءة؟"
+
+#: templates/reading/review.html:67
+msgid "Keep only the pages"
+msgstr "حفظ الصفحات بس"
+
+#: templates/reading/review.html:68
+msgid "Set this file aside to type it by hand?"
+msgstr "نجنّب الملف ده عشان يتكتب باليد؟"
+
+#: templates/reading/review.html:68
+msgid "Set aside"
+msgstr "تجنيب"
+
+#: templates/reading/review.html:72
+msgid "What was read"
+msgstr "اللي اتقرى"
+
+#: templates/reading/review.html:79
+msgid "The pages"
+msgstr "الصفحات"
+
+#: templates/reading/review.html:84
+#, python-format
+msgid "Page %(n)s"
+msgstr "صفحة %(n)s"
+
+#: templates/reading/review.html:84
+msgid "not read yet"
+msgstr "لسه ما اتقرتش"
+
+#: templates/reading/review.html:90
+msgid "Turn left"
+msgstr "تدوير لليسار"
+
+#: templates/reading/review.html:91
+msgid "Turn right"
+msgstr "تدوير لليمين"
+
+#: templates/reading/review.html:95
+msgid "The pages are being made."
+msgstr "الصفحات بتتجهز."
+
+#: templates/reading/settings.html:18
+msgid "The key to Claude"
+msgstr "مفتاح Claude"
+
+#: templates/reading/settings.html:19
+msgid "The key is set on this PC."
+msgstr "المفتاح متسجل على الكمبيوتر ده."
+
+#: templates/reading/settings.html:20
+msgid "Check the key (free)"
+msgstr "اختبار المفتاح (مجاني)"
+
+#: templates/reading/settings.html:21
+msgid "The key is not set."
+msgstr "المفتاح مش متسجل."
+
+#: templates/reading/settings.html:23
+msgid ""
+"Open platform.claude.com, make an account for the clinic, add credit and set"
+" a monthly spending limit."
+msgstr ""
+"افتح platform.claude.com، اعمل حساب للعيادة، حط رصيد، وحدد حد صرف شهري."
+
+#: templates/reading/settings.html:24
+msgid "Make an API key and copy it."
+msgstr "اعمل مفتاح API وانسخه."
+
+#: templates/reading/settings.html:25
+msgid ""
+"On this PC, write it in the reader's .env file as ANTHROPIC_API_KEY=… and "
+"start the reader again."
+msgstr ""
+"على الكمبيوتر ده، اكتبيه في ملف ‎.env‎ بتاع القارئ كده ANTHROPIC_API_KEY=… "
+"وشغّلي القارئ تاني."
+
+#: templates/reading/settings.html:28
+msgid "What it costs"
+msgstr "التكلفة"
+
+#: templates/reading/settings.html:29
+#, python-format
+msgid "This month: about $%(cost)s"
+msgstr "الشهر ده: حوالي %(cost)s دولار"
+
+#: templates/reading/settings.html:30
+#, python-format
+msgid "A page now: about $%(price)s; in a batch half of it."
+msgstr "الصفحة دلوقتي: حوالي %(price)s دولار؛ وكدفعة نصها."
+
+#: templates/reading/settings.html:31
+#, python-format
+msgid "%(files)s files sent, %(pages)s pages read so far."
+msgstr "اتبعت %(files)s ملف، واتقرت %(pages)s صفحة لحد دلوقتي."
+
+#: templates/reading/upload.html:13
+msgid "Send"
+msgstr "إرسال"
+
+#: templates/reading/upload.html:14
+msgid "Cancel"
+msgstr "إلغاء"
+
+#: templates/reading/upload.html:20
+msgid "For the fewest mistakes"
+msgstr "عشان أقل أخطاء"
+
+#: templates/reading/upload.html:22
+msgid "Scan at 300 dpi, in colour or grey, with the pages straight."
+msgstr "اعملي السكانر بدقة 300 dpi، ملوّن أو رمادي، والصفحات مستقيمة."
+
+#: templates/reading/upload.html:23
+msgid ""
+"One PDF for each patient. Put the cover sheet printed by the dental system "
+"on top of a patient already registered: the reader then knows whose file it "
+"is."
+msgstr ""
+"ملف PDF واحد لكل مريض. حطي ورقة الغلاف اللي طبعها سيستم الأسنان فوق ملف "
+"المريض المتسجل: كده القارئ يعرف الملف بتاع مين."
+
+#: templates/reading/upload.html:24
+msgid "Take the staples out; leave nothing covering the writing."
+msgstr "شيلي الدبابيس، وما تسيبيش حاجة مغطية الكتابة."
+
+#: templates/reading/upload.html:25
+msgid ""
+"Photos from the tablet also work: one photo per page, the page filling the "
+"photo."
+msgstr "صور التابلت تنفع برضه: صورة لكل صفحة، والصفحة مالية الصورة."
+
+#: templates/reading/upload.html:27
+msgid "Now"
+msgstr "الآن"
+
+#: templates/reading/upload.html:27
+#, python-format
+msgid "about $%(price)s a page, ready in about a minute."
+msgstr "حوالي %(price)s دولار للصفحة، وتجهز في حوالي دقيقة."
+
+#: templates/reading/upload.html:28
+msgid "In a batch"
+msgstr "كدفعة"
+
+#: templates/reading/upload.html:28
+#, python-format
+msgid ""
+"about $%(price)s a page, ready within a few hours (usually less than one)."
+msgstr ""
+"حوالي %(price)s دولار للصفحة، وتجهز خلال ساعات قليلة (عادة أقل من ساعة)."
+
+#: templates/reading/upload.html:29
+msgid "Each page is read twice and the two readings are compared."
+msgstr "كل صفحة بتتقري مرتين والقراءتين بيتقارنوا."
+
+#: templates/reading/upload.html:29
+msgid "Each page is read once."
+msgstr "كل صفحة بتتقري مرة واحدة."
+
+#: templates/reading/upload.html:29
+msgid "X-rays and photos cost the same as a page."
+msgstr "الأشعة والصور تكلفتها زي الصفحة."
+
+#: templates/registration/login.html:3 templates/registration/login.html:15
+msgid "Log in"
+msgstr "تسجيل الدخول"
+
+#: templates/registration/login.html:7
+msgid "Reads the old paper files with Claude, for the dental system."
+msgstr "بيقرا الملفات الورقية القديمة بـ Claude، لسيستم الأسنان."
+
+#: templates/registration/login.html:9
+msgid "Wrong username or password."
+msgstr "اسم المستخدم أو كلمة المرور غير صحيحة."
+
+#: templates/registration/setup.html:3
+msgid "First run"
+msgstr "أول تشغيل"
+
+#: templates/registration/setup.html:6
+msgid "Paper Reader: the first run"
+msgstr "قارئ الملفات: أول تشغيل"
+
+#: templates/registration/setup.html:7
+msgid ""
+"Make the login of the person in charge (settings, the lists from the dental "
+"system and the people). The others are added afterwards."
+msgstr ""
+"اعملي دخول المسؤول (الإعدادات، والقوائم من سيستم الأسنان، والأشخاص). "
+"الباقيين بيتضافوا بعد كده."
+
+#: templates/registration/setup.html:10
+msgid "Make the login"
+msgstr "اعملي الدخول"

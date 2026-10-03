@@ -13,7 +13,7 @@
     <td>{% if row.skip %}<span class="text-muted">{% trans "Already imported before" %}</span>
       {% elif row.problem %}<span class="text-danger">{{ row.problem }}</span>
       {% elif row.new %}<b>{% trans "A new patient file" %}</b> <span dir="auto">{{ row.entry.patient.full_name }}</span>
-      {% else %}<a href="{{ row.patient.get_absolute_url }}">{{ row.patient.full_name }}</a> <span class="small text-muted ltr">{{ row.patient.file_number }}</span>{% if row.note %}<div class="small text-muted">{{ row.note }}</div>{% endif %}{% endif %}</td>
+      {% else %}<a href="{{ row.patient.get_absolute_url }}">{{ row.patient.full_name }}</a> <span class="small text-muted ltr">{{ row.patient.file_number }}</span>{% if row.note %}<div class="small text-muted">{{ row.note_text }}</div>{% endif %}{% endif %}</td>
     <td class="small">{{ row.entry.patient|length }} + {{ row.entry.history|length }}{% if row.entry.replace %} · <span class="text-warning">{% blocktrans count n=row.entry.replace|length %}{{ n }} to replace{% plural %}{{ n }} to replace{% endblocktrans %}</span>{% endif %}</td>
     <td class="small">{{ row.entry.documents|length }}</td>
   </tr>{% endfor %}</tbody>
@@ -30,7 +30,7 @@
     <td dir="auto">{{ result.name }}</td>
     <td>{% if result.status == "imported" %}<span class="badge text-bg-success">{{ result.get_status_display }}</span>{% elif result.status == "failed" %}<span class="badge text-bg-danger">{{ result.get_status_display }}</span>{% else %}<span class="badge text-bg-secondary">{{ result.get_status_display }}</span>{% endif %}</td>
     <td>{% if result.patient %}<a href="{% url 'patients:detail' result.patient.pk %}#documents">{{ result.patient.full_name }}</a> <span class="small text-muted ltr">{{ result.patient.file_number }}</span>{% else %}—{% endif %}</td>
-    <td class="small">{{ result.message }}{% if result.change %} <a href="{% url 'core:approvals' %}">{% trans "waiting for approval" %}</a>{% endif %}</td>
+    <td class="small">{{ result.what_happened }}{% if result.change %} {% if can_approve %}<a href="{% url 'core:approvals' %}">{% trans "waiting for approval" %}</a>{% else %}<span class="badge text-bg-warning">{% trans "waiting for approval" %}</span>{% endif %}{% endif %}</td>
   </tr>{% empty %}<tr><td colspan="4" class="text-muted">—</td></tr>{% endfor %}</tbody>
 </table></div></div>
 {% endif %}

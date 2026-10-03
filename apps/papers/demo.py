@@ -108,7 +108,7 @@ def load_papers(patients, secretary):
     # Imported two days ago: a new patient, and the pages only of a registered patient's file.
     rows = [_samia(now - timedelta(days=2, hours=3))]
     if registered:
-        kept = registered[0]
+        kept = registered[-1]  # the reader's own sample (reader/) has a file of the first patient
         rows.append(entry(f"Old file {kept.file_number}.pdf", target="existing", file_number=kept.file_number,
                           pages_only=True, read_at=now - timedelta(days=2, hours=3),
                           documents={"file.pdf": scanned_pdf()}))
@@ -117,7 +117,7 @@ def load_papers(patients, secretary):
     importer.run(done, place, secretary)
     PaperImport.objects.filter(pk=done.pk).update(imported_at=now - timedelta(days=2))
     # Looked at, not imported yet: fills the job of a registered patient and replaces his second phone.
-    later = next((p for p in registered[1:] if not p.occupation), None)
+    later = next((p for p in reversed(registered[1:-1]) if not p.occupation), None)
     if later is not None:
         row = entry(f"Old file {later.file_number}.pdf", target="existing", file_number=later.file_number,
                     patient={"occupation": "مدرس", "phone_secondary": "01223344556"}, replace=["phone_secondary"],

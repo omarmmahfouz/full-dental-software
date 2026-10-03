@@ -25,6 +25,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_POST
 
 from . import worker
@@ -143,8 +144,10 @@ def upload(request):
             paper.original.save("scan.pdf", content, save=False)
             paper.save()
         worker.kick()
-        messages.success(request, _("%(n)s files are being read. They appear under “To check” when they are ready.")
-                         % {"n": len(made)})
+        messages.success(request, ngettext(
+            "%(n)s file is being read. It appears under “To check” when it is ready.",
+            "%(n)s files are being read. They appear under “To check” when they are ready.", len(made))
+            % {"n": len(made)})
         if not options.enabled:
             messages.warning(request, _("Reading is switched off: the files wait until it is switched on (Settings)."))
         return redirect("reading:list")
@@ -427,6 +430,11 @@ def export(request):
         made = build_package(papers, request.user)
         messages.success(request, _("The package is ready: download it, then import it in the dental system "
                                     "(Old paper files → Import a package)."))
+        if made.count < len(papers):
+            left = len(papers) - made.count
+            messages.info(request, ngettext(
+                "%(n)s file did not fit in this package: make another package after this one.",
+                "%(n)s files did not fit in this package: make another package after this one.", left) % {"n": left})
         return redirect(reverse("reading:export") + f"?made={made.pk}")
     return render(request, "reading/export.html", {
         "ready": ready.order_by("approved_at"), "other_place": other_place.count(),

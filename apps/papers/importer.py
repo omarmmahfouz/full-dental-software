@@ -93,6 +93,7 @@ def plan(paper_import, place):
         else:
             try:
                 row["patient"], row["new"], row["note"] = _whose(entry, place)
+                row["note_text"] = ImportedFile.note_text(row["note"]) if row["note"] else ""
             except FileProblem as problem:
                 row["problem"] = str(problem)
         rows.append(row)
@@ -100,7 +101,7 @@ def plan(paper_import, place):
 
 
 def _whose(entry, place):
-    """(the registered patient or None, a new file?, a note) for one file."""
+    """(the registered patient or None, a new file?, a note's code) for one file."""
     patients = Patient.objects.filter(branch=place)
     if entry.get("target") == "existing":
         patient = patients.filter(file_number__iexact=str(entry.get("file_number", ""))).first()
@@ -112,7 +113,7 @@ def _whose(entry, place):
     national_id = (entry.get("patient") or {}).get("national_id", "")
     patient = patients.filter(national_id=national_id).first() if national_id else None
     if patient is not None:
-        return patient, False, _("Already registered (the same national ID): only its empty fields are filled.")
+        return patient, False, "same_id"
     return None, True, ""
 
 
@@ -275,24 +276,23 @@ def import_file(archive, entry, place, user, paper_import):
     try:
         with transaction.atomic():
             patient, new, note = _whose(entry, place)
-            notes = [note] if note else []
+            notes = [[note, 0]] if note else []
             waiting = None
             if new:
                 patient = _new_patient(entry, place, user)
-                notes.append(_("A new file was opened."))
+                notes.append(["new_file", 0])
             elif not entry.get("pages_only"):
                 filled, waiting = _fill_patient(entry, patient, user)
                 if filled:
-                    notes.append(_("%(n)s empty fields were filled.") % {"n": filled})
+                    notes.append(["filled", filled])
                 if waiting is not None:
-                    notes.append(_("The values that replace the old ones wait for the head's approval."))
+                    notes.append(["waiting", 0])
             if not entry.get("pages_only") and _history(entry, patient, user) is not None:
-                notes.append(_("The medical and dental history was added."))
+                notes.append(["history", 0])
             if _documents(archive, entry, patient, user):
-                notes.append(_("The scanned pages were kept in the documents."))
-            record.status, record.patient, record.new_patient, record.change = (
-                ImportedFile.Status.IMPORTED, patient, new, waiting)
-            record.message = " ".join(str(note) for note in notes)
+                notes.append(["documents", 0])
+            record.status, record.patient, record.new_patient, record.change, record.notes = (
+                ImportedFile.Status.IMPORTED, patient, new, waiting, notes)
             record.save()
     except FileProblem as problem:
         record.status, record.message = ImportedFile.Status.FAILED, str(problem)[:2000]

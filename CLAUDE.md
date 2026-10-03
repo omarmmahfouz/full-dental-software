@@ -103,18 +103,29 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     `request_remade` (remake) and `clinic_received` (receive) when the lab is ours (`Lab.branch` is the LAB place).
     `stats.py` = the report; `whatsapp.py` = texts, the status answer, the WhatsApp Business webhook; `demo.py` =
     `load_lab`
-  - `papers` (round 13): the old paper files read by Claude (Anthropic's API; `docs/paper-files.md`). `PaperFile` (one
-    scanned file) → `PaperPage` (an upright picture of each page, its kind) → `PaperReading` (one or two per page, the
-    JSON answer and the tokens; `cost`) → `PaperField` (each value, cleaned, with its certainty, problems and box);
-    `PaperSettings` (the owner: on/off, model, effort, two readings, now/batch, monthly limit). `fields.py` = what is
-    read (built from `PatientForm` fields and `HISTORY_FIELDS`), `claude.py` = instructions + JSON schema + sending
-    (now with `fallbacks="default"`, or in a batch at half price; the key is `ANTHROPIC_API_KEY`, never in code),
-    `checks.py` (clean values, two readings, national ID, `suggest_patient`), `pages.py` (pypdfium2 pictures, turns,
-    `cut_out`, `clean_pdf`), `worker.py` (background thread `kick()`, `run_once`, `read_paper_files` command; each
-    reading is claimed by one worker), `approve.py` (into the patient's file through `PaperPatientForm` /
+  - `papers` (round 13): the dental system's side of the old paper files; the reading itself is the separate
+    **Paper Reader** (below). `fields.py` (`SPECS`, built from `PatientForm` fields and `HISTORY_FIELDS`;
+    `lists_file(place)` = the lists file for the reader), `importer.py` (`read_manifest` checks a package, `plan` shows
+    what will happen, `run` / `import_file` save each file in its own atomic block through `PaperPatientForm` /
     `PaperHistoryForm`; an existing patient only gets its empty fields, a ticked replacement goes through
-    `request_change`). Tests never call Claude: `FakeAnthropic` in `apps/papers/tests.py`. URLs live under
-    `/patients/papers/` (area "papers"); media under `papers/<place code>/` (front desk of that place only).
+    `request_change`; each token is imported once), `PaperImport` / `ImportedFile` (`notes` are codes shown in each
+    person's language), the cover sheets, `demo.py` (`make_package` / `entry` also serve the tests). URLs under
+    `/patients/papers/` (area "papers"); media under `papers/<place code>/imports/` (the ZIP is dropped after import).
+- **The Paper Reader** (`reader/`, round 13): a separate Django project (own `manage.py`, settings `site_config`, app
+  `reading`, database and media in `reader/data`, logins with `is_staff` = the person in charge, port 8100, Arabic by
+  default, `reader/locale`). It runs on one PC with the internet; the two programs only exchange files:
+  - the **lists file** (JSON `cia-paper-reader-lists`, made by `papers.fields.lists_file`, brought in by
+    `reading.exchange.import_lists` → `SystemLists` + `KnownPatient`); the reader's forms and Claude's instructions are
+    built from it (`reading/catalogue.py`: `specs()` / `by_name()`);
+  - the **package** (ZIP `cia-paper-reader-package`: `manifest.json` + `files/<token>/file.pdf|id_front.jpg|…`, made
+    by `reading.exchange.build_package`, at most 250 MB, read by `papers.importer`). Change both sides together and
+    keep `VERSION` in step.
+  - `reading/`: `claude.py` (instructions + JSON schema + sending now with `fallbacks="default"`, or in a batch at
+    half price; the key is `ANTHROPIC_API_KEY` in `reader/.env`, never in code; the reading threads get everything
+    from the database first), `checks.py`, `pages.py` (pypdfium2), `worker.py` (`kick()`, `run_once`,
+    `read_paper_files`), `rules.py` (copies of the dental system's ID / phone / name rules), `middleware.py` (the
+    network fence `READER_ALLOWED_NETWORKS`, CSP), `demo.py` (`load_reader_demo`; `demo/lists-CIA.json` comes from the
+    dental demo). Tests never call Claude: `FakeAnthropic` in `reader/reading/tests.py`.
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
   through `WorkingPlaceMiddleware`); `working_places(user)` = the clinic places (the owner's all, else `profile.places`
   + `profile.branch`); `switch_places(user)` adds the LAB place for the lab staff and the owner (the switch, the login).
@@ -215,6 +226,10 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     apps.prescriptions.tests apps.purchasing.tests apps.reports.tests apps.scheduling.tests apps.stock.tests \
     apps.surgery.tests apps.clinics.tests apps.specialties.tests apps.lab.tests apps.papers.tests
   ```
+- The Paper Reader's tests (GitHub runs them too): `cd reader && READER_DEBUG=1 ../.venv/bin/python manage.py test
+  reading`. Its translations: run `makemessages` / `compilemessages` inside `reader/` (`reader/locale/ar`).
+- A practice reader: `cd reader && READER_DEBUG=1 READER_DATA_DIR=/tmp/x/reader ../.venv/bin/python manage.py migrate
+  && ... load_reader_demo --password demo12345 && ... runserver 127.0.0.1:8100 --noreload`.
 - A throw-away demo copy. Keep it outside the repo, e.g. in a scratch folder:
   ```bash
   export SQLITE_PATH=/tmp/x/demo.sqlite3 MEDIA_ROOT=/tmp/x/uploads BACKUP_DIR=/tmp/x/backups DJANGO_DEBUG=1
@@ -234,6 +249,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   secretary (CIA and CIC), secretary2 (no academy), stock, moderator (CIC manager), cicdoctor (a CIC doctor), amr (Dr.
   Amr, El Khadem's doctor and manager), khadem (El Khadem's reception), endo (El Khadem's endodontist), labhead,
   labmanager, labsec (the lab).
+- The practice Paper Reader: `reader\trial-windows.bat` (or `sh reader/trial-mac-linux.sh`), port 8100, logins `owner`
+  (the person in charge) and `secretary`, password `demo12345`; its data is in `reader/data-trial` (delete it for fresh
+  sample files).
 - CIC's steps are in `docs/cic-test-checklist.md`; El Khadem's in `docs/khadem-test-checklist.md`; the lab's in
   `docs/lab-test-checklist.md`.
 - Known limits to state honestly:
@@ -270,9 +288,11 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     and, with Docker, on our nginx. Drafts stay in the browser of that PC for a day.
   - The old paper files (round 13): Claude's reading is not 100% right (Arabic handwriting, shorthand and faded writing
     are the weakest): every yellow / red value needs a person, and a wrong but valid-looking number can pass the
-    checks (reading twice is the guard). The pages leave the clinic (to Anthropic) only when the owner switches it on;
-    the server needs the internet for it. The cut-out is close, not exact. The teeth, the plan, the visits and the
-    payments are not read yet (second part). The costs are estimates until measured on real files; the demo's
-    readings are made up (no key in the practice copy).
+    checks (reading twice is the guard). The pages leave the clinic (to Anthropic) only from the Paper Reader's PC and
+    only when its person in charge switches it on. The two programs do not talk: the lists and the packages are
+    carried as files (a patient registered after the lists were brought in is unknown to the reader until new lists
+    come, though the import still finds him by the national ID); one reader works for one place at a time. The
+    cut-out is close, not exact. The teeth, the plan, the visits and the payments are not read yet (second part). The
+    costs are estimates until measured on real files; the demo's readings are made up (no key in the practice copy).
   - The planned prosthesis made from a surgery's design is a best guess (a full arch from 10 units, a bridge when a
     pontic is between implants, else a crown for each implant): the dentist corrects it on the dental chart.

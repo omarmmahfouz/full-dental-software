@@ -271,6 +271,22 @@ class ReadingTests(ReaderTestCase):
         self.client.post("/to-the-system/")
         self.assertEqual(Export.objects.count(), 1)
 
+    def test_a_big_package_is_split(self):
+        from reading.exchange import build_package
+
+        first, second = self.send(pages=1), self.send(pages=1)
+        self.read()
+        for paper, nid in ((first, NID), (second, "29001150101252")):
+            response = self.approve(paper, **{"p-national_id": nid})
+            self.assertEqual(response.status_code, 302, getattr(response, "context", None)
+                             and response.context["patient_form"].errors)
+        ready = list(PaperFile.objects.filter(status="approved").order_by("pk"))
+        self.assertEqual(len(ready), 2)
+        made = build_package(ready, self.owner, limit_mb=0)  # the first file is already "too big"
+        self.assertEqual(made.count, 1)
+        self.assertEqual(list(PaperFile.objects.filter(status="approved")), [second])
+        self.assertEqual(build_package([second], self.owner, limit_mb=0).count, 1)
+
     def test_the_clean_pdf_is_in_order_and_upright(self):
         import pypdfium2 as pdfium
 

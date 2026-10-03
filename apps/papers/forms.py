@@ -6,7 +6,7 @@ from apps.core.forms import StyledForm
 from apps.dentists.forms import DentistChoiceField
 from apps.patients.forms import PatientForm, PatientLookupField
 
-PACKAGE_MB = 1000  # one package of the Paper Reader (the scans of many files)
+PACKAGE_MB = 300  # one package of the Paper Reader (it makes them at most 250 MB; nginx takes 320 MB)
 
 
 class PackageForm(StyledForm):
@@ -17,6 +17,7 @@ class PackageForm(StyledForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["package"].widget.attrs["accept"] = ".zip,application/zip"
+        self.fields["package"].col = "col-12"
 
     def clean_package(self):
         package = self.cleaned_data["package"]

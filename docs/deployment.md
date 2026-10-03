@@ -204,19 +204,29 @@ installing or changing the server: it prints what is right and what to fix. The 
 - **Two backup disks**: set `BACKUP_COPY_DIR` to a second disk or a network folder (each night's ZIP is copied there
   and compared), and swap a disk kept outside the clinic every week.
 
-## Old paper files read by Claude (round 13)
-The reading of the old paper files is the one part of the system that uses the internet; everything else stays on the
-clinic's network. See [paper-files.md](paper-files.md) for what it does, the costs and the privacy questions.
-- **The key**: write `ANTHROPIC_API_KEY=sk-ant-…` in the server's `.env` file and start the server again (Docker:
-  `docker compose up -d`, which reads the same `.env`). Nothing is sent until the owner also switches the reading on in
-  *Settings → Old paper files (Claude)*; *Check the key* there tests it for free.
-- **The internet**: the server must reach `https://api.anthropic.com` (port 443, out only). Nothing needs to come in.
-  Behind a company proxy, set `HTTPS_PROXY=http://proxy:port` in `.env`.
-- **The reading runs inside the server** (a background thread), started when a file is sent and when the list of paper
-  files is opened. A batch is asked about every minute until it ends (usually within an hour, at most a day). After a
-  restart the reading goes on when someone opens *Patients → Old paper files*, or run
-  `python manage.py read_paper_files` (it waits until every file is read; `--once` does one round), for example after
-  the nightly backup.
-- **Space**: each page is kept as a picture (about 0.5 MB) next to the original scan, under `media/papers/<place>/`;
-  they are in the nightly copy of the files like the photos.
-- **Uploads**: one scanned file may be up to 120 MB (nginx already allows 320 MB).
+## Old paper files: the Paper Reader (round 13)
+The reading of the old paper files is done by a **separate program, the Paper Reader** (`reader/`), on **one PC with
+the internet** (not the clinic server). The clinic server stays off the internet: it only gives the lists file and
+imports the packages (*Patients → Old paper files*). See [paper-files.md](paper-files.md) for the steps, the costs and
+the privacy questions.
+- **Install**: copy the system folder to that PC, install Python 3.12+, and double-click `reader\start-windows.bat`
+  (or `sh reader/start-mac-linux.sh`). It makes its own virtual environment, its `.env` with a random
+  `READER_SECRET_KEY`, its database in `reader\data`, and serves on port **8100** with waitress. To start it with
+  Windows, put a shortcut to `start-windows.bat` in the Startup folder (`shell:startup`).
+- **The key**: `ANTHROPIC_API_KEY=sk-ant-…` in `reader\.env` only (start the reader again after changing it). Nothing
+  is sent until the person in charge switches the reading on in the reader's *Settings → Reading and the key*; *Check
+  the key* there tests it for free.
+- **The internet**: that PC must reach `https://api.anthropic.com` (port 443, out only). Nothing needs to come in.
+  Behind a company proxy, set `HTTPS_PROXY=http://proxy:port` in `reader\.env`.
+- **Who opens it**: the clinic's network only (`READER_ALLOWED_NETWORKS`, the private addresses by default); the
+  reception opens `http://<that PC>:8100`. Allow port 8100 in that PC's firewall for the clinic's network only.
+- **The reading runs inside the reader** (a background thread), started when a file is sent and when the list of
+  files is opened; a batch is asked about every minute. After a restart it goes on when someone opens the list, or run
+  `python manage.py read_paper_files` in `reader\` (`--once` does one round).
+- **Space and backups**: the scans, the page pictures (about 0.5 MB a page) and the packages are in `reader\data`.
+  They are patients' files: turn on BitLocker on that PC, and copy `reader\data` to a backup disk (stop the reader
+  first). After a package is imported, the documents are also in the dental system (in its nightly backup).
+- **Uploads**: one scanned file may be up to 120 MB; the reader makes each package at most 250 MB (more files go in
+  the next package), which the dental system takes (its nginx allows 320 MB).
+- **The dental server needs nothing new**: no key, no internet, no new Python packages.
+

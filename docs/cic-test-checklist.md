@@ -131,6 +131,8 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
     records*, with who deleted it. See the dentists' checklist, section U.
 
 ## M. New in this version (13): old paper files at CIC
-47. As `secretary`, switch to **CIC**: *Patients → Old paper files* is empty: CIA's paper files are not seen at CIC (each
-    place apart, like the patients).
-48. *Cover sheets* at CIC print CIC's letterhead and numbers (`CIC-…`); a file sent at CIC can only go into a CIC patient.
+47. As `secretary`, switch to **CIC**: *Patients → Old paper files* has no packages: CIA's are not seen at CIC (each place
+    apart, like the patients). *Download the lists* gives CIC's lists and CIC's patients only (`CIC-…`).
+48. *Import a package* at CIC with a package made for CIA (from the Paper Reader's practice copy, see the dentist
+    checklist, section W): it is refused: *This package was made for CIA: open the system at CIA to import it.*
+49. *Cover sheets* at CIC print CIC's letterhead and numbers (`CIC-…`).

@@ -367,28 +367,42 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
      its icon fills with colour and an arrow shows. As `dentist1`: the band, then the numbers and *My week* (names not
      underlined).
 
-## W. New in this version (13): old paper files read by Claude
-The practice copy has two paper files already "read" (nothing is sent: there is no key). With a real key every step
-below works on real scans; see [paper-files.md](paper-files.md).
-155. As `owner`, **Settings → Old paper files (Claude)**: reading is off, the key is not set (with the three steps to
-     set it), Claude Opus 5.5, medium, two readings, in a batch, limit $100, and what this month cost. Press
-     **Check the key (free)**: *The key is not set*.
-156. **Patients → Old paper files**: *To check* (1), *Saved in the patient's file* (1) and the month's cost. Open the
-     file to check: the cost of the file (about $0.11), 19 sure, 2 to check, 1 cannot be read. Each yellow or red value
-     has its reasons and a cut-out of the paper; the job is red (a blot), the mobile yellow (the two readings differ),
-     the HbA1c yellow (8.2 written over, maybe 6.2). Birth date, gender and governorate came from the national ID.
-157. On the right, page 2 (the history) was scanned sideways and turned upright by itself. Change its kind or turn it
-     with the small buttons.
-158. Type the job, choose *A new patient file* and **Approve and save into the patient's file**: the new file has the
-     data, the history (taken by Dr. Mona Refaat on 12/09/2017: diabetes, high blood pressure, penicillin allergy,
-     Glucophage and Concor), and under *ID & documents* the whole paper file as one PDF. She is on the **Medical
-     follow-up** (HbA1c above 7%).
-159. Choose *A patient already registered* instead and pick a patient: values already in the file show *In the file
-     now* with a *replace* tick; untouched they stay, empty ones are filled. As `secretary`, a ticked replacement goes to
-     the head for approval.
-160. **Cover sheets**: one patient, the patients registered between two dates, or blank sheets; the number is very large.
-161. As `dentist1`: no *Old paper files* in the menu, and `/patients/papers/` is refused. As `owner`, *Settings → Access
-     by role* has a new part *Old paper files read by Claude* to close for a role.
-162. Optional, with a real key (costs a few cents a page): set `ANTHROPIC_API_KEY` in `.env`, start again, switch reading
-     on, send one real scanned file **now**: in about a minute it is ready to check, and *Settings → Security* shows
-     *Data taken out: Paper file sent to Claude to be read*.
+## W. New in this version (13): old paper files, read in the Paper Reader
+The reading is now a **separate program, the Paper Reader** (the `reader` folder), on a PC with the internet; the
+dental system gives it the lists and imports its packages. Nothing is sent to Claude in the practice copies (there is
+no key). See [paper-files.md](paper-files.md).
+
+*In the dental system (owner):*
+155. **Patients → Old paper files**: three steps (*Lists for the reader*, *Cover sheets*, *Import a package*) and two
+     packages brought in. *Settings* has no Claude card any more (the reading is set up in the reader); *Settings →
+     Access by role* has the part *Old paper files (the Paper Reader)*.
+156. Open the package marked **Imported**: *CIA old file 2017 - Samia Abdelrahman* opened a new file, with the history,
+     and its pages; the other file brought the pages only of a registered patient. Open Samia's file: the history
+     (taken by Dr. Mona Refaat on 12/09/2017: diabetes, high blood pressure, penicillin allergy, Glucophage and Concor),
+     under *ID & documents* the whole paper file as one upright PDF, and she is on the **Medical follow-up** (HbA1c
+     above 7%).
+157. Open the package marked **Looked at, not imported yet**: it says which registered patient each file goes into and
+     *1 to replace*. Press **Import**: the empty job is filled and, for the owner (a head), the second mobile is
+     replaced at once (for the reception it waits in *Approvals*). Import the same package again: *Already imported
+     before*.
+158. **Download the lists**: a file `paper-reader-lists-CIA-….json` with what to read, the system's lists and CIA's
+     patients only.
+
+*In the Paper Reader (its practice copy):*
+159. Double-click `reader\trial-windows.bat` (or `sh reader/trial-mac-linux.sh`): http://localhost:8100, log in as
+     `owner` / `demo12345`. **Settings → Reading and the key**: reading off, the key not set, Claude Opus 5.5, medium,
+     two readings, in a batch, limit $100; *Check the key* says the key is not set. **Lists from the dental system**:
+     CIA, 60 values, 115 registered patients. **People**: add a secretary (not in charge: no settings).
+160. **The files → To check**: Samia's file: its cost (about $0.11), 19 sure, 2 to check, 1 cannot be read; each yellow
+     or red value has its reasons and a cut-out of the paper. Page 2 (the history) was scanned sideways and turned
+     upright by itself (90°).
+161. Make the national ID 13 digits and press **Approve**: not approved, the box is red. Put it back, type the job,
+     choose *A new patient file*, **Approve**. *Send to the dental system*: two files ready (Samia, and a registered
+     patient's pages) → **Make the package** → **Download it**.
+162. In the dental system, *Import a package* → *Look inside*: Samia is found **already registered (the same national
+     ID)**, because the practice system imported her before: no second file is opened, only her empty fields are
+     filled. **Import**.
+163. As `dentist1` in the dental system: no *Old paper files* in the menu, and `/patients/papers/` is refused.
+164. Optional, with a real key (costs a few cents a page): run the real reader `reader\start-windows.bat`, make its
+     person in charge, write `ANTHROPIC_API_KEY` in `reader\.env`, start it again, bring in the lists, switch reading
+     on, and send one real scanned file **now**: in about a minute it is ready to check.

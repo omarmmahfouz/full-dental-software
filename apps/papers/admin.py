@@ -6,7 +6,7 @@ from .models import ImportedFile, PaperImport
 class ResultInline(admin.TabularInline):
     model = ImportedFile
     extra = 0
-    fields = ["name", "status", "patient", "new_patient", "message"]
+    fields = ["name", "status", "patient", "new_patient", "notes", "message"]
     raw_id_fields = ["patient"]
 
 

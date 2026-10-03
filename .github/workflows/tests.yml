@@ -17,3 +17,11 @@ jobs:
         env: {DJANGO_DEBUG: "1"}
       - run: python manage.py test apps
         env: {DJANGO_DEBUG: "1"}
+      # The Paper Reader (reader/), a separate program with its own requirements and tests.
+      - run: pip install -r reader/requirements.txt
+      - run: python manage.py makemigrations --check --dry-run
+        working-directory: reader
+        env: {READER_DEBUG: "1"}
+      - run: python manage.py test reading
+        working-directory: reader
+        env: {READER_DEBUG: "1"}

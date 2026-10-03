@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext
 
 from apps.core.models import Branch, TimeStampedModel
 
@@ -79,6 +80,15 @@ class ImportedFile(models.Model):
         FAILED = "failed", _("Not imported")
         SKIPPED = "skipped", _("Already imported before")
 
+    # What happened, kept as codes so that each person reads it in their own language.
+    NOTES = {
+        "same_id": _("Already registered (the same national ID): only its empty fields are filled."),
+        "new_file": _("A new file was opened."),
+        "waiting": _("The values that replace the old ones wait for the head's approval."),
+        "history": _("The medical and dental history was added."),
+        "documents": _("The scanned pages were kept in the documents."),
+    }
+
     paper_import = models.ForeignKey(PaperImport, on_delete=models.CASCADE, related_name="results")
     token = models.CharField(max_length=32, db_index=True)
     name = models.CharField(_("file name"), max_length=255)
@@ -86,7 +96,8 @@ class ImportedFile(models.Model):
     patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), null=True, blank=True,
                                 on_delete=models.SET_NULL, related_name="paper_imports")
     new_patient = models.BooleanField(_("new file"), default=False)
-    message = models.TextField(_("what happened"), blank=True)
+    notes = models.JSONField(default=list, blank=True, help_text="What happened: [code, number] pairs.")
+    message = models.TextField(_("why it was not imported"), blank=True)
     change = models.ForeignKey("core.ChangeRequest", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     at = models.DateTimeField(_("at"), auto_now_add=True)
 
@@ -99,3 +110,15 @@ class ImportedFile(models.Model):
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def note_text(cls, code, n=0):
+        if code == "filled":
+            return ngettext("%(n)s empty field was filled.", "%(n)s empty fields were filled.", n) % {"n": n}
+        return str(cls.NOTES.get(code, code))
+
+    @property
+    def what_happened(self):
+        if self.status == self.Status.FAILED:
+            return self.message
+        return " ".join(self.note_text(code, n) for code, n in self.notes)

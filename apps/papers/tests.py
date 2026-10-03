@@ -10,6 +10,7 @@ import zipfile
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
+from django.utils import translation
 
 from apps.core.testing import PASSWORD, make_dentist, make_patient, make_user, setup_clinic
 from apps.papers import importer
@@ -95,6 +96,12 @@ class ImportTests(ImportTestCase):
         self.assertEqual((result.status, result.patient, result.new_patient),
                          (ImportedFile.Status.IMPORTED, patient, True))
         self.assertContains(self.client.get(paper_import.get_absolute_url()), patient.file_number)
+        # What happened is kept as codes: each person reads it in their own language.
+        self.assertEqual([code for code, _n in result.notes], ["new_file", "history", "documents"])
+        with translation.override("en"):
+            self.assertIn("A new file was opened.", result.what_happened)
+        with translation.override("ar"):
+            self.assertNotIn("A new file was opened.", result.what_happened)
 
     def test_a_file_is_imported_once_only(self):
         row = self.new_file()
@@ -119,6 +126,7 @@ class ImportTests(ImportTestCase):
         self.client.post(paper_import.get_absolute_url())
         patient.refresh_from_db()
         self.assertEqual(patient.occupation, "Engineer")  # empty: filled
+        self.assertIn(["filled", 1], paper_import.results.get().notes)
         self.assertEqual(patient.full_name, "محمد أحمد علي حسن")  # not empty and not ticked: kept
         self.assertEqual(patient.phone_primary, "01009998887")  # replaced only after the head approves
         change = ChangeRequest.objects.get()
@@ -269,6 +277,6 @@ class ListsAndAccessTests(ImportTestCase):
         self.assertEqual(done.status, "done")
         self.assertEqual(waiting.status, "checked")
         self.assertTrue(Patient.objects.filter(full_name="سامية عبد الرحمن محمود").exists())
-        self.assertEqual(patients[0].documents.count(), 1)
+        self.assertEqual(patients[2].documents.count(), 1)
         self.client.post(waiting.get_absolute_url())
         self.assertEqual(Patient.objects.get(pk=patients[1].pk).occupation, "مدرس")

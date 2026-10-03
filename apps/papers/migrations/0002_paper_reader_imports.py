@@ -150,7 +150,16 @@ class Migration(migrations.Migration):
                     "new_patient",
                     models.BooleanField(default=False, verbose_name="new file"),
                 ),
-                ("message", models.TextField(blank=True, verbose_name="what happened")),
+                (
+                    "notes",
+                    models.JSONField(
+                        blank=True, default=list, help_text="What happened: [code, number] pairs."
+                    ),
+                ),
+                (
+                    "message",
+                    models.TextField(blank=True, verbose_name="why it was not imported"),
+                ),
                 ("at", models.DateTimeField(auto_now_add=True, verbose_name="at")),
                 (
                     "change",
