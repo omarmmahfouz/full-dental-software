@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Send to the dental system" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-box-arrow-up-right"></i> {% trans "Send to the dental system" %}</h1></div>
+<p class="text-muted">{% trans "The approved files go to the dental system in one package file: download it, take it to the dental system (the network or a USB stick), and import it there in Patients → Old paper files → Import a package. The dental system checks every value again and saves it into the patients' files." %}</p>
+{% if made %}<div class="alert alert-success d-flex flex-wrap align-items-center gap-2"><i class="bi bi-check2-circle"></i> {% blocktrans with name=made.name n=made.count %}The package {{ name }} is ready ({{ n }} files).{% endblocktrans %}
+  <a class="btn btn-success ms-auto" href="{% url 'reading:export_download' made.pk %}"><i class="bi bi-download"></i> {% trans "Download it" %}</a></div>{% endif %}
+<div class="card mb-3"><div class="card-header d-flex flex-wrap align-items-center gap-2"><span>{% blocktrans count n=ready.count %}{{ n }} approved file ready to send{% plural %}{{ n }} approved files ready to send{% endblocktrans %}</span>
+  {% if ready %}<form method="post" class="ms-auto" data-no-leave-warning>{% csrf_token %}<button class="btn btn-primary"><i class="bi bi-box-seam"></i> {% trans "Make the package" %}</button></form>{% endif %}</div>
+  <div class="list-group list-group-flush">
+    {% for paper in ready %}<a class="list-group-item list-group-item-action d-flex flex-wrap gap-2" href="{{ paper.get_absolute_url }}"><span dir="auto">{{ paper.original_name }}</span>
+      <span class="ms-auto small text-muted">{% if paper.approved.pages_only %}{% trans "pages only" %} · {% endif %}{% if paper.approved.target == "existing" %}<span class="ltr">{{ paper.approved.file_number }}</span>{% else %}{% trans "a new patient" %}{% endif %} · {{ paper.approved_at|date:"d/m/Y" }}</span></a>
+    {% empty %}<div class="list-group-item text-muted">{% trans "No approved files waiting." %}</div>{% endfor %}
+  </div>
+</div>
+{% if other_place %}<div class="alert alert-warning py-2 small">{% blocktrans count n=other_place %}{{ n }} approved file belongs to another place: bring in that place's lists to send it.{% plural %}{{ n }} approved files belong to another place: bring in that place's lists to send them.{% endblocktrans %}</div>{% endif %}
+<div class="card"><div class="card-header">{% trans "Packages made" %}</div><div class="table-responsive">
+  <table class="table table-sm mb-0"><thead><tr><th>{% trans "file name" %}</th><th class="text-center">{% trans "files" %}</th><th>{% trans "made at" %}</th><th></th></tr></thead><tbody>
+  {% for made_package in exports %}<tr><td class="ltr">{{ made_package.name }}</td><td class="text-center">{{ made_package.count }}</td><td class="small">{{ made_package.made_at|date:"d/m/Y H:i" }} · {{ made_package.made_by|default:"" }}</td><td><a class="btn btn-sm btn-outline-secondary" href="{% url 'reading:export_download' made_package.pk %}"><i class="bi bi-download"></i></a></td></tr>
+  {% empty %}<tr><td colspan="4" class="text-muted">{% trans "None yet." %}</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endblock %}

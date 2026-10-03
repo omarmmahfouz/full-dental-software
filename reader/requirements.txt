@@ -1,0 +1,8 @@
+# The Paper Reader (a separate program from the dental system; it needs the internet to reach Claude).
+Django>=5.2.17,<5.3
+pillow>=11,<13
+whitenoise>=6.9,<7
+waitress>=3,<4
+# The pages of a scanned PDF as pictures (offline), and Claude reading them.
+pypdfium2>=4.30,<6
+anthropic>=1.11,<2

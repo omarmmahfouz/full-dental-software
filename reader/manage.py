@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+"""The Paper Reader: a separate program that reads the old paper files with Claude (see README.md)."""
+import os
+import sys
+
+
+def main():
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "site_config.settings")
+    from django.core.management import execute_from_command_line
+
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == "__main__":
+    main()

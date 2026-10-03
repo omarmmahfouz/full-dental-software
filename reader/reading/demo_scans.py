@@ -1,6 +1,7 @@
-"""Draws the made-up scanned pages of the sample data (apps/papers/demo/*.jpg) and what Claude "read" on them
-(demo/readings.json). Run once when the pages change: ``python -m apps.papers.demo_scans`` from the project folder
-(it needs Pillow with Arabic shaping, e.g. on Linux). The sample data only copies the pictures, so it works on any PC."""
+"""Draws the made-up scanned pages of the sample data (reading/demo/*.jpg) and where their values are
+(demo/boxes.json). Run once when the pages change: ``python -m reading.demo_scans`` from the reader's folder (it
+needs Pillow with Arabic shaping, e.g. on Linux). The sample data only copies the pictures, so it works on any PC.
+The dental system keeps a copy of the two pictures for its own sample import."""
 
 import json
 import random
@@ -9,7 +10,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 HERE = Path(__file__).resolve().parent
-FONTS = HERE.parent.parent / "static" / "vendor" / "cairo" / "files"
+FONTS = HERE.parent.parent.parent / "static" / "vendor" / "cairo" / "files"  # the dental system's fonts
 SIZE = (1240, 1754)  # A4 at 150 dpi
 INK = (24, 45, 120)  # the blue pen
 PRINT = (40, 40, 40)

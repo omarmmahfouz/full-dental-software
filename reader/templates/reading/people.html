@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "People" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-people"></i> {% trans "People" %}</h1></div>
+<div class="row g-3">
+  <div class="col-lg-7"><div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>{% trans "username" %}</th><th>{% trans "name" %}</th><th>{% trans "in charge" %}</th><th>{% trans "can log in" %}</th></tr></thead><tbody>
+    {% for row in rows %}<tr><td><a href="{% url 'reading:person' row.pk %}">{{ row.username }}</a></td><td>{{ row.first_name }}</td><td>{% if row.is_staff %}<i class="bi bi-check2"></i>{% endif %}</td><td>{% if row.is_active %}<i class="bi bi-check2"></i>{% else %}<span class="text-muted">—</span>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div></div></div>
+  <div class="col-lg-5"><div class="card"><div class="card-header">{% if person %}{% blocktrans with name=person.username %}Change {{ name }}{% endblocktrans %}{% else %}{% trans "Add a person" %}{% endif %}</div><div class="card-body">
+    <form method="post" novalidate>{% csrf_token %}
+      {% include "reading/_fields.html" %}
+      <div class="d-flex gap-2 mt-3"><button class="btn btn-primary">{% trans "Save" %}</button>{% if person %}<a class="btn btn-outline-secondary" href="{% url 'reading:people' %}">{% trans "Add a person" %}</a>{% endif %}</div>
+    </form>
+  </div></div></div>
+</div>
+{% endblock %}

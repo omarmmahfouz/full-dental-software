@@ -1,10 +1,9 @@
 """The reading of the paper files, done in the background so nobody waits on a page: new files are cut into pages,
-the pages are sent to Claude (now, or in a batch at half price), the answers are collected and checked, and the
-person who sent the file is told when it is ready to check.
+the pages are sent to Claude (now, or in a batch at half price), and the answers are collected and checked.
 
-It runs in a thread of the server, started when a file is sent and when the list of paper files is opened (so it
-goes on after the server restarts), or by ``python manage.py read_paper_files`` (e.g. from the nightly task). Each
-page is taken by one worker only, so two servers or two threads never send it twice."""
+It runs in a thread of the program, started when a file is sent and when the list of files is opened (so it goes on
+after a restart), or by ``python manage.py read_paper_files``. Each page and each file is taken by one worker only,
+so two threads never send a page twice or turn it twice."""
 
 import logging
 import threading
@@ -13,19 +12,17 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import close_old_connections, connection
 from django.db.models import Q
-from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
 from . import claude
+from .catalogue import by_name
 from .checks import build_fields, settle_pages
-from .models import PaperFile, PaperReading, PaperSettings, month_cost, reading_estimate
+from .models import PaperFile, PaperReading, ReaderSettings, month_cost, reading_estimate
 from .pages import PagesProblem, make_pages
 
-log = logging.getLogger("clinic.papers")
+log = logging.getLogger("reader")
 POLL_SECONDS = 60
 MAX_TRIES = 3
 AT_ONCE = 4  # pages read at the same time when sent now
@@ -37,7 +34,7 @@ _polled = {}
 
 def kick():
     """Start the reader in this server when it is not running yet (never while the tests run)."""
-    if not getattr(settings, "PAPERS_IN_BACKGROUND", True) or not _lock.acquire(blocking=False):
+    if not getattr(settings, "READ_IN_BACKGROUND", True) or not _lock.acquire(blocking=False):
         return False
     threading.Thread(target=_run, name="paper-reader", daemon=True).start()
     return True
@@ -52,7 +49,7 @@ def _run():
                 break
             time.sleep(POLL_SECONDS if state == WAITING else 1)
     except Exception:  # noqa: BLE001 - the reason is in the log; the next kick starts again
-        log.exception("The paper files reader stopped")
+        log.exception("The reading stopped")
     finally:
         connection.close()
         _lock.release()
@@ -62,7 +59,7 @@ def run_once(poll_gap=POLL_SECONDS):
     """One round of work. Returns "working" (more to do now), "waiting" (batches being read) or "idle". A batch is
     asked about at most every ``poll_gap`` seconds."""
     worked = _prepare()
-    options = PaperSettings.get()
+    options = ReaderSettings.get()
     try:
         if options.enabled and options.key_is_set:
             waiting = PaperReading.objects.filter(status=PaperReading.Status.WAITING)
@@ -118,8 +115,8 @@ def _let_go(paper):
 def _prepare():
     """Cut the new files into pages (no internet needed) and plan their readings."""
     worked = False
-    options = PaperSettings.get()
-    for paper in PaperFile.objects.filter(status=PaperFile.Status.WAITING, page_count=0).select_related("branch")[:10]:
+    options = ReaderSettings.get()
+    for paper in PaperFile.objects.filter(status=PaperFile.Status.WAITING, page_count=0)[:10]:
         if not _take(paper):
             continue
         paper.pages.all().delete()  # what a reader that stopped half way left
@@ -167,7 +164,7 @@ def _claim(readings):
     PaperReading.objects.filter(pk__in=ids, status=PaperReading.Status.WAITING).update(
         status=PaperReading.Status.SENDING, sent_at=timezone.now())
     return [reading for reading in PaperReading.objects.filter(pk__in=ids, status=PaperReading.Status.SENDING)
-            .select_related("page__file__branch").order_by("pk")]
+            .select_related("page__file").order_by("pk")]
 
 
 def _release(readings):
@@ -176,22 +173,17 @@ def _release(readings):
 
 
 def _started(readings):
-    """The files whose pages are now with Claude: being read, and noted in the security log (data sent out)."""
-    from apps.core.models import SecurityEvent
-    from apps.core.security import log_event
-
+    """The files whose pages are now with Claude: being read."""
     papers = {reading.page.file for reading in readings}
     for paper in papers:
         PaperFile.objects.filter(pk=paper.pk).update(status=PaperFile.Status.READING, error="")
         if paper.status == PaperFile.Status.WAITING:
-            log_event(SecurityEvent.Kind.EXPORT, user=paper.created_by,
-                      details=f"Paper file sent to Claude to be read: {paper.original_name} ({paper.page_count} pages)",
-                      path=reverse("papers:review", args=[paper.pk]))
+            log.info("Sent to Claude to be read: %s (%s pages)", paper.original_name, paper.page_count)
 
 
 def _send_batches(options):
     readings = list(PaperReading.objects.filter(status=PaperReading.Status.WAITING,
-                                                page__file__mode=PaperSettings.Mode.BATCH)
+                                                page__file__mode=ReaderSettings.Mode.BATCH)
                     .exclude(error="declined").order_by("pk")[:2000])
     readings = _within_limit(readings, options, batched=True)
     if not readings:
@@ -227,17 +219,17 @@ def _send_batches(options):
 
 def _read_now(options):
     readings = list(PaperReading.objects.filter(status=PaperReading.Status.WAITING).filter(
-        Q(page__file__mode=PaperSettings.Mode.NOW) | Q(error="declined")).order_by("pk")[:AT_ONCE * 2])
+        Q(page__file__mode=ReaderSettings.Mode.NOW) | Q(error="declined")).order_by("pk")[:AT_ONCE * 2])
     readings = _within_limit(readings, options, batched=False)
     if not readings:
         return False
     readings = _claim(readings)
-    system = claude.instructions()
+    system, form, known = claude.instructions(), claude.schema(), by_name()  # the threads do not use the database
     _started(readings)
 
     def read(reading):
         try:
-            return reading, claude.read_now(reading.page, options, system), None
+            return reading, claude.read_now(reading.page, options, system, form, known), None
         except Exception as error:  # noqa: BLE001 - kept with the reading
             return reading, None, error
 
@@ -302,7 +294,7 @@ def _finish():
     worked = False
     busy = (PaperReading.Status.WAITING, PaperReading.Status.SENDING, PaperReading.Status.SENT)
     for paper in PaperFile.objects.filter(status=PaperFile.Status.READING).exclude(
-            pages__readings__status__in=busy).select_related("branch", "created_by").distinct()[:20]:
+            pages__readings__status__in=busy).select_related("created_by").distinct()[:20]:
         if _take(paper):  # one reader only: a page must not be turned twice
             finish(paper)
             _let_go(paper)
@@ -319,57 +311,16 @@ def finish(paper):
         build_fields(paper, turns)
         PaperFile.objects.filter(pk=paper.pk).update(status=PaperFile.Status.REVIEW, read_at=timezone.now(), error="")
         paper.status = PaperFile.Status.REVIEW
-    _tell(paper)
-
-
-def _tell(paper):
-    """Tell the sender once all the files sent together are read."""
-    from apps.core.models import Notification
-    from apps.core.notify import notify_users
-
-    if paper.created_by is None:
-        return
-    group = PaperFile.objects.filter(upload=paper.upload) if paper.upload else PaperFile.objects.filter(pk=paper.pk)
-    if group.filter(status__in=(PaperFile.Status.WAITING, PaperFile.Status.READING)).exists():
-        return
-    files = list(group)
-    if len(files) == 1:
-        flagged = paper.fields.exclude(certainty="sure").count()
-        notify_users([paper.created_by], _("Paper file read: %(name)s"),
-                     _("%(n)s values to check, the rest are sure.") if paper.status == PaperFile.Status.REVIEW
-                     else _("It could not be read."), reverse("papers:review", args=[paper.pk]),
-                     Notification.Level.INFO if paper.status == PaperFile.Status.REVIEW else Notification.Level.WARNING,
-                     params={"name": paper.original_name, "n": flagged})
-    else:
-        notify_users([paper.created_by], _("%(n)s paper files are read"), _("They wait for checking."),
-                     reverse("papers:list") + "?status=review", Notification.Level.INFO, params={"n": len(files)})
 
 
 def _limit_reached(options):
-    from apps.core.models import Notification
-    from apps.core.notify import notify_roles
-    from apps.core.roles import OWNER
-
-    problem = "limit"
+    """The month's limit is reached: the files waiting say so (the settings page too)."""
     waiting = PaperReading.objects.filter(status=PaperReading.Status.WAITING).values_list("page__file", flat=True)
     PaperFile.objects.filter(pk__in=set(waiting), status__in=(PaperFile.Status.WAITING, PaperFile.Status.READING)) \
-        .update(error=problem)
-    key = f"papers-limit-{timezone.localdate():%Y-%m}"
-    if cache.add(key, True, 31 * 24 * 3600):
-        notify_roles([OWNER], _("Paper files: the monthly limit is reached"),
-                     _("Nothing more is sent to Claude this month. Raise the limit in Settings → Old paper files to "
-                       "go on."), reverse("papers:settings"), Notification.Level.WARNING)
+        .update(error="limit")
 
 
 def _key_problem(error):
-    from apps.core.models import Notification
-    from apps.core.notify import notify_roles
-    from apps.core.roles import OWNER
-
     PaperFile.objects.filter(status__in=(PaperFile.Status.WAITING, PaperFile.Status.READING)).update(
         error="key_refused")
     log.warning("Claude refused the key: %s", error)
-    if cache.add("papers-key-problem", True, 3600):
-        notify_roles([OWNER], _("Paper files: the key to Claude was refused"),
-                     _("Nothing can be read until the key is fixed."), reverse("papers:settings"),
-                     Notification.Level.WARNING)

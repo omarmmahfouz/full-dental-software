@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Lists from the dental system" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-list-check"></i> {% trans "Lists from the dental system" %}</h1></div>
+<p class="text-muted">{% trans "The reader reads the values the dental system asks for, with its own lists (diseases, how patients heard of us, the dentists, the governorates), and finds whose file a paper file is among its registered patients. Bring the lists in again when they change, and before a big batch." %}</p>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "What is in now" %}</div><div class="card-body">
+    {% if lists.ready %}<dl class="row mb-0 small">
+      <dt class="col-6">{% trans "place" %}</dt><dd class="col-6 ltr">{{ lists.place_code }}</dd>
+      <dt class="col-6">{% trans "values to read" %}</dt><dd class="col-6">{{ values }}</dd>
+      <dt class="col-6">{% trans "registered patients" %}</dt><dd class="col-6">{{ patients }}</dd>
+      <dt class="col-6">{% trans "made by the dental system at" %}</dt><dd class="col-6 ltr">{{ lists.data.made_at|default:"—"|slice:":16" }}</dd>
+      <dt class="col-6">{% trans "brought in at" %}</dt><dd class="col-6">{{ lists.imported_at|date:"d/m/Y H:i" }}</dd>
+    </dl>{% else %}<p class="text-warning mb-0"><i class="bi bi-exclamation-triangle"></i> {% trans "Nothing yet: nothing can be read before the lists are in." %}</p>{% endif %}
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">{% trans "Bring in a lists file" %}</div><div class="card-body">
+    <ol class="small ps-3">
+      <li>{% trans "In the dental system: Patients → Old paper files → Lists for the reader (it downloads a file)." %}</li>
+      <li>{% trans "Bring the file to this PC (the network or a USB stick), then choose it here." %}</li>
+    </ol>
+    <form method="post" enctype="multipart/form-data" novalidate data-no-leave-warning>{% csrf_token %}
+      {% include "reading/_fields.html" %}
+      <button class="btn btn-primary mt-3"><i class="bi bi-upload"></i> {% trans "Bring it in" %}</button>
+    </form>
+  </div></div></div>
+</div>
+{% endblock %}

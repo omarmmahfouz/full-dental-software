@@ -3,6 +3,6 @@
 {% for title, fields in form.bound_fieldsets %}
 <fieldset class="mb-4">
   {% if title %}<legend class="form-section-title">{{ title }}</legend>{% endif %}
-  <div class="row g-3">{% for field in fields %}{% include "papers/_field.html" %}{% endfor %}</div>
+  <div class="row g-3">{% for field in fields %}{% include "reading/_field.html" %}{% endfor %}</div>
 </fieldset>
 {% endfor %}

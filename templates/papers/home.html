@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Old paper files" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-file-earmark-medical"></i> {% trans "Old paper files" %}</h1></div>
+<p class="text-muted">{% trans "The old paper files are read by the Paper Reader, a separate program on a PC with the internet. Claude reads them there, the reception checks and approves them, and they come back here in a package: the system checks every value again before it is saved into the patients' files. This system itself never goes on the internet for it." %}</p>
+<div class="row g-3 mb-3 paper-steps">
+  <div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body">
+    <div class="paper-step">1</div><h2 class="h6 mt-2"><i class="bi bi-list-check"></i> {% trans "Lists for the reader" %}</h2>
+    <p class="small text-muted">{% blocktrans with place=place.badge n=patients %}What to read, the system's lists, and the {{ n }} patients of {{ place }} (so the reader knows whose file it is). Take the file to the reader's PC and bring it in there (Settings → Lists). Do it again before each big batch.{% endblocktrans %}</p>
+    <a class="btn btn-outline-primary" href="{% url 'papers:lists' %}" data-no-progress><i class="bi bi-download"></i> {% trans "Download the lists" %}</a>
+  </div></div></div>
+  <div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body">
+    <div class="paper-step">2</div><h2 class="h6 mt-2"><i class="bi bi-printer"></i> {% trans "Cover sheets" %}</h2>
+    <p class="small text-muted">{% trans "The file number in large print: put it on top of a registered patient's paper file before scanning, and the reader knows whose file it is." %}</p>
+    <a class="btn btn-outline-primary" href="{% url 'papers:covers' %}"><i class="bi bi-printer"></i> {% trans "Print cover sheets" %}</a>
+  </div></div></div>
+  <div class="col-md-12 col-xl-4"><div class="card h-100"><div class="card-body">
+    <div class="paper-step">3</div><h2 class="h6 mt-2"><i class="bi bi-box-arrow-in-down"></i> {% trans "Import a package" %}</h2>
+    <form method="post" enctype="multipart/form-data" novalidate data-no-leave-warning>{% csrf_token %}
+      {% include "includes/form_fields.html" %}
+      <button class="btn btn-primary mt-3"><i class="bi bi-search"></i> {% trans "Look inside" %}</button>
+    </form>
+  </div></div></div>
+</div>
+<div class="card"><div class="card-header">{% trans "Packages brought in" %}</div><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>{% trans "file name" %}</th><th class="text-center">{% trans "files" %}</th><th>{% trans "status" %}</th><th>{% trans "brought by" %}</th></tr></thead>
+  <tbody>
+  {% for paper_import in imports %}<tr>
+    <td><a href="{{ paper_import.get_absolute_url }}" class="ltr">{{ paper_import.name }}</a></td>
+    <td class="text-center">{{ paper_import.files|length }}</td>
+    <td>{% if paper_import.status == "done" %}<span class="badge text-bg-success">{{ paper_import.get_status_display }}</span>{% else %}<span class="badge text-bg-warning">{{ paper_import.get_status_display }}</span>{% endif %}</td>
+    <td class="small">{{ paper_import.created_at|date:"d/m/Y H:i" }} · {{ paper_import.created_by|default:"" }}</td>
+  </tr>{% empty %}<tr><td colspan="4" class="text-center text-muted py-4">{% trans "No package brought in yet." %}</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

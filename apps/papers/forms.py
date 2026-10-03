@@ -2,73 +2,32 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from apps.charting.forms import HISTORY_FIELDSETS, MedicalHistoryForm
-from apps.core.forms import StyledForm, StyledModelForm
+from apps.core.forms import StyledForm
 from apps.dentists.forms import DentistChoiceField
 from apps.patients.forms import PatientForm, PatientLookupField
 
-from .models import PaperPage, PaperSettings
-
-PAPER_UPLOAD_MB = 120  # one scanned file (a PDF of many pages, or the photos of its pages)
+PACKAGE_MB = 1000  # one package of the Paper Reader (the scans of many files)
 
 
-class MultipleFileInput(forms.ClearableFileInput):
-    allow_multiple_selected = True
-
-
-class MultipleFileField(forms.FileField):
-    """Several files chosen at once (a stack of scanned files, or the photos of one file's pages)."""
+class PackageForm(StyledForm):
+    package = forms.FileField(
+        label=_("Package from the Paper Reader"),
+        help_text=_("The .zip file made by the Paper Reader (Send to the dental system)."))
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault("widget", MultipleFileInput(attrs={"accept": "application/pdf,image/*"}))
         super().__init__(*args, **kwargs)
+        self.fields["package"].widget.attrs["accept"] = ".zip,application/zip"
 
-    def clean(self, data, initial=None):
-        single = super().clean
-        if isinstance(data, (list, tuple)):
-            return [single(item, initial) for item in data]
-        return [single(data, initial)] if data else []
-
-
-class UploadForm(StyledForm):
-    files = MultipleFileField(
-        label=_("Scanned files"),
-        help_text=_("One PDF for each patient (choose many at once), or the photos of the pages of one file."))
-    mode = forms.ChoiceField(label=_("Read"), choices=PaperSettings.Mode.choices, widget=forms.RadioSelect)
-
-    def clean_files(self):
-        from apps.core.uploads import is_blocked, looks_right
-
-        files = self.cleaned_data.get("files") or []
-        if not files:
-            raise forms.ValidationError(_("Choose at least one file."))
-        if len(files) > 200:
-            raise forms.ValidationError(_("At most 200 files at once."))
-        for upload in files:
-            name = upload.name.lower()
-            if is_blocked(upload) or not name.endswith((".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff",
-                                                        ".bmp")):
-                raise forms.ValidationError(_("%(name)s: only PDF files or photos.") % {"name": upload.name})
-            if not looks_right(upload):
-                raise forms.ValidationError(_("%(name)s is not a real PDF or picture.") % {"name": upload.name})
-            if upload.size > PAPER_UPLOAD_MB * 1024 * 1024:
-                raise forms.ValidationError(_("%(name)s is too large (at most %(mb)s MB).")
-                                            % {"name": upload.name, "mb": PAPER_UPLOAD_MB})
-        return files
-
-
-class TargetForm(StyledForm):
-    """Whose file the paper file goes into."""
-
-    NEW, EXISTING = "new", "existing"
-    target = forms.ChoiceField(label=_("Save into"), widget=forms.RadioSelect, choices=[
-        (NEW, _("A new patient file")), (EXISTING, _("A patient already registered"))])
-    patient = PatientLookupField(label=_("patient"), required=False)
-
-    def clean(self):
-        data = super().clean()
-        if data.get("target") == self.EXISTING and not data.get("patient"):
-            self.add_error("patient", _("Choose the patient."))
-        return data
+    def clean_package(self):
+        package = self.cleaned_data["package"]
+        package.seek(0)
+        if not package.name.lower().endswith(".zip") or package.read(4) != b"PK\x03\x04":
+            raise forms.ValidationError(_("This is not a package of the Paper Reader (a .zip file)."))
+        package.seek(0)
+        if package.size > PACKAGE_MB * 1024 * 1024:
+            raise forms.ValidationError(_("The package is too large (at most %(mb)s MB): make smaller packages in "
+                                          "the reader.") % {"mb": PACKAGE_MB})
+        return package
 
 
 class PaperPatientForm(PatientForm):
@@ -114,11 +73,6 @@ class PaperHistoryForm(MedicalHistoryForm):
         self.fields["exam_date"].help_text = _("Empty = the date the file was opened.")
 
 
-class PageForm(forms.Form):
-    kind = forms.ChoiceField(choices=PaperPage.Kind.choices, required=False)
-    turn = forms.ChoiceField(choices=[("", ""), ("left", "left"), ("right", "right")], required=False)
-
-
 class CoversForm(StyledForm):
     patient = PatientLookupField(label=_("one patient"), required=False)
     registered_from = forms.DateField(label=_("or the patients whose file was opened from"), required=False)
@@ -130,17 +84,3 @@ class CoversForm(StyledForm):
         super().__init__(*args, **kwargs)
         for name in ("registered_from", "registered_to", "blank"):
             self.fields[name].col = "col-md-4"
-
-
-class PaperSettingsForm(StyledModelForm):
-    class Meta:
-        model = PaperSettings
-        fields = ["enabled", "model", "effort", "two_readings", "default_mode", "monthly_limit"]
-        widgets = {"default_mode": forms.RadioSelect, "model": forms.RadioSelect, "effort": forms.RadioSelect}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for name in ("model", "effort", "default_mode"):
-            self.fields[name].col = "col-md-6 col-xl-4"
-        self.fields["monthly_limit"].col = "col-md-4"
-        self.fields["monthly_limit"].widget.attrs.update(min=0, step="10")

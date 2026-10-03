@@ -1,0 +1,3321 @@
+{
+ "kind": "cia-paper-reader-lists",
+ "version": 1,
+ "made_at": "2026-10-02T15:02:45.318325+03:00",
+ "place": {
+  "code": "CIA",
+  "badge": "CIA",
+  "name_en": "Cairo Implant Academy",
+  "name_ar": "أكاديمية القاهرة لزراعة الأسنان"
+ },
+ "fields": [
+  {
+   "name": "full_name",
+   "part": "patient",
+   "kind": "name",
+   "label_en": "full name (as on ID)",
+   "label_ar": "الاسم بالكامل (كما في البطاقة)",
+   "section_en": "Personal data",
+   "section_ar": "البيانات الشخصية",
+   "required": true,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "national_id",
+   "part": "patient",
+   "kind": "national_id",
+   "label_en": "national ID / passport no.",
+   "label_ar": "الرقم القومي / رقم الجواز",
+   "section_en": "Personal data",
+   "section_ar": "البيانات الشخصية",
+   "required": true,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "birth_date",
+   "part": "patient",
+   "kind": "date",
+   "label_en": "date of birth",
+   "label_ar": "تاريخ الميلاد",
+   "section_en": "Personal data",
+   "section_ar": "البيانات الشخصية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "gender",
+   "part": "patient",
+   "kind": "choice",
+   "label_en": "gender",
+   "label_ar": "النوع",
+   "section_en": "Personal data",
+   "section_ar": "البيانات الشخصية",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "M",
+     "Male",
+     "ذكر"
+    ],
+    [
+     "F",
+     "Female",
+     "أنثى"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "marital_status",
+   "part": "patient",
+   "kind": "choice",
+   "label_en": "marital status",
+   "label_ar": "الحالة الاجتماعية",
+   "section_en": "Personal data",
+   "section_ar": "البيانات الشخصية",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "single",
+     "Single",
+     "أعزب"
+    ],
+    [
+     "married",
+     "Married",
+     "متزوج"
+    ],
+    [
+     "divorced",
+     "Divorced",
+     "مطلق"
+    ],
+    [
+     "widowed",
+     "Widowed",
+     "أرمل"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "occupation",
+   "part": "patient",
+   "kind": "text",
+   "label_en": "occupation",
+   "label_ar": "الوظيفة",
+   "section_en": "Personal data",
+   "section_ar": "البيانات الشخصية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "phone_primary",
+   "part": "patient",
+   "kind": "phone",
+   "label_en": "mobile 1 (primary)",
+   "label_ar": "موبايل 1 (الأساسي)",
+   "section_en": "Contact",
+   "section_ar": "التواصل",
+   "required": true,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "phone_secondary",
+   "part": "patient",
+   "kind": "phone",
+   "label_en": "mobile 2",
+   "label_ar": "موبايل 2",
+   "section_en": "Contact",
+   "section_ar": "التواصل",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "governorate",
+   "part": "patient",
+   "kind": "choice",
+   "label_en": "governorate",
+   "label_ar": "المحافظة",
+   "section_en": "Contact",
+   "section_ar": "التواصل",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "01",
+     "Cairo",
+     "القاهرة"
+    ],
+    [
+     "02",
+     "Alexandria",
+     "الإسكندرية"
+    ],
+    [
+     "03",
+     "Port Said",
+     "بورسعيد"
+    ],
+    [
+     "04",
+     "Suez",
+     "السويس"
+    ],
+    [
+     "11",
+     "Damietta",
+     "دمياط"
+    ],
+    [
+     "12",
+     "Dakahlia",
+     "الدقهلية"
+    ],
+    [
+     "13",
+     "Sharqia",
+     "الشرقية"
+    ],
+    [
+     "14",
+     "Qalyubia",
+     "القليوبية"
+    ],
+    [
+     "15",
+     "Kafr El Sheikh",
+     "كفر الشيخ"
+    ],
+    [
+     "16",
+     "Gharbia",
+     "الغربية"
+    ],
+    [
+     "17",
+     "Monufia",
+     "المنوفية"
+    ],
+    [
+     "18",
+     "Beheira",
+     "البحيرة"
+    ],
+    [
+     "19",
+     "Ismailia",
+     "الإسماعيلية"
+    ],
+    [
+     "21",
+     "Giza",
+     "الجيزة"
+    ],
+    [
+     "22",
+     "Beni Suef",
+     "بني سويف"
+    ],
+    [
+     "23",
+     "Fayoum",
+     "الفيوم"
+    ],
+    [
+     "24",
+     "Minya",
+     "المنيا"
+    ],
+    [
+     "25",
+     "Asyut",
+     "أسيوط"
+    ],
+    [
+     "26",
+     "Sohag",
+     "سوهاج"
+    ],
+    [
+     "27",
+     "Qena",
+     "قنا"
+    ],
+    [
+     "28",
+     "Aswan",
+     "أسوان"
+    ],
+    [
+     "29",
+     "Luxor",
+     "الأقصر"
+    ],
+    [
+     "31",
+     "Red Sea",
+     "البحر الأحمر"
+    ],
+    [
+     "32",
+     "New Valley",
+     "الوادي الجديد"
+    ],
+    [
+     "33",
+     "Matrouh",
+     "مطروح"
+    ],
+    [
+     "34",
+     "North Sinai",
+     "شمال سيناء"
+    ],
+    [
+     "35",
+     "South Sinai",
+     "جنوب سيناء"
+    ],
+    [
+     "88",
+     "Outside Egypt",
+     "خارج مصر"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "city",
+   "part": "patient",
+   "kind": "text",
+   "label_en": "city / area",
+   "label_ar": "المدينة / المنطقة",
+   "section_en": "Contact",
+   "section_ar": "التواصل",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "address",
+   "part": "patient",
+   "kind": "text",
+   "label_en": "address",
+   "label_ar": "العنوان",
+   "section_en": "Contact",
+   "section_ar": "التواصل",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "missing_teeth",
+   "part": "patient",
+   "kind": "choice",
+   "label_en": "missing teeth",
+   "label_ar": "الأسنان المفقودة",
+   "section_en": "Teeth and medical notes (as told by the patient)",
+   "section_ar": "الأسنان والملاحظات الطبية (زي ما قال المريض)",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "single",
+     "Single tooth",
+     "سنة واحدة"
+    ],
+    [
+     "multiple",
+     "Multiple teeth",
+     "عدة أسنان"
+    ],
+    [
+     "full_arch",
+     "Full arch",
+     "فك كامل"
+    ],
+    [
+     "both_arches",
+     "Both arches (full mouth)",
+     "الفكين (الفم كامل)"
+    ],
+    [
+     "unknown",
+     "Not sure",
+     "غير متأكد"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "missing_teeth_notes",
+   "part": "patient",
+   "kind": "text",
+   "label_en": "missing teeth details",
+   "label_ar": "تفاصيل الأسنان المفقودة",
+   "section_en": "Teeth and medical notes (as told by the patient)",
+   "section_ar": "الأسنان والملاحظات الطبية (زي ما قال المريض)",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "medical_notes",
+   "part": "patient",
+   "kind": "text",
+   "label_en": "other medical notes",
+   "label_ar": "ملاحظات صحية أخرى",
+   "section_en": "Teeth and medical notes (as told by the patient)",
+   "section_ar": "الأسنان والملاحظات الطبية (زي ما قال المريض)",
+   "required": false,
+   "long": true,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "referral_source",
+   "part": "patient",
+   "kind": "referral",
+   "label_en": "who referred you / how did you hear about us",
+   "label_ar": "مين رشّحك / عرفتنا منين",
+   "section_en": "Who referred the patient",
+   "section_ar": "مين رشّح المريض",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "1",
+     "Existing patient (relative / friend)",
+     "مريض عندنا (قريب أو صديق)"
+    ],
+    [
+     "2",
+     "Facebook",
+     "فيسبوك"
+    ],
+    [
+     "3",
+     "Instagram",
+     "إنستجرام"
+    ],
+    [
+     "4",
+     "TikTok",
+     "تيك توك"
+    ],
+    [
+     "5",
+     "Google / Google Maps",
+     "جوجل / خرائط جوجل"
+    ],
+    [
+     "6",
+     "WhatsApp",
+     "واتساب"
+    ],
+    [
+     "7",
+     "Referred by a dentist",
+     "طبيب حوّله"
+    ],
+    [
+     "8",
+     "Sign board / passed by",
+     "لافتة / مرّ على المكان"
+    ],
+    [
+     "9",
+     "Other",
+     "أخرى"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "referral_notes",
+   "part": "patient",
+   "kind": "text",
+   "label_en": "referral details",
+   "label_ar": "تفاصيل الترشيح",
+   "section_en": "Who referred the patient",
+   "section_ar": "مين رشّح المريض",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "registered_on",
+   "part": "patient",
+   "kind": "date",
+   "label_en": "file opened on",
+   "label_ar": "تاريخ فتح الملف",
+   "section_en": "The file",
+   "section_ar": "الملف",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "notes",
+   "part": "patient",
+   "kind": "text",
+   "label_en": "notes",
+   "label_ar": "ملاحظات",
+   "section_en": "The file",
+   "section_ar": "الملف",
+   "required": false,
+   "long": true,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "exam_date",
+   "part": "history",
+   "kind": "date",
+   "label_en": "date the history was taken",
+   "label_ar": "تاريخ أخذ التاريخ المرضي",
+   "section_en": "The history on the paper",
+   "section_ar": "التاريخ المرضي في الورقة",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "examined_by",
+   "part": "history",
+   "kind": "dentist",
+   "label_en": "taken by (the dentist)",
+   "label_ar": "أخذه (الدكتور)",
+   "section_en": "The history on the paper",
+   "section_ar": "التاريخ المرضي في الورقة",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "3",
+     "Dr. Ahmed Samir",
+     "Dr. Ahmed Samir"
+    ],
+    [
+     "2",
+     "Dr. Hesham Fawzy",
+     "Dr. Hesham Fawzy"
+    ],
+    [
+     "5",
+     "Dr. Karim Adel",
+     "Dr. Karim Adel"
+    ],
+    [
+     "1",
+     "Dr. Khaled Mansour",
+     "Dr. Khaled Mansour"
+    ],
+    [
+     "8",
+     "Dr. Mona Refaat",
+     "Dr. Mona Refaat"
+    ],
+    [
+     "4",
+     "Dr. Nour Hassan",
+     "Dr. Nour Hassan"
+    ],
+    [
+     "7",
+     "Dr. Omar Tarek",
+     "Dr. Omar Tarek"
+    ],
+    [
+     "10",
+     "Dr. Rania Adel",
+     "Dr. Rania Adel"
+    ],
+    [
+     "9",
+     "Dr. Sherif Nabil",
+     "Dr. Sherif Nabil"
+    ],
+    [
+     "6",
+     "Dr. Yasmin Ali",
+     "Dr. Yasmin Ali"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "bp_clinic_systolic",
+   "part": "history",
+   "kind": "number",
+   "label_en": "BP in clinic - systolic",
+   "label_ar": "الضغط في العيادة - الانقباضي",
+   "section_en": "Today in the clinic: blood pressure and blood sugar",
+   "section_ar": "النهارده في العيادة: الضغط والسكر",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    60,
+    260
+   ]
+  },
+  {
+   "name": "bp_clinic_diastolic",
+   "part": "history",
+   "kind": "number",
+   "label_en": "BP in clinic - diastolic",
+   "label_ar": "الضغط في العيادة - الانبساطي",
+   "section_en": "Today in the clinic: blood pressure and blood sugar",
+   "section_ar": "النهارده في العيادة: الضغط والسكر",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    30,
+    160
+   ]
+  },
+  {
+   "name": "glucose_random_clinic",
+   "part": "history",
+   "kind": "number",
+   "label_en": "random glucose in clinic (mg/dl)",
+   "label_ar": "سكر عشوائي في العيادة (mg/dl)",
+   "section_en": "Today in the clinic: blood pressure and blood sugar",
+   "section_ar": "النهارده في العيادة: الضغط والسكر",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    30,
+    700
+   ]
+  },
+  {
+   "name": "hba1c",
+   "part": "history",
+   "kind": "decimal",
+   "label_en": "HbA1c (%)",
+   "label_ar": "السكر التراكمي HbA1c (%)",
+   "section_en": "Today in the clinic: blood pressure and blood sugar",
+   "section_ar": "النهارده في العيادة: الضغط والسكر",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    3,
+    20
+   ]
+  },
+  {
+   "name": "hba1c_date",
+   "part": "history",
+   "kind": "date",
+   "label_en": "HbA1c date",
+   "label_ar": "تاريخ السكر التراكمي",
+   "section_en": "Today in the clinic: blood pressure and blood sugar",
+   "section_ar": "النهارده في العيادة: الضغط والسكر",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "general_health",
+   "part": "history",
+   "kind": "text",
+   "label_en": "general health",
+   "label_ar": "الصحة العامة",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "pregnant",
+   "part": "history",
+   "kind": "choice",
+   "label_en": "pregnant?",
+   "label_ar": "حامل؟",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "yes",
+     "Yes",
+     "نعم"
+    ],
+    [
+     "no",
+     "No",
+     "لا"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "lactating",
+   "part": "history",
+   "kind": "choice",
+   "label_en": "lactating?",
+   "label_ar": "مرضع؟",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "yes",
+     "Yes",
+     "نعم"
+    ],
+    [
+     "no",
+     "No",
+     "لا"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "under_treatment",
+   "part": "history",
+   "kind": "text",
+   "label_en": "being treated for anything now?",
+   "label_ar": "يعالج من أي شيء حاليًا؟",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "recent_surgery",
+   "part": "history",
+   "kind": "text",
+   "label_en": "recent surgery?",
+   "label_ar": "عملية جراحية حديثة؟",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "medical_comment",
+   "part": "history",
+   "kind": "text",
+   "label_en": "comment",
+   "label_ar": "تعليق",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": true,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "conditions",
+   "part": "history",
+   "kind": "conditions",
+   "label_en": "did you ever have?",
+   "label_ar": "هل أصبت من قبل بـ؟",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": false,
+   "choices": [
+    [
+     "1",
+     "Diabetes",
+     "سكر"
+    ],
+    [
+     "2",
+     "High blood pressure",
+     "ضغط مرتفع"
+    ],
+    [
+     "3",
+     "Heart disease",
+     "أمراض القلب"
+    ],
+    [
+     "4",
+     "Bleeding problem / blood thinners",
+     "سيولة في الدم / يأخذ مسيّل"
+    ],
+    [
+     "5",
+     "Drug allergy",
+     "حساسية من أدوية"
+    ],
+    [
+     "6",
+     "Liver disease (HCV / HBV)",
+     "أمراض الكبد (فيروس سي / ب)"
+    ],
+    [
+     "7",
+     "Kidney disease",
+     "أمراض الكلى"
+    ],
+    [
+     "8",
+     "Thyroid disease",
+     "الغدة الدرقية"
+    ],
+    [
+     "9",
+     "Osteoporosis / its medication",
+     "هشاشة عظام / يأخذ علاج لها"
+    ],
+    [
+     "10",
+     "Chemo- or radiotherapy",
+     "علاج كيماوي أو إشعاعي"
+    ],
+    [
+     "11",
+     "Pregnancy",
+     "حمل"
+    ],
+    [
+     "12",
+     "Smoker",
+     "مدخّن"
+    ],
+    [
+     "13",
+     "Asthma",
+     "ربو / حساسية صدر"
+    ],
+    [
+     "14",
+     "Psychological",
+     "أمراض نفسية"
+    ],
+    [
+     "15",
+     "Rheumatic fever",
+     "حمى روماتيزمية"
+    ],
+    [
+     "16",
+     "Anemia",
+     "أنيميا"
+    ],
+    [
+     "17",
+     "Epilepsy",
+     "صرع"
+    ],
+    [
+     "18",
+     "Venereal disease",
+     "أمراض تناسلية"
+    ]
+   ],
+   "range": null
+  },
+  {
+   "name": "other_condition",
+   "part": "history",
+   "kind": "text",
+   "label_en": "other disease",
+   "label_ar": "مرض آخر",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "conditions_comment",
+   "part": "history",
+   "kind": "text",
+   "label_en": "comments on diseases",
+   "label_ar": "تعليقات على الأمراض",
+   "section_en": "Medical health",
+   "section_ar": "الحالة الصحية",
+   "required": false,
+   "long": true,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "bp_last_systolic",
+   "part": "history",
+   "kind": "number",
+   "label_en": "last BP reading - systolic",
+   "label_ar": "آخر قراءة ضغط - الانقباضي",
+   "section_en": "Blood pressure and sugar: what the patient tells",
+   "section_ar": "الضغط والسكر: كما يقول المريض",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    60,
+    260
+   ]
+  },
+  {
+   "name": "bp_last_diastolic",
+   "part": "history",
+   "kind": "number",
+   "label_en": "last BP reading - diastolic",
+   "label_ar": "آخر قراءة ضغط - الانبساطي",
+   "section_en": "Blood pressure and sugar: what the patient tells",
+   "section_ar": "الضغط والسكر: كما يقول المريض",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    30,
+    160
+   ]
+  },
+  {
+   "name": "bp_last_when",
+   "part": "history",
+   "kind": "text",
+   "label_en": "BP - when?",
+   "label_ar": "الضغط - متى؟",
+   "section_en": "Blood pressure and sugar: what the patient tells",
+   "section_ar": "الضغط والسكر: كما يقول المريض",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "bp_drug",
+   "part": "history",
+   "kind": "text",
+   "label_en": "BP drug",
+   "label_ar": "دواء الضغط",
+   "section_en": "Blood pressure and sugar: what the patient tells",
+   "section_ar": "الضغط والسكر: كما يقول المريض",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "glucose_level",
+   "part": "history",
+   "kind": "text",
+   "label_en": "glucose level",
+   "label_ar": "مستوى السكر",
+   "section_en": "Blood pressure and sugar: what the patient tells",
+   "section_ar": "الضغط والسكر: كما يقول المريض",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "glucose_last",
+   "part": "history",
+   "kind": "number",
+   "label_en": "last glucose reading (mg/dl)",
+   "label_ar": "آخر قراءة سكر (mg/dl)",
+   "section_en": "Blood pressure and sugar: what the patient tells",
+   "section_ar": "الضغط والسكر: كما يقول المريض",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    30,
+    700
+   ]
+  },
+  {
+   "name": "glucose_last_when",
+   "part": "history",
+   "kind": "text",
+   "label_en": "glucose - when?",
+   "label_ar": "السكر - متى؟",
+   "section_en": "Blood pressure and sugar: what the patient tells",
+   "section_ar": "الضغط والسكر: كما يقول المريض",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "allergy_penicillin",
+   "part": "history",
+   "kind": "yes_no",
+   "label_en": "allergic to penicillin",
+   "label_ar": "حساسية من البنسلين",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "allergy_sulfa",
+   "part": "history",
+   "kind": "yes_no",
+   "label_en": "allergic to sulfa",
+   "label_ar": "حساسية من السلفا",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "allergy_other",
+   "part": "history",
+   "kind": "text",
+   "label_en": "other allergy",
+   "label_ar": "حساسية أخرى",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "bleeding_or_aspirin",
+   "part": "history",
+   "kind": "text",
+   "label_en": "prolonged bleeding or taking aspirin?",
+   "label_ar": "نزيف لفترة طويلة أو يأخذ أسبرين؟",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "digestion_problem",
+   "part": "history",
+   "kind": "text",
+   "label_en": "chronic problem with digestion?",
+   "label_ar": "مشكلة مزمنة في الهضم؟",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "illegal_drugs",
+   "part": "history",
+   "kind": "yes_no",
+   "label_en": "illegal drugs",
+   "label_ar": "مخدرات",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "illegal_drugs_notes",
+   "part": "history",
+   "kind": "text",
+   "label_en": "illegal drugs - details",
+   "label_ar": "المخدرات - تفاصيل",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "drugs_taken",
+   "part": "history",
+   "kind": "text",
+   "label_en": "drugs taken by patient",
+   "label_ar": "الأدوية التي يأخذها المريض",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": true,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "operator_comments",
+   "part": "history",
+   "kind": "text",
+   "label_en": "operator comments",
+   "label_ar": "تعليقات الطبيب",
+   "section_en": "Allergies, bleeding and drugs",
+   "section_ar": "الحساسية والنزيف والأدوية",
+   "required": false,
+   "long": true,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "smoker",
+   "part": "history",
+   "kind": "yes_no",
+   "label_en": "smokes tobacco",
+   "label_ar": "يدخن",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "cigarettes_per_day",
+   "part": "history",
+   "kind": "number",
+   "label_en": "cigarettes per day",
+   "label_ar": "عدد السجائر في اليوم",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    0,
+    120
+   ]
+  },
+  {
+   "name": "bruxism",
+   "part": "history",
+   "kind": "text",
+   "label_en": "clench or grind teeth (awake / sleep)?",
+   "label_ar": "يضغط أو يطحن أسنانه (يقظة / نوم)؟",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "sensitive_hot_cold",
+   "part": "history",
+   "kind": "yes_no",
+   "label_en": "sensitive to hot or cold",
+   "label_ar": "حساسية من الساخن أو البارد",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "sensitive_sweets",
+   "part": "history",
+   "kind": "yes_no",
+   "label_en": "sensitive to sweets",
+   "label_ar": "حساسية من الحلويات",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "sensitive_biting",
+   "part": "history",
+   "kind": "yes_no",
+   "label_en": "sensitive to biting or chewing",
+   "label_ar": "ألم عند العض أو المضغ",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "mouth_injury",
+   "part": "history",
+   "kind": "text",
+   "label_en": "serious injury to the mouth?",
+   "label_ar": "إصابة شديدة في الفم؟",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "satisfied_appearance",
+   "part": "history",
+   "kind": "text",
+   "label_en": "satisfied with teeth appearance?",
+   "label_ar": "راضٍ عن شكل أسنانه؟",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": null
+  },
+  {
+   "name": "cooperation_score",
+   "part": "history",
+   "kind": "number",
+   "label_en": "patient cooperative (0-10)",
+   "label_ar": "تعاون المريض (0-10)",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    0,
+    10
+   ]
+  },
+  {
+   "name": "implant_willingness_score",
+   "part": "history",
+   "kind": "number",
+   "label_en": "willing for implant treatment (0-10)",
+   "label_ar": "رغبته في علاج الزرع (0-10)",
+   "section_en": "Dental history and habits",
+   "section_ar": "تاريخ الأسنان والعادات",
+   "required": false,
+   "long": false,
+   "choices": [],
+   "range": [
+    0,
+    10
+   ]
+  }
+ ],
+ "patients": [
+  {
+   "file_number": "CIA-00001",
+   "full_name": "حسن منى عبد الله",
+   "national_id": "28002270110018",
+   "phone_primary": "01010000000",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "حسن منى عبد الله",
+    "national_id": "28002270110018",
+    "birth_date": "27/02/1980",
+    "gender": "M",
+    "phone_primary": "01010000000",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "36",
+    "referral_source": "2",
+    "registered_on": "02/10/2025"
+   }
+  },
+  {
+   "file_number": "CIA-00002",
+   "full_name": "أحمد سارة الشريف",
+   "national_id": "25707140110121",
+   "phone_primary": "01010007919",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد سارة الشريف",
+    "national_id": "25707140110121",
+    "birth_date": "14/07/1957",
+    "gender": "F",
+    "phone_primary": "01010007919",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "45",
+    "referral_source": "4",
+    "registered_on": "02/10/2024"
+   }
+  },
+  {
+   "file_number": "CIA-00003",
+   "full_name": "مصطفى محمد سليمان",
+   "national_id": "29510190110216",
+   "phone_primary": "01010015838",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى محمد سليمان",
+    "national_id": "29510190110216",
+    "birth_date": "19/10/1995",
+    "gender": "M",
+    "phone_primary": "01010015838",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "11",
+    "referral_source": "1",
+    "registered_on": "02/10/2023"
+   }
+  },
+  {
+   "file_number": "CIA-00004",
+   "full_name": "سعاد هبة حسين",
+   "national_id": "26402190110394",
+   "phone_primary": "01010023757",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سعاد هبة حسين",
+    "national_id": "26402190110394",
+    "birth_date": "19/02/1964",
+    "gender": "M",
+    "phone_primary": "01010023757",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "26",
+    "referral_source": "9",
+    "registered_on": "02/10/2022"
+   }
+  },
+  {
+   "file_number": "CIA-00005",
+   "full_name": "منى مصطفى عثمان",
+   "national_id": "26112030110499",
+   "phone_primary": "01010031676",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "منى مصطفى عثمان",
+    "national_id": "26112030110499",
+    "birth_date": "03/12/1961",
+    "gender": "M",
+    "phone_primary": "01010031676",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "16",
+    "referral_source": "1",
+    "registered_on": "02/10/2025"
+   }
+  },
+  {
+   "file_number": "CIA-00006",
+   "full_name": "فاطمة نادية عبد الرحمن",
+   "national_id": "28406100110583",
+   "phone_primary": "01010039595",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "فاطمة نادية عبد الرحمن",
+    "national_id": "28406100110583",
+    "birth_date": "10/06/1984",
+    "gender": "F",
+    "phone_primary": "01010039595",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "36",
+    "referral_source": "3",
+    "registered_on": "02/10/2024"
+   }
+  },
+  {
+   "file_number": "CIA-00007",
+   "full_name": "أحمد سارة الشريف",
+   "national_id": "28612150110664",
+   "phone_primary": "01010047514",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد سارة الشريف",
+    "national_id": "28612150110664",
+    "birth_date": "15/12/1986",
+    "gender": "F",
+    "phone_primary": "01010047514",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "15",
+    "referral_source": "2",
+    "registered_on": "02/10/2023"
+   }
+  },
+  {
+   "file_number": "CIA-00008",
+   "full_name": "منى نادية مصطفى",
+   "national_id": "28601220110771",
+   "phone_primary": "01010055433",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "منى نادية مصطفى",
+    "national_id": "28601220110771",
+    "birth_date": "22/01/1986",
+    "gender": "M",
+    "phone_primary": "01010055433",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "9",
+    "registered_on": "02/10/2022"
+   }
+  },
+  {
+   "file_number": "CIA-00009",
+   "full_name": "يوسف فاطمة السيد",
+   "national_id": "28602270110881",
+   "phone_primary": "01010063352",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "يوسف فاطمة السيد",
+    "national_id": "28602270110881",
+    "birth_date": "27/02/1986",
+    "gender": "F",
+    "phone_primary": "01010063352",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "22",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00010",
+   "full_name": "محمد يوسف مصطفى",
+   "national_id": "29105230110986",
+   "phone_primary": "01010071271",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد يوسف مصطفى",
+    "national_id": "29105230110986",
+    "birth_date": "23/05/1991",
+    "gender": "F",
+    "phone_primary": "01010071271",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "37",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00011",
+   "full_name": "إبراهيم أمل عثمان",
+   "national_id": "25805050111043",
+   "phone_primary": "01010079190",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "إبراهيم أمل عثمان",
+    "national_id": "25805050111043",
+    "birth_date": "05/05/1958",
+    "gender": "F",
+    "phone_primary": "01010079190",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "25",
+    "referral_source": "7",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00012",
+   "full_name": "سعاد سارة إبراهيم",
+   "national_id": "28309090111172",
+   "phone_primary": "01010087109",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سعاد سارة إبراهيم",
+    "national_id": "28309090111172",
+    "birth_date": "09/09/1983",
+    "gender": "M",
+    "phone_primary": "01010087109",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "7",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00013",
+   "full_name": "محمود مصطفى عبد الرحمن",
+   "national_id": "29804050111271",
+   "phone_primary": "01010095028",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمود مصطفى عبد الرحمن",
+    "national_id": "29804050111271",
+    "birth_date": "05/04/1998",
+    "gender": "M",
+    "phone_primary": "01010095028",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "46",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00014",
+   "full_name": "حسن منى فؤاد",
+   "national_id": "27101050111356",
+   "phone_primary": "01010102947",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "حسن منى فؤاد",
+    "national_id": "27101050111356",
+    "birth_date": "05/01/1971",
+    "gender": "M",
+    "phone_primary": "01010102947",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "missing_teeth_notes": "21",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00015",
+   "full_name": "أمل سعاد سليمان",
+   "national_id": "29910210111490",
+   "phone_primary": "01010110866",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل سعاد سليمان",
+    "national_id": "29910210111490",
+    "birth_date": "21/10/1999",
+    "gender": "M",
+    "phone_primary": "01010110866",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "missing_teeth_notes": "46, 36",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00016",
+   "full_name": "مصطفى أحمد عبد الرحمن",
+   "national_id": "28008210111526",
+   "phone_primary": "01010118785",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى أحمد عبد الرحمن",
+    "national_id": "28008210111526",
+    "birth_date": "21/08/1980",
+    "gender": "F",
+    "phone_primary": "01010118785",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "missing_teeth_notes": "46, 36",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00017",
+   "full_name": "منى محمود سليمان",
+   "national_id": "26210020111661",
+   "phone_primary": "01010126704",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "منى محمود سليمان",
+    "national_id": "26210020111661",
+    "birth_date": "02/10/1962",
+    "gender": "F",
+    "phone_primary": "01010126704",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "missing_teeth_notes": "46, 36",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00018",
+   "full_name": "حسن منى مصطفى",
+   "national_id": "25910130111742",
+   "phone_primary": "01010134623",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "حسن منى مصطفى",
+    "national_id": "25910130111742",
+    "birth_date": "13/10/1959",
+    "gender": "F",
+    "phone_primary": "01010134623",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "missing_teeth_notes": "46, 36",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00019",
+   "full_name": "أحمد محمود السيد",
+   "national_id": "26208160111887",
+   "phone_primary": "01010142542",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد محمود السيد",
+    "national_id": "26208160111887",
+    "birth_date": "16/08/1962",
+    "gender": "F",
+    "phone_primary": "01010142542",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "missing_teeth_notes": "46, 36",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00020",
+   "full_name": "حسن محمود سليمان",
+   "national_id": "28509010111933",
+   "phone_primary": "01010150461",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "حسن محمود سليمان",
+    "national_id": "28509010111933",
+    "birth_date": "01/09/1985",
+    "gender": "M",
+    "phone_primary": "01010150461",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "missing_teeth_notes": "46, 36",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00021",
+   "full_name": "نادية مصطفى سليمان",
+   "national_id": "26009120112052",
+   "phone_primary": "01010158380",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "نادية مصطفى سليمان",
+    "national_id": "26009120112052",
+    "birth_date": "12/09/1960",
+    "gender": "M",
+    "phone_primary": "01010158380",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00022",
+   "full_name": "مصطفى سارة عثمان",
+   "national_id": "26904270112146",
+   "phone_primary": "01010166299",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى سارة عثمان",
+    "national_id": "26904270112146",
+    "birth_date": "27/04/1969",
+    "gender": "F",
+    "phone_primary": "01010166299",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00023",
+   "full_name": "يوسف نادية مصطفى",
+   "national_id": "27205070112289",
+   "phone_primary": "01010174218",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "يوسف نادية مصطفى",
+    "national_id": "27205070112289",
+    "birth_date": "07/05/1972",
+    "gender": "F",
+    "phone_primary": "01010174218",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00024",
+   "full_name": "مصطفى يوسف فؤاد",
+   "national_id": "26904160112323",
+   "phone_primary": "01010182137",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى يوسف فؤاد",
+    "national_id": "26904160112323",
+    "birth_date": "16/04/1969",
+    "gender": "F",
+    "phone_primary": "01010182137",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00025",
+   "full_name": "سعاد سارة عثمان",
+   "national_id": "28308170120042",
+   "phone_primary": "01230000000",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سعاد سارة عثمان",
+    "national_id": "28308170120042",
+    "birth_date": "17/08/1983",
+    "gender": "F",
+    "phone_primary": "01230000000",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00026",
+   "full_name": "منى نادية حسين",
+   "national_id": "29502150120152",
+   "phone_primary": "01230004099",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "منى نادية حسين",
+    "national_id": "29502150120152",
+    "birth_date": "15/02/1995",
+    "gender": "M",
+    "phone_primary": "01230004099",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00027",
+   "full_name": "هبة محمد فؤاد",
+   "national_id": "29907150120239",
+   "phone_primary": "01230008198",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "هبة محمد فؤاد",
+    "national_id": "29907150120239",
+    "birth_date": "15/07/1999",
+    "gender": "M",
+    "phone_primary": "01230008198",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00028",
+   "full_name": "محمد محمد عبد الرحمن",
+   "national_id": "25904200120317",
+   "phone_primary": "01230012297",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد محمد عبد الرحمن",
+    "national_id": "25904200120317",
+    "birth_date": "20/04/1959",
+    "gender": "M",
+    "phone_primary": "01230012297",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00029",
+   "full_name": "سعاد مصطفى سليمان",
+   "national_id": "29204210120457",
+   "phone_primary": "01230016396",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سعاد مصطفى سليمان",
+    "national_id": "29204210120457",
+    "birth_date": "21/04/1992",
+    "gender": "M",
+    "phone_primary": "01230016396",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00030",
+   "full_name": "يوسف هبة إبراهيم",
+   "national_id": "26007180120524",
+   "phone_primary": "01230020495",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "يوسف هبة إبراهيم",
+    "national_id": "26007180120524",
+    "birth_date": "18/07/1960",
+    "gender": "F",
+    "phone_primary": "01230020495",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00031",
+   "full_name": "علي محمد السيد",
+   "national_id": "28710250120626",
+   "phone_primary": "01230024594",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "علي محمد السيد",
+    "national_id": "28710250120626",
+    "birth_date": "25/10/1987",
+    "gender": "F",
+    "phone_primary": "01230024594",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00032",
+   "full_name": "أحمد محمد عبد الله",
+   "national_id": "27904070120717",
+   "phone_primary": "01230028693",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد محمد عبد الله",
+    "national_id": "27904070120717",
+    "birth_date": "07/04/1979",
+    "gender": "M",
+    "phone_primary": "01230028693",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "7",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00033",
+   "full_name": "إبراهيم أحمد فؤاد",
+   "national_id": "28011070120855",
+   "phone_primary": "01230032792",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "إبراهيم أحمد فؤاد",
+    "national_id": "28011070120855",
+    "birth_date": "07/11/1980",
+    "gender": "M",
+    "phone_primary": "01230032792",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00034",
+   "full_name": "محمد إبراهيم السيد",
+   "national_id": "27603080120920",
+   "phone_primary": "01230036891",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد إبراهيم السيد",
+    "national_id": "27603080120920",
+    "birth_date": "08/03/1976",
+    "gender": "F",
+    "phone_primary": "01230036891",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00035",
+   "full_name": "محمود هبة سليمان",
+   "national_id": "28604150121093",
+   "phone_primary": "01230040990",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمود هبة سليمان",
+    "national_id": "28604150121093",
+    "birth_date": "15/04/1986",
+    "gender": "M",
+    "phone_primary": "01230040990",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00036",
+   "full_name": "إبراهيم أحمد الشريف",
+   "national_id": "29607070121114",
+   "phone_primary": "01230045089",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "إبراهيم أحمد الشريف",
+    "national_id": "29607070121114",
+    "birth_date": "07/07/1996",
+    "gender": "M",
+    "phone_primary": "01230045089",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00037",
+   "full_name": "محمود إبراهيم فؤاد",
+   "national_id": "26811190121220",
+   "phone_primary": "01230049188",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمود إبراهيم فؤاد",
+    "national_id": "26811190121220",
+    "birth_date": "19/11/1968",
+    "gender": "F",
+    "phone_primary": "01230049188",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00038",
+   "full_name": "علي محمد فؤاد",
+   "national_id": "28306270121356",
+   "phone_primary": "01230053287",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "علي محمد فؤاد",
+    "national_id": "28306270121356",
+    "birth_date": "27/06/1983",
+    "gender": "M",
+    "phone_primary": "01230053287",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00039",
+   "full_name": "مصطفى منى عبد الرحمن",
+   "national_id": "26001200121465",
+   "phone_primary": "01230057386",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى منى عبد الرحمن",
+    "national_id": "26001200121465",
+    "birth_date": "20/01/1960",
+    "gender": "F",
+    "phone_primary": "01230057386",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00040",
+   "full_name": "يوسف سعاد فؤاد",
+   "national_id": "29203280121572",
+   "phone_primary": "01230061485",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "يوسف سعاد فؤاد",
+    "national_id": "29203280121572",
+    "birth_date": "28/03/1992",
+    "gender": "M",
+    "phone_primary": "01230061485",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00041",
+   "full_name": "سعاد منى عبد الرحمن",
+   "national_id": "26912070121638",
+   "phone_primary": "01230065584",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سعاد منى عبد الرحمن",
+    "national_id": "26912070121638",
+    "birth_date": "07/12/1969",
+    "gender": "M",
+    "phone_primary": "01230065584",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00042",
+   "full_name": "أمل يوسف فؤاد",
+   "national_id": "27902140121711",
+   "phone_primary": "01230069683",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل يوسف فؤاد",
+    "national_id": "27902140121711",
+    "birth_date": "14/02/1979",
+    "gender": "M",
+    "phone_primary": "01230069683",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00043",
+   "full_name": "علي مصطفى الشريف",
+   "national_id": "28705140121884",
+   "phone_primary": "01230073782",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "علي مصطفى الشريف",
+    "national_id": "28705140121884",
+    "birth_date": "14/05/1987",
+    "gender": "F",
+    "phone_primary": "01230073782",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00044",
+   "full_name": "محمود مصطفى عثمان",
+   "national_id": "25909210121924",
+   "phone_primary": "01230077881",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمود مصطفى عثمان",
+    "national_id": "25909210121924",
+    "birth_date": "21/09/1959",
+    "gender": "F",
+    "phone_primary": "01230077881",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00045",
+   "full_name": "أحمد علي الشريف",
+   "national_id": "25608080122010",
+   "phone_primary": "01230081980",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد علي الشريف",
+    "national_id": "25608080122010",
+    "birth_date": "08/08/1956",
+    "gender": "M",
+    "phone_primary": "01230081980",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00046",
+   "full_name": "سارة منى حسين",
+   "national_id": "27802120122137",
+   "phone_primary": "01230086079",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سارة منى حسين",
+    "national_id": "27802120122137",
+    "birth_date": "12/02/1978",
+    "gender": "M",
+    "phone_primary": "01230086079",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00047",
+   "full_name": "سارة منى حسين",
+   "national_id": "29910020122217",
+   "phone_primary": "01230090178",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سارة منى حسين",
+    "national_id": "29910020122217",
+    "birth_date": "02/10/1999",
+    "gender": "M",
+    "phone_primary": "01230090178",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00048",
+   "full_name": "محمد محمد فؤاد",
+   "national_id": "27411030122381",
+   "phone_primary": "01230094277",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد محمد فؤاد",
+    "national_id": "27411030122381",
+    "birth_date": "03/11/1974",
+    "gender": "F",
+    "phone_primary": "01230094277",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00049",
+   "full_name": "أحمد أحمد عثمان",
+   "national_id": "26309120122412",
+   "phone_primary": "01230098376",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد أحمد عثمان",
+    "national_id": "26309120122412",
+    "birth_date": "12/09/1963",
+    "gender": "M",
+    "phone_primary": "01230098376",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00050",
+   "full_name": "هبة يوسف السيد",
+   "national_id": "26007260122517",
+   "phone_primary": "01230102475",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "هبة يوسف السيد",
+    "national_id": "26007260122517",
+    "birth_date": "26/07/1960",
+    "gender": "M",
+    "phone_primary": "01230102475",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00051",
+   "full_name": "إبراهيم إبراهيم فؤاد",
+   "national_id": "29701200122621",
+   "phone_primary": "01230106574",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "إبراهيم إبراهيم فؤاد",
+    "national_id": "29701200122621",
+    "birth_date": "20/01/1997",
+    "gender": "F",
+    "phone_primary": "01230106574",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00052",
+   "full_name": "علي أمل الشريف",
+   "national_id": "26212110122779",
+   "phone_primary": "01230110673",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "علي أمل الشريف",
+    "national_id": "26212110122779",
+    "birth_date": "11/12/1962",
+    "gender": "M",
+    "phone_primary": "01230110673",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00053",
+   "full_name": "سعاد سارة السيد",
+   "national_id": "28409250122890",
+   "phone_primary": "01230114772",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سعاد سارة السيد",
+    "national_id": "28409250122890",
+    "birth_date": "25/09/1984",
+    "gender": "M",
+    "phone_primary": "01230114772",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00054",
+   "full_name": "يوسف محمد عبد الرحمن",
+   "national_id": "26012040122989",
+   "phone_primary": "01230118871",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "يوسف محمد عبد الرحمن",
+    "national_id": "26012040122989",
+    "birth_date": "04/12/1960",
+    "gender": "F",
+    "phone_primary": "01230118871",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00055",
+   "full_name": "حسن علي حسين",
+   "national_id": "25511200123048",
+   "phone_primary": "01230122970",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "حسن علي حسين",
+    "national_id": "25511200123048",
+    "birth_date": "20/11/1955",
+    "gender": "F",
+    "phone_primary": "01230122970",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00056",
+   "full_name": "أمل يوسف عثمان",
+   "national_id": "29704110123174",
+   "phone_primary": "01230127069",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل يوسف عثمان",
+    "national_id": "29704110123174",
+    "birth_date": "11/04/1997",
+    "gender": "M",
+    "phone_primary": "01230127069",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00057",
+   "full_name": "نادية نادية عبد الرحمن",
+   "national_id": "28204130123249",
+   "phone_primary": "01230131168",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "نادية نادية عبد الرحمن",
+    "national_id": "28204130123249",
+    "birth_date": "13/04/1982",
+    "gender": "F",
+    "phone_primary": "01230131168",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00058",
+   "full_name": "محمود يوسف مصطفى",
+   "national_id": "26301230123324",
+   "phone_primary": "01230135267",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمود يوسف مصطفى",
+    "national_id": "26301230123324",
+    "birth_date": "23/01/1963",
+    "gender": "F",
+    "phone_primary": "01230135267",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00059",
+   "full_name": "يوسف علي عبد الرحمن",
+   "national_id": "28307130123497",
+   "phone_primary": "01230139366",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "يوسف علي عبد الرحمن",
+    "national_id": "28307130123497",
+    "birth_date": "13/07/1983",
+    "gender": "M",
+    "phone_primary": "01230139366",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00060",
+   "full_name": "يوسف حسن السيد",
+   "national_id": "29401090123514",
+   "phone_primary": "01230143465",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "يوسف حسن السيد",
+    "national_id": "29401090123514",
+    "birth_date": "09/01/1994",
+    "gender": "M",
+    "phone_primary": "01230143465",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00061",
+   "full_name": "نادية منى عبد الله",
+   "national_id": "29611050123677",
+   "phone_primary": "01230147564",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "نادية منى عبد الله",
+    "national_id": "29611050123677",
+    "birth_date": "05/11/1996",
+    "gender": "M",
+    "phone_primary": "01230147564",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00062",
+   "full_name": "مصطفى نادية حسين",
+   "national_id": "27201210123727",
+   "phone_primary": "01230151663",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى نادية حسين",
+    "national_id": "27201210123727",
+    "birth_date": "21/01/1972",
+    "gender": "F",
+    "phone_primary": "01230151663",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00063",
+   "full_name": "هبة هبة مصطفى",
+   "national_id": "28902220123843",
+   "phone_primary": "01230155762",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "هبة هبة مصطفى",
+    "national_id": "28902220123843",
+    "birth_date": "22/02/1989",
+    "gender": "F",
+    "phone_primary": "01230155762",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00064",
+   "full_name": "فاطمة محمد عثمان",
+   "national_id": "26609230123912",
+   "phone_primary": "01230159861",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "فاطمة محمد عثمان",
+    "national_id": "26609230123912",
+    "birth_date": "23/09/1966",
+    "gender": "M",
+    "phone_primary": "01230159861",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00065",
+   "full_name": "سارة فاطمة سليمان",
+   "national_id": "27709200124036",
+   "phone_primary": "01230163960",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سارة فاطمة سليمان",
+    "national_id": "27709200124036",
+    "birth_date": "20/09/1977",
+    "gender": "M",
+    "phone_primary": "01230163960",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00066",
+   "full_name": "أمل أمل الشريف",
+   "national_id": "28103150124183",
+   "phone_primary": "01230168059",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل أمل الشريف",
+    "national_id": "28103150124183",
+    "birth_date": "15/03/1981",
+    "gender": "F",
+    "phone_primary": "01230168059",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00067",
+   "full_name": "منى هبة سليمان",
+   "national_id": "29006150124263",
+   "phone_primary": "01230172158",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "منى هبة سليمان",
+    "national_id": "29006150124263",
+    "birth_date": "15/06/1990",
+    "gender": "F",
+    "phone_primary": "01230172158",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00068",
+   "full_name": "أمل فاطمة السيد",
+   "national_id": "29604080124371",
+   "phone_primary": "01230176257",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل فاطمة السيد",
+    "national_id": "29604080124371",
+    "birth_date": "08/04/1996",
+    "gender": "M",
+    "phone_primary": "01230176257",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00069",
+   "full_name": "علي أمل عبد الله",
+   "national_id": "27506170124420",
+   "phone_primary": "01230180356",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "علي أمل عبد الله",
+    "national_id": "27506170124420",
+    "birth_date": "17/06/1975",
+    "gender": "F",
+    "phone_primary": "01230180356",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00070",
+   "full_name": "إبراهيم نادية إبراهيم",
+   "national_id": "29008010124541",
+   "phone_primary": "01230184455",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "إبراهيم نادية إبراهيم",
+    "national_id": "29008010124541",
+    "birth_date": "01/08/1990",
+    "gender": "F",
+    "phone_primary": "01230184455",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "7",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00071",
+   "full_name": "سارة حسن حسين",
+   "national_id": "26608050124698",
+   "phone_primary": "01230188554",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سارة حسن حسين",
+    "national_id": "26608050124698",
+    "birth_date": "05/08/1966",
+    "gender": "M",
+    "phone_primary": "01230188554",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00072",
+   "full_name": "فاطمة أحمد عبد الرحمن",
+   "national_id": "29208170124794",
+   "phone_primary": "01230192653",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "فاطمة أحمد عبد الرحمن",
+    "national_id": "29208170124794",
+    "birth_date": "17/08/1992",
+    "gender": "M",
+    "phone_primary": "01230192653",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00073",
+   "full_name": "سارة سارة سليمان",
+   "national_id": "26505100124879",
+   "phone_primary": "01230196752",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سارة سارة سليمان",
+    "national_id": "26505100124879",
+    "birth_date": "10/05/1965",
+    "gender": "M",
+    "phone_primary": "01230196752",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00074",
+   "full_name": "سارة سارة إبراهيم",
+   "national_id": "26410160124946",
+   "phone_primary": "01230200851",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سارة سارة إبراهيم",
+    "national_id": "26410160124946",
+    "birth_date": "16/10/1964",
+    "gender": "F",
+    "phone_primary": "01230200851",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00075",
+   "full_name": "محمد منى الشريف",
+   "national_id": "28701180125018",
+   "phone_primary": "01230204950",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد منى الشريف",
+    "national_id": "28701180125018",
+    "birth_date": "18/01/1987",
+    "gender": "M",
+    "phone_primary": "01230204950",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "7",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00076",
+   "full_name": "أحمد يوسف السيد",
+   "national_id": "29112060125128",
+   "phone_primary": "01230209049",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد يوسف السيد",
+    "national_id": "29112060125128",
+    "birth_date": "06/12/1991",
+    "gender": "F",
+    "phone_primary": "01230209049",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00077",
+   "full_name": "علي مصطفى عثمان",
+   "national_id": "28008050125266",
+   "phone_primary": "01230213148",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "علي مصطفى عثمان",
+    "national_id": "28008050125266",
+    "birth_date": "05/08/1980",
+    "gender": "F",
+    "phone_primary": "01230213148",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00078",
+   "full_name": "أحمد مصطفى الشريف",
+   "national_id": "27510010125352",
+   "phone_primary": "01230217247",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد مصطفى الشريف",
+    "national_id": "27510010125352",
+    "birth_date": "01/10/1975",
+    "gender": "M",
+    "phone_primary": "01230217247",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00079",
+   "full_name": "محمود مصطفى عبد الله",
+   "national_id": "26711100125465",
+   "phone_primary": "01230221346",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمود مصطفى عبد الله",
+    "national_id": "26711100125465",
+    "birth_date": "10/11/1967",
+    "gender": "F",
+    "phone_primary": "01230221346",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00080",
+   "full_name": "أحمد يوسف فؤاد",
+   "national_id": "28602280125599",
+   "phone_primary": "01230225445",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد يوسف فؤاد",
+    "national_id": "28602280125599",
+    "birth_date": "28/02/1986",
+    "gender": "M",
+    "phone_primary": "01230225445",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00081",
+   "full_name": "فاطمة سارة الشريف",
+   "national_id": "26701130125678",
+   "phone_primary": "01230229544",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "فاطمة سارة الشريف",
+    "national_id": "26701130125678",
+    "birth_date": "13/01/1967",
+    "gender": "M",
+    "phone_primary": "01230229544",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00082",
+   "full_name": "سعاد هبة سليمان",
+   "national_id": "26811070125793",
+   "phone_primary": "01230233643",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سعاد هبة سليمان",
+    "national_id": "26811070125793",
+    "birth_date": "07/11/1968",
+    "gender": "M",
+    "phone_primary": "01230233643",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00083",
+   "full_name": "سعاد محمود عبد الرحمن",
+   "national_id": "29212210125862",
+   "phone_primary": "01230237742",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سعاد محمود عبد الرحمن",
+    "national_id": "29212210125862",
+    "birth_date": "21/12/1992",
+    "gender": "F",
+    "phone_primary": "01230237742",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00084",
+   "full_name": "أمل أمل عبد الرحمن",
+   "national_id": "27504250125941",
+   "phone_primary": "01230241841",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل أمل عبد الرحمن",
+    "national_id": "27504250125941",
+    "birth_date": "25/04/1975",
+    "gender": "F",
+    "phone_primary": "01230241841",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00085",
+   "full_name": "فاطمة أحمد إبراهيم",
+   "national_id": "26307040126076",
+   "phone_primary": "01230245940",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "فاطمة أحمد إبراهيم",
+    "national_id": "26307040126076",
+    "birth_date": "04/07/1963",
+    "gender": "M",
+    "phone_primary": "01230245940",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00086",
+   "full_name": "مصطفى إبراهيم عبد الله",
+   "national_id": "26302070126165",
+   "phone_primary": "01230250039",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى إبراهيم عبد الله",
+    "national_id": "26302070126165",
+    "birth_date": "07/02/1963",
+    "gender": "F",
+    "phone_primary": "01230250039",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00087",
+   "full_name": "هبة نادية مصطفى",
+   "national_id": "28709220126241",
+   "phone_primary": "01230254138",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "هبة نادية مصطفى",
+    "national_id": "28709220126241",
+    "birth_date": "22/09/1987",
+    "gender": "F",
+    "phone_primary": "01230254138",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00088",
+   "full_name": "محمد نادية سليمان",
+   "national_id": "25610170126382",
+   "phone_primary": "01230258237",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد نادية سليمان",
+    "national_id": "25610170126382",
+    "birth_date": "17/10/1956",
+    "gender": "F",
+    "phone_primary": "01230258237",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00089",
+   "full_name": "مصطفى محمود حسين",
+   "national_id": "26205220126429",
+   "phone_primary": "01230262336",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى محمود حسين",
+    "national_id": "26205220126429",
+    "birth_date": "22/05/1962",
+    "gender": "F",
+    "phone_primary": "01230262336",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00090",
+   "full_name": "يوسف أحمد السيد",
+   "national_id": "29806130126586",
+   "phone_primary": "01230266435",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "يوسف أحمد السيد",
+    "national_id": "29806130126586",
+    "birth_date": "13/06/1998",
+    "gender": "F",
+    "phone_primary": "01230266435",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00091",
+   "full_name": "مصطفى منى مصطفى",
+   "national_id": "28201210126613",
+   "phone_primary": "01230270534",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "مصطفى منى مصطفى",
+    "national_id": "28201210126613",
+    "birth_date": "21/01/1982",
+    "gender": "M",
+    "phone_primary": "01230270534",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00092",
+   "full_name": "حسن فاطمة مصطفى",
+   "national_id": "28407070126731",
+   "phone_primary": "01230274633",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "حسن فاطمة مصطفى",
+    "national_id": "28407070126731",
+    "birth_date": "07/07/1984",
+    "gender": "M",
+    "phone_primary": "01230274633",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00093",
+   "full_name": "أمل أحمد الشريف",
+   "national_id": "27510200126848",
+   "phone_primary": "01230278732",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل أحمد الشريف",
+    "national_id": "27510200126848",
+    "birth_date": "20/10/1975",
+    "gender": "F",
+    "phone_primary": "01230278732",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00094",
+   "full_name": "أمل أحمد حسين",
+   "national_id": "27207050126968",
+   "phone_primary": "01230282831",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل أحمد حسين",
+    "national_id": "27207050126968",
+    "birth_date": "05/07/1972",
+    "gender": "F",
+    "phone_primary": "01230282831",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00095",
+   "full_name": "إبراهيم مصطفى حسين",
+   "national_id": "26602260127064",
+   "phone_primary": "01230286930",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "إبراهيم مصطفى حسين",
+    "national_id": "26602260127064",
+    "birth_date": "26/02/1966",
+    "gender": "F",
+    "phone_primary": "01230286930",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00096",
+   "full_name": "أمل حسن فؤاد",
+   "national_id": "25501080127154",
+   "phone_primary": "01230291029",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أمل حسن فؤاد",
+    "national_id": "25501080127154",
+    "birth_date": "08/01/1955",
+    "gender": "M",
+    "phone_primary": "01230291029",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00097",
+   "full_name": "إبراهيم منى حسين",
+   "national_id": "29709030127278",
+   "phone_primary": "01230295128",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "إبراهيم منى حسين",
+    "national_id": "29709030127278",
+    "birth_date": "03/09/1997",
+    "gender": "M",
+    "phone_primary": "01230295128",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00098",
+   "full_name": "فاطمة أحمد الشريف",
+   "national_id": "26810010127329",
+   "phone_primary": "01230299227",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "فاطمة أحمد الشريف",
+    "national_id": "26810010127329",
+    "birth_date": "01/10/1968",
+    "gender": "F",
+    "phone_primary": "01230299227",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00099",
+   "full_name": "علي يوسف الشريف",
+   "national_id": "27009020127446",
+   "phone_primary": "01230303326",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "علي يوسف الشريف",
+    "national_id": "27009020127446",
+    "birth_date": "02/09/1970",
+    "gender": "F",
+    "phone_primary": "01230303326",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00100",
+   "full_name": "علي علي مصطفى",
+   "national_id": "27109180127596",
+   "phone_primary": "01230307425",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "علي علي مصطفى",
+    "national_id": "27109180127596",
+    "birth_date": "18/09/1971",
+    "gender": "M",
+    "phone_primary": "01230307425",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00101",
+   "full_name": "هبة يوسف السيد",
+   "national_id": "26109200127616",
+   "phone_primary": "01230311524",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "هبة يوسف السيد",
+    "national_id": "26109200127616",
+    "birth_date": "20/09/1961",
+    "gender": "M",
+    "phone_primary": "01230311524",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00102",
+   "full_name": "محمود سعاد عثمان",
+   "national_id": "28509200127716",
+   "phone_primary": "01230315623",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمود سعاد عثمان",
+    "national_id": "28509200127716",
+    "birth_date": "20/09/1985",
+    "gender": "M",
+    "phone_primary": "01230315623",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00103",
+   "full_name": "سارة إبراهيم فؤاد",
+   "national_id": "27305120127894",
+   "phone_primary": "01230319722",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سارة إبراهيم فؤاد",
+    "national_id": "27305120127894",
+    "birth_date": "12/05/1973",
+    "gender": "M",
+    "phone_primary": "01230319722",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00104",
+   "full_name": "سارة أمل إبراهيم",
+   "national_id": "27211230127950",
+   "phone_primary": "01230323821",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "سارة أمل إبراهيم",
+    "national_id": "27211230127950",
+    "birth_date": "23/11/1972",
+    "gender": "M",
+    "phone_primary": "01230323821",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "1",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00105",
+   "full_name": "محمد هبة حسين",
+   "national_id": "29207250128070",
+   "phone_primary": "01230327920",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد هبة حسين",
+    "national_id": "29207250128070",
+    "birth_date": "25/07/1992",
+    "gender": "M",
+    "phone_primary": "01230327920",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "6",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00106",
+   "full_name": "محمد منى مصطفى",
+   "national_id": "28002260128146",
+   "phone_primary": "01230332019",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد منى مصطفى",
+    "national_id": "28002260128146",
+    "birth_date": "26/02/1980",
+    "gender": "F",
+    "phone_primary": "01230332019",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "8",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00107",
+   "full_name": "محمد سارة السيد",
+   "national_id": "27012150128233",
+   "phone_primary": "01230336118",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد سارة السيد",
+    "national_id": "27012150128233",
+    "birth_date": "15/12/1970",
+    "gender": "M",
+    "phone_primary": "01230336118",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00108",
+   "full_name": "إبراهيم يوسف السيد",
+   "national_id": "29404280128315",
+   "phone_primary": "01230340217",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "إبراهيم يوسف السيد",
+    "national_id": "29404280128315",
+    "birth_date": "28/04/1994",
+    "gender": "M",
+    "phone_primary": "01230340217",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "9",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00109",
+   "full_name": "حسن يوسف حسين",
+   "national_id": "26211140128489",
+   "phone_primary": "01230344316",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "حسن يوسف حسين",
+    "national_id": "26211140128489",
+    "birth_date": "14/11/1962",
+    "gender": "F",
+    "phone_primary": "01230344316",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00110",
+   "full_name": "هبة إبراهيم مصطفى",
+   "national_id": "29212170128534",
+   "phone_primary": "01230348415",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "هبة إبراهيم مصطفى",
+    "national_id": "29212170128534",
+    "birth_date": "17/12/1992",
+    "gender": "M",
+    "phone_primary": "01230348415",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "3",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00111",
+   "full_name": "أحمد سارة إبراهيم",
+   "national_id": "28509200128664",
+   "phone_primary": "01230352514",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "أحمد سارة إبراهيم",
+    "national_id": "28509200128664",
+    "birth_date": "20/09/1985",
+    "gender": "F",
+    "phone_primary": "01230352514",
+    "governorate": "01",
+    "missing_teeth": "full_arch",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00112",
+   "full_name": "فاطمة منى فؤاد",
+   "national_id": "29804210128753",
+   "phone_primary": "01230356613",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "فاطمة منى فؤاد",
+    "national_id": "29804210128753",
+    "birth_date": "21/04/1998",
+    "gender": "M",
+    "phone_primary": "01230356613",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "4",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00113",
+   "full_name": "هبة أمل عبد الرحمن",
+   "national_id": "28711020128810",
+   "phone_primary": "01230360712",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "هبة أمل عبد الرحمن",
+    "national_id": "28711020128810",
+    "birth_date": "02/11/1987",
+    "gender": "M",
+    "phone_primary": "01230360712",
+    "governorate": "01",
+    "missing_teeth": "multiple",
+    "referral_source": "5",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00114",
+   "full_name": "محمد منى عبد الله",
+   "national_id": "28202080128994",
+   "phone_primary": "01230364811",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "محمد منى عبد الله",
+    "national_id": "28202080128994",
+    "birth_date": "08/02/1982",
+    "gender": "M",
+    "phone_primary": "01230364811",
+    "governorate": "01",
+    "missing_teeth": "single",
+    "referral_source": "2",
+    "registered_on": "02/10/2026"
+   }
+  },
+  {
+   "file_number": "CIA-00121",
+   "full_name": "هشام فؤاد عبد الحميد",
+   "national_id": "29203150104351",
+   "phone_primary": "01099887766",
+   "phone_secondary": "",
+   "values": {
+    "full_name": "هشام فؤاد عبد الحميد",
+    "national_id": "29203150104351",
+    "birth_date": "15/03/1992",
+    "gender": "M",
+    "phone_primary": "01099887766",
+    "governorate": "01",
+    "missing_teeth": "unknown",
+    "registered_on": "02/10/2026"
+   }
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "First run" %}{% endblock %}
+{% block content %}
+<div class="login-box">
+  <h1 class="h4"><i class="bi bi-file-earmark-medical"></i> {% trans "Paper Reader: the first run" %}</h1>
+  <p class="text-muted small">{% trans "Make the login of the person in charge (settings, the lists from the dental system and the people). The others are added afterwards." %}</p>
+  <form method="post" class="card card-body" novalidate>{% csrf_token %}
+    {% include "reading/_fields.html" %}
+    <button class="btn btn-primary w-100 mt-3">{% trans "Make the login" %}</button>
+  </form>
+</div>
+{% endblock %}

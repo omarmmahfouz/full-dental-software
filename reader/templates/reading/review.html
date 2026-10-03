@@ -1,20 +1,20 @@
 {% extends "base.html" %}
-{% load i18n clinic %}
+{% load i18n static %}
 {% block title %}{{ paper.original_name }}{% endblock %}
 {% block extra_head %}{% if paper.status == "waiting" or paper.status == "reading" %}{% if not paper.error %}<meta http-equiv="refresh" content="20">{% endif %}{% endif %}{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
     <h1><i class="bi bi-file-earmark-medical"></i> {% trans "Check the paper file" %}</h1>
-    <div class="small text-muted"><span dir="auto">{{ paper.original_name }}</span> · {% blocktrans count n=paper.page_count %}{{ n }} page{% plural %}{{ n }} pages{% endblocktrans %} · {% status_badge paper %}{% if cost is not None %} · {% blocktrans with cost=cost|floatformat:3 %}cost about ${{ cost }}{% endblocktrans %}{% endif %}</div>
+    <div class="small text-muted"><span dir="auto">{{ paper.original_name }}</span> · {% blocktrans count n=paper.page_count %}{{ n }} page{% plural %}{{ n }} pages{% endblocktrans %} · <span class="badge status-{{ paper.status }}">{{ paper.get_status_display }}</span>{% if cost is not None %} · {% blocktrans with cost=cost|floatformat:3 %}cost about ${{ cost }}{% endblocktrans %}{% endif %}</div>
   </div>
   <div class="d-flex gap-2 flex-wrap no-print">
     <a class="btn btn-outline-secondary" href="{{ paper.original.url }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> {% trans "The scan" %}</a>
     {% if paper.status == "review" or paper.status == "failed" %}
-    <form method="post" action="{% url 'papers:read_again' paper.pk %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-outline-secondary" data-confirm="{% trans 'Read the whole file again? It costs again, and what you typed here is lost.' %}"><i class="bi bi-arrow-repeat"></i> {% trans "Read again" %}</button></form>
+    <form method="post" action="{% url 'reading:read_again' paper.pk %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-outline-secondary" data-confirm="{% trans 'Read the whole file again? It costs again, and what you typed here is lost.' %}"><i class="bi bi-arrow-repeat"></i> {% trans "Read again" %}</button></form>
     {% endif %}
-    {% if paper.status != "approved" and roles.owner or paper.status != "approved" and roles.head_cia %}
-    <form method="post" action="{% url 'papers:delete' paper.pk %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-outline-danger" data-confirm="{% trans 'Delete this paper file and what was read? The paper itself is not touched.' %}"><i class="bi bi-trash"></i></button></form>
+    {% if paper.status != "exported" and in_charge %}
+    <form method="post" action="{% url 'reading:delete' paper.pk %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-outline-danger" data-confirm="{% trans 'Delete this paper file and what was read? The paper itself is not touched.' %}"><i class="bi bi-trash"></i></button></form>
     {% endif %}
   </div>
 </div>
@@ -27,9 +27,12 @@
 {% elif paper.status == "failed" %}
 <div class="alert alert-danger"><i class="bi bi-x-octagon"></i> {{ paper.problem|default:_("This file could not be read.") }}</div>
 {% elif paper.status == "approved" %}
-<div class="alert alert-success d-flex flex-wrap align-items-center gap-2"><i class="bi bi-check2-circle"></i>
-  {% blocktrans with name=paper.patient.full_name file=paper.patient.file_number day=paper.approved_at|date:"d/m/Y" who=paper.approved_by %}Saved into the file of {{ name }} ({{ file }}) on {{ day }} by {{ who }}.{% endblocktrans %}
-  {% if paper.patient %}<a class="btn btn-sm btn-success ms-auto" href="{% url 'patients:detail' paper.patient.pk %}#documents">{% trans "Open the patient's file" %}</a>{% endif %}</div>
+<form method="post" class="alert alert-success d-flex flex-wrap align-items-center gap-2" data-no-leave-warning>{% csrf_token %}<i class="bi bi-check2-circle"></i>
+  {% blocktrans with day=paper.approved_at|date:"d/m/Y" who=paper.approved_by %}Approved on {{ day }} by {{ who }}: it goes to the dental system with the next package.{% endblocktrans %}
+  <a class="btn btn-sm btn-success ms-auto" href="{% url 'reading:export' %}">{% trans "Send to the dental system" %}</a>
+  <button class="btn btn-sm btn-outline-secondary" name="action" value="reopen">{% trans "Open it again" %}</button></form>
+{% elif paper.status == "exported" %}
+<div class="alert alert-success"><i class="bi bi-box-arrow-up-right"></i> {% blocktrans with name=paper.exported_in.name %}Sent to the dental system in the package {{ name }}.{% endblocktrans %}</div>
 {% elif paper.status == "set_aside" %}
 <div class="alert alert-secondary"><i class="bi bi-archive"></i> {% trans "Set aside: the scan is kept here, to type by hand." %}</div>
 {% endif %}
@@ -47,31 +50,27 @@
     <form method="post" novalidate class="paper-review">
       {% csrf_token %}
       <div class="card mb-3"><div class="card-header"><i class="bi bi-person-bounding-box"></i> {% trans "Whose file" %}</div><div class="card-body">
-        {% if paper.patient %}
-          <input type="hidden" name="t-target" value="existing"><input type="hidden" name="t-patient" value="{{ paper.patient.file_number }}">
-          <p class="mb-0">{% blocktrans with name=paper.patient.full_name file=paper.patient.file_number %}Sent from the file of {{ name }} ({{ file }}): it goes into this file.{% endblocktrans %}</p>
-        {% else %}
-          {% if paper.suggested %}<div class="alert alert-info py-2 small mb-2"><i class="bi bi-person-check"></i> {% blocktrans with name=paper.suggested.full_name file=paper.suggested.file_number why=suggested_because %}This seems to be the file of {{ name }} ({{ file }}): {{ why }}.{% endblocktrans %}</div>{% endif %}
-          {% with form=target_form %}{% include "includes/form_fields.html" %}{% endwith %}
-          {% if existing %}<p class="small text-muted mt-2 mb-0">{% trans "Into a registered patient: the empty fields of the file are filled; a value already in the file stays unless you tick “replace”." %}</p>{% endif %}
-        {% endif %}
+          {% if paper.suggested %}<div class="alert alert-info py-2 small mb-2"><i class="bi bi-person-check"></i> {% blocktrans with name=suggested_name file=paper.suggested why=suggested_because %}This seems to be the file of {{ name }} ({{ file }}): {{ why }}.{% endblocktrans %}</div>{% endif %}
+          {% with form=target_form %}{% include "reading/_fields.html" %}{% endwith %}
+          <datalist id="known-patients" data-lookup="{% url 'reading:lookup' %}"></datalist>
+          {% if known %}<p class="small text-muted mt-2 mb-0">{% trans "Into a registered patient: the empty fields of the file are filled; a value already in the file stays unless you tick “replace”." %}</p>{% endif %}
       </div></div>
       <div class="card mb-3"><div class="card-header"><i class="bi bi-person-vcard"></i> {% trans "The patient's data" %}</div><div class="card-body">
-        {% with form=patient_form %}{% include "papers/_form.html" %}{% endwith %}
+        {% with form=patient_form %}{% include "reading/_form.html" %}{% endwith %}
       </div></div>
       <div class="card mb-3"><div class="card-header"><i class="bi bi-heart-pulse"></i> {% trans "Medical and dental history" %}</div><div class="card-body">
-        {% with form=history_form %}{% include "papers/_form.html" %}{% endwith %}
+        {% with form=history_form %}{% include "reading/_form.html" %}{% endwith %}
       </div></div>
       <div class="form-actions d-flex flex-wrap gap-2">
-        <button class="btn btn-success px-4" name="action" value="approve"><i class="bi bi-check2-circle"></i> {% trans "Approve and save into the patient's file" %}</button>
+        <button class="btn btn-success px-4" name="action" value="approve"><i class="bi bi-check2-circle"></i> {% trans "Approve" %}</button>
         <button class="btn btn-outline-primary" name="action" value="save"><i class="bi bi-save"></i> {% trans "Save for later" %}</button>
         <button class="btn btn-outline-secondary" name="action" value="pages_only" data-confirm="{% trans 'Keep only the pages in the chosen patient’s documents, without the values read?' %}"><i class="bi bi-files"></i> {% trans "Keep only the pages" %}</button>
         <button class="btn btn-outline-secondary" name="action" value="set_aside" data-confirm="{% trans 'Set this file aside to type it by hand?' %}"><i class="bi bi-archive"></i> {% trans "Set aside" %}</button>
       </div>
     </form>
-  {% elif paper.status == "approved" or paper.status == "set_aside" %}
+  {% elif paper.status == "approved" or paper.status == "exported" or paper.status == "set_aside" %}
     {% if read_rows %}<div class="card"><div class="card-header">{% trans "What was read" %}</div><div class="table-responsive"><table class="table table-sm mb-0">
-      {% for label, row in read_rows %}<tr><td class="text-muted small">{{ label|capfirst }}</td><td dir="auto">{{ row.written|default:row.value }}</td><td>{% include "papers/_chip.html" %}</td></tr>{% endfor %}
+      {% for label, row in read_rows %}<tr><td class="text-muted small">{{ label|capfirst }}</td><td dir="auto">{{ row.written|default:row.value }}</td><td>{% include "reading/_chip.html" %}</td></tr>{% endfor %}
     </table></div></div>{% endif %}
   {% endif %}
   </div>
@@ -81,11 +80,11 @@
     <div class="paper-pages">
       {% for page in pages %}
       <div class="card paper-page" id="page-{{ page.number }}"><div class="card-body p-2">
-        <a href="{{ page.image.url }}" target="_blank"><img src="{{ page.image|preview }}" alt="{% blocktrans with n=page.number %}page {{ n }}{% endblocktrans %}" loading="lazy" decoding="async"></a>
+        <a href="{{ page.image.url }}" target="_blank"><img src="{{ page.image.url }}" alt="{% blocktrans with n=page.number %}page {{ n }}{% endblocktrans %}" loading="lazy" decoding="async"></a>
         <div class="small mt-1"><b>{% blocktrans with n=page.number %}Page {{ n }}{% endblocktrans %}</b> · {{ page.get_kind_display|default:_("not read yet") }}{% if page.turned %} · <i class="bi bi-arrow-clockwise"></i> {{ page.turned }}°{% endif %}</div>
         {% if page.notes %}<div class="small text-muted" dir="auto">{{ page.notes }}</div>{% endif %}
         {% if paper.is_open and page.kind %}
-        <form method="post" action="{% url 'papers:page_edit' paper.pk page.pk %}" class="paper-page-tools" data-no-leave-warning>{% csrf_token %}
+        <form method="post" action="{% url 'reading:page_edit' paper.pk page.pk %}" class="paper-page-tools" data-no-leave-warning>{% csrf_token %}
           <select name="kind" class="form-select form-select-sm" aria-label="{% trans 'what the page is' %}">{% for value, label in kinds %}<option value="{{ value }}"{% if value == page.kind %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
           <button class="btn btn-sm btn-outline-secondary" title="{% trans 'Save' %}"><i class="bi bi-check2"></i></button>
           <button class="btn btn-sm btn-outline-secondary" name="turn" value="left" title="{% trans 'Turn left' %}"><i class="bi bi-arrow-counterclockwise"></i></button>

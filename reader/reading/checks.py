@@ -1,4 +1,4 @@
-"""The system's own checks of what Claude read, before a person sees it: every value is cleaned the way the forms
+"""The reader's own checks of what Claude read, before a person sees it: every value is cleaned the way the forms
 expect it, compared between the two readings and between pages, and checked with the rules of the forms (the
 national ID and what it says, the mobiles, the dates, the readings' usual range, the lists). A value with any
 problem is marked "please check"; only a clear value both readings agree on is "sure"."""
@@ -7,20 +7,28 @@ import re
 from collections import defaultdict
 from datetime import date, datetime
 
-from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
-from apps.core.utils import EGYPT_GOVERNORATES, normalize_digits, normalize_phone, parse_egyptian_national_id, \
-    validate_phone
-
-from .fields import (BEST_PAGE, BY_NAME, CHOICE, CONDITIONS, DATE, DECIMAL, DENTIST, NAME, NAMES, NATIONAL_ID, NO,
-                     NUMBER, PHONE, RANGES, REFERRAL, YES, YES_NO, choices_of)
-from .models import PaperField, PaperPage, PaperReading
+from .catalogue import (CHOICE, CONDITIONS, DATE, DECIMAL, DENTIST, NAME, NATIONAL_ID, NUMBER, PHONE, REFERRAL, YES_NO,
+                        by_name, specs)
+from .models import KnownPatient, PaperField, PaperPage, PaperReading
 from .pages import clean_box, turn_box
+from .rules import clean_arabic_name, normalize_digits, normalize_phone, parse_national_id, validate_phone
+
+# Where each value is usually written (the page it is taken from when it is on several pages).
+BEST_PAGE = {
+    "full_name": ("id_front", "registration"), "national_id": ("id_front", "registration"),
+    "birth_date": ("id_front", "registration"), "address": ("id_front", "registration"),
+    "gender": ("id_back", "registration"), "marital_status": ("id_back", "registration"),
+    "occupation": ("id_back", "registration"),
+}
+# Words the paper may use for yes and no.
+YES = {"yes", "y", "true", "1", "+", "✓", "✔", "x", "نعم", "ايوه", "أيوه", "اه", "positive", "pos", "+ve"}
+NO = {"no", "n", "false", "0", "-", "لا", "negative", "neg", "-ve", "nil", "none", "لا يوجد"}
 
 MESSAGES = {
     "claude_check": gettext_lazy("Claude is not sure of the reading."),
@@ -52,7 +60,7 @@ def explain(code, params):
     params = dict(params or {})
     if code == "bad_id":
         try:
-            parse_egyptian_national_id(params.get("value", ""))
+            parse_national_id(params.get("value", ""))
         except ValidationError as error:
             return _("Not a valid national ID: %(error)s") % {"error": error.messages[0]}
         return _("Not a valid national ID.")
@@ -63,19 +71,18 @@ def explain(code, params):
             return error.messages[0]
         return _("Not a valid mobile number.")
     if code == "bad_name":
-        from apps.patients.forms import clean_arabic_name
-
         try:
             clean_arabic_name(params.get("value", ""))
-        except forms.ValidationError as error:
+        except ValidationError as error:
             return error.messages[0]
         return _("Write the name in Arabic letters only, as on the ID.")
     if code == "id_gender":
         params["value"] = _("male") if params.get("value") == "M" else _("female")
     if code == "id_governorate":
-        params["value"] = str(EGYPT_GOVERNORATES.get(params.get("value", ""), params.get("value", "")))
+        spec = by_name().get("governorate")
+        params["value"] = spec.choice_label(params.get("value", "")) if spec else params.get("value", "")
     if code == "id_disagrees":
-        spec = BY_NAME.get(params.get("what", ""))
+        spec = by_name().get(params.get("what", ""))
         params["what"] = str(spec.label) if spec else params.get("what", "")
     message = MESSAGES.get(code)
     if message is None:
@@ -120,16 +127,14 @@ def clean_value(spec, raw):
         return "", []
     kind = spec.kind
     if kind == NAME:
-        from apps.patients.forms import clean_arabic_name
-
         try:
             return clean_arabic_name(raw), []
-        except forms.ValidationError:
+        except ValidationError:
             return raw, [("bad_name", {"value": raw})]
     if kind == NATIONAL_ID:
         digits = re.sub(r"\D", "", normalize_digits(raw))
         try:
-            parse_egyptian_national_id(digits)
+            parse_national_id(digits)
         except ValidationError:
             return digits or raw, [("bad_id", {"value": digits or raw})]
         return digits, []
@@ -156,7 +161,7 @@ def clean_value(spec, raw):
             return raw, [("bad_number", {"value": raw})]
         number = float(found.group())
         value = f"{number:.1f}" if kind == DECIMAL else str(int(round(number)))
-        low, high = RANGES.get(spec.name, (None, None))
+        low, high = spec.range or (None, None)
         if low is not None and not low <= number <= high:
             return value, [("out_of_range", {"value": value, "low": str(low), "high": str(high)})]
         return value, []
@@ -168,10 +173,10 @@ def clean_value(spec, raw):
             return "no", []
         return raw, [("not_in_list", {"value": raw})]
     if kind in (CHOICE, REFERRAL):
-        code = _match(raw, choices_of(spec))
+        code = _match(raw, spec.options())
         return (code, []) if code is not None else (raw, [("not_in_list", {"value": raw})])
     if kind == DENTIST:
-        options = choices_of(spec)
+        options = spec.options()
         code = _match(raw, options)
         if code is None:
             bare = _TITLES.sub("", _words(raw))
@@ -179,7 +184,7 @@ def clean_value(spec, raw):
             code = close[0] if len(close) == 1 else None
         return (code, []) if code is not None else ("", [("unknown_dentist", {"value": raw})])
     if kind == CONDITIONS:
-        options, codes, problems = choices_of(spec), [], []
+        options, codes, problems = spec.options(), [], []
         for item in re.split(r"[,،;\n]+", raw):
             if not item.strip():
                 continue
@@ -248,6 +253,7 @@ def build_fields(paper, turns=None):
     """Make the values to check (PaperField rows) from the readings of a file, and guess whose file it is."""
     turns = turns or {}
     paper.fields.all().delete()
+    known = by_name()
     found = defaultdict(lambda: {1: [], 2: []})  # name → {reading number: [(page, entry)]}
     two = False
     for page in paper.pages.prefetch_related("readings"):
@@ -256,13 +262,13 @@ def build_fields(paper, turns=None):
                 continue
             two = two or reading.number == 2
             for entry in reading.result.get("fields", []):
-                if entry.get("name") in BY_NAME:
+                if entry.get("name") in known:
                     found[entry["name"]][reading.number].append((page, entry))
     rows = {}
-    for name in NAMES:
+    for spec in specs():
+        name = spec.name
         if name not in found:
             continue
-        spec = BY_NAME[name]
         firsts = sorted(found[name][1] or found[name][2], key=lambda item: _rank(name, *item))
         page, entry = firsts[0]
         certainty = entry.get("certainty") if entry.get("certainty") in ("sure", "check", "unclear") else "check"
@@ -325,14 +331,16 @@ def _national_id(paper, rows):
     if row is None or not row.value:
         return
     try:
-        data = parse_egyptian_national_id(row.value)
+        data = parse_national_id(row.value)
     except ValidationError:
         return
+    governorates = by_name().get("governorate")
+    known_place = governorates and any(choice[0] == data["governorate_code"] for choice in governorates.choices)
     told = {"birth_date": data["birth_date"].strftime("%d/%m/%Y"), "gender": data["gender"],
-            "governorate": data["governorate_code"]}
+            "governorate": data["governorate_code"] if known_place else ""}
     codes = {"birth_date": "id_birth", "gender": "id_gender", "governorate": "id_governorate"}
     for name, value in told.items():
-        if not value:
+        if not value or name not in by_name():
             continue
         other = rows.get(name)
         if other is None or not other.value:
@@ -356,12 +364,11 @@ def _other_diseases(paper, rows):
 
 
 def suggest_patient(paper, rows=None):
-    """Whose file this seems to be: the cover sheet's number, else the national ID, else a mobile."""
-    from apps.patients.models import Patient
-
+    """Whose file this seems to be (among the registered patients of the lists file): the cover sheet's number,
+    else the national ID, else a mobile."""
     if rows is None:
         rows = {row.name: row for row in paper.fields.all()}
-    patients = Patient.objects.filter(branch=paper.branch)
+    patients = KnownPatient.objects.all()
     found, reason = None, ""
     if paper.cover_number:
         found, reason = patients.filter(file_number__iexact=paper.cover_number).first(), "cover"
@@ -371,9 +378,9 @@ def suggest_patient(paper, rows=None):
         phones = [rows[name].value for name in ("phone_primary", "phone_secondary") if rows.get(name) and rows[name].value]
         if phones:
             found, reason = patients.filter(Q(phone_primary__in=phones) | Q(phone_secondary__in=phones)).first(), "phone"
-    paper.suggested = found
+    paper.suggested = found.file_number if found is not None else ""
     paper.suggested_reason = reason if found is not None else ""
-    type(paper).objects.filter(pk=paper.pk).update(suggested=found, suggested_reason=paper.suggested_reason)
+    type(paper).objects.filter(pk=paper.pk).update(suggested=paper.suggested, suggested_reason=paper.suggested_reason)
     return found
 
 

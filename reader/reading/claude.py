@@ -1,14 +1,11 @@
 """Asking Claude (Anthropic's API) to read one page: the instructions, the form of the answer, and the two ways of
-sending (now, or in a batch at half price). The key is ANTHROPIC_API_KEY in the server's .env file, never in the
-code. Nothing is sent unless the owner switched reading on (Settings → Old paper files)."""
+sending (now, or in a batch at half price). The key is ANTHROPIC_API_KEY in the reader's .env file, never in the
+code. Nothing is sent unless reading is switched on (Settings)."""
 
 import base64
 import json
 
-from django.utils import translation
-
-from .fields import BY_NAME, CHOICE, CONDITIONS, DATE, DECIMAL, DENTIST, NAMES, NUMBER, PHONE, REFERRAL, SPECS, \
-    YES_NO, choices_of, labels
+from .catalogue import CONDITIONS, DATE, DECIMAL, DENTIST, LISTED, NUMBER, PHONE, YES_NO, by_name, specs
 from .models import PaperPage
 
 MAX_TOKENS = 16000
@@ -84,19 +81,16 @@ KIND_HINTS = {DATE: "date", NUMBER: "number", DECIMAL: "number with a decimal po
 def instructions():
     """The fixed part of every request (the same for every page, so Anthropic keeps it ready and charges a tenth)."""
     lines = []
-    for spec in SPECS:
-        english, arabic = labels(spec.label)
+    for spec in specs():
         kind = KIND_HINTS.get(spec.kind, "text")
-        line = f"- {spec.name} ({kind}): {english} / {arabic}"
-        options = choices_of(spec)
-        if spec.kind in (CHOICE, REFERRAL, CONDITIONS, DENTIST) and options:
-            line += "; answers: " + "; ".join(f"{code} = {' / '.join(word for word in words if word)}"
-                                             for code, words in options)
+        line = f"- {spec.name} ({kind}): {spec.label_en} / {spec.label_ar}"
+        if spec.kind in LISTED and spec.choices:
+            line += "; answers: " + "; ".join(f"{code} = {' / '.join(word for word in (english, arabic) if word)}"
+                                             for code, english, arabic in spec.choices)
         if spec.kind == DENTIST:
             line += " (when the name is not in the list, give the name as written and use \"check\")"
         lines.append(line)
-    with translation.override("en"):
-        return INSTRUCTIONS + "\n".join(lines)
+    return INSTRUCTIONS + "\n".join(lines)
 
 
 def schema():
@@ -113,7 +107,7 @@ def schema():
                 "items": {
                     "type": "object",
                     "properties": {
-                        "name": {"type": "string", "enum": NAMES},
+                        "name": {"type": "string", "enum": [spec.name for spec in specs()]},
                         "written": {"type": "string"},
                         "value": {"type": "string"},
                         "certainty": {"type": "string", "enum": ["sure", "check", "unclear"]},
@@ -130,8 +124,8 @@ def schema():
     }
 
 
-def request_params(page, options, system=None):
-    """What is sent for one page."""
+def request_params(page, options, system=None, form=None):
+    """What is sent for one page (``system`` and ``form`` are made once for many pages)."""
     page.image.open("rb")
     try:
         picture = base64.standard_b64encode(page.image.read()).decode("ascii")
@@ -147,7 +141,7 @@ def request_params(page, options, system=None):
                                      f"{page.height} pixels."},
         ]}],
         "thinking": {"type": "adaptive"},
-        "output_config": {"effort": options.effort, "format": {"type": "json_schema", "schema": schema()}},
+        "output_config": {"effort": options.effort, "format": {"type": "json_schema", "schema": form or schema()}},
     }
 
 
@@ -178,7 +172,7 @@ def usage_of(message):
             "cache_write_tokens": getattr(usage, "cache_creation_input_tokens", 0) or 0}
 
 
-def answer_of(message):
+def answer_of(message, known=None):
     """(the answer as a dict, or None; the problem when there is no answer)."""
     if message.stop_reason == "refusal":
         return None, "declined"
@@ -191,20 +185,22 @@ def answer_of(message):
         return None, "not understood"
     if not isinstance(answer, dict) or not isinstance(answer.get("fields"), list):
         return None, "not understood"
-    answer["fields"] = [entry for entry in answer["fields"] if isinstance(entry, dict) and entry.get("name") in BY_NAME]
+    known = known or by_name()
+    answer["fields"] = [entry for entry in answer["fields"] if isinstance(entry, dict) and entry.get("name") in known]
     return answer, ""
 
 
-def read_now(page, options, system=None):
-    """Read one page now: (answer or None, problem, usage, model)."""
+def read_now(page, options, system=None, form=None, known=None):
+    """Read one page now: (answer or None, problem, usage, model). It runs in a thread of its own: everything read
+    from the database (the instructions, the answer form, the values known) is given to it."""
     import anthropic
 
-    params = request_params(page, options, system)
+    params = request_params(page, options, system, form)
     try:
         message = client().beta.messages.create(**params, betas=[FALLBACK_BETA], fallbacks="default")
     except anthropic.APIError as error:
         raise _errors(error) from error
-    answer, problem = answer_of(message)
+    answer, problem = answer_of(message, known)
     return answer, problem, usage_of(message), message.model
 
 
@@ -212,7 +208,9 @@ def send_batch(items, options, system=None):
     """Send [(custom id, page)] as one batch; returns the batch's id."""
     import anthropic
 
-    requests = [{"custom_id": custom_id, "params": request_params(page, options, system)} for custom_id, page in items]
+    form = schema()
+    requests = [{"custom_id": custom_id, "params": request_params(page, options, system, form)}
+                for custom_id, page in items]
     try:
         batch = client().messages.batches.create(requests=requests)
     except anthropic.APIError as error:

@@ -1,28 +1,28 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% trans "Old paper files" %} · {% trans "Settings" %}{% endblock %}
+{% block title %}{% trans "Settings" %}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><i class="bi bi-file-earmark-medical"></i> {% trans "Old paper files: settings" %}</h1>
-  <a class="btn btn-outline-secondary" href="{% url 'papers:list' %}"><i class="bi bi-list-ul"></i> {% trans "The paper files" %}</a></div>
+<div class="page-header"><h1><i class="bi bi-sliders"></i> {% trans "Reading and the key" %}</h1>
+  <a class="btn btn-outline-secondary" href="{% url 'reading:list' %}"><i class="bi bi-files"></i> {% trans "The files" %}</a></div>
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="card"><div class="card-body">
       <form method="post" novalidate>
         {% csrf_token %}
-        {% include "includes/form_fields.html" %}
+        {% include "reading/_fields.html" %}
         <div class="form-actions mt-4"><button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button></div>
       </form>
     </div></div>
   </div>
   <div class="col-lg-4">
     <div class="card mb-3"><div class="card-header"><i class="bi bi-key"></i> {% trans "The key to Claude" %}</div><div class="card-body small">
-      {% if options.key_is_set %}<p class="text-success mb-2"><i class="bi bi-check-circle"></i> {% trans "The key is set on the server." %}</p>
-      <form method="post" action="{% url 'papers:check_key' %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-outline-primary"><i class="bi bi-plug"></i> {% trans "Check the key (free)" %}</button></form>
+      {% if options.key_is_set %}<p class="text-success mb-2"><i class="bi bi-check-circle"></i> {% trans "The key is set on this PC." %}</p>
+      <form method="post" action="{% url 'reading:check_key' %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-outline-primary"><i class="bi bi-plug"></i> {% trans "Check the key (free)" %}</button></form>
       {% else %}<p class="text-danger mb-2"><i class="bi bi-x-circle"></i> {% trans "The key is not set." %}</p>
       <ol class="ps-3 mb-0">
         <li>{% trans "Open platform.claude.com, make an account for the clinic, add credit and set a monthly spending limit." %}</li>
         <li>{% trans "Make an API key and copy it." %}</li>
-        <li>{% trans "On the server, write it in the .env file as ANTHROPIC_API_KEY=… and start the server again." %}</li>
+        <li>{% trans "On this PC, write it in the reader's .env file as ANTHROPIC_API_KEY=… and start the reader again." %}</li>
       </ol>{% endif %}
     </div></div>
     <div class="card"><div class="card-header"><i class="bi bi-currency-dollar"></i> {% trans "What it costs" %}</div><div class="card-body small">

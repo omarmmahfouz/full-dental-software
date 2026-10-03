@@ -1,0 +1,55 @@
+{% load static i18n %}<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as RTL %}
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if RTL %}rtl{% else %}ltr{% endif %}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · {% trans "Paper Reader" %}</title>
+  {% if RTL %}<link rel="stylesheet" href="{% static 'shared/vendor/bootstrap/bootstrap.rtl.min.css' %}">{% else %}<link rel="stylesheet" href="{% static 'shared/vendor/bootstrap/bootstrap.min.css' %}">{% endif %}
+  <link rel="stylesheet" href="{% static 'shared/vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'shared/vendor/cairo/cairo.css' %}">
+  <link rel="stylesheet" href="{% static 'shared/vendor/flatpickr/flatpickr.min.css' %}">
+  <link rel="stylesheet" href="{% static 'reader.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'shared/img/favicon.png' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body data-saving-text="{% trans 'Saving…' %}">
+{% if user.is_authenticated %}
+<nav class="navbar navbar-expand-lg reader-bar no-print">
+  <div class="container-fluid px-3 px-lg-4">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'reading:list' %}"><i class="bi bi-file-earmark-medical"></i> {% trans "Paper Reader" %}{% if lists.place_code %} <span class="place-chip ltr">{{ lists.place_code }}</span>{% endif %}</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#reader-menu" aria-label="{% trans 'Menu' %}"><i class="bi bi-list"></i></button>
+    <div class="collapse navbar-collapse" id="reader-menu">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="{% url 'reading:list' %}"><i class="bi bi-files"></i> {% trans "The files" %}{% if to_check %} <span class="badge text-bg-warning">{{ to_check }}</span>{% endif %}</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'reading:upload' %}"><i class="bi bi-cloud-arrow-up"></i> {% trans "Send scanned files" %}</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'reading:export' %}"><i class="bi bi-box-arrow-up-right"></i> {% trans "Send to the dental system" %}{% if ready_to_send %} <span class="badge text-bg-success">{{ ready_to_send }}</span>{% endif %}</a></li>
+        {% if in_charge %}
+        <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-gear"></i> {% trans "Settings" %}</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{% url 'reading:settings' %}"><i class="bi bi-sliders"></i> {% trans "Reading and the key" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'reading:lists' %}"><i class="bi bi-list-check"></i> {% trans "Lists from the dental system" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'reading:people' %}"><i class="bi bi-people"></i> {% trans "People" %}</a></li>
+          </ul></li>
+        {% endif %}
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item"><form action="{% url 'set_language' %}" method="post" class="d-inline">{% csrf_token %}<input name="next" type="hidden" value="{{ request.get_full_path }}">
+          {% if LANGUAGE_CODE == "ar" %}<button class="nav-link btn btn-link" name="language" value="en"><i class="bi bi-translate"></i> English</button>{% else %}<button class="nav-link btn btn-link" name="language" value="ar"><i class="bi bi-translate"></i> العربية</button>{% endif %}</form></li>
+        <li class="nav-item"><span class="nav-link"><i class="bi bi-person-circle"></i> {{ user.get_full_name|default:user.username }}</span></li>
+        <li class="nav-item"><form action="{% url 'logout' %}" method="post" class="d-inline">{% csrf_token %}<button class="nav-link btn btn-link"><i class="bi bi-box-arrow-right"></i> {% trans "Log out" %}</button></form></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+{% endif %}
+<main class="container-fluid py-3 px-3 px-lg-4">
+  {% for message in messages %}<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% trans 'Close' %}"></button></div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<script src="{% static 'shared/vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'shared/vendor/flatpickr/flatpickr.min.js' %}"></script>
+<script src="{% static 'shared/vendor/flatpickr/ar.js' %}"></script>
+<script src="{% static 'reader.js' %}"></script>
+</body>
+</html>

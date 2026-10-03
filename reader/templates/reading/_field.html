@@ -1,0 +1,22 @@
+{% load i18n %}{% with row=field.field.row %}<div class="{{ field.field.col|default:"col-md-6 col-xl-4" }}">
+<div class="paper-box{% if row %} is-{{ row.certainty }}{% if row.checked %} is-checked{% endif %}{% endif %}{% if field.errors %} has-error{% endif %}">
+  {% if field.widget_type == "checkbox" %}
+    <div class="form-check">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{% if row %} {% include "reading/_chip.html" %}{% endif %}</div>
+  {% else %}
+    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="required-mark">*</span>{% endif %}{% if row %} {% include "reading/_chip.html" %}{% endif %}</label>
+    {% if field.widget_type == "checkboxselectmultiple" %}<div class="checkbox-grid">{{ field }}</div>{% else %}{{ field }}{% endif %}
+  {% endif %}
+  {% if row %}
+    {% if row.certainty != "sure" and not row.checked %}<ul class="paper-reasons">{% for reason in row.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>{% endif %}
+    {% if row.written and row.written != row.value %}<div class="paper-written">{% trans "On the paper:" %} <span dir="auto">{{ row.written }}</span></div>{% endif %}
+    {% if row.box %}
+      {% if row.certainty != "sure" and not row.checked %}<img class="paper-spot" src="{% url 'reading:spot' row.pk %}" alt="{% trans 'the paper' %}" loading="lazy" decoding="async">
+      {% else %}<details class="paper-more"><summary>{% trans "See it on the paper" %}</summary><img class="paper-spot" src="{% url 'reading:spot' row.pk %}" alt="{% trans 'the paper' %}" loading="lazy" decoding="async"></details>{% endif %}
+    {% endif %}
+    {% if row.page %}<a class="paper-page-link" href="#page-{{ row.page.number }}">{% blocktrans with n=row.page.number %}page {{ n }}{% endblocktrans %}</a>{% endif %}
+  {% endif %}
+  {% if field.field.differs %}<div class="paper-differs"><i class="bi bi-arrow-left-right"></i> {% trans "In the file now:" %} <b dir="auto">{{ field.field.differs }}</b>
+    <label class="form-check-label ms-1"><input class="form-check-input" type="checkbox" name="replace" value="{{ field.name }}"{% if field.name in replace %} checked{% endif %}> {% trans "replace it with the paper's value" %}</label></div>{% endif %}
+  {% if field.help_text %}<div class="form-text field-hint">{{ field.help_text }}</div>{% endif %}
+  {% if field.errors %}<ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+</div></div>{% endwith %}

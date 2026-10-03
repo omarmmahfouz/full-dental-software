@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ paper_import.name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1><i class="bi bi-box-arrow-in-down"></i> {% trans "Package from the Paper Reader" %}</h1>
+  <div class="small text-muted"><span class="ltr">{{ paper_import.name }}</span> · {% blocktrans count n=paper_import.files|length %}{{ n }} file{% plural %}{{ n }} files{% endblocktrans %}{% if paper_import.manifest.made_by %} · {% blocktrans with who=paper_import.manifest.made_by %}made in the reader by {{ who }}{% endblocktrans %}{% endif %}</div></div></div>
+{% if rows %}
+<p class="text-muted">{% trans "What will happen to each file. Press Import: each file is checked again with the system's forms and saved on its own; a file with a problem is left out and its reason shown." %}</p>
+<div class="card mb-3"><div class="table-responsive"><table class="table mb-0 align-middle">
+  <thead><tr><th>{% trans "File" %}</th><th>{% trans "Goes into" %}</th><th>{% trans "Values" %}</th><th>{% trans "Documents" %}</th></tr></thead>
+  <tbody>{% for row in rows %}<tr class="{% if row.problem %}table-danger{% elif row.skip %}table-light{% endif %}">
+    <td dir="auto">{{ row.entry.name }}{% if row.entry.pages_only %}<div class="small text-muted">{% trans "pages only" %}</div>{% endif %}</td>
+    <td>{% if row.skip %}<span class="text-muted">{% trans "Already imported before" %}</span>
+      {% elif row.problem %}<span class="text-danger">{{ row.problem }}</span>
+      {% elif row.new %}<b>{% trans "A new patient file" %}</b> <span dir="auto">{{ row.entry.patient.full_name }}</span>
+      {% else %}<a href="{{ row.patient.get_absolute_url }}">{{ row.patient.full_name }}</a> <span class="small text-muted ltr">{{ row.patient.file_number }}</span>{% if row.note %}<div class="small text-muted">{{ row.note }}</div>{% endif %}{% endif %}</td>
+    <td class="small">{{ row.entry.patient|length }} + {{ row.entry.history|length }}{% if row.entry.replace %} · <span class="text-warning">{% blocktrans count n=row.entry.replace|length %}{{ n }} to replace{% plural %}{{ n }} to replace{% endblocktrans %}</span>{% endif %}</td>
+    <td class="small">{{ row.entry.documents|length }}</td>
+  </tr>{% endfor %}</tbody>
+</table></div></div>
+<div class="d-flex flex-wrap gap-2">
+  <form method="post" data-no-leave-warning>{% csrf_token %}<button class="btn btn-success px-4"><i class="bi bi-box-arrow-in-down"></i> {% trans "Import" %}</button></form>
+  <form method="post" action="{% url 'papers:import_cancel' paper_import.pk %}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-outline-secondary" data-confirm="{% trans 'Leave this package without importing it?' %}">{% trans "Do not import" %}</button></form>
+</div>
+{% else %}
+<p class="text-muted">{% blocktrans with day=paper_import.imported_at|date:"d/m/Y H:i" who=paper_import.imported_by %}Imported on {{ day }} by {{ who }}.{% endblocktrans %}</p>
+<div class="card"><div class="table-responsive"><table class="table mb-0 align-middle">
+  <thead><tr><th>{% trans "File" %}</th><th>{% trans "Result" %}</th><th>{% trans "Patient" %}</th><th>{% trans "What happened" %}</th></tr></thead>
+  <tbody>{% for result in results %}<tr>
+    <td dir="auto">{{ result.name }}</td>
+    <td>{% if result.status == "imported" %}<span class="badge text-bg-success">{{ result.get_status_display }}</span>{% elif result.status == "failed" %}<span class="badge text-bg-danger">{{ result.get_status_display }}</span>{% else %}<span class="badge text-bg-secondary">{{ result.get_status_display }}</span>{% endif %}</td>
+    <td>{% if result.patient %}<a href="{% url 'patients:detail' result.patient.pk %}#documents">{{ result.patient.full_name }}</a> <span class="small text-muted ltr">{{ result.patient.file_number }}</span>{% else %}—{% endif %}</td>
+    <td class="small">{{ result.message }}{% if result.change %} <a href="{% url 'core:approvals' %}">{% trans "waiting for approval" %}</a>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="4" class="text-muted">—</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}
