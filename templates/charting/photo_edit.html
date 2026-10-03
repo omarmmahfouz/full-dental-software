@@ -6,9 +6,9 @@
   <h1><i class="bi bi-crop"></i> {% trans "Edit the photo" %} <small class="text-muted fs-6">{{ photo.photo_type|default:photo.notes }} · {{ photo.taken_on|date:"d/m/Y" }} {{ photo.teeth }}</small></h1>
   <a class="btn btn-outline-secondary no-print" href="{{ back }}"><i class="bi bi-arrow-left"></i> {% trans "Back to the photos" %}</a>
 </div>
-<p class="small text-muted">{% trans "Draw a frame on the photo to crop it (4:3 fits the log book frames), turn or mirror it (for mirror shots), and make it lighter. The photo as it was taken is kept." %}</p>
+<p class="small text-muted">{% trans "Drag a corner of the frame to crop the photo (4:3 fits the log book frames), drag inside the frame to move it, turn or mirror it (for mirror shots), and make it lighter. The photo as it was taken is kept." %}</p>
 
-<div class="photo-editor" data-photo-editor data-src="{{ photo.file.url }}?v={{ photo.updated_at|date:'U' }}" data-save-url="{% url 'charting:photo_edit' photo.pk %}"
+<div class="photo-editor" data-photo-editor data-src="{{ photo.file.url }}?v={{ photo.updated_at|date:'U' }}" data-save-url="{{ request.get_full_path }}"
      data-error="{% trans 'The photo could not be saved.' %}">{% csrf_token %}
   <div class="photo-editor-tools card"><div class="card-body d-flex flex-wrap align-items-center gap-2">
     <div class="btn-group" role="group" aria-label="{% trans 'Turn and mirror' %}">
@@ -31,13 +31,13 @@
   </div></div>
   <div class="photo-editor-stage mt-3"><canvas data-edit-view></canvas><div class="photo-crop" data-crop hidden></div>
     <div class="photo-editor-loading" data-loading><div class="spinner-border text-light"></div></div></div>
-  <div class="d-flex flex-wrap gap-2 mt-3">
+  <div class="d-flex flex-wrap gap-2 mt-3 photo-editor-save">
     <button type="button" class="btn btn-primary btn-lg px-5" data-edit="save"><i class="bi bi-check2-circle"></i> {% trans "Save the photo" %}</button>
     <a class="btn btn-outline-secondary btn-lg" href="{{ back }}">{% trans "Cancel" %}</a>
   </div>
 </div>
 {% if photo.original %}
-<form method="post" class="mt-3" data-no-leave-warning>{% csrf_token %}
+<form method="post" action="{{ request.get_full_path }}" class="mt-3" data-no-leave-warning>{% csrf_token %}
   <button class="btn btn-outline-warning" name="action" value="restore" data-confirm="{% trans 'Put back the photo as it was taken? The editing is lost.' %}"><i class="bi bi-arrow-counterclockwise"></i> {% trans "Put back the original" %}</button>
   <a class="small ms-2" href="{{ photo.original.url }}" target="_blank">{% trans "See the original" %}</a>
 </form>

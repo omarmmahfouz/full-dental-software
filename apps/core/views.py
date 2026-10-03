@@ -33,6 +33,7 @@ from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
 from . import previews
 from .access import area_levels
+from .mixins import role_required
 from .models import (
     AreaAccess, Branch, ClinicSettings, Notification, UserProfile, branch_for_user, switch_places, working_places,
 )
@@ -76,12 +77,29 @@ def dashboard(request):
     if cache.add("dashboard-alerts", True, ALERTS_EVERY_SECONDS):  # at most every few minutes, not on each page
         send_answer_alerts(today)  # complaints a dentist has not answered in time
         send_notes_alerts()  # visits left without notes in the patient's file
+    at_lab = branch is not None and branch.kind == Branch.Kind.LAB
     if has_role(user, OWNER):
         from .backup import backup_status
-        from .overview import places_now
+        from .overview import ordered_places, places_now, sees_all_places
 
         context["backup"] = backup_status()
-        context["places_now"] = places_now(user, today)  # the four places, whatever place is chosen (round 13)
+        context["place_tabs"] = ordered_places(user)
+        if sees_all_places(request):
+            # "All places" (round 14): a summary card for each place and what every place shares (the stock);
+            # the details of a place show once it is chosen.
+            from apps.stock.views import expiring_soon, low_stock
+
+            context["all_places"] = True
+            context["places_now"] = places_now(user, today)
+            context["low_stock"] = low_stock().select_related("category")[:12]
+            context["expiring"] = expiring_soon()[:8]
+            return render(request, "core/dashboard.html", context)
+    if at_lab and has_role(user, *LAB_STAFF):
+        # At the lab only the lab's work shows (round 14: before, the owner saw CIA's reception and patients there).
+        from apps.lab.views import lab_home_context
+
+        context.update(lab_home_context(user))
+        return render(request, "core/dashboard.html", context)
     if has_role(user, *PATIENT_VIEWERS):
         counts = dict(Patient.objects.here().values_list("status").annotate(n=Count("id")))
         context["patient_totals"] = {
@@ -149,7 +167,9 @@ def dashboard(request):
             .order_by("-created_at")[:6]
         )
 
-    if has_role(user, SECRETARY, OWNER, HEAD_CIA) and area_levels(user).get("academy") != AreaAccess.Level.HIDDEN:
+    academy_here = branch is None or branch == Branch.default()  # the academy's courses belong to CIA
+    if academy_here and has_role(user, SECRETARY, OWNER, HEAD_CIA) \
+            and area_levels(user).get("academy") != AreaAccess.Level.HIDDEN:
         overdue = []
         for enrollment in Enrollment.objects.filter(status=Enrollment.Status.ACTIVE).select_related(
             "candidate", "course"
@@ -202,15 +222,14 @@ def dashboard(request):
     elif dentist is not None:
         context["bookings_to_approve"] = list(pending.filter(dentist=dentist, branch=branch)[:10])
     context["show_supervisor_cards"] = has_role(user, *MANAGEMENT)
-    if has_role(user, *STOCK_ROLES):
+    if has_role(user, *STOCK_ROLES) and not has_role(user, OWNER):  # the owner sees the shared stock under "All"
         from apps.stock.views import expiring_soon, low_stock
 
         context["low_stock"] = low_stock().select_related("category")[:12]
         context["expiring"] = expiring_soon()[:8]
     if has_role(user, *CLINIC_MANAGERS):
-        context["clinic_cards"] = clinic_cards(user, today)
+        context["clinic_cards"] = clinic_cards(user, today, only=branch if has_role(user, OWNER) else None)
     if has_role(user, *LAB_STAFF):
-        at_lab = branch is not None and branch.kind == Branch.Kind.LAB
         if at_lab or not has_role(user, OWNER, *PATIENT_VIEWERS, STOCK, MODERATOR):
             from apps.lab.views import lab_home_context
 
@@ -224,15 +243,16 @@ def dashboard(request):
     return render(request, "core/dashboard.html", context)
 
 
-def clinic_cards(user, today):
-    """This month at each place that pays its doctors by rules: visits, money in, the doctors' shares."""
+def clinic_cards(user, today, only=None):
+    """This month at each place that pays its doctors by rules: visits, money in, the doctors' shares. ``only``: the
+    place the owner has chosen (the others are on "All places")."""
     from apps.clinics.models import FeeRule
     from apps.clinics.shares import summary
 
     cards = []
     with_rules = set(FeeRule.objects.values_list("branch_id", flat=True))
     for place in working_places(user):
-        if place.pk not in with_rules:
+        if place.pk not in with_rules or (only is not None and place != only):
             continue
         rows, totals = summary(place, today.replace(day=1), today)
         cards.append({"place": place, "rows": rows, **{k: totals.get(k, 0) for k in
@@ -302,6 +322,10 @@ class PlaceLoginView(auth_views.LoginView):
             place = None  # this device keeps the place chosen on it
         elif len(mine) == 1:
             place = mine[0]
+        if has_role(user, OWNER):
+            from .overview import ALL_PLACES
+
+            self.request.session[ALL_PLACES] = True  # the owner starts on the summary of every place
         return remember_device_place(response, place)
 
 
@@ -336,15 +360,28 @@ def switch_language(request):
 @require_POST
 def switch_place(request):
     """The switch in the top bar: work at another place (CIA, CIC...) from now on, then go on."""
+    from .overview import ALL_PLACES
+
     place = next((p for p in switch_places(request.user) if p.code == request.POST.get("place", "")), None)
     if place is None:
         raise PermissionDenied
     request.session["place"] = place.pk
+    request.session[ALL_PLACES] = False  # the owner's home page now shows this place only
     messages.info(request, _("You are working at %(place)s now.") % {"place": place.name})
     target = request.POST.get("next") or "/"
     if not url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}):
         target = "/"
     return redirect(target)
+
+
+@require_POST
+@role_required(OWNER)
+def all_places(request):
+    """The owner's home page shows every place again (a summary of each), whatever place is open (round 14)."""
+    from .overview import ALL_PLACES
+
+    request.session[ALL_PLACES] = True
+    return redirect("core:dashboard")
 
 
 @require_POST

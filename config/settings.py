@@ -104,6 +104,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.security.IdleLogoutMiddleware",
+    "apps.core.worktime.WorkTimeMiddleware",
     "apps.core.middleware.SavedMarkMiddleware",
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "apps.core.access.AccessControlMiddleware",

@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 
 from apps.academy.models import PaymentMethod
 from apps.core.mixins import role_required
-from apps.core.models import ClinicSettings, Notification, branch_for_user, staff_at, working_places
+from apps.core.models import Branch, ClinicSettings, Notification, branch_for_user, staff_at, working_places
 from apps.core.notify import notify_users
 from apps.core.roles import CLINICAL, FRONT_DESK, HEAD_CIA, OWNER, SECRETARY, has_role
 from apps.dentists.models import Dentist
@@ -146,6 +146,8 @@ def day_review(request):
     the bills, the changes; the reception closes the day with the cash counted, the owner marks it reviewed."""
     today = timezone.localdate()
     here, places = branch_for_user(request.user), list(working_places(request.user))
+    if here is not None and here.kind == Branch.Kind.LAB:  # the lab's day is its own receipts (round 14)
+        return redirect(reverse("lab:day") + (f"?{request.GET.urlencode()}" if request.GET else ""))
     form = DayPickForm(request.GET or None, places=places, current=here, initial={"day": today})
     data = form.cleaned_data if form.is_valid() else {}
     day = data.get("day") or today
@@ -184,6 +186,8 @@ def month_review(request):
     """Each day of a month at a place: what was received, whether the day was closed and reviewed."""
     today = timezone.localdate()
     here, places = branch_for_user(request.user), list(working_places(request.user))
+    if here is not None and here.kind == Branch.Kind.LAB:
+        return redirect(reverse("lab:month") + (f"?{request.GET.urlencode()}" if request.GET else ""))
     try:
         first = datetime.strptime(request.GET.get("month", ""), "%Y-%m").date()
     except ValueError:

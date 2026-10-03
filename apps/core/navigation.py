@@ -15,14 +15,15 @@ def _item(url_name, icon, label, match=None, query=""):
     return {"url": url + query, "icon": icon, "label": label, "match": match or url}
 
 
-def bottom_nav(user, path, hidden_areas):
-    """[{url, icon, label, match, active}], at most four, for this person."""
+def bottom_nav(user, path, hidden_areas, at_lab=False):
+    """[{url, icon, label, match, active}], at most four, for this person. ``at_lab``: the person works at the lab
+    now (the owner, a doctor who designs): the lab's buttons."""
     roles = user_roles(user)
     items = [_item("core:dashboard", "bi-house-door", _("Home"), match="/")]
     front_desk = bool(roles & set(FRONT_DESK))
     patients = "patients" not in hidden_areas and bool(roles & set(FRONT_DESK + DENTISTS))
     schedule = "schedule" not in hidden_areas
-    lab_only = bool(roles & set(LAB_STAFF)) and not roles & set(FRONT_DESK + DENTISTS + (MODERATOR, STOCK))
+    lab_only = bool(roles & set(LAB_STAFF)) and (at_lab or not roles & set(FRONT_DESK + DENTISTS + (MODERATOR, STOCK)))
     if lab_only and "dental_lab" not in hidden_areas:
         items.append(_item("lab:board", "bi-kanban", _("Board"), match="/lab/"))
         if roles & set(LAB_DESK):
@@ -83,3 +84,59 @@ def up_url(path):
             continue
         return candidate
     return "/"
+
+
+# The names of the pages "Up" most often opens (round 14); other pages show just "Up".
+UP_NAMES = {
+    "core:dashboard": _("Home"),
+    "core:time_report": _("Time in the system"),
+    "patients:list": _("Patients"),
+    "patients:detail": _("Patient file"),
+    "patients:lead_list": _("Call list"),
+    "scheduling:appointment_list": _("Appointments"),
+    "scheduling:today": _("Reception"),
+    "clinical:step_list": _("Treatment log"),
+    "clinical:lab_list": _("Lab requests"),
+    "charting:chart": _("Dental chart"),
+    "charting:photos": _("Photos"),
+    "surgery:list": _("Implant surgeries"),
+    "dentists:list": _("Dentists"),
+    "complaints:list": _("Complaints"),
+    "academy:candidate_list": _("Candidates"),
+    "academy:course_list": _("Courses"),
+    "billing:bill_list": _("Bills"),
+    "billing:payment_list": _("Patient payments"),
+    "purchasing:purchase_list": _("Purchases"),
+    "purchasing:supplier_list": _("Suppliers"),
+    "purchasing:return_list": _("Returns to suppliers"),
+    "stock:item_list": _("Stock items"),
+    "reports:index": _("Reports"),
+    "lab:board": _("Lab board"),
+    "lab:case_list": _("Lab cases"),
+    "lab:clients": _("Clients and accounts"),
+    "settings:home": _("Settings"),
+    "specialties:cases": _("Specialist cases"),
+    "clinics:doctors": _("Doctors"),
+}
+
+
+def up_name(url):
+    """The name of the page at ``url`` for the Up button, or None."""
+    try:
+        return UP_NAMES.get(resolve(url).view_name)
+    except Resolver404:
+        return None
+
+
+def up_target(path, patient=None):
+    """Where "Up" goes from the page at ``path`` (round 14: the page above it, not back one step): the patient's file
+    for a page about a patient (a visit, an edit form...), unless the page above is itself one of the patient's pages
+    (e.g. the log book → the patient's photos); else the address one level up."""
+    from apps.patients.models import Patient
+
+    url = up_url(path)
+    if isinstance(patient, Patient) and patient.pk:
+        file_url = patient.get_absolute_url()
+        if file_url != path and f"/{patient.pk}/" not in url:
+            return {"url": file_url, "name": _("Patient file")}
+    return {"url": url, "name": up_name(url)}

@@ -456,9 +456,9 @@ class PhotoFolderAndLogBookTests(TestCase):
         self.photo(surgery=surgery)
         self.photo(stage="diagnostic", photo_type=None, notes="Panoramic", teeth="")
         self.client.login(username="dentist", password=PASSWORD)
-        page = self.client.get(f"/chart/patient/{self.patient.pk}/photos/logbook/?per_row=3&stage=surgery")
+        page = self.client.get(f"/chart/patient/{self.patient.pk}/photos/logbook/?per_page=4&stage=surgery")
         self.assertEqual([p["code"] for p in page.context["pages"]], ["surgery"])
-        self.assertContains(page, "--frame-w: 56mm")
+        self.assertContains(page, "--frame-w: 90mm")
         self.assertIn("36: Simple implant, GBR", page.context["pages"][0]["description"])
         self.assertContains(page, "Implant placed with cover screw")
 
@@ -645,3 +645,52 @@ class PhotoEditTests(TestCase):
         self.assertEqual(len(default_storage.listdir(os.path.dirname(photo.file.name))[1]), 1)
         self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.get(f"/chart/photo/{photo.pk}/edit/").status_code, 403)
+
+
+class Round14PhotoPagesTests(TestCase):
+    """Before printing or saving the photos, 4 or 6 photos on each page are chosen; a stage with more photos goes on
+    over more pages; the texts typed in the log book are kept; the photo editor goes back where it was opened."""
+
+    setUp = PhotoFolderAndLogBookTests.setUp
+    photo = PhotoFolderAndLogBookTests.photo
+
+    def test_the_photos_are_cut_into_pages_of_4_or_6(self):
+        for _number in range(5):
+            self.photo()
+        self.photo(stage="diagnostic", photo_type=None, notes="Panoramic", teeth="")
+        self.client.login(username="dentist", password=PASSWORD)
+        url = f"/chart/patient/{self.patient.pk}/case-report/"
+        page = self.client.get(f"{url}?per_page=4")
+        self.assertEqual([(p["label"].split()[0], len(p["photos"]), p["continued"]) for p in page.context["photo_pages"]],
+                         [("1st", 1, False), ("Surgery:", 4, False), ("Surgery:", 1, True)])
+        self.assertContains(page, 'id="photos-per-page"')
+        self.assertContains(page, "per-page-4")
+        six = self.client.get(f"{url}?per_page=6&do=pdf&anonymous=1")
+        self.assertEqual([len(p["photos"]) for p in six.context["photo_pages"]], [1, 5])
+        self.assertEqual(six.context["action"], "pdf")
+        self.assertContains(six, 'data-auto-do="pdf"')
+        self.assertIn(("anonymous", "1"), six.context["keep"])  # kept when choosing again
+        self.assertNotIn("do", dict(six.context["keep"]))
+        self.assertEqual(self.client.get(f"{url}?per_page=9").context["per_page"], "6")  # only 4 or 6
+
+    def test_the_log_book_goes_on_over_pages_and_keeps_the_typed_text(self):
+        for _number in range(5):
+            self.photo()
+        self.client.login(username="dentist", password=PASSWORD)
+        url = f"/chart/patient/{self.patient.pk}/photos/logbook/"
+        page = self.client.get(f"{url}?per_page=4&stage=surgery&desc_surgery=Two+implants+placed&do=print")
+        pages = page.context["pages"]
+        self.assertEqual([(len(p["photos"]), p["continued"]) for p in pages], [(4, False), (1, True)])
+        self.assertEqual(pages[0]["description"], "Two implants placed")
+        self.assertContains(page, "--frame-w: 90mm")
+        self.assertContains(page, 'data-auto-do="print"')
+        self.assertContains(page, 'data-desc-code="surgery"', count=1)  # the text once, on the first page
+
+    def test_the_photo_editor_goes_back_where_it_was_opened(self):
+        photo = self.photo()
+        self.client.login(username="dentist", password=PASSWORD)
+        page = self.client.get(f"/chart/photo/{photo.pk}/edit/?next=/clinical/steps/5/")
+        self.assertEqual(page.context["back"], "/clinical/steps/5/")
+        self.assertContains(page, "photo-editor-save")
+        page = self.client.get(f"/chart/photo/{photo.pk}/edit/?next=https://example.com/")
+        self.assertTrue(page.context["back"].startswith(f"/chart/patient/{self.patient.pk}/photos/"))

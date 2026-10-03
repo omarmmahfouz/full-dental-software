@@ -44,7 +44,7 @@
     {% for shot in shots %}
     <div class="col-sm-6 col-lg-4 col-xl-3"><div class="card h-100 checklist-item {% if shot.photos %}done{% endif %}"><div class="card-body p-2">
       <div class="small fw-semibold mb-1">{% if shot.photos %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-circle text-muted"></i>{% endif %} {{ shot.label }}</div>
-      <div class="d-flex flex-wrap gap-1 mb-1">{% for p in shot.photos %}<a href="{{ p.file.url }}" target="_blank"><img src="{{ p.file|preview }}" alt="{{ shot.label }}" class="step-shot-thumb" loading="lazy"></a>{% endfor %}</div>
+      <div class="d-flex flex-wrap gap-1 mb-1">{% for p in shot.photos %}<span class="thumb-edit-wrap"><a href="{{ p.file.url }}" target="_blank"><img src="{{ p.file|preview }}" alt="{{ shot.label }}" class="step-shot-thumb" loading="lazy"></a>{% if can_upload and p.is_picture %}<a class="thumb-edit" href="{% url 'charting:photo_edit' p.pk %}?next={{ request.path|urlencode }}" aria-label="{% trans 'Edit the photo' %}"><i class="bi bi-crop"></i></a>{% endif %}</span>{% endfor %}</div>
       {% if can_upload %}<form method="post" action="{% url 'clinical:step_photo' step.pk %}" enctype="multipart/form-data" data-no-leave-warning data-no-progress>{% csrf_token %}<input type="hidden" name="shot" value="{{ shot.code }}">
         <label class="btn btn-sm btn-outline-primary w-100 mb-0"><i class="bi bi-camera"></i> {% if shot.photos %}{% trans "Another" %}{% else %}{% trans "Take it" %}{% endif %}
           <input type="file" name="file" accept="image/*,application/pdf" capture="environment" hidden onchange="this.form.submit()"></label></form>{% endif %}
@@ -52,7 +52,7 @@
     {% endfor %}
     <div class="col-sm-6 col-lg-4 col-xl-3"><div class="card h-100"><div class="card-body p-2">
       <div class="small fw-semibold mb-1"><i class="bi bi-images"></i> {% trans "Other photos" %}</div>
-      <div class="d-flex flex-wrap gap-1 mb-1">{% for p in other_photos %}<a href="{{ p.file.url }}" target="_blank"><img src="{{ p.file|preview }}" alt="" class="step-shot-thumb" loading="lazy"></a>{% endfor %}</div>
+      <div class="d-flex flex-wrap gap-1 mb-1">{% for p in other_photos %}<span class="thumb-edit-wrap"><a href="{{ p.file.url }}" target="_blank"><img src="{{ p.file|preview }}" alt="" class="step-shot-thumb" loading="lazy"></a>{% if can_upload and p.is_picture %}<a class="thumb-edit" href="{% url 'charting:photo_edit' p.pk %}?next={{ request.path|urlencode }}" aria-label="{% trans 'Edit the photo' %}"><i class="bi bi-crop"></i></a>{% endif %}</span>{% endfor %}</div>
       {% if can_upload %}<form method="post" action="{% url 'clinical:step_photo' step.pk %}" enctype="multipart/form-data" data-no-leave-warning data-no-progress>{% csrf_token %}
         <label class="btn btn-sm btn-outline-secondary w-100 mb-0"><i class="bi bi-plus-lg"></i> {% trans "Add photos" %}
           <input type="file" name="file" accept="image/*,application/pdf" multiple hidden onchange="this.form.submit()"></label></form>{% endif %}

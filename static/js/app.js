@@ -11,9 +11,9 @@
     }
   });
 
-  // "Back" goes up one page: to the page this one was opened from, never to a form already saved and never to the
-  // same page twice. The pages opened in this tab are kept in order (the "trail"); a page sending a form leaves the
-  // trail. Without a trail (a page opened from a notification), Back opens the page above this one.
+  // The pages opened in this tab are kept in order (the "trail"; a page sending a form leaves it): the browser's own
+  // back button skips a form already saved (pageInsteadOfForm). The "Up" button at the top of a page is a plain link
+  // to the page above it, the "folder" it belongs to (round 14: it used to go back one step, like the browser).
   var TRAIL = "page-trail";
   var here = window.location.pathname + window.location.search;
   function readTrail() { try { return JSON.parse(sessionStorage.getItem(TRAIL) || "[]"); } catch (e) { return []; } }
@@ -31,27 +31,8 @@
     writeTrail(trail);
     return trail;
   }
-  function pageBefore() {
-    var trail = readTrail();
-    return trail.length >= 2 && trail[trail.length - 1].url === here ? trail[trail.length - 2] : null;
-  }
-  function goBack(link) {
-    var before = pageBefore();
-    window.location.href = before ? before.url : link.href;
-  }
-  function labelBack() {
-    var before = pageBefore(), link = document.querySelector("a[data-back]");
-    if (link) link.title = before ? before.title : (link.getAttribute("data-up-title") || "");
-  }
   updateTrail();
-  labelBack();
-  window.addEventListener("pageshow", function (event) { if (event.persisted) { updateTrail(); labelBack(); } });
-  document.addEventListener("click", function (event) {
-    var link = event.target.closest("[data-back]");
-    if (!link || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    event.preventDefault();
-    goBack(link);
-  });
+  window.addEventListener("pageshow", function (event) { if (event.persisted) updateTrail(); });
 
   // Convert Arabic-Indic digits to Western digits while typing in number-like fields.
   var arabicDigits = /[٠-٩۰-۹]/g;
@@ -311,8 +292,7 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     askBeforeLeaving(function () {
-      if (link.hasAttribute("data-back")) goBack(link);
-      else window.location.href = link.href;
+      window.location.href = link.href;
     });
   }, true);
   window.addEventListener("beforeunload", function (event) {
@@ -542,8 +522,15 @@
         badge.hidden = !count;
       });
     };
+    // Time in the system (round 14): the check says whether the person typed, tapped or scrolled since the last one.
+    var usedSince = false;
+    ["pointerdown", "keydown", "wheel", "touchstart", "input"].forEach(function (name) {
+      document.addEventListener(name, function () { usedSince = true; }, { passive: true, capture: true });
+    });
     var check = function () {
-      fetch(pollUrl + "?since=" + lastSeen, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
+      var active = usedSince && !document.hidden ? "&active=1" : "";
+      usedSince = false;
+      fetch(pollUrl + "?since=" + lastSeen + active, { credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } })
         .then(function (r) {
           // Logged out after no use (or by the owner): show the login page, not the patient's data.
           if (r.status === 401 || r.redirected && /\/login\//.test(r.url)) { window.location.reload(); return null; }
@@ -640,7 +627,9 @@
     if (bestLink && bestLink.classList.contains("dropdown-item")) {
       bestLink.classList.add("is-current");
       var menu = bestLink.closest(".dropdown-menu"), toggle = menu && menu.parentElement.querySelector(":scope > .dropdown-toggle");
-      if (menu && toggle && window.matchMedia("(min-width: 1200px)").matches) {
+      // Never the person's own menu (Settings is in it): opened, it covered the Settings pages on wide screens and
+      // tablets held sideways (round 14).
+      if (menu && toggle && !menu.closest(".user-menu") && window.matchMedia("(min-width: 1200px)").matches) {
         menu.classList.add("show"); toggle.classList.add("show"); toggle.setAttribute("aria-expanded", "true");
       }
     }
@@ -847,11 +836,32 @@
       });
     });
   }
-  function snapshot(target) {
+  // html2canvas stretches a picture placed with object-fit (cover / contain): on the copy it draws, such a picture
+  // becomes a box with the photo as its background, which it draws the right way.
+  function fittedPictures(doc) {
+    var view = doc.defaultView;
+    doc.querySelectorAll("img").forEach(function (img) {
+      var style = view.getComputedStyle(img), fit = style.objectFit;
+      if (fit !== "cover" && fit !== "contain") return;
+      var box = doc.createElement("div");
+      box.style.cssText = "display:block;width:" + style.width + ";height:" + style.height + ";background:url(\"" +
+        (img.currentSrc || img.src).replace(/"/g, "%22") + "\") center / " + fit + " no-repeat";
+      img.replaceWith(box);
+    });
+  }
+  function snapshot(target, layout) {
+    // layout: a class put on the copy that is drawn (e.g. "pdf-layout": the photo pages take the shape of A4).
+    // The picture stays under 16 million dots, the most a tablet's browser can draw.
+    var scale = Math.min(2, Math.sqrt(16e6 / Math.max(1, target.offsetWidth * Math.max(target.offsetHeight, 1100))));
     return loadScript(document.body.getAttribute("data-vendor-html2canvas")).then(function () {
       document.body.classList.add("is-snapshot");
-      return window.html2canvas(target, { scale: 2, backgroundColor: "#ffffff", useCORS: true,
-                                          onclone: function (doc) { doc.body.classList.add("is-snapshot"); plainColours(doc); } })
+      return window.html2canvas(target, { scale: scale, backgroundColor: "#ffffff", useCORS: true,
+                                          onclone: function (doc) {
+                                            doc.body.classList.add("is-snapshot");
+                                            if (layout) doc.body.classList.add(layout);
+                                            plainColours(doc);
+                                            fittedPictures(doc);
+                                          } })
         .finally(function () { document.body.classList.remove("is-snapshot"); });
     });
   }
@@ -884,6 +894,48 @@
       return pdf.output("blob");
     });
   }
+  // A report made of parts (data-save-blocks=".pdf-block, .pdf-page", round 14): each part is drawn on its own and
+  // the parts are laid on A4 pages one after the other; a .pdf-page (e.g. 4 or 6 photos) fills a page of its own.
+  // Before, the whole report was one long picture cut into pages: photos were cut in half, and a long report was too
+  // big for a tablet to draw, so nothing was saved.
+  function blocksToPdf(blocks, page) {
+    return loadScript(document.body.getAttribute("data-vendor-jspdf")).then(function () {
+      var size = PAGES[page] || PAGES.a4, W = size[0], H = size[1], margin = 10;
+      var pdf = new window.jspdf.jsPDF({ unit: "mm", format: [W, H], orientation: "p" });
+      var cw = W - 2 * margin, ch = H - 2 * margin, y = margin, empty = true;
+      function newPage() { if (!empty) pdf.addPage([W, H], "p"); y = margin; empty = true; }
+      function put(canvas, x, top, w, h) {
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.9), "JPEG", x, top, w, h);
+        empty = false;
+      }
+      var chain = Promise.resolve();
+      Array.prototype.forEach.call(blocks, function (block) {
+        if (!block.offsetHeight) return;
+        chain = chain.then(function () { return snapshot(block, "pdf-layout"); }).then(function (canvas) {
+          var w = cw, h = cw * canvas.height / canvas.width;
+          if (block.classList.contains("pdf-page")) {
+            newPage();
+            if (h > ch) { w = w * ch / h; h = ch; }
+            put(canvas, margin + (cw - w) / 2, margin, w, h);
+            y = margin + ch + 1;  // the next part starts a new page
+            return;
+          }
+          if (y + h > margin + ch && !empty) newPage();
+          if (h <= ch) { put(canvas, margin, y, w, h); y += h + 4; return; }
+          var perMm = canvas.width / cw, slice = Math.floor(ch * perMm);  // taller than a page: cut it
+          for (var top = 0; top < canvas.height; top += slice) {
+            if (top > 0) newPage();
+            var part = document.createElement("canvas");
+            part.width = canvas.width; part.height = Math.min(slice, canvas.height - top);
+            part.getContext("2d").drawImage(canvas, 0, top, part.width, part.height, 0, 0, part.width, part.height);
+            put(part, margin, margin, cw, part.height / perMm);
+            y = margin + part.height / perMm + 4;
+          }
+        });
+      });
+      return chain.then(function () { return pdf.output("blob"); });
+    });
+  }
   document.addEventListener("click", function (event) {
     var button = event.target.closest && event.target.closest("[data-save-as]");
     if (!button) return;
@@ -891,6 +943,18 @@
     if (!target) return;
     var kind = button.getAttribute("data-save-as"), name = button.getAttribute("data-save-name") || "document";
     button.disabled = true;
+    var blocks = button.getAttribute("data-save-blocks");
+    if (blocks && kind === "pdf") {
+      document.body.classList.add("is-saving");
+      blocksToPdf(target.querySelectorAll(blocks), button.getAttribute("data-page"))
+        .then(function (blob) { download(blob, name + ".pdf"); })
+        .catch(function (error) {
+          if (window.console) console.error(error);
+          window.alert(button.getAttribute("data-error") || String(error));
+        })
+        .finally(function () { button.disabled = false; document.body.classList.remove("is-saving"); });
+      return;
+    }
     snapshot(target).then(function (canvas) {
       if (kind === "pdf") return toPdf(canvas, button.getAttribute("data-page")).then(function (blob) { download(blob, name + ".pdf"); });
       return new Promise(function (resolve) { canvas.toBlob(resolve, "image/jpeg", 0.92); }).then(function (blob) {
@@ -909,6 +973,90 @@
       });
     }).catch(function () {}).finally(function () { button.disabled = false; });
   });
+
+  // Settings: "Find a list…" hides the lists whose name does not have the words typed (round 14).
+  var listFind = document.querySelector("[data-list-find]");
+  if (listFind) {
+    listFind.addEventListener("input", function () {
+      var words = listFind.value.trim().toLowerCase(), any = false;
+      document.querySelectorAll("[data-list-group]").forEach(function (group) {
+        var shown = 0;
+        group.querySelectorAll("[data-list-item]").forEach(function (item) {
+          var on = !words || item.textContent.toLowerCase().indexOf(words) >= 0;
+          item.classList.toggle("d-none", !on);
+          if (on) shown += 1;
+        });
+        group.hidden = shown === 0;
+        any = any || shown > 0;
+      });
+      var none = document.querySelector("[data-list-none]");
+      if (none) none.hidden = any;
+    });
+  }
+
+  // Settings → Access by role (round 14): one role at a time; the role shown is kept in the address (#role-…).
+  var accessForm = document.querySelector("[data-access-roles]");
+  if (accessForm) {
+    var showRole = function (code) {
+      var found = false;
+      accessForm.querySelectorAll("[data-role-panel]").forEach(function (panel) {
+        var on = panel.getAttribute("data-role-panel") === code;
+        panel.hidden = !on; found = found || on;
+      });
+      accessForm.querySelectorAll("[data-role-tab]").forEach(function (tab) {
+        var on = tab.getAttribute("data-role-tab") === code;
+        tab.classList.toggle("active", on);
+        tab.setAttribute("aria-current", on ? "true" : "false");
+      });
+      return found;
+    };
+    accessForm.addEventListener("click", function (event) {
+      var tab = event.target.closest("[data-role-tab]");
+      if (!tab) return;
+      showRole(tab.getAttribute("data-role-tab"));
+      try { history.replaceState(history.state, "", "#role-" + tab.getAttribute("data-role-tab")); } catch (error) {}
+    });
+    if (window.location.hash.indexOf("#role-") === 0) showRole(window.location.hash.slice(6));
+  }
+
+  // "How many photos on each page?" (includes/photos_per_page.html, round 14): the button that opened it is the
+  // one made blue; the texts typed on the page (the log book's descriptions) go with the choice.
+  var perPage = document.getElementById("photos-per-page");
+  if (perPage) {
+    perPage.addEventListener("show.bs.modal", function (event) {
+      var wanted = event.relatedTarget && event.relatedTarget.getAttribute("data-per-page-do");
+      perPage.querySelectorAll("[data-per-page-button]").forEach(function (button) {
+        var main = button.getAttribute("data-per-page-button") === wanted;
+        button.classList.toggle("btn-primary", main);
+        button.classList.toggle("btn-outline-primary", !main);
+        button.style.order = main ? 2 : 1;
+      });
+    });
+    perPage.querySelector("form").addEventListener("submit", function () {
+      var form = this;
+      document.querySelectorAll("[data-desc-code]").forEach(function (box) {
+        var input = document.createElement("input");
+        input.type = "hidden"; input.name = "desc_" + box.getAttribute("data-desc-code"); input.value = box.innerText.trim();
+        form.appendChild(input);
+      });
+    });
+  }
+  // data-auto-do="print|pdf": the page opened again with the choice: print it or save it once the photos are in.
+  var autoDo = document.querySelector("[data-auto-do]");
+  if (autoDo) {
+    try {
+      var cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("do");
+      history.replaceState(history.state, "", cleanUrl.pathname + cleanUrl.search);
+    } catch (error) { /* an old browser: the address keeps "do" */ }
+    window.addEventListener("load", function () {
+      setTimeout(function () {
+        if (autoDo.getAttribute("data-auto-do") === "print") { window.print(); return; }
+        var saver = document.querySelector("[data-save-as=pdf][data-save-blocks]");
+        if (saver) saver.click();
+      }, 300);
+    });
+  }
 
   // data-save-auto: the page was opened to be saved (e.g. "Export the file → PDF"): save it once it has loaded.
   var autoSave = document.querySelector("[data-save-auto]");
@@ -995,22 +1143,31 @@
                y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)) };
     }
     function shape(x0, y0, x1, y1) {
-      // A frame from one corner to the other, kept to the chosen shape (4:3, 1:1) and inside the photo.
+      // A frame from one corner to the other, kept to the chosen shape (4:3, 1:1) and inside the photo (the corner
+      // being dragged stays on the photo, so shrinking to the shape keeps the frame inside it).
+      x1 = Math.min(1, Math.max(0, x1)); y1 = Math.min(1, Math.max(0, y1));
       var w = Math.abs(x1 - x0), h = Math.abs(y1 - y0);
       if (state.ratio) {
         var aspect = base.width / base.height;  // normalised height of a frame of normalised width w
         if (w / h * aspect > state.ratio) w = h * state.ratio / aspect; else h = w * aspect / state.ratio;
       }
       var x = x1 < x0 ? x0 - w : x0, y = y1 < y0 ? y0 - h : y0;
-      return { x: Math.max(0, x), y: Math.max(0, y), w: Math.min(w, 1 - Math.max(0, x)), h: Math.min(h, 1 - Math.max(0, y)) };
+      return { x: x, y: y, w: w, h: h };
     }
+    // Round 14: the frame has a handle at each corner (inside the photo, big enough for a finger): dragging a corner
+    // resizes the frame from the opposite corner, dragging inside moves it, dragging outside draws a new one. A frame
+    // that fills the whole photo is shrunk from the corners (before, only a half-hidden corner could, so a 4:3 photo
+    // could not be cropped on a tablet).
     stage.addEventListener("pointerdown", function (event) {
       if (!base) return;
-      var p = point(event), c = state.crop;
+      var p = point(event), c = state.crop, corner = event.target.closest("[data-crop-corner]");
       stage.setPointerCapture(event.pointerId);
-      if (event.target.closest("[data-crop-corner]")) drag = { mode: "size", x0: c.x, y0: c.y };
-      else if (event.target === frame) drag = { mode: "move", p: p, c: Object.assign({}, c) };
+      if (corner) {
+        var where = corner.getAttribute("data-crop-corner");
+        drag = { mode: "size", x0: where.indexOf("w") >= 0 ? c.x + c.w : c.x, y0: where.indexOf("n") >= 0 ? c.y + c.h : c.y };
+      } else if (event.target === frame || frame.contains(event.target)) drag = { mode: "move", p: p, c: Object.assign({}, c) };
       else drag = { mode: "draw", x0: p.x, y0: p.y };
+      frame.classList.add("is-dragging");
       event.preventDefault();
     });
     stage.addEventListener("pointermove", function (event) {
@@ -1027,7 +1184,7 @@
       showFrame();
     });
     ["pointerup", "pointercancel"].forEach(function (name) {
-      stage.addEventListener(name, function () { drag = null; });
+      stage.addEventListener(name, function () { drag = null; frame.classList.remove("is-dragging"); });
     });
     box.querySelectorAll("[data-edit]").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -1105,7 +1262,9 @@
     image.onload = function () { loading.hidden = true; render(); };
     image.onerror = function () { loading.hidden = true; window.alert(box.getAttribute("data-error")); };
     image.src = box.getAttribute("data-src");
-    frame.innerHTML = '<span class="photo-crop-corner" data-crop-corner></span>';
+    frame.innerHTML = ["nw", "ne", "sw", "se"].map(function (where) {
+      return '<span class="photo-crop-corner corner-' + where + '" data-crop-corner="' + where + '"></span>';
+    }).join("");
   });
 
   // The city list follows the governorate (the patient form): input[data-city-list] gets a list of the cities of the

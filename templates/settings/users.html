@@ -3,7 +3,7 @@
 {% block title %}{% trans "People and logins" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><a class="text-decoration-none" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i></a> {% trans "People and logins" %}</h1>
+  <h1><i class="bi bi-people"></i> {% trans "People and logins" %}</h1>
   <a class="btn btn-primary" href="{% url 'settings:user_create' %}"><i class="bi bi-person-plus"></i> {% trans "New login" %}</a>
 </div>
 {% if given_password %}
@@ -27,12 +27,18 @@
   </ul>
 </div>
 {% endif %}
+<nav class="place-tabs" aria-label="{% trans 'Place' %}">
+  <a class="place-tab{% if not place %} active{% endif %}" href="?"><i class="bi bi-grid-1x2"></i> {% trans "Everyone" %} <span class="badge rounded-pill text-bg-light">{{ everyone }}</span></a>
+  {% for p, count in place_tabs %}<a class="place-tab place-{{ p.code }}{% if place.pk == p.pk %} active{% endif %}" href="?place={{ p.code }}"><span class="place-dot"></span> {{ p.badge }}<span class="place-tab-name"> — {{ p.name }}</span> <span class="badge rounded-pill text-bg-light">{{ count }}</span></a>{% endfor %}
+</nav>
+{% if place.kind == "lab" %}<p class="small text-muted"><i class="bi bi-info-circle"></i> {% trans "The lab's people: everyone with a lab role, and the dentists on the lab's staff (they design for the lab)." %}</p>{% endif %}
 <div class="card"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
-  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Username" %}</th><th>{% trans "Roles" %}</th><th>{% trans "Access" %}</th><th>{% trans "Last login" %}</th></tr></thead>
-  <tbody>{% for u, roles, profile, custom in rows %}<tr class="{% if not u.is_active %}text-muted{% endif %}">
+  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Username" %}</th><th>{% trans "Roles" %}</th><th>{% trans "Works at" %}</th><th>{% trans "Access" %}</th><th>{% trans "Last login" %}</th></tr></thead>
+  <tbody>{% for u, roles, profile, custom, works_at in rows %}<tr class="{% if not u.is_active %}text-muted{% endif %}">
     <td><a class="fw-semibold" href="{% url 'settings:user_update' u.pk %}">{{ u.first_name|default:u.username }}</a>{% if not u.is_active %} <span class="badge text-bg-secondary">{% trans "cannot log in" %}</span>{% endif %}</td>
-    <td class="ltr">{{ u.username }}</td>
+    <td><span class="ltr-cell">{{ u.username }}</span></td>
     <td class="small">{{ roles|join:", "|default:"—" }}</td>
+    <td class="text-nowrap">{% for p in works_at %}<span class="place-badge place-{{ p.code }}">{{ p.badge }}</span> {% empty %}—{% endfor %}</td>
     <td class="small">{% if profile.read_only %}<span class="badge text-bg-info">{% trans "read only" %}</span> {% endif %}{% if profile.has_time_limits %}<span class="badge text-bg-warning"><i class="bi bi-clock"></i> {% trans "time limited" %}</span>{% endif %}{% for area, level in custom %}<span class="badge text-bg-light border">{{ area }}: {{ level }}</span> {% endfor %}{% if not profile.read_only and not profile.has_time_limits and not custom %}{% trans "normal" %}{% endif %}</td>
     <td class="small text-muted">{{ u.last_login|date:"d/m/Y g:i A"|default:"—" }}</td>
   </tr>{% endfor %}</tbody>

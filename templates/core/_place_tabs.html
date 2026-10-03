@@ -1,0 +1,11 @@
+{% load i18n %}{% comment %}The owner's home page (round 14): "All places" shows a summary of each place; a place shows only that
+place. The same choice as the switch in the top bar.{% endcomment %}
+<nav class="place-tabs no-print" aria-label="{% trans 'Show' %}">
+  <form method="post" action="{% url 'core:all_places' %}" data-no-leave-warning>{% csrf_token %}
+    <button class="place-tab{% if all_places %} active{% endif %}"{% if all_places %} aria-current="page"{% endif %}><i class="bi bi-grid-1x2"></i> {% trans "All places" %}</button></form>
+  {% for place in place_tabs %}
+  <form method="post" action="{% url 'core:switch_place' %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="/">
+    <button class="place-tab place-{{ place.code }}{% if not all_places and place.pk == current_branch.pk %} active{% endif %}" name="place" value="{{ place.code }}"{% if not all_places and place.pk == current_branch.pk %} aria-current="page"{% endif %}>
+      <span class="place-dot"></span> {{ place.badge }}<span class="place-tab-name"> — {{ place.name }}</span></button></form>
+  {% endfor %}
+</nav>

@@ -65,7 +65,7 @@
 {% endif %}
 
 {% if lab %}
-<div class="card mb-3 sec-lab"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-gem"></i> {% trans "Dental lab" %}</span><a class="small" href="{% url 'lab:board' %}">{% trans "Lab board" %}</a></div><div class="card-body">
+<div class="card mb-3 sec-lab"><div class="card-header d-flex justify-content-between"><span><i class="bi bi-dental-lab"></i> {% trans "Dental lab" %}</span><a class="small" href="{% url 'lab:board' %}">{% trans "Lab board" %}</a></div><div class="card-body">
   <div class="stat-minis mb-3">
     <div class="stat-mini"><span class="n">{{ lab.received }}</span><span class="l">{% trans "Cases received" %}</span></div>
     <div class="stat-mini"><span class="n">{{ lab.delivered }}</span><span class="l">{% trans "Cases delivered" %}</span></div>

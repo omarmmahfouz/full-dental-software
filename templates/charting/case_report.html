@@ -5,11 +5,18 @@
 <div class="d-flex flex-wrap gap-2 mb-3 no-print">
   <a class="btn btn-outline-secondary" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-arrow-left"></i> {% trans "Back to chart" %}</a>
   {% if anonymous %}<a class="btn btn-outline-primary" href="?">{% trans "Show patient identity" %}</a>{% else %}<a class="btn btn-outline-primary" href="?anonymous=1"><i class="bi bi-incognito"></i> {% trans "Hide patient identity (for teaching / publication)" %}</a>{% endif %}
-  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
-  <button class="btn btn-outline-primary" data-save-as="pdf" data-page="a4" data-save-target="#case-report" data-save-name="{% if anonymous %}{{ initials }}{% else %}{{ patient.file_number }} {{ patient.full_name }}{% endif %}"{% if request.GET.pdf %} data-save-auto{% endif %}><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
+  {% if photo_pages %}
+  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#photos-per-page" data-per-page-do="print"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#photos-per-page" data-per-page-do="pdf"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
+  <span class="align-self-center small text-muted">{% blocktrans %}{{ per_page }} photos on each page{% endblocktrans %}</span>
+  {% else %}
+  <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  {% endif %}
+  <button type="button" class="btn btn-outline-primary"{% if photo_pages %} hidden{% endif %} data-save-as="pdf" data-page="a4" data-save-target="#case-report" data-save-blocks=".pdf-block, .pdf-page" data-error="{% trans 'The PDF could not be made on this device. Use Print and choose Save as PDF instead.' %}" data-save-name="{% if anonymous %}{{ initials }}{% else %}{{ patient.file_number }} {{ patient.full_name }}{% endif %}"{% if request.GET.pdf %} data-save-auto{% endif %}><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
 </div>
-<div class="card" id="case-report"><div class="card-body p-4" dir="ltr">
-  <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+{% include "includes/photos_per_page.html" %}
+<div class="card" id="case-report"{% if action %} data-auto-do="{{ action }}"{% endif %}><div class="card-body p-4" dir="ltr">
+  <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3 pdf-block">
     {% include "includes/place_letterhead.html" with place=patient.branch %}
     <div class="text-end">
       <div class="h5 fw-bold mb-0">{% trans "Case report" %}</div>
@@ -17,7 +24,7 @@
     </div>
   </div>
 
-  <section class="report-section mb-4">
+  <section class="report-section mb-4 pdf-block">
     <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Patient" %}</h2>
     <div class="row g-2 small">
       <div class="col-md-4"><b>{% trans "Patient" %}:</b> {% if anonymous %}{{ initials }} — {{ patient.file_number }}{% else %}{{ patient.full_name }} ({{ patient.file_number }}){% endif %}</div>
@@ -29,14 +36,14 @@
     </div>
   </section>
 
-  <section class="report-section mb-4">
+  <section class="report-section mb-4 pdf-block">
     <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Current dental chart" %}</h2>
     <div class="odontogram-wrap">{{ svg }}</div>
     <div class="mt-1">{% include "charting/_legend.html" %}</div>
   </section>
 
   {% if plans %}
-  <section class="report-section mb-4">
+  <section class="report-section mb-4 pdf-block">
     <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Treatment plans" %}</h2>
     {% for plan in plans %}
       <div class="small fw-semibold">{{ plan.title }} — {{ plan.get_status_display }}{% if plan.approved_by %} ({% trans "approved by" %} {{ plan.approved_by }}){% endif %}</div>
@@ -47,7 +54,7 @@
   {% endif %}
 
   {% for s in surgeries %}
-  <section class="report-section mb-4">
+  <section class="report-section mb-4 pdf-block">
     <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Surgery" %} {{ s.number }} — {{ s.date|date:"d/m/Y" }} ({{ s.get_difficulty_display }})</h2>
     <div class="small mb-2"><b>{% trans "Instructor" %}:</b> {{ s.instructor|default:"—" }} · <b>{% trans "Operator 1" %}:</b> {{ s.operator_1 }} · <b>{% trans "Operator 2" %}:</b> {{ s.operator_2|default:"—" }} · <b>{% trans "Assistant" %}:</b> {{ s.assistant|default:"—" }}</div>
     <table class="table table-sm table-bordered small">
@@ -71,7 +78,7 @@
   </section>
   {% endfor %}
 
-  <section class="report-section mb-4">
+  <section class="report-section mb-4 pdf-block">
     <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Treatment log" %}</h2>
     <table class="table table-sm table-bordered small">
       <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Treatment" %}</th><th>{% trans "Operator" %}</th><th>{% trans "Supervisor" %}</th><th>{% trans "Next visit" %}</th></tr></thead>
@@ -80,10 +87,11 @@
     </table>
   </section>
 
-  {% for label, items in photos_by_stage %}
-  <section class="report-section mb-4">
-    <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Photos" %} — {{ label }}</h2>
-    <div class="row g-2">{% for photo in items %}{% if not photo.is_video %}<div class="col-4 col-md-3"><img class="photo-thumb" style="height:150px" src="{{ photo.file|preview:'medium' }}" alt=""><div class="small text-muted">{{ photo.photo_type|default:"" }} {{ photo.taken_on|date:"d/m/Y" }}</div></div>{% endif %}{% endfor %}</div>
+  {% for page in photo_pages %}
+  <section class="report-photo-page pdf-page per-page-{{ per_page }}">
+    <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Photos" %} — {{ page.label }}{% if page.continued %} <span class="fw-normal text-muted">({% trans "continued" %})</span>{% endif %}</h2>
+    <div class="report-photo-grid">{% for photo in page.photos %}<figure class="report-photo"><div class="report-photo-frame"><img src="{{ photo.file|preview:'medium' }}" alt="{{ photo.photo_type|default:'' }}"></div>
+      <figcaption>{% if photo.photo_type %}{{ photo.photo_type.name_en }}{% else %}{{ photo.notes|default:_("Other photo") }}{% endif %}{% if photo.teeth %} · {{ photo.teeth }}{% endif %} · {{ photo.taken_on|date:"d/m/Y" }}</figcaption></figure>{% endfor %}</div>
   </section>
   {% endfor %}
 </div></div>

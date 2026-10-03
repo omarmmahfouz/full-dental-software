@@ -407,3 +407,35 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
 170. **WhatsApp**: *Schedule → WhatsApp* → *Send*: WhatsApp opens with the message (it opened a blank page before).
 171. **Registration** (see the secretary's checklist, section X): the ID card read by the camera, the required boxes,
      the city list, the visit preferences.
+
+## X. New in this version (14): one place at a time, the lab's day, photo pages, settings by place, time in the system
+172. `owner`: the home page opens on **All places**: a card for CIA, El Khadem, CIC and the lab, and the shared low
+     stock; no reception buttons. **Open EK** on its card: only El Khadem shows (its reception, visits, doctors'
+     shares); no academy (it is CIA's). The tabs above (*All places*, CIA, EK, CIC, LAB) and the top-bar switch do the
+     same; *All places* brings the summary back.
+173. `owner`: **Open LAB**: only the lab's home and menus (stock, the lab, reports); patients, reception, academy and
+     finders are not in the menu at the lab. *End of the day* there opens the **lab's** day.
+174. `dentist1`: the patient with the **ten demo photos** (the first CIA surgery's patient) → *Case report* → **Save as
+     PDF**: choose **4 on a page** → the page opens again and the PDF is saved: the dental chart first, then the photos
+     4 on each page (a stage with more goes on to a *continued* page). Try **6 on a page** and **Print** too.
+175. *Photos → Log book*: *Print* / *Save as PDF* ask 4 or 6 the same way; change a description first: it stays.
+176. **Edit a photo on the tablet**: the *Edit* button under a photo → drag a **corner** of the frame (any of the
+     four) to crop, drag inside it to move it, turn, lighten → *Save the photo* (it stays at the bottom of the screen).
+     The small crop button on the photos of a treatment step and of a surgery opens the same and comes back there.
+177. `owner`: *Settings → Access by role*: choose a role on the side; each part has **Normal / Read only / No access**.
+     Change two parts for the secretary → *Save* → the role shows how many parts are limited.
+178. The dental lab has a new icon (a tooth on a model base with a brush) in the menu and on its pages.
+179. `owner`: *Settings*: the main settings as tiles, then a card for **each place** (people, doctors, rooms, the
+     services only it gives, name, look and hours; the lab: staff, work types, prices, options), then the lists in
+     groups: type "room" in **Find a list**. *Rooms* on the CIC card shows only CIC's rooms.
+180. `owner`: *People and logins* → the **LAB** tab: Dr. Sherif Nabil (`dentist2`, a CIA dentist who designs for the
+     lab) is there, with the CIA and LAB badges.
+181. `owner`: *Settings → Time in the system*: each person this week: times opened, first and last, **open** and
+     **worked** time and the part worked; three are *in the system now*. Tap a name: each time, how long, the pages,
+     the place, how it ended (logged out, logged out for no use, closed the page). Log in as someone else in another
+     browser, open pages, come back: that person is in the list.
+182. A tablet held sideways (or a PC 1280 px wide): the *Settings* pages no longer have the person's menu open over
+     them.
+183. **Up**: at the top of every page *Up* (with the page's name) opens the page above: from a visit or an edit form
+     the patient's file, from a receipt the payments, from a lab case the lab cases. The browser's back button still
+     goes back one step.

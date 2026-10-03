@@ -75,7 +75,11 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - `core`: settings, notifications, approvals, backups; `egypt.py` (the cities of each governorate, `city_in`);
     `kept_uploads.py` (photos chosen in a form that comes back with an error are kept in the session, `carry` /
     `chosen`, `KeptPhotoInput`); `signatures.py` (`UserProfile.signature` / `Dentist.signature` = a drawn PNG kept as
-    a `data:` address, `person_signature`, `includes/signatures.html` on the receipt and the prescription)
+    a `data:` address, `person_signature`, `includes/signatures.html` on the receipt and the prescription);
+    `worktime.py` = time in the system (round 14): `WorkSession` per stretch, `WorkTimeMiddleware` (after
+    `IdleLogoutMiddleware`) notes each page and each check of the bell (`?active=1` when the person typed or tapped),
+    `ACTIVE_GAP` 3 min counts as work, `OPEN_GAP` 30 min ends a stretch, the state is in the session and written every
+    30 s (`clock()` is patched in tests); logout / idle logout end it; the owner's report is `core:time_report`
   - `patients`: the file's steps (`sequence.py`, the dentist's order), the medical follow-up (`medical.py`: the
     readings above the limits of `ClinicSettings`; `MedicalConsult` = the letter to the physician, `consults.py`);
     the ID card is read on the PC or tablet by `static/js/idcard.js` (camera frame, crop, the number by a digit
@@ -87,6 +91,10 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     asks for, kept as `ClinicalPhoto.treatment_step`/`shot`), lab cycle, visit notes; `finder.py` = the restorative
     work finder and statistics (the implant cases are in `surgery/finder.py`, the plans in `charting/plan_finder.py`
     with `part` implant / restorative; `includes/finder_tabs.html` joins the four pages under *Finders*)
+  - photos printed or saved (case report, log book): `charting.views.per_page_of` / `in_pages` (4 or 6 a page, asked
+    in `includes/photos_per_page.html`, then `?do=print|pdf` → `data-auto-do`); the PDF is made part by part
+    (`data-save-blocks=".pdf-block, .pdf-page"` in app.js: `.pdf-page` fills an A4 page; the copy drawn gets the
+    `pdf-layout` class; `fittedPictures` replaces object-fit, which html2canvas ignores)
   - `charting`: examination, tooth chart rules, plans, photos
   - `surgery`: surgery chart (the design like a scanner: `templates/surgery/_arch_designer.html`,
     `static/js/surgery-arch.js`, `Surgery.pontics`, `prostheses.plan_from_surgery`), implants, prostheses and their
@@ -116,7 +124,8 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     `outsource`, `open_block`, `balances`); `clinical.services.perform_lab_action` calls `case_from_request` (send),
     `request_remade` (remake) and `clinic_received` (receive) when the lab is ours (`Lab.branch` is the LAB place).
     `stats.py` = the report; `whatsapp.py` = texts, the status answer, the WhatsApp Business webhook; `demo.py` =
-    `load_lab`
+    `load_lab`; `day.py` = the lab's end of the day (its `LabPayment`s, a `billing.DayClosing` of the LAB place;
+    `billing:day` / `billing:month` opened at the lab redirect there)
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
   through `WorkingPlaceMiddleware`); `working_places(user)` = the clinic places (the owner's all, else `profile.places`
   + `profile.branch`); `switch_places(user)` adds the LAB place for the lab staff and the owner (the switch, the login).
@@ -132,6 +141,11 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     cookie (`core.views.PlaceLoginView`): the login page takes that place's look and opens it after login.
   - Shared rooms (`Branch.rooms_shared`, El Khadem): `scheduling/rooms.py` (`free_room`, `room_clash`, `change_room`
     with swap); the day planner has `by=doctor`; opening hours and closed days are on the `Branch`.
+  - The owner's home (round 14) opens on **All places** (`overview.sees_all_places`, session `all_places`, set at the
+    owner's login and by `core:all_places`; `core/_place_tabs.html`): a summary card per place
+    (`places_now`, `ordered_places`) and the shared stock. Choosing a place (`switch_place`) shows only that place.
+    At the LAB place (`at_lab` in the context processor) the clinics' menus are hidden and the home is the lab's;
+    the academy menu shows at CIA only (`academy_here`).
 - **What the reception sees in a file**: `patients/access.py` `file_parts(user)` (owner's choice in Settings → Access,
   `ClinicSettings.reception_sees`); the dentist fills the file in order (`patients/sequence.py`).
 - **Approvals** (`apps/core/approvals.py`: `needs_approval`, `request_change`) go to the head of CIA or the owner.
@@ -154,15 +168,23 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - Page hints: `apps/core/hints.py` (keyed by `namespace:url_name`, a text per role where needed). Add one for each new
   main page, in plain words, and translate it. Each person can switch hints off (user menu, `UserProfile.show_hints`).
 - Links: show a link only when the reader can open it (e.g. `user|opens_dentist:dentist`, `hidden_areas`, `is_clinical`).
-- **Back and saving** (`static/js/app.js`): the pages of a tab are kept in order in `sessionStorage` ("page-trail");
-  a page that sends a POST form leaves it, so *Back* (`a[data-back]`) opens the page before (never a saved form, never
-  the same page twice); without a trail it opens `back_url` = `navigation.up_url(path)` (the address one level up).
-  On sending a main form the history entry of the form becomes the page before (the browser's back skips the form).
+- **Up and saving**: the link at the top of each page is **Up** (round 14, `{% up_target as up %}` in base.html,
+  `navigation.up_target(path, patient)`): the patient's file for a page about a patient (unless the page above is one of
+  the patient's pages), else `up_url(path)` (the address one level up); `UP_NAMES` names the common targets. It no
+  longer goes back one step. The pages of a tab are still kept in `sessionStorage` ("page-trail") for the browser's
+  back: on sending a main form the history entry of the form becomes the page before (the browser's back skips it).
   A POST form is sent once: the button shows *Saving…* (`data-saving-text` on `<body>`).
 - **SQLite** (trial, single PC) runs in WAL mode with `transaction_mode=IMMEDIATE` and a 20 s timeout (`settings.py`).
 - **Dashboard**: `core/overview.py` (`/dashboard/`, owner / head of CIA / moderators; money for owner and moderators).
   The owner's home page always shows the four places side by side (`places_now`: CIA, EK, CIC, LAB), whatever place
   is open.
+- **Settings** (round 14): `settings_home` = main tiles, `place_cards()` (each place: people, doctors, rooms, its own
+  services, look; the lab: staff, work types, prices, options), the lists in groups with *Find a list*; lists with a
+  `branch` field take `?place=`; `people_at(place)` (the lab = lab roles + users on the lab staff, e.g. a designing
+  dentist) gives the place tabs of *People and logins*; *Access by role* is one role at a time (`ACCESS_SECTIONS`).
+  The menu script never opens the person's own menu (it covered the Settings pages from 1200 px).
+- **Icons drawn by us** (`app.css`, CSS masks): `bi-lab-request` (a request sheet with a tooth) and `bi-dental-lab`
+  (a tooth on a model base with a brush: the lab's menu, pages, cards).
 - **Fawry**: each person sees only the moves they did (`FawryMove.created_by`); the owner and the head of CIA see all,
   and the owner changes the percentage on the Fawry page.
 - The JavaScript is in `static/js/app.js`, with no build step. Its hooks:
@@ -257,6 +279,11 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - A signature is a picture drawn once with the finger or the mouse and printed on receipts and prescriptions; it is
     not a legal e-signature. There is no freehand pen drawing on the chart yet.
   - The price history of an item comes from purchases and receipts into stock that name the item and a price.
+  - Time in the system is counted from the browser's signs: a page left open without touching counts as open, not
+    worked; reading one page for more than 3 minutes without touching it is not counted as work; several tabs of one
+    person count once; the last half minute may not be saved yet when the report is opened.
+  - The PDF of a report is made in the browser from pictures of its parts: its text cannot be selected; *Print* →
+    *Save as PDF* gives sharper text. A very long single part (e.g. a huge treatment log) is still cut over pages.
   - A doctor's percentage is taken of what the patient has paid so far, counted on the date the service was given;
     nothing is taken off first (e.g. lab or implant cost) unless the owner asks for it.
   - CIC and the lab (GDIL) use the logos the owner sent (`static/img/cic-logo.jpg`, `gdil-logo.jpg`, on their grey

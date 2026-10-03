@@ -319,8 +319,11 @@ class DoctorShareTests(PlaceMixin, TestCase):
         self.assertEqual((c["collected"], c["visit_count"], c["chair_minutes"], c["stock_used"]),
                          (Decimal("200"), 1, 45, Decimal("50")))
         self.assertEqual(c["left"], Decimal("200") - Decimal("60.00") - Decimal("50"))
-        cards = self.client.get("/").context["clinic_cards"]  # this month, for each place paying by rules
+        self.client.post("/place/", {"place": "CIC", "next": "/"})  # round 14: the owner's home shows that place
+        cards = self.client.get("/").context["clinic_cards"]  # this month, at a place paying by rules
         self.assertEqual([card["place"] for card in cards], [self.cic])
+        self.client.post("/place/", {"place": "CIA", "next": "/"})
+        self.assertEqual(self.client.get("/").context["clinic_cards"], [])
 
 
 class StockPlaceTests(PlaceMixin, TestCase):

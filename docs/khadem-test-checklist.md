@@ -166,3 +166,8 @@ In the sample data:
 3. *Fawry machine*: `khadem` sees only El Khadem's moves she did.
 4. `amr`: tap a complaint in the list to open it and write a comment there.
 5. `owner`: work at El Khadem: the home page still shows CIA, El Khadem, CIC and the lab side by side.
+
+## N. New in this version (14)
+1. `owner`: home page → **Open EK**: only El Khadem shows (no CIA academy installments, no other place's visits).
+2. `owner`: *Settings* → the **El Khadem** card: its people, doctors, the 4 shared rooms and its own services.
+3. `amr`: open a visit, then **Up**: it opens the patient's file.

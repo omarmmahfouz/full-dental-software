@@ -22,6 +22,8 @@ HINTS = {
                      "The bell at the top rings when your patient arrives."),
         "stock": _("Items running low and expiring soon are listed here. Tap one to receive or take out stock."),
         "default": _("The numbers are live: tap a box to open the list behind it."),
+        "owner_all": _("A summary of each place today. Press Open on a place (or choose it at the top) to see only "
+                       "that place; All places brings this summary back."),
     },
     "core:notifications": _("Tap a notification to open what it is about. New ones are marked in blue."),
     "core:approvals": _("Changes made at the reception wait here. Compare the old and the new values, then approve or refuse."),
@@ -141,7 +143,17 @@ HINTS = {
     "purchasing:purchase_list": _("Every purchase with what is still owed. Tap one for its lines and invoice photo."),
     "purchasing:purchase_create": _("Add one line per item with its category. Link a line to a stock item to fill the stock."),
     "reports:index": _("Choose a report. Each one can be filtered by dates, and most can be exported."),
-    "settings:home": _("Lists, clinic options and logins. Nothing is deleted: untick active to stop using an item."),
+    "settings:home": _("The main settings first, then each place (its people, rooms, services and look), then the "
+                       "lists: type in Find a list to reach one quickly. Nothing is deleted: untick active instead."),
+    "settings:access": _("Choose a role on the side, then for each part: Normal, Read only or No access. Save once "
+                         "for every role."),
+    "settings:users": _("Choose a place to see only its people. The lab shows the dentists who design for it too."),
+    "core:time_report": _("For each person: how many times they opened the system, how long it was open and how "
+                          "long they worked. Tap a name to see each time."),
+    "core:time_person": _("Each time this person opened the system: when, how long it stayed open, how long they "
+                          "worked and how it ended."),
+    "lab:day": _("The lab's receipts of the day and the work delivered. At the end of the day count the cash in the "
+                 "drawer and close the day; the owner reviews it."),
     "settings:backup": _("Green means the last backup worked. Every night the data is saved as a ZIP and the new "
                          "photos are copied to the backup disk. Make a backup now before any big change."),
     "settings:security": _("A yellow line is something to fix, with how. Below: who is logged in now, the logins "
@@ -222,6 +234,14 @@ def hint_for(request):
     if match is None or not match.view_name:
         return None
     hint = HINTS.get(match.view_name)
+    if match.view_name == "core:dashboard":  # the owner's home: all places, or one place (the lab's own hint)
+        from .models import Branch, branch_for_user
+        from .overview import sees_all_places
+
+        if sees_all_places(request):
+            hint = hint["owner_all"]
+        elif getattr(branch_for_user(request.user), "kind", None) == Branch.Kind.LAB:
+            hint = hint["lab_desk"] if has_role(request.user, *LAB_DESK) else hint["lab"]
     if isinstance(hint, dict):
         for group, roles in ROLE_GROUPS.items():
             if group in hint and has_role(request.user, *roles):

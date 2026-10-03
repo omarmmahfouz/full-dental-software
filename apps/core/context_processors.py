@@ -56,6 +56,15 @@ def app_context(request):
                 "is_lab_money": bool(roles & set(LAB_MONEY)),
             }
         )
+        current = context["current_branch"]
+        context["at_lab"] = current is not None and current.kind == current.Kind.LAB
+        # The academy's courses are CIA's: its menu shows when working at CIA (round 14).
+        context["academy_here"] = current is None or current.code == settings.CLINIC["DEFAULT_BRANCH_CODE"]
+        if context["at_lab"]:
+            # Working at the lab: the menus of the clinics (patients, reception, academy, the clinics' doctors,
+            # finders) are not shown; they come back at a clinic (round 14).
+            for key in ("is_front_desk", "is_clinical", "sees_patients", "is_clinic_manager"):
+                context[key] = False
         from .access import area_levels, area_of
 
         levels = area_levels(user)
@@ -67,7 +76,7 @@ def app_context(request):
         context["hints_on"] = profile is None or profile.show_hints
         context["page_hint"] = hint_for(request) if context["hints_on"] else None
         context["hints_reset"] = request.session.pop("hints_reset", False)
-        context["bottom_nav"] = bottom_nav(user, request.path, context["hidden_areas"])
+        context["bottom_nav"] = bottom_nav(user, request.path, context["hidden_areas"], at_lab=context["at_lab"])
         context["back_url"] = up_url(request.path)
         context["role_labels"] = [label for code, label in ROLE_CHOICES if code in roles]
         places = switch_places(user)

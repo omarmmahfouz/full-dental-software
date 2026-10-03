@@ -1,0 +1,24 @@
+{% load i18n %}{% comment %}Asked before printing or saving photos as a PDF (round 14): 4 large photos on each page, or 6. The page opens again
+with the choice and then prints or saves by itself (app.js, data-auto-do). Buttons that open it:
+<button data-bs-toggle="modal" data-bs-target="#photos-per-page" data-per-page-do="print|pdf">.{% endcomment %}
+<div class="modal fade no-print" id="photos-per-page" tabindex="-1" aria-labelledby="photos-per-page-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="get" data-no-leave-warning data-per-page-form>
+    {% for name, value in keep %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <div class="modal-header"><h5 class="modal-title" id="photos-per-page-title"><i class="bi bi-grid"></i> {% trans "How many photos on each page?" %}</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button></div>
+    <div class="modal-body">
+      <div class="per-page-choices">
+        <label class="per-page-choice"><input type="radio" name="per_page" value="4" {% if per_page == "4" %}checked{% endif %}>
+          <span class="per-page-sheet sheet-4" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <b>{% trans "4 on a page" %}</b><small>{% trans "Large photos" %}</small></label>
+        <label class="per-page-choice"><input type="radio" name="per_page" value="6" {% if per_page != "4" %}checked{% endif %}>
+          <span class="per-page-sheet sheet-6" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <b>{% trans "6 on a page" %}</b><small>{% trans "Smaller photos, fewer pages" %}</small></label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline-primary" name="do" value="print" data-per-page-button="print"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+      <button class="btn btn-primary" name="do" value="pdf" data-per-page-button="pdf"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
+    </div>
+  </form></div>
+</div>

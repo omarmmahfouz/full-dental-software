@@ -4,21 +4,49 @@
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-gear"></i> {% trans "Settings" %}</h1></div>
 <p class="text-muted">{% trans "Change the lists and options the system uses, without changing the program." %}</p>
-<div class="row g-3 mb-4">
+
+<h2 class="settings-heading"><i class="bi bi-star"></i> {% trans "Main settings" %}</h2>
+<div class="settings-tiles mb-4">
   {% if roles.owner %}
-  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'settings:options' %}"><div class="card-body"><i class="bi bi-sliders fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "Clinic options" %}</h2><p class="small text-muted mb-0">{% trans "Name, phone and address on printouts; late minutes, appointment length, reminders, stock warnings." %}</p></div></a></div>
-  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'settings:users' %}"><div class="card-body"><i class="bi bi-people fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "People and logins" %}</h2><p class="small text-muted mb-0">{% trans "Roles, read-only access, and when each person may use the system." %}</p></div></a></div>
-  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'settings:backup' %}"><div class="card-body"><i class="bi bi-safe fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "Backup and export" %}</h2><p class="small text-muted mb-0">{% trans "Full backup of all data and files; all data as an Excel file." %}</p></div></a></div>
-  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'settings:security' %}"><div class="card-body"><i class="bi bi-shield-check fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "Security and health" %}</h2><p class="small text-muted mb-0">{% trans "The checks, who is logged in now, closed logins, the security log and the deleted records." %}</p></div></a></div>
-  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'settings:access' %}"><div class="card-body"><i class="bi bi-shield-lock fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "Access by role" %}</h2><p class="small text-muted mb-0">{% trans "Make a part of the system read only or closed for a role." %}</p></div></a></div>
+  <a class="settings-tile" href="{% url 'settings:options' %}"><i class="bi bi-sliders"></i><span><b>{% trans "Clinic options" %}</b><small>{% trans "Name, phone and address on printouts; late minutes, appointment length, reminders, stock warnings." %}</small></span></a>
+  <a class="settings-tile" href="{% url 'settings:users' %}"><i class="bi bi-people"></i><span><b>{% trans "People and logins" %}</b><small>{% trans "Roles, read-only access, and when each person may use the system." %}</small></span></a>
+  <a class="settings-tile" href="{% url 'settings:access' %}"><i class="bi bi-shield-lock"></i><span><b>{% trans "Access by role" %}</b><small>{% trans "Make a part of the system read only or closed for a role." %}</small></span></a>
+  <a class="settings-tile" href="{% url 'core:time_report' %}"><i class="bi bi-stopwatch"></i><span><b>{% trans "Time in the system" %}</b><small>{% trans "When each person opened the system, how long it was open and how long they worked." %}</small></span></a>
+  <a class="settings-tile" href="{% url 'settings:security' %}"><i class="bi bi-shield-check"></i><span><b>{% trans "Security and health" %}</b><small>{% trans "The checks, who is logged in now, closed logins, the security log and the deleted records." %}</small></span></a>
+  <a class="settings-tile" href="{% url 'settings:backup' %}"><i class="bi bi-safe"></i><span><b>{% trans "Backup and export" %}</b><small>{% trans "Full backup of all data and files; all data as an Excel file." %}</small></span></a>
   {% endif %}
-  <div class="col-md-6 col-xl-3"><a class="card h-100 text-decoration-none" href="{% url 'dentists:list' %}"><div class="card-body"><i class="bi bi-person-badge fs-2 text-primary"></i><h2 class="h6 mt-2">{% trans "Dentists" %}</h2><p class="small text-muted mb-0">{% trans "CIA dentists, training dentists and supervisors. Candidates come from the academy." %}</p></div></a></div>
+  <a class="settings-tile" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i><span><b>{% trans "Dentists" %}</b><small>{% trans "CIA dentists, training dentists and supervisors. Candidates come from the academy." %}</small></span></a>
 </div>
-{% for group, items in list_groups %}
-<h2 class="h6 fw-bold mt-3" style="color: var(--brand-green-dark)">{{ group }}</h2>
-<div class="list-group mb-3">
-  {% for key, title, count in items %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="{% url 'settings:list' key %}"><span>{{ title }}</span><span class="badge text-bg-light">{{ count }}</span></a>{% endfor %}
+
+{% if place_cards %}
+<h2 class="settings-heading"><i class="bi bi-geo-alt"></i> {% trans "Each place" %}</h2>
+<div class="settings-places mb-4">
+  {% for card in place_cards %}
+  <section class="card settings-place place-{{ card.place.code }}">
+    <div class="settings-place-head">{% if card.place.has_mark %}<img src="{{ card.place.mark_url }}" alt="">{% else %}<span class="place-letterhead-code small-code">{{ card.place.badge }}</span>{% endif %}
+      <div class="min-w-0"><b>{{ card.place.name }}</b><div class="small text-muted">{{ card.place.badge }}</div></div></div>
+    <div class="list-group list-group-flush">{% for icon, label, count, url in card.items %}
+      <a class="list-group-item list-group-item-action d-flex align-items-center gap-2" href="{{ url }}"><i class="bi {{ icon }}"></i><span class="flex-grow-1">{{ label }}</span>{% if count is not None %}<span class="badge text-bg-light">{{ count }}</span>{% endif %}</a>{% endfor %}
+    </div>
+  </section>
+  {% endfor %}
 </div>
-{% endfor %}
-{% if user.is_staff %}<p class="small"><a href="{% url 'admin:index' %}"><i class="bi bi-tools"></i> {% trans "Advanced settings (all tables)" %}</a></p>{% endif %}
+{% endif %}
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+  <h2 class="settings-heading mb-0"><i class="bi bi-list-ul"></i> {% trans "Lists" %}</h2>
+  <input type="search" class="form-control form-control-sm ms-auto settings-find" placeholder="{% trans 'Find a list…' %}" aria-label="{% trans 'Find a list' %}" data-list-find>
+</div>
+<div class="settings-lists">
+  {% for group, icon, items in list_groups %}
+  <section class="card settings-list-group" data-list-group>
+    <div class="card-header"><i class="bi {{ icon }}"></i> {{ group }}</div>
+    <div class="list-group list-group-flush">
+      {% for key, title, count in items %}<a class="list-group-item list-group-item-action d-flex justify-content-between gap-2" href="{% url 'settings:list' key %}" data-list-item><span>{{ title }}</span><span class="badge text-bg-light">{{ count }}</span></a>{% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+<p class="text-muted small mt-2" data-list-none hidden>{% trans "No list has this name." %}</p>
+{% if user.is_staff %}<p class="small mt-3"><a href="{% url 'admin:index' %}"><i class="bi bi-tools"></i> {% trans "Advanced settings (all tables)" %}</a></p>{% endif %}
 {% endblock %}

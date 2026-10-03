@@ -4,7 +4,7 @@
 {% block extra_head %}<style>@media print { @page { size: A4; margin: 12mm; } main { max-width: none !important; } }</style>{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap gap-2 justify-content-center mb-3 no-print">
-  <a class="btn btn-outline-secondary" href="{{ patient.get_absolute_url }}" data-back><i class="bi bi-arrow-left"></i> {% trans "Patient file" %}</a>
+  <a class="btn btn-outline-secondary" href="{{ patient.get_absolute_url }}"><i class="bi bi-arrow-left"></i> {% trans "Patient file" %}</a>
   <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print (A4)" %}</button>
   <button class="btn btn-outline-primary" data-save-as="pdf" data-page="a4" data-save-target="#consult-letter" data-save-name="consult-{{ patient.file_number }}-{{ consult.sent_on|date:'Y-m-d' }}"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
   {% include "includes/send_to_patient.html" with kind="other" target="#consult-letter" name="consult-"|add:patient.file_number text="خطاب استشارة طبية — "|add:patient.full_name %}

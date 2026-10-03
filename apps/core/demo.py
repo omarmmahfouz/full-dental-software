@@ -1,6 +1,6 @@
 """Round 11 sample data: the security log (logins, wrong passwords, a login closed after wrong passwords, a visit
 from outside the clinic's network, files taken out, a page refused) and a record deleted by mistake. Round 13
-sample data: ``load_round_thirteen``."""
+sample data: ``load_round_thirteen``; round 14: ``load_round_fourteen``."""
 
 from datetime import timedelta
 
@@ -206,3 +206,65 @@ def load_round_thirteen(today, patients, secretary, stock_user, owner):
                            error="Browser: Chrome on Windows")
     report.screenshot.save("page-demo.jpg", ContentFile(output.getvalue()), save=False)
     report.save()
+
+
+def load_round_fourteen(today, patients, owner, demo_photo):
+    """Round 14 sample data: the time each person spent in the system this week (some are in it now), a closed day at
+    the lab, and photos of a surgery case to try the photo editor and 4 or 6 photos on each page."""
+    import random
+    from datetime import datetime, time as day_time
+
+    from apps.billing.models import DayClosing
+    from apps.charting.models import ClinicalPhoto, PhotoStage, PhotoType
+    from apps.lab.day import day_summary, lab_place
+    from apps.surgery.models import Surgery
+
+    from .models import Branch, WorkSession
+
+    rng = random.Random(14)
+    # Photos of one surgery case: 4 of the first visit, 6 of the surgery.
+    surgery = Surgery.objects.filter(branch__code="CIA").select_related("patient").order_by("pk").first()
+    if surgery is not None:
+        for stage, count in ((PhotoStage.DIAGNOSTIC, 4), (PhotoStage.SURGERY, 6)):
+            shots = list(PhotoType.objects.filter(stage=stage, is_active=True).order_by("sort_order")[:count])
+            for number, shot in enumerate(shots):
+                ClinicalPhoto.objects.create(
+                    patient=surgery.patient, stage=stage, photo_type=shot, surgery=surgery if stage == "surgery" else None,
+                    teeth="36", taken_on=surgery.date if stage == "surgery" else surgery.date - timedelta(days=14),
+                    file=demo_photo(shot.name_en, 1400 + number + (10 if stage == "surgery" else 0)))
+    # The time in the system: a working day for each person this week.
+    users = {u.username: u for u in get_user_model().objects.filter(username__in=[
+        "owner", "headcia", "dentist1", "dentist2", "secretary", "secretary2", "stock", "moderator", "amr", "khadem",
+        "labsec", "labmanager"]).select_related("profile")}
+    now = timezone.now()
+    for username, user in users.items():
+        place = getattr(getattr(user, "profile", None), "branch", None) or Branch.default()
+        for days_ago in range(6, -1, -1):
+            day = today - timedelta(days=days_ago)
+            if day.weekday() == 4 and username not in ("owner", "labsec"):  # Friday off
+                continue
+            start = timezone.make_aware(datetime.combine(day, day_time(8, 30))) + timedelta(minutes=rng.randint(0, 90))
+            hours = rng.uniform(2.5, 7.5) if username not in ("owner", "headcia") else rng.uniform(0.5, 2)
+            finish = start + timedelta(hours=hours)
+            still_open = days_ago == 0 and username in ("secretary", "labsec", "khadem")
+            if days_ago == 0:
+                if start > now:
+                    continue
+                finish = min(finish, now - timedelta(minutes=2))
+            open_seconds = max(60, int((finish - start).total_seconds()))
+            end = "" if still_open else rng.choice(["logout", "logout", "logout", "idle", "closed"])
+            WorkSession.objects.create(
+                user=user, branch=place, started_at=start, last_seen_at=finish, last_active_at=finish,
+                active_seconds=int(open_seconds * rng.uniform(0.5, 0.88)), pages=rng.randint(25, 320),
+                ended_at=None if still_open else finish, end=end, device=f"192.168.1.{rng.randint(20, 80)}")
+    # Yesterday's day closed at the lab, 20 short in the drawer, not reviewed yet.
+    lab = lab_place()
+    yesterday = today - timedelta(days=1)
+    labsec = get_user_model().objects.filter(username="labsec").first()
+    if lab is not None and not DayClosing.objects.filter(branch=lab, day=yesterday).exists():
+        summary = day_summary(yesterday)
+        DayClosing.objects.create(
+            branch=lab, day=yesterday, totals={row[2]: str(row[1]) for row in summary["by_method"]},
+            total=summary["total"], receipts=summary["count"], cash_expected=summary["cash"],
+            cash_counted=max(summary["cash"] - 20, 0), notes="ناقص ٢٠ جنيه", closed_by=labsec,
+            closed_at=timezone.make_aware(datetime.combine(yesterday, day_time(19, 5))))

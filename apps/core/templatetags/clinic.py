@@ -201,3 +201,22 @@ def shade_guides():
     from apps.specialties.shades import picker_data
 
     return picker_data()
+
+
+@register.simple_tag(takes_context=True)
+def up_target(context):
+    """{% up_target as up %}: where the Up button of this page goes, and the name of that page (round 14)."""
+    from apps.core.navigation import up_target as target
+
+    request = context.get("request")
+    if request is None:
+        return {"url": "/", "name": None}
+    return target(request.path, context.get("patient"))
+
+
+@register.filter
+def duration(seconds):
+    """Seconds as "1 h 05 min" / "12 min" (time in the system, round 14)."""
+    from apps.core.worktime import duration as text
+
+    return text(seconds)

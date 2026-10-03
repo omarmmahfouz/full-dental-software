@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
+from django.db.models import Q
 from django.forms import inlineformset_factory, modelform_factory
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -102,12 +103,83 @@ LISTS = {
 }
 
 
+LAB_ROLES = (LAB_HEAD, LAB_MANAGER, LAB_DESIGNER, LAB_SECRETARY)
+CLINIC_ROLES = tuple(code for code, _label in ROLE_CHOICES if code not in LAB_ROLES)
+LIST_ICONS = {"Clinical": "bi-clipboard2-pulse", "Prescriptions": "bi-capsule", "Reception": "bi-display",
+              "Lab": "bi-dental-lab", "Stock and purchases": "bi-boxes"}
+
+
+def setting_places():
+    """The places in the order used everywhere: the clinics, then the lab."""
+    places = Branch.objects.filter(is_active=True).order_by("sort_order", "pk")
+    return sorted(places, key=lambda place: place.kind == Branch.Kind.LAB)
+
+
+def people_at(place, users=None):
+    """The logins of the people who work at ``place`` (round 14): at a clinic, those who have it as their place or
+    ticked; at the lab, everyone with a lab role or on the lab's staff, e.g. a CIA dentist who designs for the lab
+    (before, such a dentist could not be found under the lab)."""
+    users = users if users is not None else get_user_model().objects.all()
+    if place.kind == Branch.Kind.LAB:
+        return users.filter(Q(groups__name__in=LAB_ROLES) | Q(lab_worker__isnull=False)).distinct()
+    here = Q(profile__branch=place) | Q(profile__places=place) | Q(groups__name=OWNER)
+    if place == Branch.default():
+        here |= Q(profile__isnull=True) | Q(profile__branch__isnull=True)
+    return users.filter(here, groups__name__in=CLINIC_ROLES).distinct()
+
+
+def place_cards():
+    """Settings by place (round 14): for each place its people, doctors, rooms and services, its look and hours; for
+    the lab its staff, prices and work types."""
+    from apps.lab.models import LabWorker
+
+    users_url = reverse("settings:users")
+    cards = []
+    for place in setting_places():
+        items = [("bi-people", _("People and logins"), people_at(place).count(), f"{users_url}?place={place.code}")]
+        if place.kind == Branch.Kind.LAB:
+            items += [
+                ("bi-person-gear", _("Lab staff and their steps"), LabWorker.objects.filter(is_active=True).count(),
+                 reverse("lab:staff")),
+                ("bi-list-check", _("Lab work types"), LabWorkType.objects.count(),
+                 reverse("settings:list", args=["lab_work_types"])),
+                ("bi-tags", _("Lab prices"), None, reverse("lab:prices")),
+                ("bi-sliders", _("Lab options"), None, reverse("lab:settings")),
+            ]
+        else:
+            items += [
+                ("bi-person-badge", _("Doctors"), Dentist.objects.working_at(place).filter(is_active=True).count(),
+                 reverse("dentists:list")),
+                ("bi-door-open", _("Rooms"), Room.objects.filter(branch=place).count(),
+                 f"{reverse('settings:list', args=['rooms'])}?place={place.code}"),
+                ("bi-tags", _("Services only here"), Service.objects.filter(branch=place).count(),
+                 f"{reverse('settings:list', args=['services'])}?place={place.code}"),
+            ]
+        items.append(("bi-palette", _("Name, look and opening hours"), None,
+                      reverse("settings:list_update", args=["places", place.pk])))
+        cards.append({"place": place, "items": items})
+    return cards
+
+
 @role_required(OWNER, HEAD_CIA)
 def settings_home(request):
+    """Round 14: the main settings, then each place on its own card, then the lists in groups that can be searched
+    (it was one long column of lists)."""
+    from .roles import has_role
+
     groups = {}
     for key, (title, model, _fields, _cols, _inline, group) in LISTS.items():
-        groups.setdefault(str(group), []).append((key, title, model.objects.count()))
-    return render(request, "settings/home.html", {"list_groups": groups.items()})
+        groups.setdefault(group, []).append((key, title, model.objects.count()))
+    from django.utils import translation
+
+    def icon(group):
+        with translation.override("en"):
+            return LIST_ICONS.get(str(group), "bi-list-ul")
+
+    list_groups = [(group, icon(group), items) for group, items in groups.items()]
+    return render(request, "settings/home.html", {
+        "list_groups": list_groups, "place_cards": place_cards() if has_role(request.user, OWNER) else [],
+    })
 
 
 # ------------------------------------------------------------ lists
@@ -126,6 +198,12 @@ NO_ADD = {"places"}
 def list_rows(request, key):
     title, model, _fields, columns, _inline, _group = _entry(key)
     rows = model.objects.all()
+    # Lists that belong to a place (rooms, services, labs) can be shown for one place (round 14).
+    by_place = any(field.name == "branch" for field in model._meta.fields)
+    places = [p for p in setting_places() if p.kind != Branch.Kind.LAB] if by_place else []
+    place = next((p for p in places if p.code == request.GET.get("place")), None)
+    if place is not None:
+        rows = rows.filter(branch=place)
     headers = [model._meta.get_field(name).verbose_name for name in columns]
     cells = []
     for obj in rows:
@@ -135,7 +213,7 @@ def list_rows(request, key):
             values.append(display() if display else getattr(obj, name))
         cells.append((obj, values, getattr(obj, "is_active", True)))
     return render(request, "settings/list.html", {"key": key, "title": title, "headers": headers, "rows": cells,
-                                                  "can_add": key not in NO_ADD})
+                                                  "can_add": key not in NO_ADD, "places": places, "place": place})
 
 
 @role_required(OWNER, HEAD_CIA)
@@ -285,16 +363,34 @@ class UserForm(StyledForm):
 
 @role_required(OWNER)
 def user_list(request):
-    users = (get_user_model().objects.prefetch_related("groups", "area_access").select_related("profile")
+    everyone = get_user_model().objects.all()
+    places = setting_places()
+    place = next((p for p in places if p.code == request.GET.get("place")), None)
+    users = people_at(place, everyone) if place is not None else everyone
+    users = (users.prefetch_related("groups", "area_access", "profile__places").select_related("profile", "profile__branch")
              .order_by("-is_active", "first_name"))
     labels = dict(ROLE_CHOICES)
-    rows = [(u, [labels.get(g.name, g.name) for g in u.groups.all()], getattr(u, "profile", None),
-             [(AREA_LABELS.get(rule.area, rule.area), rule.get_level_display()) for rule in u.area_access.all()])
-            for u in users]
+    lab = next((p for p in places if p.kind == Branch.Kind.LAB), None)
+    with_lab = set(people_at(lab, everyone).values_list("pk", flat=True)) if lab else set()
+    rows = []
+    for u in users:
+        profile = getattr(u, "profile", None)
+        works_at = []  # the places the person works at, shown as badges (round 14)
+        if profile is not None:
+            works_at = list(profile.places.all()) or ([profile.branch] if profile.branch else [])
+        if u.pk in with_lab and lab is not None:
+            works_at = [p for p in works_at if p.kind != Branch.Kind.LAB] + [lab]
+            if not any(g.name in CLINIC_ROLES for g in u.groups.all()):
+                works_at = [lab]
+        rows.append((u, [labels.get(g.name, g.name) for g in u.groups.all()], profile,
+                     [(AREA_LABELS.get(rule.area, rule.area), rule.get_level_display()) for rule in u.area_access.all()],
+                     works_at))
     from .passwords import pending
 
+    tabs = [(p, people_at(p, everyone).count()) for p in places]
     return render(request, "settings/users.html", {"rows": rows, "password_requests": pending(),
-                                                   "given_password": request.session.pop("given_password", None)})
+                                                   "given_password": request.session.pop("given_password", None),
+                                                   "place_tabs": tabs, "place": place, "everyone": everyone.count()})
 
 
 @role_required(OWNER)
@@ -364,6 +460,15 @@ def user_edit(request, pk=None):
     return render(request, "settings/user_form.html", {"form": form, "target": target})
 
 
+ACCESS_SECTIONS = [
+    (gettext_lazy("Patients and treatment"), ["patients", "calls", "schedule", "charts", "treatments", "lab",
+                                               "surgery", "prescriptions", "complaints", "specialists"]),
+    (gettext_lazy("Money, stock and people"), ["billing", "purchases", "stock", "dentists", "academy", "clinics"]),
+    (gettext_lazy("Reports and statistics"), ["reports", "finder"]),
+    (gettext_lazy("Dental lab"), ["dental_lab"]),
+]
+
+
 @role_required(OWNER)
 def role_access(request):
     from apps.patients.access import ALL_PARTS, FILE_PARTS
@@ -389,10 +494,20 @@ def role_access(request):
                         AreaAccess.objects.update_or_create(role=role, area=area, defaults={"level": level})
         messages.success(request, _("Access saved."))
         return redirect("settings:access")
-    rows = [(area, label, [(role, current.get((role, area), AreaAccess.Level.FULL)) for role, _l in roles])
-            for area, label, _prefixes in AREAS]
+    # Round 14: one role at a time, the parts of the system in groups, three choices for each (it was one wide table
+    # of drop-down lists that did not fit on the screen).
+    labels = {code: label for code, label, _prefixes in AREAS}
+    lab_roles = {LAB_HEAD, LAB_MANAGER, LAB_DESIGNER, LAB_SECRETARY}
+    panels = []
+    for role, role_label in roles:
+        sections = [(title, [(area, labels[area], current.get((role, area), AreaAccess.Level.FULL))
+                             for area in areas if area in labels]) for title, areas in ACCESS_SECTIONS]
+        panels.append({
+            "code": role, "label": role_label, "lab": role in lab_roles, "sections": sections,
+            "limits": sum(1 for _title, rows in sections for _a, _l, level in rows if level != AreaAccess.Level.FULL),
+        })
     return render(request, "settings/access.html", {
-        "roles": roles, "rows": rows, "levels": AreaAccess.Level.choices,
+        "panels": panels, "levels": AreaAccess.Level.choices,
         "file_parts": FILE_PARTS, "reception_sees": set(options.reception_sees or ()),
     })
 

@@ -32,7 +32,7 @@ GROUP_LOOK = {
     StockGroup.BEVERAGE: ("bi-cup-hot", "#a0632b"),
     StockGroup.CLEANING: ("bi-bucket", "#3b8bb0"),
     StockGroup.STATIONERY: ("bi-printer", "#58595B"),
-    StockGroup.LAB: ("bi-gem", "#7A4ED3"),
+    StockGroup.LAB: ("bi-dental-lab", "#7A4ED3"),
     StockGroup.OTHER: ("bi-box", "#868C93"),
 }
 

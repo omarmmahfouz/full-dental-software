@@ -1,18 +1,19 @@
-{% load i18n clinic %}{% comment %}The owner's home: the four places side by side, the same size (core/overview.py places_now).{% endcomment %}
+{% load i18n clinic %}{% comment %}The owner's home on "All places" (core/overview.py places_now): each place side by side, the same size;
+"Open" shows that place only (round 14).{% endcomment %}
 <section class="places-now mb-3" aria-label="{% trans 'Our places' %}">
   {% for card in places_now %}
-  <div class="card place-now place-{{ card.place.code }}{% if card.place.pk == current_branch.pk %} is-current{% endif %}">
+  <div class="card place-now place-{{ card.place.code }}">
     <div class="place-now-head">
       {% if card.place.has_mark %}<img class="place-now-mark" src="{{ card.place.mark_url }}" alt="">{% else %}<span class="place-letterhead-code small-code">{{ card.place.badge }}</span>{% endif %}
       <div class="min-w-0"><div class="place-now-name">{{ card.place.name }}</div>
-        <div class="small text-muted">{% if card.place.pk == current_branch.pk %}<i class="bi bi-geo-alt-fill"></i> {% trans "you work here now" %}{% else %}{% trans "today" %}{% endif %}</div></div>
+        <div class="small text-muted">{% trans "today" %}</div></div>
     </div>
     <div class="place-now-stats">{% for label, value, css in card.stats %}
       <div><b class="{% if css != 'money' %}{{ css }}{% endif %}">{% if css == "money" %}{{ value|money }}{% else %}{{ value }}{% endif %}</b><span>{{ label }}</span></div>{% endfor %}
     </div>
     <div class="place-now-foot">
-      {% if card.place.pk != current_branch.pk %}<form method="post" action="{% url 'core:switch_place' %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="/">
-        <button class="btn btn-sm btn-outline-primary" name="place" value="{{ card.place.code }}"><i class="bi bi-box-arrow-in-right"></i> {% blocktrans with place=card.place.badge %}Work at {{ place }}{% endblocktrans %}</button></form>{% endif %}
+      <form method="post" action="{% url 'core:switch_place' %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="/">
+        <button class="btn btn-sm btn-primary" name="place" value="{{ card.place.code }}"><i class="bi bi-box-arrow-in-right"></i> {% blocktrans with place=card.place.badge %}Open {{ place }}{% endblocktrans %}</button></form>
       {% if card.lab %}<a class="btn btn-sm btn-link" href="{% url 'lab:report' %}"><i class="bi bi-graph-up"></i> {% trans "The lab report" %}</a>
       {% else %}<a class="btn btn-sm btn-link" href="{% url 'core:overview' %}"><i class="bi bi-speedometer2"></i> {% trans "Dashboard" %}</a>{% endif %}
     </div>

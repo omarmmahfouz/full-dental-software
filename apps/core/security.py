@@ -281,6 +281,10 @@ def _logged_in(sender, request, user, **kwargs):
         return
     log_event(SecurityEvent.Kind.LOGIN, request, user=user)
     if hasattr(request, "session"):
+        from .worktime import KEY, finish
+
+        if request.session.get(KEY):  # logged in again without logging out: the earlier stretch ends here
+            finish(request, "closed")
         request.session["seen"] = int(time.time())
         request.session["ip"] = client_ip(request) or ""
         request.session["device"] = device(request)
@@ -295,6 +299,9 @@ def _logged_out(sender, request, user, **kwargs):
         return
     kind = getattr(request, "_logout_kind", SecurityEvent.Kind.LOGOUT)
     log_event(kind, request, user=user, path="")
+    from .worktime import finish
+
+    finish(request, "idle" if kind == SecurityEvent.Kind.IDLE_LOGOUT else "logout")  # time in the system (round 14)
 
 
 # ------------------------------------------------------------------ who is logged in now
@@ -525,4 +532,7 @@ def clean_old_records():
     from .kept_uploads import clean_old
 
     removed += clean_old()  # photos kept for a form never sent again (round 13)
+    from .models import WorkSession
+
+    removed += WorkSession.objects.filter(started_at__lt=timezone.now() - timedelta(days=2 * KEEP_DAYS)).delete()[0]
     return removed

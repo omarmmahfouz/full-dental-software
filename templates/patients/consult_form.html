@@ -11,7 +11,7 @@
     {% include "includes/form_fields.html" %}
     <div class="form-actions mt-4 d-flex gap-2">
       <button class="btn btn-primary px-4"><i class="bi bi-printer"></i> {% trans "Save and print the letter" %}</button>
-      <a class="btn btn-outline-secondary" href="{% if consult.pk %}{{ consult.get_absolute_url }}{% else %}{{ patient.get_absolute_url }}{% endif %}" data-back>{% trans "Cancel" %}</a>
+      <a class="btn btn-outline-secondary" href="{% if consult.pk %}{{ consult.get_absolute_url }}{% else %}{{ patient.get_absolute_url }}{% endif %}">{% trans "Cancel" %}</a>
     </div>
   </form>
 </div></div>

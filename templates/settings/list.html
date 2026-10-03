@@ -3,9 +3,13 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><a class="text-decoration-none" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i></a> {{ title }}</h1>
+  <h1><i class="bi bi-list-ul"></i> {{ title }}</h1>
   {% if can_add %}<a class="btn btn-primary" href="{% url 'settings:list_create' key %}"><i class="bi bi-plus-lg"></i> {% trans "Add" %}</a>{% endif %}
 </div>
+{% if places %}<nav class="place-tabs" aria-label="{% trans 'Place' %}">
+  <a class="place-tab{% if not place %} active{% endif %}" href="?"><i class="bi bi-grid-1x2"></i> {% trans "Every place" %}</a>
+  {% for p in places %}<a class="place-tab place-{{ p.code }}{% if place.pk == p.pk %} active{% endif %}" href="?place={{ p.code }}"><span class="place-dot"></span> {{ p.badge }}<span class="place-tab-name"> — {{ p.name }}</span></a>{% endfor %}
+</nav>{% endif %}
 <div class="card"><div class="table-responsive"><table class="table table-hover table-sm mb-0 align-middle">
   <thead><tr>{% for h in headers %}<th>{{ h|capfirst }}</th>{% endfor %}<th></th></tr></thead>
   <tbody>{% for obj, values, active in rows %}<tr class="{% if not active %}text-muted{% endif %}">

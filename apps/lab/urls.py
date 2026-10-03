@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import day, views
 
 app_name = "lab"
 
@@ -35,6 +35,8 @@ urlpatterns = [
     path("clients/<int:pk>/statement/", views.client_statement, name="client_statement"),
     path("prices/", views.prices, name="prices"),
     path("receipts/", views.payment_list, name="payments"),
+    path("day/", day.lab_day, name="day"),
+    path("day/month/", day.lab_month, name="month"),
     path("receipts/new/", views.payment_create, name="payment_create"),
     path("receipts/<int:pk>/", views.payment_detail, name="payment_detail"),
     path("receipts/<int:pk>/cancel/", views.payment_cancel, name="payment_cancel"),

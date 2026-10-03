@@ -688,3 +688,48 @@ class DeletedRecord(models.Model):
             return apps.get_model(self.model)._meta.verbose_name
         except (LookupError, ValueError):
             return self.model
+
+
+class WorkSession(models.Model):
+    """One stretch of time a person had the system open (round 14, core/worktime.py): from the first page after
+    logging in to logging out, being logged out for no use, or 30 minutes without any sign (the page closed). "Open"
+    is the whole stretch; "worked" adds up the moments of use (pages opened, typing or tapping on a page)."""
+
+    class End(models.TextChoices):
+        LOGOUT = "logout", _("logged out")
+        IDLE = "idle", _("logged out for no use")
+        CLOSED = "closed", _("closed the page")
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("person"), on_delete=models.CASCADE,
+                             related_name="work_sessions")
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), null=True, blank=True, on_delete=models.SET_NULL,
+                               related_name="+")
+    started_at = models.DateTimeField(_("opened at"), default=timezone.now, db_index=True)
+    last_seen_at = models.DateTimeField(_("last seen open"), default=timezone.now)
+    last_active_at = models.DateTimeField(_("last used"), default=timezone.now)
+    active_seconds = models.PositiveIntegerField(_("worked (seconds)"), default=0)
+    pages = models.PositiveIntegerField(_("pages opened"), default=0)
+    ended_at = models.DateTimeField(_("ended at"), null=True, blank=True)
+    end = models.CharField(_("how it ended"), max_length=10, choices=End.choices, blank=True)
+    device = models.CharField(_("device"), max_length=120, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+        verbose_name = _("time in the system")
+        verbose_name_plural = _("time in the system")
+
+    def __str__(self):
+        return f"{self.user} {self.started_at:%d/%m/%Y %H:%M}"
+
+    @property
+    def finished_at(self):
+        return self.ended_at or self.last_seen_at
+
+    @property
+    def open_seconds(self):
+        return max(0, int((self.finished_at - self.started_at).total_seconds()))
+
+    @property
+    def worked_share(self):
+        """The part of the open time spent working, in percent."""
+        return round(100 * self.active_seconds / self.open_seconds) if self.open_seconds else 0

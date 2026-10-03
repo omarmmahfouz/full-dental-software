@@ -2,19 +2,44 @@
 {% load i18n %}
 {% block title %}{% trans "Access by role" %}{% endblock %}
 {% block content %}
-<div class="page-header"><h1><a class="text-decoration-none" href="{% url 'settings:home' %}"><i class="bi bi-gear"></i></a> {% trans "Access by role" %}</h1></div>
+<div class="page-header"><h1><i class="bi bi-shield-check"></i> {% trans "Access by role" %}</h1></div>
 <p class="small text-muted">{% trans "Each role keeps the access it normally has. Here you can make a part read only or close it for a role. If a person has several roles and one of them is limited in a part, the person is limited there. The owner is never limited." %}</p>
-<form method="post">{% csrf_token %}
-<div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
-  <thead><tr><th>{% trans "Part of the system" %}</th>{% for code, label in roles %}<th class="small">{{ label }}</th>{% endfor %}</tr></thead>
-  <tbody>{% for area, label, cells in rows %}<tr>
-    <td class="fw-semibold small">{{ label }}</td>
-    {% for role, level in cells %}<td><select name="{{ role }}__{{ area }}" class="form-select form-select-sm {% if level == 'read' %}border-info{% elif level == 'hidden' %}border-danger{% endif %}">
-      {% for value, text in levels %}<option value="{{ value }}" {% if value == level %}selected{% endif %}>{{ text }}</option>{% endfor %}
-    </select></td>{% endfor %}
-  </tr>{% endfor %}</tbody>
-</table></div></div>
-<button class="btn btn-primary px-4 mt-3"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+<form method="post" class="access-form" data-access-roles>{% csrf_token %}
+<div class="access-layout">
+  <nav class="access-roles card" aria-label="{% trans 'Roles' %}">
+    <div class="access-roles-title">{% trans "Clinics and academy" %}</div>
+    {% for panel in panels %}{% if not panel.lab %}
+    <button type="button" class="access-role{% if forloop.first %} active{% endif %}" data-role-tab="{{ panel.code }}" aria-controls="role-{{ panel.code }}">
+      <span>{{ panel.label }}</span>{% if panel.limits %}<span class="badge rounded-pill text-bg-warning" title="{% trans 'Parts limited' %}">{{ panel.limits }}</span>{% endif %}</button>
+    {% endif %}{% endfor %}
+    <div class="access-roles-title">{% trans "Dental lab" %}</div>
+    {% for panel in panels %}{% if panel.lab %}
+    <button type="button" class="access-role" data-role-tab="{{ panel.code }}" aria-controls="role-{{ panel.code }}">
+      <span>{{ panel.label }}</span>{% if panel.limits %}<span class="badge rounded-pill text-bg-warning" title="{% trans 'Parts limited' %}">{{ panel.limits }}</span>{% endif %}</button>
+    {% endif %}{% endfor %}
+  </nav>
+  <div class="access-panels">
+    {% for panel in panels %}
+    <section class="card access-panel" id="role-{{ panel.code }}" data-role-panel="{{ panel.code }}"{% if not forloop.first %} hidden{% endif %}>
+      <div class="card-header d-flex flex-wrap align-items-center gap-2"><i class="bi bi-person-badge"></i> <b>{{ panel.label }}</b>
+        <span class="ms-auto access-legend small"><span class="lv-full">{% trans "Normal" %}</span> <span class="lv-read">{% trans "Read only" %}</span> <span class="lv-hidden">{% trans "No access" %}</span></span></div>
+      {% for title, rows in panel.sections %}{% if rows %}
+      <div class="access-section-title">{{ title }}</div>
+      <ul class="list-unstyled access-rows mb-0">{% for area, label, level in rows %}
+        <li class="access-row">
+          <span class="access-area">{{ label }}</span>
+          <span class="access-choice" role="radiogroup" aria-label="{{ label }}">
+            {% for value, text in levels %}<label class="lv-{{ value }}"><input type="radio" name="{{ panel.code }}__{{ area }}" value="{{ value }}"{% if value == level %} checked{% endif %}><span>{{ text }}</span></label>{% endfor %}
+          </span>
+        </li>{% endfor %}
+      </ul>
+      {% endif %}{% endfor %}
+    </section>
+    {% endfor %}
+    <div class="form-actions is-sticky"><button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+      <span class="small text-muted">{% trans "Saves every role at once." %}</span></div>
+  </div>
+</div>
 </form>
 
 <form method="post" class="card mt-4" id="reception-file">{% csrf_token %}<input type="hidden" name="what" value="file_parts">

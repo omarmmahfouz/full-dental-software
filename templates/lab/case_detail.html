@@ -4,7 +4,7 @@
 {% block content %}
 {% get_current_language_bidi as RTL %}
 <div class="page-header">
-  <h1><i class="bi bi-box2-heart"></i> <span class="ltr">{{ case.number }}</span>
+  <h1><i class="bi bi-dental-lab"></i> <span class="ltr">{{ case.number }}</span>
     <span class="lab-step-chip step-{{ case.step }}"><i class="bi {{ case.step_icon }}"></i> {{ case.get_step_display }}</span>
     {% if case.urgent %}<span class="badge text-bg-danger"><i class="bi bi-fire"></i> {% trans "Urgent" %}</span>{% endif %}
     {% if case.is_late %}<span class="badge text-bg-danger">{% trans "Late" %}</span>{% endif %}

@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -472,6 +473,10 @@ def photo_edit(request, pk):
     if photo.is_video or not previews.can_preview(photo.file.name):
         raise Http404
     back = f"{reverse('charting:photos', args=[patient.pk])}?stage={photo.stage}"
+    # Opened from a treatment step or a surgery: go back there after saving (round 14).
+    asked = request.GET.get("next") or ""
+    if asked and url_has_allowed_host_and_scheme(asked, allowed_hosts={request.get_host()}):
+        back = asked
     if request.method == "POST":
         if request.POST.get("action") == "restore":
             restore_original(photo)
@@ -491,8 +496,25 @@ def photo_edit(request, pk):
 
 # ------------------------------------------------------------ photo log book and photo folders
 SURGICAL_STAGES = (PhotoStage.SURGERY, PhotoStage.SINUS_GBR, PhotoStage.SOFT_TISSUE, PhotoStage.SECOND_STAGE)
-# Photo frame in mm (4:3), fixed so every page looks the same: 6 photos a page, or 12 small ones.
-LOGBOOK_FRAMES = {"2": (78, 58.5), "3": (56, 42)}
+# Photo frame in mm (4:3), fixed so every page looks the same: 4 large photos a page, or 6 (round 14: asked before
+# printing or saving).
+LOGBOOK_FRAMES = {"4": (90, 67.5), "6": (78, 58.5)}
+PER_PAGE = ("4", "6")
+
+
+def per_page_of(request):
+    """The photos on each printed page the person chose (4 or 6), and what to do once the page is open."""
+    per_page = request.GET.get("per_page") if request.GET.get("per_page") in PER_PAGE else "6"
+    action = request.GET.get("do") if request.GET.get("do") in ("print", "pdf") else ""
+    keep = [(name, value) for name, values in request.GET.lists() for value in values
+            if name not in ("per_page", "do") and not name.startswith("desc_")]
+    return per_page, action, keep
+
+
+def in_pages(photos, per_page):
+    """The photos cut into printed pages of ``per_page``."""
+    size = int(per_page)
+    return [photos[start:start + size] for start in range(0, len(photos), size)] or [[]]
 
 
 def _site_text(site):
@@ -528,7 +550,7 @@ def logbook(request, patient_pk):
                   and os.path.splitext(p.file.name)[1].lower() != ".pdf"]
     available = [(code, label) for code, label in PhotoStage.choices if any(p.stage == code for p in all_photos)]
     chosen = [code for code in request.GET.getlist("stage") if code in dict(available)] or [c for c, _l in available]
-    per_row = request.GET.get("per_row") if request.GET.get("per_row") in LOGBOOK_FRAMES else "2"
+    per_page, action, keep = per_page_of(request)
     surgeries = list(patient.surgeries.select_related("instructor", "operator_1").prefetch_related(
         "sites__implant_system"))
     steps = list(TreatmentStep.objects.filter(patient=patient).select_related("step_type", "operator"))
@@ -541,17 +563,22 @@ def logbook(request, patient_pk):
         photos = sorted((p for p in all_photos if p.stage == code),
                         key=lambda p: (p.photo_type.sort_order if p.photo_type_id else 999, p.taken_on))
         surgery = next((p.surgery for p in photos if p.surgery_id), None)
-        pages.append({
-            "code": code, "label": label, "photos": photos,
+        typed = request.GET.get(f"desc_{code}")  # the text changed on the page before choosing 4 or 6 a page
+        stage = {
+            "code": code, "label": label,
             "dates": sorted({p.taken_on for p in photos}),
             "teeth": format_teeth({t for p in photos for t in parse_teeth(p.teeth)}),
             "operator": (surgery.operator_1 if surgery else None) or patient.assigned_dentist,
             "supervisor": surgery.instructor if surgery else None,
-            "description": _stage_description(code, photos, surgeries, steps, plan_items),
-        })
-    width, height = LOGBOOK_FRAMES[per_row]
+            "description": typed if typed is not None else _stage_description(code, photos, surgeries, steps,
+                                                                              plan_items),
+        }
+        for number, part in enumerate(in_pages(photos, per_page)):
+            pages.append({**stage, "photos": part, "continued": number > 0})
+    width, height = LOGBOOK_FRAMES[per_page]
     return render(request, "charting/logbook.html", {
-        "patient": patient, "pages": pages, "available": available, "chosen": chosen, "per_row": per_row,
+        "patient": patient, "pages": pages, "available": available, "chosen": chosen, "per_page": per_page,
+        "action": action, "keep": keep,
         "frame_width": width, "frame_height": height, "fit": "contain" if request.GET.get("fit") == "contain" else "cover",
         "anonymous": request.GET.get("anonymous") == "1",
         "initials": "".join(part[0] for part in patient.full_name.split()[:3]),
@@ -574,12 +601,14 @@ def case_report(request, patient_pk):
     surgeries = patient.surgeries.select_related("instructor", "operator_1", "operator_2", "assistant").prefetch_related(
         "sites__implant_system", "photos"
     )
-    photos_by_stage = []
-    all_photos = list(patient.clinical_photos.select_related("photo_type"))
+    per_page, action, keep = per_page_of(request)
+    photo_pages = []  # each printed page: 4 or 6 photos of one stage
+    all_photos = [p for p in patient.clinical_photos.select_related("photo_type")
+                  if not p.is_video and os.path.splitext(p.file.name)[1].lower() != ".pdf"]
     for code, label in PhotoStage.choices:
         items = [p for p in all_photos if p.stage == code]
-        if items:
-            photos_by_stage.append((label, items))
+        for number, part in enumerate(in_pages(items, per_page) if items else []):
+            photo_pages.append({"label": label, "photos": part, "continued": number > 0})
     return render(request, "charting/case_report.html", {
         "patient": patient, "anonymous": anonymous,
         "initials": "".join(part[0] for part in patient.full_name.split()[:3]),
@@ -589,7 +618,7 @@ def case_report(request, patient_pk):
         "surgeries": surgeries,
         "steps": TreatmentStep.objects.filter(patient=patient).select_related(
             "step_type", "operator", "assistant", "supervisor").order_by("performed_at"),
-        "photos_by_stage": photos_by_stage,
+        "photo_pages": photo_pages, "per_page": per_page, "action": action, "keep": keep,
         "now": timezone.now(),
         "max_upload": settings.MAX_UPLOAD_SIZE_MB,
     })

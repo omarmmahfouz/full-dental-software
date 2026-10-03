@@ -137,3 +137,10 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
 49. *Fawry machine*: the secretary sees only the moves she did; `owner` sees all, by person and by machine.
 50. `owner`'s home: CIC is one of the **four places, the same size**, also when working at El Khadem.
 51. `moderator`: the CIC doctors without a login can sign on their page (*Signature*).
+
+## N. New in this version (14)
+52. `owner`: home page → **Open CIC**: only CIC shows, with this month's visits, money and doctors' shares of CIC;
+    *All places* brings back the four places.
+53. `owner`: *Settings* → the **CIC** card: its people (`moderator`, `cicdoctor`, the secretary), doctors, rooms and the
+    services only CIC gives.
+54. `owner`: *People and logins* → the **CIC** tab shows only the people who work at CIC.

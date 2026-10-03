@@ -187,6 +187,20 @@ def attention(user, clinics, today):
     return items
 
 
+ALL_PLACES = "all_places"  # session: the owner's home page shows every place, not one (round 14)
+
+
+def ordered_places(user):
+    """The places this person opens, in the same order everywhere: CIA, El Khadem, CIC, then the lab."""
+    return sorted(switch_places(user), key=lambda place: (place.kind == Branch.Kind.LAB, place.sort_order, place.pk))
+
+
+def sees_all_places(request):
+    """The owner's home page (round 14) opens on "All places": a short summary of each place. Choosing one place (on
+    the page or with the switch in the top bar) shows only that place, until "All places" is chosen again."""
+    return has_role(request.user, OWNER) and request.session.get(ALL_PLACES, True)
+
+
 def places_now(user, today):
     """The owner's home page (round 13): every place side by side, the same size and in the same order (CIA, El
     Khadem, CIC, the lab), whatever place is chosen in the switch: today's visits, this month's new files and money,
@@ -196,7 +210,7 @@ def places_now(user, today):
     from apps.patients.models import Patient
     from apps.scheduling.models import Appointment, day_bounds
 
-    places = sorted(switch_places(user), key=lambda place: (place.kind == Branch.Kind.LAB, place.sort_order, place.pk))
+    places = ordered_places(user)
     clinics = [place for place in places if place.kind != Branch.Kind.LAB]
     start, end = day_bounds(today)
     month = today.replace(day=1)

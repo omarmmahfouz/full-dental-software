@@ -754,6 +754,12 @@ class SpeedTests(TestCase):
         ("secretary", "/complaints/", 40),
         ("secretary", "/billing/fawry/", 40),
         ("owner", "/billing/fawry/", 40),
+        ("owner", "/settings/", 70),  # one count for each list and each place, not per patient
+        ("owner", "/settings/users/?place=LAB", 40),
+        ("owner", "/settings/access/", 30),
+        ("owner", f"/time/?{PERIOD}", 30),
+        ("owner", "/lab/day/", 40),
+        ("owner", "/lab/day/month/", 30),
     ]
 
     @classmethod
@@ -799,6 +805,7 @@ class SpeedTests(TestCase):
         pages = self.PAGES + [("secretary", f"/patients/{patient.pk}/", 60),
                               ("secretary", f"/billing/patient/{patient.pk}/", 60),
                               ("dentist", f"/chart/patient/{patient.pk}/photos/", 60),
+                              ("dentist", f"/chart/patient/{patient.pk}/case-report/?per_page=4", 80),
                               ("owner", f"/lab/cases/{lab_case.pk}/", 40),
                               ("dentist", f"/patients/{patient.pk}/", 80)]
         for username, url, budget in pages:
@@ -1450,6 +1457,8 @@ class Round13CoreTests(TestCase):
         make_user("owner", "owner")
         self.client.login(username="owner", password=PASSWORD)
         self.client.post("/place/", {"place": "PVT", "next": "/"})
+        self.assertNotIn("places_now", self.client.get("/").context)  # round 14: one place chosen, that place only
+        self.client.post("/place/all/")
         cards = self.client.get("/").context["places_now"]
         self.assertEqual([card["place"].code for card in cards], ["CIA", "PVT", "CIC", "LAB"])
         self.assertTrue(cards[3]["lab"])
@@ -1475,3 +1484,137 @@ class Round13CoreTests(TestCase):
         answer = self.client.post("/problems/report/", {"description": "x", "video": fake},
                                   HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(answer.status_code, 400)
+
+
+class Round14CoreTests(TestCase):
+    """The owner's home on All places or one place, the lab's own menus, the Up button, access one role at a time,
+    the settings of each place, and the time each person spends in the system."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.owner = make_user("owner", "owner")
+
+    def test_the_owner_sees_all_places_then_only_the_place_chosen(self):
+        self.client.login(username="owner", password=PASSWORD)
+        home = self.client.get("/")
+        self.assertTrue(home.context["all_places"])
+        self.assertEqual([card["place"].code for card in home.context["places_now"]], ["CIA", "PVT", "CIC", "LAB"])
+        self.assertNotIn("appointment_counts", home.context)  # a place's details wait until it is chosen
+        self.assertEqual([p.code for p in home.context["place_tabs"]], ["CIA", "PVT", "CIC", "LAB"])
+        self.client.post("/place/", {"place": "LAB", "next": "/"})
+        lab = self.client.get("/")
+        self.assertNotIn("places_now", lab.context)
+        self.assertIn("lab_numbers", lab.context)
+        for clinic_part in ("patient_totals", "appointment_counts", "overdue_installments", "low_stock"):
+            self.assertNotIn(clinic_part, lab.context)
+        self.assertTrue(lab.context["at_lab"])
+        self.assertFalse(lab.context["sees_patients"])  # the clinics' menus are not shown at the lab
+        self.assertNotContains(lab, 'href="/patients/create/"')
+        self.client.post("/place/", {"place": "PVT", "next": "/"})
+        khadem = self.client.get("/")
+        self.assertIn("appointment_counts", khadem.context)
+        self.assertNotIn("overdue_installments", khadem.context)  # the academy is CIA's
+        self.assertFalse(khadem.context["academy_here"])
+        self.client.post("/place/all/")
+        self.assertIn("places_now", self.client.get("/").context)
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.post("/place/all/").status_code, 403)
+
+    def test_the_owner_logs_in_on_all_places(self):
+        self.client.post("/login/?place=CIC", {"username": "owner", "password": PASSWORD})
+        self.assertTrue(self.client.session["all_places"])
+
+    def test_up_goes_to_the_page_above(self):
+        from apps.core.navigation import up_target
+        from apps.core.testing import make_patient
+
+        patient = make_patient(self.branch)
+        self.assertEqual(up_target(f"/patients/{patient.pk}/edit/", patient)["url"], patient.get_absolute_url())
+        with translation.override("en"):
+            self.assertEqual(str(up_target(f"/patients/{patient.pk}/", patient)["name"]), "Patients")
+        self.assertEqual(up_target(f"/chart/patient/{patient.pk}/photos/logbook/", patient)["url"],
+                         f"/chart/patient/{patient.pk}/photos/")
+        self.assertEqual(up_target("/settings/users/")["url"], "/settings/")
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/settings/users/")
+        self.assertContains(page, 'href="/settings/" data-up')
+        self.assertNotContains(page, "data-back")
+
+    def test_access_is_set_one_role_at_a_time(self):
+        from apps.core.models import AreaAccess
+
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/settings/access/")
+        panels = {panel["code"]: panel for panel in page.context["panels"]}
+        self.assertNotIn("owner", panels)
+        self.assertTrue(panels["lab_secretary"]["lab"])
+        self.assertContains(page, 'name="secretary__academy" value="hidden"')
+        self.client.post("/settings/access/", {"secretary__academy": "hidden", "dentist__billing": "read"})
+        self.assertEqual(set(AreaAccess.objects.values_list("role", "area", "level")),
+                         {("secretary", "academy", "hidden"), ("dentist", "billing", "read")})
+        panels = {panel["code"]: panel for panel in self.client.get("/settings/access/").context["panels"]}
+        self.assertEqual(panels["secretary"]["limits"], 1)
+
+    def test_people_and_lists_by_place(self):
+        from apps.lab.models import LabWorker
+        from apps.scheduling.models import Room
+
+        make_user("sec", "secretary")
+        make_user("labsec", "lab_secretary")
+        designer = make_user("drlab", "dentist")
+        LabWorker.objects.create(name="Dr. Lab", user=designer, jobs=["design"])  # designs, without a lab role
+        self.client.login(username="owner", password=PASSWORD)
+        lab = self.client.get("/settings/users/?place=LAB")
+        names = {row[0].username for row in lab.context["rows"]}
+        self.assertEqual(names, {"labsec", "drlab"})
+        cia = {row[0].username for row in self.client.get("/settings/users/?place=CIA").context["rows"]}
+        self.assertIn("sec", cia)
+        self.assertNotIn("labsec", cia)
+        home = self.client.get("/settings/")
+        self.assertEqual([card["place"].code for card in home.context["place_cards"]], ["CIA", "PVT", "CIC", "LAB"])
+        rooms = self.client.get("/settings/lists/rooms/?place=CIC")
+        self.assertEqual(len(rooms.context["rows"]), Room.objects.filter(branch__code="CIC").count())
+        self.assertEqual(rooms.context["place"].code, "CIC")
+
+    def test_the_time_in_the_system_is_kept_for_each_person(self):
+        from unittest import mock
+
+        from apps.core.models import WorkSession
+        from apps.core.worktime import duration
+
+        sec = make_user("sec", "secretary", first_name="Mona")
+        clock = [1_800_000_000]
+        with mock.patch("apps.core.worktime.clock", lambda: clock[0]):
+            self.client.login(username="sec", password=PASSWORD)
+            self.client.get("/")  # opens the system
+            clock[0] += 60
+            self.client.get("/patients/")  # one minute of work
+            clock[0] += 30
+            self.client.get("/notifications/poll/?since=0")  # open, nothing touched
+            clock[0] += 600
+            self.client.get("/notifications/poll/?since=0&active=1")  # back after 10 minutes away: not work
+            clock[0] += 30
+            self.client.get("/patients/")
+            session = WorkSession.objects.get(user=sec)
+            self.assertEqual(session.active_seconds, 90)
+            self.assertEqual(session.pages, 3)
+            self.client.post("/logout/")
+            session.refresh_from_db()
+            self.assertEqual(session.end, "logout")
+            self.assertEqual(session.open_seconds, 720)
+            # A page closed and opened again after more than half an hour: a new stretch.
+            self.client.login(username="sec", password=PASSWORD)
+            self.client.get("/")
+            clock[0] += 31 * 60
+            self.client.get("/")
+        self.assertEqual(WorkSession.objects.filter(user=sec).count(), 3)
+        self.assertEqual(WorkSession.objects.filter(user=sec, end="closed").count(), 1)
+        self.client.login(username="owner", password=PASSWORD)
+        report = self.client.get("/time/?date_from=01/01/2020&date_to=31/12/2030")
+        row = next(p for p in report.context["people"] if p["user"] == sec)
+        self.assertEqual((row["sessions"], row["worked"]), (3, 90))
+        self.assertEqual(self.client.get(f"/time/{sec.pk}/?date_from=01/01/2020&date_to=31/12/2030").status_code, 200)
+        self.assertEqual(str(duration(3900)), "1 h 05 min")
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/time/").status_code, 403)

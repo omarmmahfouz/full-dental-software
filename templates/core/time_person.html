@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Time in the system" %} — {{ person.get_full_name|default:person.username }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-stopwatch"></i> {{ person.get_full_name|default:person.username }} <small class="text-muted fs-6">{% trans "Time in the system" %}</small></h1>
+  <a class="btn btn-outline-secondary" href="{% url 'core:time_report' %}?date_from={{ date_from|date:'d/m/Y' }}&amp;date_to={{ date_to|date:'d/m/Y' }}"><i class="bi bi-people"></i> {% trans "Everyone" %}</a></div>
+<form class="d-flex flex-wrap gap-2 align-items-end mb-3 no-print" data-no-leave-warning>
+  {% for field in form %}<div><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Show" %}</button>
+</form>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ sessions|length }}</div><div class="stat-label">{% trans "Times opened" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ total_open|duration }}</div><div class="stat-label">{% trans "Open" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-success">{{ total_worked|duration }}</div><div class="stat-label">{% trans "Worked" %}</div></div></div></div>
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+  <thead><tr><th>{% trans "Opened at" %}</th><th>{% trans "Ended at" %}</th><th>{% trans "How it ended" %}</th><th class="text-end">{% trans "Open" %}</th><th class="text-end">{% trans "Worked" %}</th><th class="text-end">{% trans "Pages" %}</th><th>{% trans "Place" %}</th><th>{% trans "Device" %}</th></tr></thead>
+  <tbody>{% for s in sessions %}<tr>
+    <td class="text-nowrap">{{ s.started_at|date:"D d/m g:i A" }}</td>
+    <td class="text-nowrap">{% if s.is_open %}<span class="badge text-bg-success">{% trans "in the system now" %}</span>{% else %}{{ s.finished_at|date:"g:i A" }}{% endif %}</td>
+    <td class="small">{% if s.end %}{{ s.get_end_display }}{% elif not s.is_open %}{% trans "closed the page" %}{% endif %}</td>
+    <td class="text-end text-nowrap">{{ s.open_seconds|duration }}</td><td class="text-end text-nowrap fw-semibold text-success">{{ s.active_seconds|duration }}</td>
+    <td class="text-end">{{ s.pages }}</td>
+    <td>{% if s.branch %}<span class="place-badge place-{{ s.branch.code }}">{{ s.branch.badge }}</span>{% endif %}</td>
+    <td class="small text-muted"><span class="ltr-cell">{{ s.device }}</span></td>
+  </tr>{% empty %}<tr><td colspan="8" class="text-muted text-center py-4">{% trans "Not in the system in these days." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

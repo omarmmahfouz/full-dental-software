@@ -12,7 +12,7 @@
 <div class="card"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
   <thead><tr><th>{% trans "Day" %}</th><th class="text-end">{% trans "Received" %}</th><th class="text-end">{% trans "Receipts" %}</th><th>{% trans "Closed" %}</th><th class="text-end">{% trans "Cash difference" %}</th><th>{% trans "Reviewed" %}</th></tr></thead>
   <tbody>{% for row in rows %}<tr>
-    <td><a href="{% url 'billing:day' %}?day={{ row.day|date:'d/m/Y' }}&amp;place={{ place.code }}">{{ row.day|date:"D d/m" }}</a></td>
+    <td><a href="{% if lab %}{% url 'lab:day' %}{% else %}{% url 'billing:day' %}{% endif %}?day={{ row.day|date:'d/m/Y' }}&amp;place={{ place.code }}">{{ row.day|date:"D d/m" }}</a></td>
     <td class="text-end fw-semibold">{{ row.total|money }}</td><td class="text-end">{{ row.count }}</td>
     <td>{% if row.closing %}<i class="bi bi-lock-fill text-success"></i> {{ row.closing.closed_by|default:"" }}{% else %}<span class="badge text-bg-warning">{% trans "not closed" %}</span>{% endif %}</td>
     <td class="text-end {% if row.closing and row.closing.difference %}text-danger fw-bold{% endif %}">{% if row.closing %}{{ row.closing.difference|money }}{% else %}—{% endif %}</td>

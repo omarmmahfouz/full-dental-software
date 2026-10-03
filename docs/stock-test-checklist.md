@@ -111,3 +111,10 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
     credit or new items; new items come back into the stock). «المرتجعات للموردين» lists them, the open ones first.
 50. A return written by mistake: «إلغاء المرتجع» with the reason: its items come back into the stock.
 51. "حركة مخزن" no longer offers «مرتجع للمورّد»: it is done from the invoice only.
+
+## R. New in this version (14): Up, and the stock on the owner's summary
+52. **«فوق»** at the top of each page opens the page above (an item → the stock items, a return → the returns), not
+    the page you came from.
+53. `owner`'s home on *All places*: the low stock and the items expiring soon show there, as the stock is shared by
+    every place.
+54. The lab's materials group in the stock has the new dental lab icon.

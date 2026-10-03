@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Time in the system" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-stopwatch"></i> {% trans "Time in the system" %}</h1></div>
+<p class="small text-muted">{% trans "Open: from the first page to logging out (or to the page being closed). Worked: the moments of use added up (pages opened, typing or tapping); a pause of more than 3 minutes is not counted." %}</p>
+<form class="d-flex flex-wrap gap-2 align-items-end mb-3 no-print" data-no-leave-warning>
+  {% for field in form %}<div><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <button class="btn btn-outline-primary"><i class="bi bi-search"></i> {% trans "Show" %}</button>
+</form>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ people|length }}</div><div class="stat-label">{% trans "people used the system" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ total_open|duration }}</div><div class="stat-label">{% trans "open, everyone" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-success">{{ total_worked|duration }}</div><div class="stat-label">{% trans "worked, everyone" %}</div></div></div></div>
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+  <thead><tr><th>{% trans "Person" %}</th><th class="text-end">{% trans "Times opened" %}</th><th>{% trans "First opened" %}</th><th>{% trans "Last seen" %}</th><th class="text-end">{% trans "Open" %}</th><th class="text-end">{% trans "Worked" %}</th><th>{% trans "Part worked" %}</th><th class="text-end">{% trans "Pages" %}</th></tr></thead>
+  <tbody>{% for p in people %}<tr>
+    <td><a class="fw-semibold" href="{% url 'core:time_person' p.user.pk %}?date_from={{ date_from|date:'d/m/Y' }}&amp;date_to={{ date_to|date:'d/m/Y' }}">{{ p.user.get_full_name|default:p.user.username }}</a>{% if p.now %} <span class="badge text-bg-success">{% trans "in the system now" %}</span>{% endif %}</td>
+    <td class="text-end">{{ p.sessions }}</td>
+    <td class="text-nowrap">{{ p.first|date:"d/m g:i A" }}</td><td class="text-nowrap">{{ p.last|date:"d/m g:i A" }}</td>
+    <td class="text-end text-nowrap">{{ p.open|duration }}</td><td class="text-end text-nowrap fw-semibold text-success">{{ p.worked|duration }}</td>
+    <td style="min-width: 8rem"><div class="progress" role="progressbar" aria-valuenow="{{ p.share }}" aria-valuemin="0" aria-valuemax="100" style="height: .55rem"><div class="progress-bar bg-success" style="width: {{ p.share }}%"></div></div><span class="small text-muted">{{ p.share }}%</span></td>
+    <td class="text-end">{{ p.pages }}</td>
+  </tr>{% empty %}<tr><td colspan="8" class="text-muted text-center py-4">{% trans "Nobody used the system in these days." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

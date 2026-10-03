@@ -122,3 +122,14 @@ In the sample data:
    delivered today, and the money of the month; *The lab report* opens it.
 2. In the clinics, every lab request button has the new **lab request icon** (a sheet with a tooth).
 3. `labsec`: *Report a problem* → *Picture of this page* (or a video filmed with the phone).
+
+## K. New in this version (14)
+1. `owner`: home page → **Open LAB**: only the lab's home; the menu shows the lab, stock and reports, not the clinics'
+   patients or reception.
+2. `labsec`: *Dental lab → End of the day at the lab*: today's lab receipts, by method and by who received them, the
+   work delivered and its value → count the cash → *Close the day*. *The month*: yesterday is already closed, 20
+   short, waiting for the review.
+3. `owner` (working at the lab): *End of the day* opens the lab's day (not CIA's) → *Mark as reviewed*.
+4. `owner`: *Settings* → the **lab** card: its people (with `dentist2`, who designs), the lab staff and their steps,
+   work types, prices and options.
+5. The lab has its new icon: a tooth on a model base with a porcelain brush.

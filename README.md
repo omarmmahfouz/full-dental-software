@@ -43,10 +43,56 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: the ID card read by the camera, signatures, prices and returns, the finders (new)
+### New in this version: one place at a time, the lab's day, photo pages, settings by place, time in the system (new)
+The steps to try are in every checklist, in its last section (the secretary's **Y**, the dentists' and the owner's
+**X**, the stock manager's **R**, CIC's **N**, El Khadem's **N**, the lab's **K**).
+1. **The owner's home page: All places, or one place (new)**: it opens on **All places**, a summary card for each
+   place (CIA, El Khadem, CIC, the lab) with today's visits, files, money and complaints (the lab: its cases), and
+   the stock all places share. **Open** on a card (or the place's tab above, or the switch in the top bar) shows
+   **only that place**: its reception, patients, doctors' shares and work; nothing of the other places. **All
+   places** (the first tab, also first in the top-bar switch) brings the summary back. At the lab the menus of the
+   clinics (patients, reception, academy, finders) are hidden too, and the academy shows only at CIA.
+2. **The end of the day at the lab is the lab's (new)**: it showed CIA's day. Now *End of the day* opened at the lab
+   (and *Dental lab → End of the day at the lab*) shows the lab's receipts, the totals by payment method and by who
+   received them, the work delivered that day and its value, and the lab closes its day with the cash counted; the
+   owner (or the head of the lab) reviews it. *The month* lists the lab's days.
+3. **Photos on printed pages: 4 or 6 a page, asked first (new)**: in the **case report** and the **photo log book**,
+   *Print* and *Save as PDF* first ask **how many photos on each page: 4 (large) or 6**. The PDF is now made page
+   by page (it was one long picture cut into pages, which cut photos in half and failed on a tablet with a long
+   report); a stage with more photos goes on to a *continued* page; the text typed in the log book is kept.
+4. **Editing a photo works on the tablet (new)**: the crop frame has a handle at **each corner** (drag a corner to
+   crop, drag inside to move); before, a 4:3 photo could not be cropped at all with a finger. The whole photo fits
+   on the screen and *Save* stays in view. The **Edit** button is bigger and is also on the photos of a treatment
+   step and of a surgery, and goes back there after saving.
+5. **Access by role, easier (new)**: choose a role on the side; each part of the system has three clear choices,
+   **Normal / Read only / No access** (green, blue, red), in groups (patients and treatment, money and stock,
+   reports, the lab). It was one wide table of drop-down lists that did not fit on the screen.
+6. **A dental lab icon (new)**: a tooth on a model base with a porcelain brush, on the lab's menu, pages and cards
+   (it was a gem).
+7. **Settings in order, by place (new)**: the main settings as tiles, then **a card for each place** (its people,
+   doctors, rooms, the services only it gives, its name, look and hours; the lab: its staff and their steps, work
+   types, prices and options), then the lists in groups with **Find a list**. Lists of rooms and services can be
+   shown for one place.
+8. **Dentists who work at the lab are found under the lab (new)**: *People and logins* has a tab for each place;
+   the lab's tab shows everyone with a lab role **and the dentists on the lab's staff** (a CIA doctor who designs).
+   Each person's places show as badges.
+9. **Time in the system for each person (new)**: *Settings → Time in the system* (owner): for each person, how many
+   times they opened the system, when first and last, **how long it was open** and **how long they worked**, with
+   the part worked; tap a name for each time (when, how long, pages, place, how it ended). Work is counted from the
+   pages opened and from typing or tapping on a page; a pause of more than 3 minutes is not counted; half an hour
+   without any sign ends the stretch (the page was closed).
+10. **Settings on a tablet held sideways (new)**: on the Settings pages the person's own menu opened by itself and
+   covered the page on wide screens and tablets held sideways (the side menu is used from 1200 px). Fixed; the
+   settings pages were checked at 1024, 1280 and 1366 px.
+11. **Up goes to the folder above (new)**: the button at the top of each page is now **Up**, with the name of the
+   page it opens (*Up: Patient file*, *Up: Lab cases*…): from a visit, an edit form or a photo it opens the
+   patient's file; elsewhere the page one level up. It no longer goes back one step (the browser's own back button
+   still does).
+
+### Round 13: the ID card read by the camera, signatures, prices and returns, the finders
 The steps to try are in every checklist, in its last section (the secretary's **X**, the dentists' and the owner's
 **W**, the stock manager's **Q**, CIC's **M**, El Khadem's **M**, the lab's **J**).
-1. **The ID card with the camera (new)**: *Camera* beside each ID box opens the camera inside the page with a frame the
+1. **The ID card with the camera**: *Camera* beside each ID box opens the camera inside the page with a frame the
    size of the card: hold the card in it and press the white button. The photo keeps only the card, cut again at its
    edges. Then the card is **read on the PC or tablet, without internet**: the **ID number** (and from it the date of
    birth, the gender and the governorate), the **name**, the **address** and the **city** on the front, the
@@ -56,45 +102,45 @@ The steps to try are in every checklist, in its last section (the secretary's **
    **The ID photos are now saved**: they were lost when the form came back with an error (e.g. a box left empty) and
    was saved again. Now the photos are kept and shown (*This photo is kept from the last try*), and saved with the form.
    ID photos can also be added from *Edit* (the old ones stay).
-2. **Registration (new)**: **mobile 2, gender, date of birth, marital status, occupation, governorate and city** are
+2. **Registration**: **mobile 2, gender, date of birth, marital status, occupation, governorate and city** are
    needed (the date of birth, the gender and the governorate fill in from the ID number at once). The **city list
    follows the governorate** chosen (*Other* to write a place that is not on it); the occupation offers a list.
-3. **How far he lives and when he can come (new)**: *minutes to the clinic*, the **days** and the **times of the day**
+3. **How far he lives and when he can come**: *minutes to the clinic*, the **days** and the **times of the day**
    he prefers (morning, midday, afternoon, evening). Shown on the file; when booking, the page shows them and warns when
    the time chosen is not one he prefers; *Nearest free times* can keep to his days and times.
-4. **Referred by one of our patients (new)**: choosing the patient is **optional** now (type him only if you know him).
-5. **Signatures (new)**: each person draws their signature once (user menu → **My signature**, with a finger, the
+4. **Referred by one of our patients**: choosing the patient is **optional** now (type him only if you know him).
+5. **Signatures**: each person draws their signature once (user menu → **My signature**, with a finger, the
    tablet's pen or the mouse, or from a photo of a signature on paper); a doctor without a login gets his on his page.
    The **receipt** prints the secretary's and the doctor's signatures; the **prescription** the doctor's and the
    reception's.
-6. **The receipt names the services (new)**: each service the receipt pays (with its teeth), and how much of each when
+6. **The receipt names the services**: each service the receipt pays (with its teeth), and how much of each when
    it pays several; *Paid in advance* when nothing is given yet.
-7. **WhatsApp opened a blank page: fixed (new)**. Since round 11 the browser refused to leave the page for WhatsApp after
+7. **WhatsApp opened a blank page: fixed**. Since round 11 the browser refused to leave the page for WhatsApp after
    pressing *Send*; WhatsApp's addresses are now allowed.
-8. **Stock: prices and giving back (new)**: each stock item has its **prices paid** (each purchase, the change in %,
+8. **Stock: prices and giving back**: each stock item has its **prices paid** (each purchase, the change in %,
    the lowest, highest, average and the cheapest supplier); a **Price changes** page (*Stock → Price changes*) lists
    what was bought dearer or cheaper; while buying, each line shows the last price and how much dearer or cheaper; a
    rise of 10% or more is told to the owner and the stock manager. **Give back to the supplier** (on a purchase) in
    three steps: 1. what goes back and why (it leaves the stock at once), 2. the supplier takes it, 3. the money, a
    credit or new items come back. *Purchases → Returns to suppliers* lists them; the supplier's page shows our credit;
    the balance sheet counts the money back. A return written by mistake is cancelled (the items come back).
-9. **Complaints (new)**: one tap on a complaint opens it in the list (its story and its last steps) with a **comment
+9. **Complaints**: one tap on a complaint opens it in the list (its story and its last steps) with a **comment
    box**: the comment is saved without leaving the page and the people of the complaint are told.
-10. **A lab request icon (new)**: a sheet with a tooth, on every lab request button and page, and a *Lab request*
+10. **A lab request icon**: a sheet with a tooth, on every lab request button and page, and a *Lab request*
     button beside the dental chart on the patient's file.
-11. **Fawry machine (new)**: **each person sees the moves they did** (the card payments they took, the bills they paid
+11. **Fawry machine**: **each person sees the moves they did** (the card payments they took, the bills they paid
     through the machine, the moves they wrote); the owner and the head of CIA see all, with *done by*. **Fawry's
     percentage** is changed by the owner at the top of the Fawry page (it is also in *Settings → Clinic options*).
-12. **Report a problem (new)**: **Picture of this page** (taken at once), **Record the screen** (a video, where the
+12. **Report a problem**: **Picture of this page** (taken at once), **Record the screen** (a video, where the
     browser allows it) or choose a photo or a video filmed with a phone. The owner sees and plays it.
-13. **The owner's home page (new)**: the **four places side by side, the same size**, always in the same order
+13. **The owner's home page**: the **four places side by side, the same size**, always in the same order
     (**CIA, El Khadem, CIC, the lab**), whatever place is chosen in the switch: booked today, here now, finished, new
     files and money of each clinic; the lab's cases, late, received and delivered. *Work at …* switches place.
-14. **The finders on their own pages (new)**: a **Finders** menu with four pages and tabs between them: **Plans:
+14. **The finders on their own pages**: a **Finders** menu with four pages and tabs between them: **Plans:
     implant and surgery**, **Plans: restorative**, **Cases and statistics: implants**, and the new **Cases and
     statistics: restorative** (every restorative step of the treatment log: by kind of work, step, operator, material,
     tooth, month…, with the prostheses on implants by kind, material and retention).
-15. **Easy grouping (new)**: one tap groups the implant cases by **full arch or not** (a full-arch prosthesis, or 4
+15. **Easy grouping**: one tap groups the implant cases by **full arch or not** (a full-arch prosthesis, or 4
     implants or more in one jaw), **guided or freehand**, **crown, bridge or full arch**, **splitting**, **expansion**,
     **sinus lift**, **immediate or delayed**, GBR, company or operator, each with its survival, loading, torque and ISQ;
     new quick searches: full-arch cases, guided implants, single crowns, bridges, splitting and expansion cases.
@@ -282,9 +328,8 @@ The dental lab opens as the fourth place. Checklist: [docs/lab-test-checklist.md
 - **Dashboard** (owner, head of CIA, clinic managers): every place side by side for today, 7 days, this month or any
   dates: bookings, visits finished, missed, new files, money (owner and managers), complaints, the lab; a column
   chart of each day; and what waits for someone now (approvals, late lab work, complaints, low stock, passwords).
-- **Back goes up one page**: *Back* opens the page you came from, never a form already saved and never the same page
-  twice; the browser's own back button no longer shows a saved form again. A page opened from a notification goes
-  up one level (a case → the cases).
+- **Up**: the button at the top of each page opens the page above it, with its name (*Up: Patient file*); the
+  browser's own back button no longer shows a saved form again.
 - **Saving once**: a form sent shows *Saving…* and a second tap does nothing (no double bills or bookings on a slow
   network). With SQLite (the trial and single-PC servers) pages keep opening while someone saves, and a save waits
   for its turn instead of failing.
@@ -500,7 +545,7 @@ Checked with **10,000 patients, 60,000 visits, 30,000 bills and 30,000 photos**:
   - Editing the data, or correcting forgotten arrival / room / leaving times, is sent to the **head of CIA for approval**.
 - **Patient payments**: services from a price list (CBCT, consultation, implant…), discounts up to 100% with the reason, payment in parts, receipts, and the day's collections by payment method.
 - **CBCT and blood test requests**, printed for the patient to take. The CBCT request asks the centre to send the DICOM files to **ciapts@gmail.com** (changeable in Settings).
-- **Back** button on every page.
+- **Up** button on every page: it opens the page above (the patient's file from a visit).
 - **Patients the dentists asked for**: each CIA dentist sends the list of patients he wants on his days (step, time needed, order, and a backup list). After the head of CIA approves it, the reception calls them in order and books them with one click (patient, dentist, time and step filled in). When a patient cannot come, the page says which backup patient to call next.
 - **Medical and dental history at the reception**: the same questions as the paper chart (blood pressure, sugar, allergies, smoking…), from the patient file. The dentist sees them at the next examination.
 - **Save before leaving?**: leaving a page with data not saved yet asks *Save*, *Leave without saving* or *Stay*.
@@ -685,7 +730,12 @@ User menu → **Settings**.
   year). *Clinic options* has **log out after (minutes without use)** and **people with an easy password must change
   it**. See [Security](docs/deployment.md#security).
 - **Problem reports** (owner and head of CIA): what the staff reported, and pages that stopped with an error (recorded automatically), with a download to send to whoever maintains the system.
-- **Access by role**: make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for a role.
+- **Each place** (owner): a card for CIA, El Khadem, CIC and the lab: the people who work there, the doctors, rooms,
+  the services only it gives, its name, look and hours; the lab's staff, work types, prices and options.
+  *People and logins* has a tab for each place (the lab's includes the dentists who design for it).
+- **Time in the system** (owner): for each person, the times they opened the system, how long it was open and how
+  long they worked.
+- **Access by role**: choose a role, then make one part of the system (patients, schedule, charts, surgeries, stock, reports…) **read only** or **closed** for it.
   - It can only take access away, never give more than the role normally has.
   - When a person has two roles and either is limited in a part, the person is limited there.
   - The owner is never limited, so the owner cannot be locked out.
@@ -697,7 +747,9 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (round 13 adds: the patients' visit preferences, how far
+This makes a **practice copy on your PC** with sample data (round 14 adds: a week of time in the system for the
+staff, three of them in it now; yesterday's day closed at the lab, 20 short; ten photos of a surgery case (the first
+CIA surgery's patient) to try the photo editor and 4 or 6 photos on a page; round 13: the patients' visit preferences, how far
 they live and their city, drawn signatures for the reception and the doctors, the articaine bought dearer and the tea
 cheaper, two returns to a supplier (one waiting for the refund, one finished with a credit), comments on a complaint
 and a problem reported with a picture of the page; earlier: **the dental lab**: its head, manager, secretary

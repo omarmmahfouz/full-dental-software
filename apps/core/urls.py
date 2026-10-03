@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import approvals, overview, problems, signatures, views
+from . import approvals, overview, problems, signatures, views, worktime
 
 app_name = "core"
 
@@ -19,6 +19,9 @@ urlpatterns = [
     path("notifications/read-all/", views.notification_mark_all_read, name="notifications_read_all"),
     path("hints/", views.toggle_hints, name="hints_toggle"),
     path("place/", views.switch_place, name="switch_place"),
+    path("place/all/", views.all_places, name="all_places"),
+    path("time/", worktime.time_report, name="time_report"),
+    path("time/<int:pk>/", worktime.time_person, name="time_person"),
     path("place/<str:code>/logo/", views.place_logo, name="place_logo"),
     path("kept/<str:token>/", views.kept_upload, name="kept_upload"),
     path("signature/", signatures.my_signature, name="my_signature"),

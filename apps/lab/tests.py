@@ -454,7 +454,7 @@ class DashboardAndBackTests(TestCase):
         self.assertEqual(up_url("/lab/"), "/")
         make_user("sec", "secretary")
         self.client.login(username="sec", password=PASSWORD)
-        self.assertContains(self.client.get("/patients/new/"), 'href="/patients/" data-back')
+        self.assertContains(self.client.get("/patients/new/"), 'href="/patients/" data-up')
         self.assertContains(self.client.get("/"), 'data-saving-text=')
 
     def test_the_owner_gives_a_person_the_lab(self):
@@ -469,3 +469,42 @@ class DashboardAndBackTests(TestCase):
         page = self.client.post("/settings/users/new/", data)
         self.assertFalse(UserProfile.objects.filter(user__username="mona2").exists())
         self.assertIn("places", page.context["form"].errors)
+
+
+class Round14LabDayTests(LabMixin, TestCase):
+    """The end of the day at the lab is the lab's own: its receipts, the work delivered, the cash counted (before,
+    the page opened at the lab showed CIA's day)."""
+
+    def test_the_lab_closes_its_own_day(self):
+        from apps.billing.models import DayClosing, PatientPayment
+
+        LabPayment.objects.create(client=self.clinic, amount=Decimal("900"), method="cash", received_by=self.secretary)
+        LabPayment.objects.create(client=self.clinic, amount=Decimal("300"), method="bank",
+                                  received_by=self.secretary)
+        cancelled = LabPayment.objects.create(client=self.clinic, amount=Decimal("50"), received_by=self.secretary)
+        cancelled.cancelled_at = timezone.now()
+        cancelled.save()
+        PatientPayment.objects.create(patient=make_patient(self.cia), amount=Decimal("700"))  # CIA's, not the lab's
+        self.client.login(username="labsec", password=PASSWORD)
+        page = self.client.get("/lab/day/")
+        summary = page.context["summary"]
+        self.assertEqual((summary["total"], summary["cash"], summary["count"], len(summary["cancelled"])),
+                         (Decimal("1200"), Decimal("900"), 2, 1))
+        self.assertFalse(page.context["reviewer"])
+        self.client.post("/lab/day/", {"action": "close", "cash_counted": "880"})
+        closing = DayClosing.objects.get(branch=self.lab_place)
+        self.assertEqual((closing.cash_expected, closing.difference), (Decimal("900"), Decimal("-20")))
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post("/place/", {"place": "LAB", "next": "/"})
+        self.assertRedirects(self.client.get("/billing/day/"), "/lab/day/", fetch_redirect_response=False)
+        self.assertRedirects(self.client.get("/billing/month/?month=2026-10"), "/lab/day/month/?month=2026-10",
+                             fetch_redirect_response=False)
+        owner_page = self.client.get("/lab/day/")
+        self.assertTrue(owner_page.context["reviewer"])
+        self.client.post("/lab/day/", {"action": "review", "review_notes": "20 short"})
+        closing.refresh_from_db()
+        self.assertEqual(closing.review_notes, "20 short")
+        month = self.client.get("/lab/day/month/")
+        self.assertEqual(month.context["rows"][0]["total"], Decimal("1200"))
+        self.assertContains(month, "/lab/day/?day=")
