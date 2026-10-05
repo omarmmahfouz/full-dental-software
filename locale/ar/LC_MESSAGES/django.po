@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 01:18+0300\n"
+"POT-Creation-Date: 2026-10-06 01:34+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,7 +16,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
 #: apps/academy/apps.py:8 apps/core/access.py:28 templates/base.html:126
 msgid "Academy"
@@ -108,7 +109,7 @@ msgstr "من"
 #: apps/academy/forms.py:215 apps/billing/forms.py:144
 #: apps/billing/forms.py:234 apps/billing/forms.py:294
 #: apps/clinical/forms.py:222 apps/clinics/forms.py:16 apps/core/forms.py:109
-#: apps/lab/forms.py:260 apps/patients/forms.py:516
+#: apps/lab/forms.py:260 apps/patients/forms.py:514
 #: apps/purchasing/forms.py:100 apps/scheduling/forms.py:240
 #: apps/stock/forms.py:150 apps/surgery/forms.py:498
 #: templates/core/overview.html:15 templates/lab/my_work.html:18
@@ -135,7 +136,7 @@ msgstr "طريقة الدفع"
 #: apps/clinical/forms.py:241 apps/clinical/views.py:353
 #: apps/complaints/forms.py:97 apps/complaints/forms.py:99
 #: apps/dentists/forms.py:156 apps/dentists/forms.py:159 apps/lab/forms.py:266
-#: apps/patients/forms.py:470 apps/patients/forms.py:472
+#: apps/patients/forms.py:468 apps/patients/forms.py:470
 #: apps/purchasing/forms.py:101 apps/purchasing/forms.py:103
 #: apps/purchasing/forms.py:106 apps/purchasing/forms.py:108
 #: apps/purchasing/forms.py:112 apps/reports/views.py:121
@@ -164,7 +165,7 @@ msgid "course"
 msgstr "الكورس"
 
 #: apps/academy/forms.py:221 apps/clinical/forms.py:236
-#: apps/dentists/forms.py:155 apps/lab/forms.py:256 apps/patients/forms.py:468
+#: apps/dentists/forms.py:155 apps/lab/forms.py:256 apps/patients/forms.py:466
 #: apps/stock/forms.py:68 templates/academy/candidate_list.html:10
 #: templates/academy/candidate_list.html:12 templates/base.html:226
 #: templates/core/dashboard.html:18 templates/lab/_home.html:5
@@ -191,14 +192,13 @@ msgstr "يحضر المحاضرات"
 #: apps/clinical/models.py:345 apps/clinical/models.py:507
 #: apps/complaints/forms.py:96 apps/complaints/models.py:64
 #: apps/core/models.py:414 apps/core/models.py:452 apps/core/models.py:615
-#: apps/dentists/forms.py:158 apps/lab/models.py:429
-#: apps/patients/forms.py:470 apps/patients/models.py:128
-#: apps/patients/models.py:260 apps/patients/models.py:560
-#: apps/patients/models.py:660 apps/scheduling/forms.py:246
-#: apps/scheduling/models.py:143 apps/scheduling/models.py:387
-#: apps/scheduling/models.py:439 apps/specialties/models.py:59
-#: apps/specialties/models.py:234 apps/specialties/models.py:573
-#: apps/specialties/models.py:811
+#: apps/dentists/forms.py:158 apps/lab/models.py:429 apps/patients/forms.py:468
+#: apps/patients/models.py:128 apps/patients/models.py:260
+#: apps/patients/models.py:560 apps/patients/models.py:660
+#: apps/scheduling/forms.py:246 apps/scheduling/models.py:143
+#: apps/scheduling/models.py:387 apps/scheduling/models.py:439
+#: apps/specialties/models.py:59 apps/specialties/models.py:234
+#: apps/specialties/models.py:573 apps/specialties/models.py:811
 msgid "status"
 msgstr "الحالة"
 
@@ -243,12 +243,11 @@ msgid "Private course"
 msgstr "دورة خاصة"
 
 #: apps/academy/models.py:31 apps/clinical/models.py:317
-#: apps/complaints/models.py:49 apps/core/models.py:104
-#: apps/core/models.py:154 apps/dentists/models.py:72
-#: apps/patients/models.py:106 apps/patients/models.py:208
-#: apps/patients/models.py:452 apps/purchasing/models.py:103
-#: apps/scheduling/models.py:16 apps/scheduling/models.py:118
-#: apps/surgery/models.py:84
+#: apps/complaints/models.py:49 apps/core/models.py:104 apps/core/models.py:154
+#: apps/dentists/models.py:72 apps/patients/models.py:106
+#: apps/patients/models.py:208 apps/patients/models.py:452
+#: apps/purchasing/models.py:103 apps/scheduling/models.py:16
+#: apps/scheduling/models.py:118 apps/surgery/models.py:84
 msgid "branch"
 msgstr "الفرع"
 
@@ -518,8 +517,7 @@ msgstr "قسط"
 msgid "installments"
 msgstr "الأقساط"
 
-#: apps/academy/models.py:232 apps/billing/models.py:190
-#: apps/lab/models.py:475
+#: apps/academy/models.py:232 apps/billing/models.py:190 apps/lab/models.py:475
 msgid "receipt number"
 msgstr "رقم الإيصال"
 
@@ -553,9 +551,9 @@ msgstr "صورة إيصال التحويل / الإيداع."
 
 #: apps/academy/models.py:251 apps/billing/forms.py:32
 #: apps/billing/forms.py:295 apps/billing/models.py:59
-#: apps/billing/models.py:207 apps/billing/models.py:551
-#: templates/base.html:76 templates/billing/fawry.html:3
-#: templates/billing/fawry.html:5 templates/reports/balance.html:31
+#: apps/billing/models.py:207 apps/billing/models.py:551 templates/base.html:76
+#: templates/billing/fawry.html:3 templates/billing/fawry.html:5
+#: templates/reports/balance.html:31
 msgid "Fawry machine"
 msgstr "ماكينة فوري"
 
@@ -628,13 +626,12 @@ msgstr "اختر ماكينة فوري التي تم الدفع عليها."
 #: apps/billing/forms.py:53 apps/billing/models.py:84
 #: apps/billing/models.py:138 apps/billing/models.py:205
 #: apps/billing/models.py:290 apps/billing/models.py:329
-#: apps/clinics/forms.py:14 apps/clinics/models.py:32
-#: apps/clinics/models.py:97 apps/clinics/models.py:126
-#: apps/core/models.py:407 apps/core/models.py:717 apps/patients/models.py:556
-#: apps/scheduling/models.py:478 apps/scheduling/models.py:504
-#: apps/specialties/models.py:45 apps/specialties/models.py:100
-#: apps/stock/forms.py:159 apps/stock/models.py:67 apps/stock/models.py:149
-#: apps/surgery/models.py:907
+#: apps/clinics/forms.py:14 apps/clinics/models.py:32 apps/clinics/models.py:97
+#: apps/clinics/models.py:126 apps/core/models.py:407 apps/core/models.py:717
+#: apps/patients/models.py:556 apps/scheduling/models.py:478
+#: apps/scheduling/models.py:504 apps/specialties/models.py:45
+#: apps/specialties/models.py:100 apps/stock/forms.py:159
+#: apps/stock/models.py:67 apps/stock/models.py:149 apps/surgery/models.py:907
 msgid "place"
 msgstr "المكان"
 
@@ -835,8 +832,7 @@ msgid ""
 "Shown as a one-click button on a new bill, e.g. first-visit examination and "
 "CBCT."
 msgstr ""
-"يظهر كزر بضغطة واحدة في الفاتورة الجديدة، مثل كشف أول زيارة والأشعة "
-"المقطعية."
+"يظهر كزر بضغطة واحدة في الفاتورة الجديدة، مثل كشف أول زيارة والأشعة المقطعية."
 
 #: apps/billing/models.py:27
 msgid "only at"
@@ -871,8 +867,8 @@ msgid "paid services"
 msgstr "الخدمات المدفوعة"
 
 #: apps/billing/models.py:51 apps/clinical/models.py:192
-#: apps/core/settings_views.py:289 apps/lab/models.py:87
-#: apps/lab/models.py:124 apps/lab/models.py:160 apps/scheduling/bulk.py:226
+#: apps/core/settings_views.py:290 apps/lab/models.py:87 apps/lab/models.py:124
+#: apps/lab/models.py:160 apps/scheduling/bulk.py:226
 #: apps/scheduling/models.py:17 apps/scheduling/models.py:534
 #: apps/surgery/models.py:436 templates/includes/id_check_texts.html:28
 msgid "name"
@@ -926,8 +922,8 @@ msgstr "الزيارة"
 
 #: apps/billing/models.py:86 apps/clinical/forms.py:140
 #: apps/clinical/forms.py:223 apps/clinical/models.py:336
-#: apps/dentists/models.py:101 apps/patients/forms.py:472
-#: apps/patients/forms.py:512 apps/patients/models.py:558
+#: apps/dentists/models.py:101 apps/patients/forms.py:470
+#: apps/patients/forms.py:510 apps/patients/models.py:558
 #: apps/prescriptions/forms.py:37 apps/prescriptions/models.py:82
 #: apps/scheduling/forms.py:64 apps/scheduling/forms.py:98
 #: apps/scheduling/forms.py:223 apps/scheduling/forms.py:241
@@ -1050,7 +1046,7 @@ msgid "after"
 msgstr "بعد"
 
 #: apps/billing/models.py:272 apps/core/models.py:413
-#: apps/patients/forms.py:510 apps/patients/models.py:485
+#: apps/patients/forms.py:508 apps/patients/models.py:485
 #: apps/patients/models.py:562 apps/patients/models.py:656
 #: apps/purchasing/models.py:215 apps/scheduling/forms.py:253
 #: templates/billing/receipt.html:44
@@ -1315,9 +1311,9 @@ msgstr "تمت إضافة %(service)s: المطلوب دفعه %(net)s."
 #: apps/billing/views.py:103 templates/academy/enrollment_detail.html:39
 #: templates/academy/payment_list.html:20 templates/academy/receipt.html:20
 #: templates/billing/account.html:47 templates/billing/day_review.html:30
-#: templates/billing/payment_list.html:13
-#: templates/clinical/lab_detail.html:39 templates/lab/day.html:30
-#: templates/lab/payment_list.html:17 templates/lab/receipt.html:20
+#: templates/billing/payment_list.html:13 templates/clinical/lab_detail.html:39
+#: templates/lab/day.html:30 templates/lab/payment_list.html:17
+#: templates/lab/receipt.html:20
 msgid "Received by"
 msgstr "استلمها"
 
@@ -1379,8 +1375,7 @@ msgid ""
 "Bill %(number)s saved, and the payment of %(amount)s (%(method)s): receipt "
 "%(receipt)s."
 msgstr ""
-"تم حفظ الفاتورة %(number)s والدفع %(amount)s (%(method)s): إيصال "
-"%(receipt)s."
+"تم حفظ الفاتورة %(number)s والدفع %(amount)s (%(method)s): إيصال %(receipt)s."
 
 #: apps/billing/views.py:355 apps/clinical/views.py:153
 #, python-format
@@ -1462,8 +1457,7 @@ msgstr "تم حذف حركة فوري."
 #: apps/charting/apps.py:8 apps/core/navigation.py:100
 #: templates/charting/chart.html:3 templates/charting/chart.html:13
 #: templates/clinical/step_form.html:7 templates/includes/patient_nav.html:8
-#: templates/patients/patient_detail.html:29
-#: templates/scheduling/visit.html:11
+#: templates/patients/patient_detail.html:29 templates/scheduling/visit.html:11
 msgid "Dental chart"
 msgstr "شارت الأسنان"
 
@@ -1531,8 +1525,7 @@ msgstr "أسطح الحشو"
 
 #: apps/charting/forms.py:127
 msgid "M mesial, O occlusal/incisal, D distal, B buccal, L lingual/palatal"
-msgstr ""
-"M أمامي (ميزيال)، O إطباقي/قاطع، D خلفي (ديستال)، B شدقي، L لساني/حنكي"
+msgstr "M أمامي (ميزيال)، O إطباقي/قاطع، D خلفي (ديستال)، B شدقي، L لساني/حنكي"
 
 #: apps/charting/forms.py:145 apps/charting/models.py:289
 #: apps/charting/plan_finder.py:43
@@ -2078,8 +2071,8 @@ msgstr "حالة شاملة (أكثر من طبيب)"
 
 #: apps/charting/models.py:305
 msgid ""
-"The printed plan then shows the treatment team: each doctor with his part of"
-" the work."
+"The printed plan then shows the treatment team: each doctor with his part of "
+"the work."
 msgstr "الخطة المطبوعة تُظهر فريق العلاج: كل طبيب والجزء اللي هيعمله."
 
 #: apps/charting/models.py:306
@@ -2138,8 +2131,7 @@ msgid "Planned"
 msgstr "مخطط"
 
 #: apps/charting/models.py:356 templates/charting/exam_detail.html:44
-#: templates/charting/plan_detail.html:46
-#: templates/charting/plan_print.html:46
+#: templates/charting/plan_detail.html:46 templates/charting/plan_print.html:46
 #: templates/includes/teeth_picker.html:25 templates/settings/backup.html:96
 #: templates/surgery/_implant_sequence.html:38
 msgid "Done"
@@ -2558,9 +2550,8 @@ msgstr "نوع السن"
 
 #: apps/clinical/finder.py:42 apps/surgery/finder.py:37
 #: templates/charting/case_report.html:61 templates/charting/tooth_form.html:3
-#: templates/charting/tooth_form.html:8
-#: templates/surgery/complications.html:27 templates/surgery/finder.html:107
-#: templates/surgery/surgery_detail.html:30
+#: templates/charting/tooth_form.html:8 templates/surgery/complications.html:27
+#: templates/surgery/finder.html:107 templates/surgery/surgery_detail.html:30
 msgid "Tooth"
 msgstr "السن"
 
@@ -2738,9 +2729,9 @@ msgstr "العلاج الذي تم"
 
 #: apps/clinical/forms.py:68 apps/lab/forms.py:69 apps/lab/forms.py:91
 #: apps/lab/forms.py:108 apps/surgery/forms.py:58
-#: templates/academy/candidate_detail.html:29
-#: templates/academy/receipt.html:19 templates/billing/bill.html:41
-#: templates/billing/receipt.html:22 templates/charting/case_report.html:75
+#: templates/academy/candidate_detail.html:29 templates/academy/receipt.html:19
+#: templates/billing/bill.html:41 templates/billing/receipt.html:22
+#: templates/charting/case_report.html:75
 #: templates/clinical/outside_print.html:46 templates/lab/block_detail.html:20
 #: templates/lab/client_detail.html:26 templates/lab/receipt.html:19
 #: templates/patients/lead_detail.html:34
@@ -2755,9 +2746,8 @@ msgstr "العلاج الذي تم"
 #: templates/specialties/endo_form.html:20
 #: templates/specialties/ortho_detail.html:74
 #: templates/specialties/tmj_detail.html:61
-#: templates/specialties/tmj_detail.html:69
-#: templates/stock/item_detail.html:25 templates/stock/item_detail.html:58
-#: templates/stock/movement_list.html:22
+#: templates/specialties/tmj_detail.html:69 templates/stock/item_detail.html:25
+#: templates/stock/item_detail.html:58 templates/stock/movement_list.html:22
 #: templates/surgery/surgery_detail.html:51
 #: templates/surgery/surgery_detail.html:58
 #: templates/surgery/surgery_detail.html:67
@@ -2778,8 +2768,7 @@ msgstr "اختر الأسنان أولاً: حالة كل سن وما عُمل �
 msgid ""
 "The usual price fills in; a different price is told to the clinic manager "
 "and the owner."
-msgstr ""
-"السعر المعتاد يُكتب وحده؛ السعر المختلف يُبلَّغ لمدير العيادة والمالك."
+msgstr "السعر المعتاد يُكتب وحده؛ السعر المختلف يُبلَّغ لمدير العيادة والمالك."
 
 #: apps/clinical/forms.py:103
 msgid "Choose who did the treatment (operator) or the supervisor."
@@ -3147,8 +3136,7 @@ msgid ""
 "When this step is recorded on tooth numbers, the chart of those teeth is "
 "updated this way."
 msgstr ""
-"عند تسجيل هذه الخطوة على أرقام أسنان، يتحدث الشارت لهذه الأسنان بهذه "
-"الطريقة."
+"عند تسجيل هذه الخطوة على أرقام أسنان، يتحدث الشارت لهذه الأسنان بهذه الطريقة."
 
 #: apps/clinical/models.py:98
 msgid "default material"
@@ -3238,8 +3226,7 @@ msgstr "زرعة بدليل جراحي"
 msgid ""
 "Planned items of this type are ticked automatically when the surgery chart "
 "records it."
-msgstr ""
-"بنود الخطة من هذا النوع تُعلَّم تلقائيًا عند تسجيلها في شارت العمليات."
+msgstr "بنود الخطة من هذا النوع تُعلَّم تلقائيًا عند تسجيلها في شارت العمليات."
 
 #: apps/clinical/models.py:119
 msgid "treatment step type"
@@ -3410,8 +3397,8 @@ msgid ""
 "Gives the usual steps at our lab: e.g. zirconia is designed, milled, "
 "sintered, stained and glazed."
 msgstr ""
-"يحدد مراحل الشغل المعتادة في معملنا: مثلًا الزيركون يتصمم ويتفرّز ويدخل "
-"الفرن ويتلوّن ويتعمله جليز."
+"يحدد مراحل الشغل المعتادة في معملنا: مثلًا الزيركون يتصمم ويتفرّز ويدخل الفرن "
+"ويتلوّن ويتعمله جليز."
 
 #: apps/clinical/models.py:242
 msgid "priced"
@@ -4063,8 +4050,7 @@ msgid ""
 "Lab request saved as reviewed by %(supervisor)s. The secretary will send it "
 "to the lab."
 msgstr ""
-"تم حفظ طلب المعمل كمراجَع من %(supervisor)s. ستقوم السكرتارية بإرساله "
-"للمعمل."
+"تم حفظ طلب المعمل كمراجَع من %(supervisor)s. ستقوم السكرتارية بإرساله للمعمل."
 
 #: apps/clinical/views.py:391
 msgid "Lab request saved and sent for review."
@@ -4112,8 +4098,7 @@ msgstr "قاطع"
 msgid "Stump"
 msgstr "الستمب"
 
-#: apps/clinical/views.py:545
-#: templates/prescriptions/prescription_form.html:35
+#: apps/clinical/views.py:545 templates/prescriptions/prescription_form.html:35
 msgid "Save and print"
 msgstr "حفظ وطباعة"
 
@@ -4152,8 +4137,7 @@ msgstr "ملاحظات زيارة ناقصة: %(dentist)s"
 
 #: apps/clinical/visit_notes.py:65
 #, python-format
-msgid ""
-"%(patient)s, visit of %(day)s: nothing written in the file after a day."
+msgid "%(patient)s, visit of %(day)s: nothing written in the file after a day."
 msgstr "%(patient)s، زيارة %(day)s: لم يُكتب شيء في الملف بعد يوم."
 
 #: apps/clinics/apps.py:8
@@ -4175,8 +4159,7 @@ msgid "every service"
 msgstr "كل الخدمات"
 
 #: apps/clinics/forms.py:74
-msgid ""
-"This doctor already has a price for this service here: change that one."
+msgid "This doctor already has a price for this service here: change that one."
 msgstr "الطبيب ده له سعر للخدمة دي هنا بالفعل: عدّل السعر الموجود."
 
 #: apps/clinics/models.py:22
@@ -4207,8 +4190,7 @@ msgstr "مرضى العيادة (محوّلين له)"
 msgid ""
 "Empty = every service. A rule for one service (e.g. implants) comes before "
 "the rule for every service."
-msgstr ""
-"فارغ = كل الخدمات. قاعدة خدمة واحدة (مثل الزرع) تسبق قاعدة كل الخدمات."
+msgstr "فارغ = كل الخدمات. قاعدة خدمة واحدة (مثل الزرع) تسبق قاعدة كل الخدمات."
 
 #: apps/clinics/models.py:39
 msgid "for the patients"
@@ -4220,8 +4202,8 @@ msgid ""
 "clinic refers to him. A patient is the doctor's own when the patient's file "
 "says he brought him."
 msgstr ""
-"مثلًا 40 في المية من مرضاه هو و30 في المية من المرضى اللي العيادة بتحولهم "
-"له. المريض يُعتبر مريض الطبيب لو ملفه مكتوب فيه إن الطبيب هو اللي جابه."
+"مثلًا 40 في المية من مرضاه هو و30 في المية من المرضى اللي العيادة بتحولهم له. "
+"المريض يُعتبر مريض الطبيب لو ملفه مكتوب فيه إن الطبيب هو اللي جابه."
 
 #: apps/clinics/models.py:42
 msgid "how the doctor is paid"
@@ -4289,8 +4271,7 @@ msgid "A percentage cannot be more than 100."
 msgstr "لا يمكن أن تزيد النسبة عن 100."
 
 #: apps/clinics/models.py:84
-msgid ""
-"An amount for each visit is for every service: leave the service empty."
+msgid "An amount for each visit is for every service: leave the service empty."
 msgstr "المبلغ لكل زيارة يكون لكل الخدمات: اترك الخدمة فارغة."
 
 #: apps/clinics/models.py:87
@@ -4356,8 +4337,8 @@ msgid ""
 "rule for every patient. To change a doctor's percentage from a date, add a "
 "new rule from that date: the old services keep the old rule."
 msgstr ""
-"قاعدة لخدمة واحدة (مثلًا الزرعات) تسبق قاعدة كل الخدمات، وقاعدة لمرضاه هو أو"
-" لمرضى العيادة تسبق قاعدة كل المرضى. لتغيير نسبة طبيب من تاريخ معين، أضف "
+"قاعدة لخدمة واحدة (مثلًا الزرعات) تسبق قاعدة كل الخدمات، وقاعدة لمرضاه هو أو "
+"لمرضى العيادة تسبق قاعدة كل المرضى. لتغيير نسبة طبيب من تاريخ معين، أضف "
 "قاعدة جديدة من التاريخ ده: الخدمات القديمة تفضل على القاعدة القديمة."
 
 #: apps/clinics/views.py:160
@@ -4402,9 +4383,8 @@ msgstr "لم يرد %(dentist)s على الشكوى %(number)s"
 msgid "%(patient)s: the dentist has not answered in time."
 msgstr "%(patient)s: الطبيب لم يرد في الموعد."
 
-#: apps/complaints/apps.py:8 apps/core/access.py:27
-#: apps/core/navigation.py:104 templates/base.html:122
-#: templates/complaints/complaint_list.html:3
+#: apps/complaints/apps.py:8 apps/core/access.py:27 apps/core/navigation.py:104
+#: templates/base.html:122 templates/complaints/complaint_list.html:3
 #: templates/patients/patient_detail.html:101
 #: templates/reports/dentists.html:17
 msgid "Complaints"
@@ -4432,8 +4412,7 @@ msgstr "الوضع الحالي للحالة"
 
 #: apps/complaints/forms.py:46
 msgid ""
-"Where the case stands now. Shown at the top of the complaint and in the "
-"list."
+"Where the case stands now. Shown at the top of the complaint and in the list."
 msgstr "الحالة وصلت لفين الآن. يظهر أعلى الشكوى وفي القائمة."
 
 #: apps/complaints/forms.py:52 apps/complaints/forms.py:78
@@ -4767,8 +4746,8 @@ msgstr "تم تصحيح المتابعة."
 msgid "Correct the follow-up of %(number)s"
 msgstr "تصحيح متابعة %(number)s"
 
-#: apps/core/access.py:18 apps/core/navigation.py:39
-#: apps/core/navigation.py:93 apps/patients/apps.py:8 templates/base.html:63
+#: apps/core/access.py:18 apps/core/navigation.py:39 apps/core/navigation.py:93
+#: apps/patients/apps.py:8 templates/base.html:63
 #: templates/clinical/restorative_finder.html:33
 #: templates/clinical/restorative_finder.html:38
 #: templates/clinical/restorative_finder.html:48
@@ -4799,10 +4778,9 @@ msgstr "مخطط الأسنان والكشف وخطط العلاج"
 msgid "Treatment log"
 msgstr "سجل العلاج"
 
-#: apps/core/access.py:23 apps/core/navigation.py:99
-#: apps/patients/access.py:89 templates/base.html:121
-#: templates/clinical/lab_list.html:3 templates/clinical/lab_list.html:6
-#: templates/reports/dentists.html:16
+#: apps/core/access.py:23 apps/core/navigation.py:99 apps/patients/access.py:89
+#: templates/base.html:121 templates/clinical/lab_list.html:3
+#: templates/clinical/lab_list.html:6 templates/reports/dentists.html:16
 #: templates/specialties/prostho_detail.html:51
 msgid "Lab requests"
 msgstr "طلبات المعمل"
@@ -4827,8 +4805,7 @@ msgstr "الأطباء"
 #: apps/core/navigation.py:109 templates/base.html:141 templates/base.html:154
 #: templates/purchasing/purchase_list.html:3
 #: templates/purchasing/purchase_list.html:6
-#: templates/purchasing/return_list.html:6
-#: templates/stock/price_changes.html:6
+#: templates/purchasing/return_list.html:6 templates/stock/price_changes.html:6
 msgid "Purchases"
 msgstr "المشتريات"
 
@@ -4885,14 +4862,14 @@ msgid ""
 "Choose the roles (groups): secretary, dentist, supervisor, owner. 'Staff "
 "status' allows opening this settings area."
 msgstr ""
-"اختر الأدوار (المجموعات): secretary = سكرتارية، dentist = طبيب، supervisor ="
-" مشرف، owner = المالك. خيار \"حالة الطاقم\" يسمح بفتح شاشة الإعدادات هذه."
+"اختر الأدوار (المجموعات): secretary = سكرتارية، dentist = طبيب، supervisor = "
+"مشرف، owner = المالك. خيار \"حالة الطاقم\" يسمح بفتح شاشة الإعدادات هذه."
 
 #: apps/core/admin.py:53
 msgid "Important dates"
 msgstr "تواريخ مهمة"
 
-#: apps/core/admin.py:56 apps/core/settings_views.py:290
+#: apps/core/admin.py:56 apps/core/settings_views.py:291
 msgid "roles"
 msgstr "الأدوار"
 
@@ -5019,8 +4996,8 @@ msgid ""
 "Write a long random DJANGO_SECRET_KEY in the .env file (the installer makes "
 "one) and restart."
 msgstr ""
-"اكتب DJANGO_SECRET_KEY طويل وعشوائي في ملف ‎.env (برنامج التثبيت بيعمله) "
-"وشغّل من جديد."
+"اكتب DJANGO_SECRET_KEY طويل وعشوائي في ملف ‎.env (برنامج التثبيت بيعمله) وشغّل "
+"من جديد."
 
 #: apps/core/health.py:92
 msgid "Only the clinic's network can open the system"
@@ -5053,7 +5030,8 @@ msgstr "ALLOWED_HOSTS فيه عنوان السيرفر واسمه."
 msgid ""
 "ALLOWED_HOSTS is \"*\": write the server's address and name in "
 "DJANGO_ALLOWED_HOSTS."
-msgstr "ALLOWED_HOSTS = \"*\": اكتب عنوان السيرفر واسمه في DJANGO_ALLOWED_HOSTS."
+msgstr ""
+"ALLOWED_HOSTS = \"*\": اكتب عنوان السيرفر واسمه في DJANGO_ALLOWED_HOSTS."
 
 #: apps/core/health.py:100
 msgid "The connection is protected"
@@ -5068,8 +5046,8 @@ msgid ""
 "On the clinic's own network. Turn HTTPS on (DJANGO_HTTPS=1) before the "
 "branches or the internet reach the server."
 msgstr ""
-"على شبكة العيادة نفسها. شغّل HTTPS (DJANGO_HTTPS=1) قبل ما الفروع أو "
-"الإنترنت يوصلوا للسيرفر."
+"على شبكة العيادة نفسها. شغّل HTTPS (DJANGO_HTTPS=1) قبل ما الفروع أو الإنترنت "
+"يوصلوا للسيرفر."
 
 #: apps/core/health.py:103
 msgid ""
@@ -5103,8 +5081,8 @@ msgstr ""
 #, python-format
 msgid ""
 "Easy passwords: %(names)s. Ask them to change it (user menu → Change "
-"password), or tick \"people with an easy password must change it\" in Clinic"
-" options."
+"password), or tick \"people with an easy password must change it\" in Clinic "
+"options."
 msgstr ""
 "كلمات سر سهلة: %(names)s. اطلب منهم يغيّروها (قائمة المستخدم ← تغيير كلمة "
 "السر)، أو علّم على «اللي كلمة سره سهلة لازم يغيّرها» في خيارات العيادة."
@@ -5137,8 +5115,7 @@ msgstr "%(n)s سجل اتقروا منها تاني."
 
 #: apps/core/health.py:124
 msgid "The last backup was not checked: make one now in Settings → Backup."
-msgstr ""
-"آخر نسخة ما اتراجعتش: اعمل نسخة دلوقتي من الإعدادات ← النسخ الاحتياطي."
+msgstr "آخر نسخة ما اتراجعتش: اعمل نسخة دلوقتي من الإعدادات ← النسخ الاحتياطي."
 
 #: apps/core/health.py:126
 msgid "A second copy of each backup is kept on another disk"
@@ -5243,8 +5220,8 @@ msgstr "اضغط على التنبيه لفتح موضوعه. التنبيهات
 
 #: apps/core/hints.py:29
 msgid ""
-"Changes made at the reception wait here. Compare the old and the new values,"
-" then approve or refuse."
+"Changes made at the reception wait here. Compare the old and the new values, "
+"then approve or refuse."
 msgstr "تعديلات الاستقبال تنتظر هنا. قارن القديم بالجديد، ثم وافق أو ارفض."
 
 #: apps/core/hints.py:30
@@ -5252,8 +5229,7 @@ msgid ""
 "Type part of a name, a mobile or a file number. Tap a row to open the "
 "patient's file."
 msgstr ""
-"اكتب جزءًا من الاسم أو الموبايل أو رقم الملف. اضغط على السطر لفتح ملف "
-"المريض."
+"اكتب جزءًا من الاسم أو الموبايل أو رقم الملف. اضغط على السطر لفتح ملف المريض."
 
 #: apps/core/hints.py:31
 msgid ""
@@ -5267,8 +5243,8 @@ msgstr ""
 
 #: apps/core/hints.py:35
 msgid ""
-"The file step by step: the yellow button opens the next step. Record opens a"
-" treatment, a surgery chart, a request or a prescription."
+"The file step by step: the yellow button opens the next step. Record opens a "
+"treatment, a surgery chart, a request or a prescription."
 msgstr ""
 "الملف خطوة بخطوة: الزرار الأصفر بيفتح الخطوة الجاية. «تسجيل» بيفتح علاج أو "
 "شارت عملية أو طلب أو روشتة."
@@ -5302,21 +5278,20 @@ msgid ""
 "Print the letter for the patient. When he brings the answer back, record it "
 "with a photo of the paper: the dentist is told."
 msgstr ""
-"اطبع الخطاب للمريض. لما يرجع بالرد، سجّله مع صورة الورقة: الطبيب بيوصله "
-"إشعار."
+"اطبع الخطاب للمريض. لما يرجع بالرد، سجّله مع صورة الورقة: الطبيب بيوصله إشعار."
 
 #: apps/core/hints.py:45
 msgid ""
-"Tap what you did today: the impression, the scan or the CBCT. Or skip it: it"
-" is not needed for every patient."
+"Tap what you did today: the impression, the scan or the CBCT. Or skip it: it "
+"is not needed for every patient."
 msgstr ""
-"اضغط على اللي عملته النهارده: الطبعة أو المسح أو الأشعة المقطعية. أو فوّتها:"
-" مش كل مريض محتاجها."
+"اضغط على اللي عملته النهارده: الطبعة أو المسح أو الأشعة المقطعية. أو فوّتها: "
+"مش كل مريض محتاجها."
 
 #: apps/core/hints.py:47
 msgid ""
-"People who called but have no file yet. When one comes in, open the call and"
-" turn it into a patient file in one click."
+"People who called but have no file yet. When one comes in, open the call and "
+"turn it into a patient file in one click."
 msgstr ""
 "أشخاص اتصلوا وليس لهم ملف بعد. عندما يحضر أحدهم، افتح المكالمة وحوّلها إلى "
 "ملف مريض بضغطة واحدة."
@@ -5371,13 +5346,13 @@ msgid ""
 "Who works in which room this week. Add a shift, or fill the week from last "
 "week in one click."
 msgstr ""
-"من يعمل في أي غرفة هذا الأسبوع. أضف شيفت، أو املأ الأسبوع مثل الأسبوع الماضي"
-" بضغطة واحدة."
+"من يعمل في أي غرفة هذا الأسبوع. أضف شيفت، أو املأ الأسبوع مثل الأسبوع الماضي "
+"بضغطة واحدة."
 
 #: apps/core/hints.py:65
 msgid ""
-"Tap Send: WhatsApp opens with the message ready. Press send there, then come"
-" back for the next one."
+"Tap Send: WhatsApp opens with the message ready. Press send there, then come "
+"back for the next one."
 msgstr ""
 "اضغط «إرسال»: يفتح واتساب والرسالة جاهزة. أرسلها من هناك، ثم ارجع للرسالة "
 "التالية."
@@ -5400,8 +5375,8 @@ msgid ""
 "Add the patients you want on your days, with the step and the time needed. "
 "The supervisor approves the list, then the reception calls them."
 msgstr ""
-"أضف المرضى الذين تريدهم في أيامك، مع الخطوة والوقت المطلوب. يوافق المشرف على"
-" القائمة، ثم يتصل بهم الاستقبال."
+"أضف المرضى الذين تريدهم في أيامك، مع الخطوة والوقت المطلوب. يوافق المشرف على "
+"القائمة، ثم يتصل بهم الاستقبال."
 
 #: apps/core/hints.py:72
 msgid ""
@@ -5415,25 +5390,23 @@ msgstr ""
 msgid ""
 "Every treatment recorded. Filter by dentist or date, and tap a row for the "
 "details."
-msgstr ""
-"كل العلاجات المسجلة. اختر الطبيب أو التاريخ، واضغط على السطر للتفاصيل."
+msgstr "كل العلاجات المسجلة. اختر الطبيب أو التاريخ، واضغط على السطر للتفاصيل."
 
 #: apps/core/hints.py:75
 msgid ""
-"Choose the patient and the teeth first: each tooth shows how it is now, what"
-" was done and what is planned, and the kinds of work that fit come first. "
+"Choose the patient and the teeth first: each tooth shows how it is now, what "
+"was done and what is planned, and the kinds of work that fit come first. "
 "Then the step."
 msgstr ""
-"اختر المريض والأسنان أولاً: كل سن يظهر حاله الآن وما عُمل وما هو مخطط، "
-"وأنواع الشغل المناسبة تظهر أولاً. بعدها الخطوة."
+"اختر المريض والأسنان أولاً: كل سن يظهر حاله الآن وما عُمل وما هو مخطط، وأنواع "
+"الشغل المناسبة تظهر أولاً. بعدها الخطوة."
 
 #: apps/core/hints.py:77
 msgid ""
 "Take the photos and periapical X-rays this step needs: each box opens the "
 "tablet's camera."
 msgstr ""
-"صوّر الصور والأشعة الصغيرة اللي الخطوة محتاجاها: كل خانة بتفتح كاميرا "
-"التابلت."
+"صوّر الصور والأشعة الصغيرة اللي الخطوة محتاجاها: كل خانة بتفتح كاميرا التابلت."
 
 #: apps/core/hints.py:79
 msgid ""
@@ -5455,8 +5428,8 @@ msgstr ""
 
 #: apps/core/hints.py:84
 msgid ""
-"The implant and surgery part of the plans. Choose the filters, then send the"
-" patients found to the reception to call them."
+"The implant and surgery part of the plans. Choose the filters, then send the "
+"patients found to the reception to call them."
 msgstr ""
 "جزء الزرع والجراحة من الخطط. اختار الفلاتر، وبعدين ابعت المرضى للاستقبال "
 "يتصلوا بيهم."
@@ -5484,8 +5457,8 @@ msgstr "كل شارتات العمليات. اضغط على واحد لفتحه�
 #: apps/core/hints.py:91
 msgid ""
 "Choose a tool (implant, pontic, extraction...) and tap the teeth, like on a "
-"scanner. Choose the implant company once, then the sizes and lots implant by"
-" implant."
+"scanner. Choose the implant company once, then the sizes and lots implant by "
+"implant."
 msgstr ""
 "اختار أداة (زرعة، سنة معلّقة، خلع...) واضغط على الأسنان، زي برنامج السكانر. "
 "اختار شركة الزرعات مرة واحدة، وبعدين المقاسات والتشغيلات زرعة زرعة."
@@ -5502,8 +5475,8 @@ msgid ""
 "Tap each point as you do it and write the torque. Save it as delivered at "
 "the end: the implants become loaded on the chart."
 msgstr ""
-"اضغط على كل نقطة وانت بتعملها واكتب العزم. في الآخر احفظها «اتسلّمت»: "
-"الزرعات بتبقى محمّلة على الشارت."
+"اضغط على كل نقطة وانت بتعملها واكتب العزم. في الآخر احفظها «اتسلّمت»: الزرعات "
+"بتبقى محمّلة على الشارت."
 
 #: apps/core/hints.py:96
 msgid ""
@@ -5533,8 +5506,8 @@ msgid ""
 "The candidates by batch: regular or private, online or in the academy. Tap "
 "one for the enrollment, the installments, the implants and the days he came."
 msgstr ""
-"المرشحون حسب الدفعة: عادية أو خاصة، أونلاين أو في الأكاديمية. اضغطي على واحد"
-" لتسجيله والأقساط والزرعات والأيام اللي حضرها."
+"المرشحون حسب الدفعة: عادية أو خاصة، أونلاين أو في الأكاديمية. اضغطي على واحد "
+"لتسجيله والأقساط والزرعات والأيام اللي حضرها."
 
 #: apps/core/hints.py:104
 msgid ""
@@ -5552,8 +5525,8 @@ msgid ""
 "Tap a quick button for the usual services, or add lines yourself. Tick Pay "
 "now to take the money at once."
 msgstr ""
-"اضغط زرًا سريعًا للخدمات المعتادة، أو أضف السطور بنفسك. علّم «ادفع الآن» "
-"لتحصيل المبلغ فورًا."
+"اضغط زرًا سريعًا للخدمات المعتادة، أو أضف السطور بنفسك. علّم «ادفع الآن» لتحصيل "
+"المبلغ فورًا."
 
 #: apps/core/hints.py:108
 msgid ""
@@ -5580,8 +5553,7 @@ msgstr ""
 msgid ""
 "The day's receipts, bills and changes. Tick the day as reviewed when it is "
 "right."
-msgstr ""
-"إيصالات وفواتير وتعديلات اليوم. علّم اليوم كمُراجَع عندما يكون صحيحًا."
+msgstr "إيصالات وفواتير وتعديلات اليوم. علّم اليوم كمُراجَع عندما يكون صحيحًا."
 
 #: apps/core/hints.py:115
 msgid ""
@@ -5595,8 +5567,8 @@ msgid ""
 "Correct the amount or the way of paying, cancel a receipt written by "
 "mistake, or give money back. Write why: the owner sees every change."
 msgstr ""
-"صحّح المبلغ أو طريقة الدفع، أو ألغِ إيصالًا كُتب بالخطأ، أو رُدّ مبلغًا. "
-"اكتب السبب: المالك يرى كل تعديل."
+"صحّح المبلغ أو طريقة الدفع، أو ألغِ إيصالًا كُتب بالخطأ، أو رُدّ مبلغًا. اكتب "
+"السبب: المالك يرى كل تعديل."
 
 #: apps/core/hints.py:120
 msgid ""
@@ -5612,9 +5584,8 @@ msgstr "خذ الدفع تحت الفاتورة؛ يفتح الإيصال بعد
 
 #: apps/core/hints.py:124
 msgid ""
-"Print the request for the patient. When the scan is done, press Done here or"
-" at the centre and write the folder of the scan: it then opens with one "
-"click."
+"Print the request for the patient. When the scan is done, press Done here or "
+"at the centre and write the folder of the scan: it then opens with one click."
 msgstr ""
 "اطبع الطلب للمريض. عندما تتم الأشعة، اضغط تمت هنا أو في المركز واكتب مجلد "
 "الأشعة: تفتح بعدها بضغطة واحدة."
@@ -5629,8 +5600,8 @@ msgstr ""
 
 #: apps/core/hints.py:128
 msgid ""
-"Draw a frame to crop (4:3 fits the log book), turn or mirror, then save. The"
-" original photo is kept and can be put back."
+"Draw a frame to crop (4:3 fits the log book), turn or mirror, then save. The "
+"original photo is kept and can be put back."
 msgstr ""
 "ارسم إطارًا للقص (4:3 يناسب الـ log book)، دوّر أو اعكس، ثم احفظ. الصورة "
 "الأصلية محفوظة ويمكن إرجاعها."
@@ -5707,22 +5678,21 @@ msgstr "امضي مرة واحدة في المربع: توقيعك بيتطبع 
 
 #: apps/core/hints.py:146
 msgid ""
-"The purchases of the place chosen in the tabs, dental or not, then by group."
-" Tap one for its lines and invoice photo."
+"The purchases of the place chosen in the tabs, dental or not, then by group. "
+"Tap one for its lines and invoice photo."
 msgstr ""
 "مشتريات المكان المختار في التبويبات، أسنان أو غير أسنان، وبعدين حسب "
 "المجموعة. اضغط على واحدة لسطورها وصورة الفاتورة."
 
 #: apps/core/hints.py:148
 msgid ""
-"Add one line per item with its category. Link a line to a stock item to fill"
-" the stock."
+"Add one line per item with its category. Link a line to a stock item to fill "
+"the stock."
 msgstr "أضف سطرًا لكل صنف مع فئته. اربط السطر بصنف في المخزن ليزيد المخزن."
 
 #: apps/core/hints.py:149
 msgid ""
-"Choose a report. Each one can be filtered by dates, and most can be "
-"exported."
+"Choose a report. Each one can be filtered by dates, and most can be exported."
 msgstr "اختر تقريرًا. كل تقرير يمكن تحديد تواريخه، وأغلبها يمكن تصديره."
 
 #: apps/core/hints.py:150
@@ -5732,8 +5702,8 @@ msgid ""
 "deleted: untick active instead."
 msgstr ""
 "الإعدادات الأساسية الأول، بعدها كل مكان (ناسه وأوضه وخدماته وشكله)، وبعدها "
-"القوائم: اكتب في «دوّر على قائمة» عشان توصل لها بسرعة. مفيش حاجة بتتمسح: شيل"
-" علامة «نشط» بدل كده."
+"القوائم: اكتب في «دوّر على قائمة» عشان توصل لها بسرعة. مفيش حاجة بتتمسح: شيل "
+"علامة «نشط» بدل كده."
 
 #: apps/core/hints.py:152
 msgid ""
@@ -5745,16 +5715,16 @@ msgstr ""
 
 #: apps/core/hints.py:154
 msgid ""
-"Choose a place to see only its people. The lab shows the dentists who design"
-" for it too."
+"Choose a place to see only its people. The lab shows the dentists who design "
+"for it too."
 msgstr ""
-"اختار مكان عشان تشوف ناسه بس. المعمل بيظهر فيه كمان الدكاترة اللي بيعملوا له"
-" ديزاين."
+"اختار مكان عشان تشوف ناسه بس. المعمل بيظهر فيه كمان الدكاترة اللي بيعملوا له "
+"ديزاين."
 
 #: apps/core/hints.py:155
 msgid ""
-"For each person: how many times they opened the system, how long it was open"
-" and how long they worked. Tap a name to see each time."
+"For each person: how many times they opened the system, how long it was open "
+"and how long they worked. Tap a name to see each time."
 msgstr ""
 "لكل واحد: فتح النظام كام مرة، وفضل مفتوح قد إيه، واشتغل قد إيه. اضغط على "
 "الاسم عشان تشوف كل مرة."
@@ -5772,8 +5742,8 @@ msgid ""
 "The lab's receipts of the day and the work delivered. At the end of the day "
 "count the cash in the drawer and close the day; the owner reviews it."
 msgstr ""
-"إيصالات المعمل النهارده والشغل اللي اتسلم. آخر اليوم عِد الفلوس اللي في "
-"الدرج وقفّل اليوم؛ وصاحب المكان بيراجعه."
+"إيصالات المعمل النهارده والشغل اللي اتسلم. آخر اليوم عِد الفلوس اللي في الدرج "
+"وقفّل اليوم؛ وصاحب المكان بيراجعه."
 
 #: apps/core/hints.py:161
 msgid ""
@@ -5781,9 +5751,9 @@ msgid ""
 "and the new photos are copied to the backup disk. Make a backup now before "
 "any big change."
 msgstr ""
-"الأخضر يعني أن آخر نسخة احتياطية تمت بنجاح. كل ليلة تُحفظ البيانات في ملف "
-"ZIP وتُنسخ الصور الجديدة إلى هارد النسخ الاحتياطي. اعمل نسخة احتياطية الآن "
-"قبل أي تغيير كبير."
+"الأخضر يعني أن آخر نسخة احتياطية تمت بنجاح. كل ليلة تُحفظ البيانات في ملف ZIP "
+"وتُنسخ الصور الجديدة إلى هارد النسخ الاحتياطي. اعمل نسخة احتياطية الآن قبل أي "
+"تغيير كبير."
 
 #: apps/core/hints.py:163
 msgid ""
@@ -5808,14 +5778,14 @@ msgid ""
 "Problems told by the staff, and pages that stopped with an error (written "
 "down by themselves). Mark each one when it is being looked at or solved."
 msgstr ""
-"المشاكل التي أبلغ عنها الموظفون، والصفحات التي توقفت بخطأ (تُسجَّل وحدها). "
-"حدّد حالة كل مشكلة عند متابعتها أو حلها."
+"المشاكل التي أبلغ عنها الموظفون، والصفحات التي توقفت بخطأ (تُسجَّل وحدها). حدّد "
+"حالة كل مشكلة عند متابعتها أو حلها."
 
 #: apps/core/hints.py:170
 msgid ""
 "Each doctor of the place: visits, time in the chair, what the patients paid "
-"and the doctor's share. Tap a doctor for the details and to record a payment"
-" to them."
+"and the doctor's share. Tap a doctor for the details and to record a payment "
+"to them."
 msgstr ""
 "كل طبيب في المكان: الزيارات، ووقت الكرسي، وما دفعه المرضى، ونصيب الطبيب. "
 "اضغط على الطبيب للتفاصيل ولتسجيل مبلغ دُفع له."
@@ -5828,17 +5798,17 @@ msgstr "خدماتك وزياراتك في هذا المكان، ونصيبك م
 
 #: apps/core/hints.py:174
 msgid ""
-"Every service and visit of the doctor with its share. Record each payment to"
-" the doctor under the list: what is still owed goes down."
+"Every service and visit of the doctor with its share. Record each payment to "
+"the doctor under the list: what is still owed goes down."
 msgstr ""
-"كل خدمة وزيارة للطبيب مع نصيبه منها. سجّل كل مبلغ يُدفع للطبيب أسفل القائمة:"
-" فيقل المتبقي له."
+"كل خدمة وزيارة للطبيب مع نصيبه منها. سجّل كل مبلغ يُدفع للطبيب أسفل القائمة: "
+"فيقل المتبقي له."
 
 #: apps/core/hints.py:177
 msgid ""
-"How each doctor is paid: a percentage, a fixed amount for each service (each"
-" tooth) or for each visit. To change it from a date, add a new rule from "
-"that date."
+"How each doctor is paid: a percentage, a fixed amount for each service (each "
+"tooth) or for each visit. To change it from a date, add a new rule from that "
+"date."
 msgstr ""
 "طريقة محاسبة كل طبيب: نسبة، أو مبلغ ثابت لكل خدمة (لكل سن) أو لكل زيارة. "
 "لتغييرها من تاريخ معين، أضف قاعدة جديدة من هذا التاريخ."
@@ -5865,13 +5835,13 @@ msgid ""
 "shades. Tap a row to open it; new ones start from the patient's file → "
 "Specialists."
 msgstr ""
-"ملفات الأخصائيين في المكان ده: العصب، مفصل الفك، التقويم، والألوان. اضغط على"
-" سطر لفتحه؛ الجديد يبدأ من ملف المريض ← الأخصائيون."
+"ملفات الأخصائيين في المكان ده: العصب، مفصل الفك، التقويم، والألوان. اضغط على "
+"سطر لفتحه؛ الجديد يبدأ من ملف المريض ← الأخصائيون."
 
 #: apps/core/hints.py:186
 msgid ""
-"The patient's referrals. Tap Book on a referral to book the patient with the"
-" specialist."
+"The patient's referrals. Tap Book on a referral to book the patient with the "
+"specialist."
 msgstr "تحويلات المريض. اضغط احجز على التحويل لحجز المريض مع الأخصائي."
 
 #: apps/core/hints.py:187
@@ -5882,8 +5852,8 @@ msgstr "حوّل المريض، أو افتح ملف أخصائي. التحوي�
 
 #: apps/core/hints.py:191
 msgid ""
-"Referrals to book: open one and tap Book, the specialist and the patient are"
-" filled in."
+"Referrals to book: open one and tap Book, the specialist and the patient are "
+"filled in."
 msgstr ""
 "تحويلات مطلوب حجزها: افتح واحد واضغط احجز، الأخصائي والمريض بيتكتبوا لوحدهم."
 
@@ -5895,8 +5865,8 @@ msgstr "تحويلات المكان ده: اللي اتبعتت لك، والل�
 
 #: apps/core/hints.py:195
 msgid ""
-"Book the patient with the specialist from here, and print the letter for the"
-" patient."
+"Book the patient with the specialist from here, and print the letter for the "
+"patient."
 msgstr "احجز المريض مع الأخصائي من هنا، واطبع الخطاب للمريض."
 
 #: apps/core/hints.py:196
@@ -5923,8 +5893,8 @@ msgstr "أضف كل متابعة بفتحة الفم والألم: الأعمد�
 
 #: apps/core/hints.py:202
 msgid ""
-"Add each adjustment visit: the wires of the last visit are filled in, change"
-" what is new."
+"Add each adjustment visit: the wires of the last visit are filled in, change "
+"what is new."
 msgstr ""
 "أضف كل زيارة ضبط: أسلاك الزيارة اللي فاتت بتتكتب لوحدها، غيّر الجديد بس."
 
@@ -5936,35 +5906,35 @@ msgstr "لون كل ثلث من السن للفني. اضغط \"طلب معمل\
 
 #: apps/core/hints.py:206
 msgid ""
-"Every place side by side. Choose today, 7 days or this month; rest the mouse"
-" on a column to see its number, or open Show the numbers."
+"Every place side by side. Choose today, 7 days or this month; rest the mouse "
+"on a column to see its number, or open Show the numbers."
 msgstr ""
-"كل الأماكن جنب بعض. اختار النهارده أو 7 أيام أو الشهر ده، وقف بالماوس على أي"
-" عمود تشوف رقمه، أو افتح «اعرض الأرقام»."
+"كل الأماكن جنب بعض. اختار النهارده أو 7 أيام أو الشهر ده، وقف بالماوس على أي "
+"عمود تشوف رقمه، أو افتح «اعرض الأرقام»."
 
 #: apps/core/hints.py:209
 msgid ""
-"One column per step. Press the button under a case when its step is done: it"
-" goes on to the next step, and to the person who does it."
+"One column per step. Press the button under a case when its step is done: it "
+"goes on to the next step, and to the person who does it."
 msgstr ""
 "عمود لكل مرحلة. اضغط الزرار اللي تحت الحالة لما مرحلتها تخلص: تروح للمرحلة "
 "اللي بعدها وللشخص اللي بيعملها."
 
 #: apps/core/hints.py:211
 msgid ""
-"One column per step. The cases with you have your name; press Done when your"
-" step is finished."
+"One column per step. The cases with you have your name; press Done when your "
+"step is finished."
 msgstr ""
 "عمود لكل مرحلة. الحالات اللي معاك عليها اسمك، واضغط «خلصت» لما مرحلتك تخلص."
 
 #: apps/core/hints.py:214
 msgid ""
 "Choose the client and write the work: the price comes from the client's "
-"price list and the steps from the kind of work. Then print the label for the"
-" box."
+"price list and the steps from the kind of work. Then print the label for the "
+"box."
 msgstr ""
-"اختار العميل واكتب الشغل: السعر بييجي من قائمة أسعار العميل، والمراحل من نوع"
-" الشغل. بعد كده اطبع الملصق للعلبة."
+"اختار العميل واكتب الشغل: السعر بييجي من قائمة أسعار العميل، والمراحل من نوع "
+"الشغل. بعد كده اطبع الملصق للعلبة."
 
 #: apps/core/hints.py:216
 msgid ""
@@ -5979,8 +5949,8 @@ msgid ""
 "The big button moves the case to its next step. The bars show how long each "
 "step took. A remake opens a new case linked to this one."
 msgstr ""
-"الزرار الكبير بينقل الحالة للمرحلة اللي بعدها. الأشرطة بتبيّن كل مرحلة خدت "
-"قد إيه. الإعادة بتفتح حالة جديدة مربوطة بالحالة دي."
+"الزرار الكبير بينقل الحالة للمرحلة اللي بعدها. الأشرطة بتبيّن كل مرحلة خدت قد "
+"إيه. الإعادة بتفتح حالة جديدة مربوطة بالحالة دي."
 
 #: apps/core/hints.py:220
 msgid ""
@@ -5994,8 +5964,8 @@ msgid ""
 "Open a new block when you start it: then record on each case how many units "
 "were milled from it, and close the block when it is finished."
 msgstr ""
-"افتح بلوك جديد لما تبدأ فيه، وبعد كده سجّل على كل حالة كام وحدة اتفرّزت منه،"
-" واقفل البلوك لما يخلص."
+"افتح بلوك جديد لما تبدأ فيه، وبعد كده سجّل على كل حالة كام وحدة اتفرّزت منه، "
+"واقفل البلوك لما يخلص."
 
 #: apps/core/hints.py:223
 msgid ""
@@ -6007,8 +5977,8 @@ msgstr ""
 
 #: apps/core/hints.py:225
 msgid ""
-"Type the prices of each list and press Save. An empty box means no price for"
-" that work."
+"Type the prices of each list and press Save. An empty box means no price for "
+"that work."
 msgstr ""
 "اكتب أسعار كل قائمة واضغط حفظ. الخانة الفاضية معناها مفيش سعر للشغل ده."
 
@@ -6028,8 +5998,8 @@ msgstr ""
 
 #: apps/core/hints.py:229
 msgid ""
-"Type the case number or the doctor's mobile: the answer with the real status"
-" is written for you. Press Send, then send it in WhatsApp."
+"Type the case number or the doctor's mobile: the answer with the real status "
+"is written for you. Press Send, then send it in WhatsApp."
 msgstr ""
 "اكتب رقم الحالة أو موبايل الدكتور: الرد بالحالة الحقيقية بيتكتب لوحده. اضغط "
 "«ابعت» وبعدين ابعته من واتساب."
@@ -6128,16 +6098,16 @@ msgstr ""
 
 #: apps/core/hints.py:253
 msgid ""
-"The prosthodontic case: the missing teeth, the abutments, the occlusion, the"
-" esthetics and the plan, with its shades and lab work."
+"The prosthodontic case: the missing teeth, the abutments, the occlusion, the "
+"esthetics and the plan, with its shades and lab work."
 msgstr ""
 "حالة التركيبات: الأسنان المفقودة، الدعامات، الإطباق، الشكل الجمالي والخطة، "
 "مع درجات اللون وشغل المعمل."
 
 #: apps/core/hints.py:255
 msgid ""
-"Write the prosthodontic examination; the plan at the end is what the patient"
-" agreed to. The shade is taken from the case page."
+"Write the prosthodontic examination; the plan at the end is what the patient "
+"agreed to. The shade is taken from the case page."
 msgstr ""
 "اكتب فحص التركيبات؛ الخطة في الآخر هي ما وافق عليه المريض. درجة اللون تؤخذ "
 "من صفحة الحالة."
@@ -6184,7 +6154,7 @@ msgstr "أكاديمية تعليمية"
 msgid "Private clinic"
 msgstr "عيادة خاصة"
 
-#: apps/core/models.py:61 apps/core/settings_views.py:472 apps/lab/apps.py:8
+#: apps/core/models.py:61 apps/core/settings_views.py:473 apps/lab/apps.py:8
 #: apps/stock/models.py:21 templates/base.html:174
 #: templates/core/overview.html:68 templates/settings/access.html:15
 msgid "Dental lab"
@@ -6198,9 +6168,9 @@ msgstr "الكود"
 msgid "Short prefix used in file numbers, e.g. CIA."
 msgstr "اختصار يستخدم في أرقام الملفات، مثل CIA."
 
-#: apps/core/models.py:66 apps/dentists/forms.py:156
-#: apps/dentists/models.py:61 apps/prescriptions/models.py:25
-#: apps/purchasing/models.py:58 apps/reports/views.py:121
+#: apps/core/models.py:66 apps/dentists/forms.py:156 apps/dentists/models.py:61
+#: apps/prescriptions/models.py:25 apps/purchasing/models.py:58
+#: apps/reports/views.py:121
 msgid "type"
 msgstr "النوع"
 
@@ -6314,15 +6284,15 @@ msgstr "الفروع"
 msgid "user"
 msgstr "المستخدم"
 
-#: apps/core/models.py:157 apps/core/settings_views.py:296
+#: apps/core/models.py:157 apps/core/settings_views.py:297
 #: apps/dentists/models.py:75
 msgid "works at"
 msgstr "يعمل في"
 
 #: apps/core/models.py:158
 msgid ""
-"The places this person works in. With more than one, a switch in the top bar"
-" chooses the place they work in now."
+"The places this person works in. With more than one, a switch in the top bar "
+"chooses the place they work in now."
 msgstr ""
 "الأماكن التي يعمل بها هذا الشخص. إذا كانت أكثر من مكان، يختار من الشريط "
 "العلوي المكان الذي يعمل به الآن."
@@ -6363,8 +6333,8 @@ msgstr "التوقيع"
 
 #: apps/core/models.py:170
 msgid ""
-"Drawn once on the screen (user menu → My signature): printed on receipts and"
-" prescriptions."
+"Drawn once on the screen (user menu → My signature): printed on receipts and "
+"prescriptions."
 msgstr ""
 "يُرسم مرة واحدة على الشاشة (قائمة المستخدم ← توقيعي): ويُطبع على الإيصالات "
 "والروشتات."
@@ -6386,8 +6356,8 @@ msgid ""
 "Set when the owner gives a temporary password: the person chooses their own "
 "at the next login."
 msgstr ""
-"يُعلَّم عندما يعطي المالك كلمة سر مؤقتة: يختار الشخص كلمة سر خاصة به عند "
-"الدخول التالي."
+"يُعلَّم عندما يعطي المالك كلمة سر مؤقتة: يختار الشخص كلمة سر خاصة به عند الدخول "
+"التالي."
 
 #: apps/core/models.py:178
 msgid "easy password"
@@ -6398,14 +6368,14 @@ msgid ""
 "Seen at the last login: the password is short, common or like the username "
 "(security.py)."
 msgstr ""
-"اتشافت في آخر دخول: كلمة السر قصيرة أو مشهورة أو شبه اسم المستخدم "
-"(security.py)."
+"اتشافت في آخر دخول: كلمة السر قصيرة أو مشهورة أو شبه اسم المستخدم (security."
+"py)."
 
-#: apps/core/models.py:180 apps/core/settings_views.py:304
+#: apps/core/models.py:180 apps/core/settings_views.py:305
 msgid "access starts on"
 msgstr "تبدأ الصلاحية يوم"
 
-#: apps/core/models.py:181 apps/core/settings_views.py:305
+#: apps/core/models.py:181 apps/core/settings_views.py:306
 msgid "access ends on"
 msgstr "تنتهي الصلاحية يوم"
 
@@ -6414,7 +6384,7 @@ msgid ""
 "After this day the login stops working (e.g. end of a course or contract)."
 msgstr "بعد هذا اليوم يتوقف الدخول (مثلًا نهاية كورس أو عقد)."
 
-#: apps/core/models.py:183 apps/core/settings_views.py:306
+#: apps/core/models.py:183 apps/core/settings_views.py:307
 msgid "days allowed"
 msgstr "الأيام المسموحة"
 
@@ -6422,11 +6392,11 @@ msgstr "الأيام المسموحة"
 msgid "Empty = every day."
 msgstr "فارغ = كل الأيام."
 
-#: apps/core/models.py:185 apps/core/settings_views.py:309
+#: apps/core/models.py:185 apps/core/settings_views.py:310
 msgid "from hour"
 msgstr "من الساعة"
 
-#: apps/core/models.py:186 apps/core/settings_views.py:311
+#: apps/core/models.py:186 apps/core/settings_views.py:312
 msgid "to hour"
 msgstr "إلى الساعة"
 
@@ -6531,15 +6501,13 @@ msgstr "بريد استقبال ملفات الأشعة المقطعية"
 
 #: apps/core/models.py:283
 msgid "Printed on CBCT requests: the centre sends the DICOM files here."
-msgstr ""
-"يُطبع على طلب الأشعة المقطعية: يرسل المركز ملفات DICOM إلى هذا البريد."
+msgstr "يُطبع على طلب الأشعة المقطعية: يرسل المركز ملفات DICOM إلى هذا البريد."
 
 #: apps/core/models.py:286
 msgid ""
-"What Fawry keeps from each payment taken on its machine, e.g. 1.5. Each move"
-" can still be corrected."
-msgstr ""
-"ما تأخذه فوري من كل دفعة على ماكينتها، مثلًا 1.5. ويمكن تصحيح كل حركة."
+"What Fawry keeps from each payment taken on its machine, e.g. 1.5. Each move "
+"can still be corrected."
+msgstr "ما تأخذه فوري من كل دفعة على ماكينتها، مثلًا 1.5. ويمكن تصحيح كل حركة."
 
 #: apps/core/models.py:288
 msgid "the reception sees in a patient's file"
@@ -7010,7 +6978,7 @@ msgstr "اترفض: من برّه شبكة العيادة"
 msgid "what"
 msgstr "المطلوب"
 
-#: apps/core/models.py:655 apps/core/settings_views.py:288
+#: apps/core/models.py:655 apps/core/settings_views.py:289
 msgid "username"
 msgstr "اسم المستخدم"
 
@@ -7150,8 +7118,7 @@ msgid "Cases"
 msgstr "الحالات"
 
 #: apps/core/navigation.py:41 templates/scheduling/_day_grid.html:21
-#: templates/scheduling/_request_row.html:9
-#: templates/scheduling/today.html:149
+#: templates/scheduling/_request_row.html:9 templates/scheduling/today.html:149
 msgid "Book"
 msgstr "احجز"
 
@@ -7176,8 +7143,7 @@ msgid "Visits"
 msgstr "الزيارات"
 
 #: apps/core/navigation.py:51 templates/base.html:79
-#: templates/core/dashboard.html:145
-#: templates/patients/medical_followup.html:8
+#: templates/core/dashboard.html:145 templates/patients/medical_followup.html:8
 #: templates/patients/patient_list.html:6
 msgid "My patients"
 msgstr "مرضاي"
@@ -7496,7 +7462,7 @@ msgid "The problem you reported was looked at"
 msgstr "تمت مراجعة المشكلة التي أبلغت عنها"
 
 #: apps/core/problems.py:121 apps/core/settings_views.py:244
-#: apps/core/settings_views.py:459 apps/lab/views.py:534 apps/lab/views.py:822
+#: apps/core/settings_views.py:460 apps/lab/views.py:534 apps/lab/views.py:822
 #: apps/lab/views.py:836 apps/specialties/views.py:260
 msgid "Saved."
 msgstr "تم الحفظ."
@@ -7596,8 +7562,8 @@ msgstr "اتفتح على %(where)s"
 #: apps/core/security.py:341
 #, python-format
 msgid ""
-"You were logged out here because your login (%(user)s) was opened on another"
-" device at %(time)s. Only one device at a time can use a login."
+"You were logged out here because your login (%(user)s) was opened on another "
+"device at %(time)s. Only one device at a time can use a login."
 msgstr ""
 "اتعمل لك خروج هنا لأن حسابك (%(user)s) اتفتح على جهاز تاني الساعة %(time)s. "
 "جهاز واحد بس في نفس الوقت يقدر يستخدم الحساب."
@@ -7737,25 +7703,25 @@ msgstr "خدمات المكان ده بس"
 msgid "Name, look and opening hours"
 msgstr "الاسم والشكل ومواعيد العمل"
 
-#: apps/core/settings_views.py:281
+#: apps/core/settings_views.py:282
 msgid "Clinic options saved."
 msgstr "تم حفظ إعدادات العيادة."
 
-#: apps/core/settings_views.py:292
+#: apps/core/settings_views.py:293
 msgid "can log in"
 msgstr "يستطيع الدخول"
 
-#: apps/core/settings_views.py:293
+#: apps/core/settings_views.py:294
 msgid "new password"
 msgstr "كلمة مرور جديدة"
 
-#: apps/core/settings_views.py:294
+#: apps/core/settings_views.py:295
 msgid "Leave empty to keep the password (a new person gets one made up)."
 msgstr ""
 "اتركها فارغة للإبقاء على كلمة المرور (الشخص الجديد تُعمل له كلمة مرور "
 "تلقائيًا)."
 
-#: apps/core/settings_views.py:298
+#: apps/core/settings_views.py:299
 msgid ""
 "E.g. the secretary at CIA and CIC; the lab's staff at the lab. With more "
 "than one place, a switch in the top bar chooses where they work now. The "
@@ -7764,111 +7730,111 @@ msgstr ""
 "مثلًا السكرتيرة في CIA وCIC، وفريق المعمل في المعمل. مع أكثر من مكان، يختار "
 "من الشريط العلوي أين يعمل الآن. المالك يعمل في كل الأماكن."
 
-#: apps/core/settings_views.py:300
+#: apps/core/settings_views.py:301
 msgid "dentist record"
 msgstr "ملف الطبيب"
 
-#: apps/core/settings_views.py:302
+#: apps/core/settings_views.py:303
 msgid "For CIA dentists: the dentist this login belongs to."
 msgstr "لأطباء CIA: الطبيب صاحب هذا الدخول."
 
-#: apps/core/settings_views.py:303
+#: apps/core/settings_views.py:304
 msgid "read only everywhere"
 msgstr "اطلاع فقط في كل البرنامج"
 
-#: apps/core/settings_views.py:308
+#: apps/core/settings_views.py:309
 msgid "None ticked = every day."
 msgstr "بدون اختيار = كل الأيام."
 
-#: apps/core/settings_views.py:315 templates/core/time_report.html:17
+#: apps/core/settings_views.py:316 templates/core/time_report.html:17
 #: templates/lab/board.html:26 templates/lab/report.html:62
 #: templates/settings/security.html:45
 msgid "Person"
 msgstr "الشخص"
 
-#: apps/core/settings_views.py:316
+#: apps/core/settings_views.py:317
 msgid "Access limits"
 msgstr "حدود الصلاحية"
 
-#: apps/core/settings_views.py:326
+#: apps/core/settings_views.py:327
 msgid "As the role"
 msgstr "حسب الدور"
 
-#: apps/core/settings_views.py:332
+#: apps/core/settings_views.py:333
 msgid "Parts of the system for this person"
 msgstr "أجزاء البرنامج لهذا الشخص"
 
-#: apps/core/settings_views.py:341
+#: apps/core/settings_views.py:342
 msgid "This username is taken."
 msgstr "اسم المستخدم هذا مستخدم بالفعل."
 
-#: apps/core/settings_views.py:350
+#: apps/core/settings_views.py:351
 msgid ""
 "This password is too easy to guess: use at least 8 letters and numbers, not "
 "like the username."
 msgstr ""
 "كلمة السر دي سهلة قوي: استخدم 8 حروف وأرقام على الأقل، ومش شبه اسم المستخدم."
 
-#: apps/core/settings_views.py:357
+#: apps/core/settings_views.py:358
 msgid "Write both hours, or neither."
 msgstr "اكتب الساعتين معًا أو اتركهما فارغتين."
 
-#: apps/core/settings_views.py:361
+#: apps/core/settings_views.py:362
 msgid "The lab is for the lab's roles (head, manager, designer, secretary)."
 msgstr "المعمل لأدوار المعمل بس (رئيس المعمل، المدير، المصمم، السكرتيرة)."
 
-#: apps/core/settings_views.py:364
+#: apps/core/settings_views.py:365
 msgid "This dentist already has a login."
 msgstr "هذا الطبيب له دخول بالفعل."
 
-#: apps/core/settings_views.py:433
+#: apps/core/settings_views.py:434
 #, python-format
 msgid "set in People and logins by %(owner)s"
 msgstr "اتحطت من «الأشخاص والدخول» بواسطة %(owner)s"
 
-#: apps/core/settings_views.py:461
+#: apps/core/settings_views.py:462
 #, python-format
 msgid "Password: %(p)s (write it down now; it will not be shown again)."
 msgstr "كلمة المرور: %(p)s (اكتبها الآن؛ لن تظهر مرة أخرى)."
 
-#: apps/core/settings_views.py:468
+#: apps/core/settings_views.py:469
 msgid "Patients and treatment"
 msgstr "المرضى والعلاج"
 
-#: apps/core/settings_views.py:470
+#: apps/core/settings_views.py:471
 msgid "Money, stock and people"
 msgstr "الفلوس والمخزن والأفراد"
 
-#: apps/core/settings_views.py:471 templates/reports/index.html:5
+#: apps/core/settings_views.py:472 templates/reports/index.html:5
 msgid "Reports and statistics"
 msgstr "التقارير والإحصائيات"
 
-#: apps/core/settings_views.py:486
+#: apps/core/settings_views.py:487
 msgid "Saved: the reception now sees these parts of a patient's file."
 msgstr "تم الحفظ: أصبح الاستقبال يرى هذه الأجزاء من ملف المريض."
 
-#: apps/core/settings_views.py:499
+#: apps/core/settings_views.py:500
 msgid "Access saved."
 msgstr "تم حفظ الصلاحيات."
 
-#: apps/core/settings_views.py:538
+#: apps/core/settings_views.py:539
 msgid "A backup is being made now. It will appear below when it is ready."
 msgstr "يتم عمل نسخة احتياطية الآن. ستظهر بالأسفل عندما تجهز."
 
-#: apps/core/settings_views.py:543
+#: apps/core/settings_views.py:544
 #, python-format
 msgid "The backup could not be made: %(error)s"
 msgstr "تعذر عمل النسخة الاحتياطية: %(error)s"
 
-#: apps/core/settings_views.py:546
+#: apps/core/settings_views.py:547
 msgid ""
-"The backup is being made (there is a lot of data). It will appear below in a"
-" few minutes: open this page again then."
+"The backup is being made (there is a lot of data). It will appear below in a "
+"few minutes: open this page again then."
 msgstr ""
 "يتم عمل النسخة الاحتياطية (البيانات كثيرة). ستظهر بالأسفل بعد بضع دقائق: "
 "افتح هذه الصفحة مرة أخرى وقتها."
 
-#: apps/core/settings_views.py:549
+#: apps/core/settings_views.py:550
 #, python-format
 msgid "Backup made: %(name)s. Download it and keep a copy outside this PC."
 msgstr ""
@@ -8330,8 +8296,7 @@ msgid "%(name)s is no longer offered on the forms; his work stays."
 msgstr "%(name)s لم يعد يظهر في النماذج؛ شغله يفضل."
 
 #: apps/dentists/views.py:152 apps/surgery/finder.py:95
-#: apps/surgery/forms.py:23 apps/surgery/forms.py:164
-#: apps/surgery/models.py:98
+#: apps/surgery/forms.py:23 apps/surgery/forms.py:164 apps/surgery/models.py:98
 msgid "operator 1"
 msgstr "الطبيب الأول"
 
@@ -8366,8 +8331,7 @@ msgid ""
 "Course candidates are added from Academy → Candidates; they get their "
 "dentist record automatically."
 msgstr ""
-"دارسو الكورسات يُضافون من الأكاديمية ← الدارسون؛ ويُنشأ لهم ملف طبيب "
-"تلقائيًا."
+"دارسو الكورسات يُضافون من الأكاديمية ← الدارسون؛ ويُنشأ لهم ملف طبيب تلقائيًا."
 
 #: apps/dentists/views.py:223
 #, python-format
@@ -8376,8 +8340,8 @@ msgstr "هذا الطبيب لديه حساب دخول بالفعل: %(u)s"
 
 #: apps/dentists/views.py:226
 msgid ""
-"Only CIA dentists get a login. Candidates, training dentists and supervisors"
-" are chosen by name on the forms."
+"Only CIA dentists get a login. Candidates, training dentists and supervisors "
+"are chosen by name on the forms."
 msgstr ""
 "أطباء الأكاديمية فقط لهم حساب دخول. الدارسون والأطباء المتدربون والمشرفون "
 "يُختارون بالاسم في النماذج."
@@ -8508,9 +8472,9 @@ msgstr "الوحدات اللي اتعملت منه"
 #: templates/lab/blocks.html:24 templates/lab/blocks.html:32
 #: templates/purchasing/purchase_detail.html:29
 #: templates/purchasing/purchase_form.html:17
-#: templates/purchasing/return_detail.html:23
-#: templates/stock/item_list.html:41 templates/stock/movement_list.html:22
-#: templates/stock/price_changes.html:20 templates/stock/use.html:11
+#: templates/purchasing/return_detail.html:23 templates/stock/item_list.html:41
+#: templates/stock/movement_list.html:22 templates/stock/price_changes.html:20
+#: templates/stock/use.html:11
 msgid "Item"
 msgstr "الصنف"
 
@@ -8747,8 +8711,7 @@ msgid ""
 "With a login they see their own work (My lab work) and are told when a case "
 "is given to them."
 msgstr ""
-"لو ليه حساب دخول بيشوف شغله (شغلي في المعمل) وبيوصله تنبيه لما حالة "
-"تتسلّمله."
+"لو ليه حساب دخول بيشوف شغله (شغلي في المعمل) وبيوصله تنبيه لما حالة تتسلّمله."
 
 #: apps/lab/models.py:165
 msgid "works on"
@@ -9155,8 +9118,8 @@ msgid ""
 "Needs the WhatsApp Business platform of Meta and the server reachable from "
 "the internet. A doctor who sends a case number gets its real status at once."
 msgstr ""
-"محتاج منصة واتساب بيزنس من ميتا والسيرفر يكون متاح من الإنترنت. الدكتور اللي"
-" يبعت رقم حالة بيوصله وضعها الحقيقي فورًا."
+"محتاج منصة واتساب بيزنس من ميتا والسيرفر يكون متاح من الإنترنت. الدكتور اللي "
+"يبعت رقم حالة بيوصله وضعها الحقيقي فورًا."
 
 #: apps/lab/models.py:558
 msgid "WhatsApp phone number ID"
@@ -9274,8 +9237,8 @@ msgstr "البلوك ده خلص."
 
 #: apps/lab/views.py:167
 msgid ""
-"You are not on the lab's staff list yet: the head of the lab adds you in Lab"
-" staff."
+"You are not on the lab's staff list yet: the head of the lab adds you in Lab "
+"staff."
 msgstr "انت لسه مش في قائمة فريق المعمل: رئيس المعمل يضيفك من «فريق المعمل»."
 
 #: apps/lab/views.py:207
@@ -9463,8 +9426,8 @@ msgid ""
 "Tick the steps this person does: a case goes by itself to the only person "
 "who does a step."
 msgstr ""
-"علّم على المراحل اللي الشخص ده بيعملها: الحالة بتروح لوحدها للشخص الوحيد "
-"اللي بيعمل المرحلة."
+"علّم على المراحل اللي الشخص ده بيعملها: الحالة بتروح لوحدها للشخص الوحيد اللي "
+"بيعمل المرحلة."
 
 #: apps/patients/access.py:86
 msgid ""
@@ -9571,8 +9534,8 @@ msgstr "اكتب الاسم بالحروف العربية فقط، كما في �
 
 #: apps/patients/forms.py:67
 msgid ""
-"Write at least three names (the patient, the father and the grandfather), as"
-" on the ID."
+"Write at least three names (the patient, the father and the grandfather), as "
+"on the ID."
 msgstr "اكتب ثلاثة أسماء على الأقل (المريض والأب والجد)، كما في البطاقة."
 
 #: apps/patients/forms.py:78
@@ -9590,8 +9553,7 @@ msgstr "لا يوجد مريض بهذا الرقم (ملف / موبايل / قو
 
 #: apps/patients/forms.py:100
 #, python-format
-msgid ""
-"This mobile belongs to the registered patient %(name)s (file %(file)s)."
+msgid "This mobile belongs to the registered patient %(name)s (file %(file)s)."
 msgstr "هذا الموبايل خاص بالمريض المسجل %(name)s (ملف %(file)s)."
 
 #: apps/patients/forms.py:109
@@ -9654,8 +9616,8 @@ msgid ""
 "Take it with the camera (the card is cut out and read) or choose a scan "
 "(JPG, PNG or PDF)."
 msgstr ""
-"صوّريها بالكاميرا (البطاقة بتتقص وتتقرا) أو اختاري صورة سكانر (JPG أو PNG أو"
-" PDF)."
+"صوّريها بالكاميرا (البطاقة بتتقص وتتقرا) أو اختاري صورة سكانر (JPG أو PNG أو "
+"PDF)."
 
 #: apps/patients/forms.py:198
 msgid "ID scan - back"
@@ -9695,8 +9657,8 @@ msgid ""
 "The number written on the paper file, e.g. 1234 (it becomes CIA-01234). "
 "Empty: the next number."
 msgstr ""
-"الرقم المكتوب على الملف الورقي، مثلاً 1234 (يبقى CIA-01234). فاضي: الرقم "
-"اللي بعده."
+"الرقم المكتوب على الملف الورقي، مثلاً 1234 (يبقى CIA-01234). فاضي: الرقم اللي "
+"بعده."
 
 #: apps/patients/forms.py:221
 msgid "Data entry"
@@ -9777,84 +9739,80 @@ msgstr ""
 "لهذا الرقم القومي ملف مفتوح في %(place)s (ملف %(file)s). لنقل المريض إلى "
 "هنا، افتح ذلك الملف في %(place)s واضغط “نقل لمكان آخر”."
 
-#: apps/patients/forms.py:351
-msgid "A file must keep a number."
-msgstr "الملف لازم يفضل له رقم."
-
-#: apps/patients/forms.py:357
+#: apps/patients/forms.py:355
 msgid "Use numbers and letters only, e.g. 1234 or CIA-01234."
 msgstr "استخدمي أرقام وحروف بس، مثلاً 1234 أو CIA-01234."
 
-#: apps/patients/forms.py:360
+#: apps/patients/forms.py:358
 #, python-format
 msgid "The file number %(file)s is already used by %(name)s."
 msgstr "رقم الملف %(file)s مستخدم لـ %(name)s."
 
-#: apps/patients/forms.py:385
+#: apps/patients/forms.py:383
 msgid "The date of birth does not match the national ID."
 msgstr "تاريخ الميلاد لا يطابق الرقم القومي."
 
-#: apps/patients/forms.py:387
+#: apps/patients/forms.py:385
 msgid "Write the number of the paper file."
 msgstr "اكتبي رقم الملف الورقي."
 
-#: apps/patients/forms.py:393
+#: apps/patients/forms.py:391
 msgid "The second mobile is the same as the first one."
 msgstr "الموبايل الثاني هو نفس الأول."
 
-#: apps/patients/forms.py:397
+#: apps/patients/forms.py:395
 msgid "A patient cannot refer himself."
 msgstr "المريض لا يمكن أن يرشّح نفسه."
 
-#: apps/patients/forms.py:399
+#: apps/patients/forms.py:397
 msgid "Choose the relation."
 msgstr "اختر صلة القرابة."
 
-#: apps/patients/forms.py:402
+#: apps/patients/forms.py:400
 msgid "Choose why the patient is out."
 msgstr "اختر سبب خروج المريض."
 
-#: apps/patients/forms.py:430
+#: apps/patients/forms.py:428
 msgid "Choose a file, or write where the scan is kept."
 msgstr "اختر ملفًا، أو اكتب مكان حفظ الأشعة."
 
-#: apps/patients/forms.py:442 apps/patients/models.py:432
+#: apps/patients/forms.py:440 apps/patients/models.py:432
 msgid "related patient"
 msgstr "المريض القريب / الصديق"
 
-#: apps/patients/forms.py:458
+#: apps/patients/forms.py:456
 msgid "A patient cannot be related to himself."
 msgstr "لا يمكن ربط المريض بنفسه."
 
-#: apps/patients/forms.py:463
+#: apps/patients/forms.py:461
 msgid "This relation is already recorded."
 msgstr "هذه الصلة مسجلة بالفعل."
 
-#: apps/patients/forms.py:473
+#: apps/patients/forms.py:471
 msgid "has open lab work"
 msgstr "عنده شغل معمل مفتوح"
 
-#: apps/patients/forms.py:474
+#: apps/patients/forms.py:472
 msgid "only my patients"
 msgstr "مرضاي فقط"
 
-#: apps/patients/forms.py:511 apps/patients/models.py:568
+#: apps/patients/forms.py:509 apps/patients/models.py:568
 msgid "planned procedure"
 msgstr "العملية المطلوبة"
 
-#: apps/patients/forms.py:515
+#: apps/patients/forms.py:513
 msgid "Why we ask"
 msgstr "سبب الاستشارة"
 
-#: apps/patients/forms.py:517
+#: apps/patients/forms.py:515
 msgid "The surgery"
 msgstr "العملية"
 
-#: apps/patients/forms.py:518
+#: apps/patients/forms.py:516
 msgid "The letter"
 msgstr "الخطاب"
 
-#: apps/patients/forms.py:569
+#: apps/patients/forms.py:567
 msgid "Write the precautions the physician asked for."
 msgstr "اكتب الاحتياطات اللي الطبيب طلبها."
 
@@ -10180,8 +10138,8 @@ msgstr "رشّحه المريض"
 
 #: apps/patients/models.py:254
 msgid ""
-"A doctor who brought his own patient to the clinic. His work on this patient"
-" is paid as his own patient (e.g. 40%); every other patient is the clinic's "
+"A doctor who brought his own patient to the clinic. His work on this patient "
+"is paid as his own patient (e.g. 40%); every other patient is the clinic's "
 "(e.g. 30%)."
 msgstr ""
 "طبيب جاب مريضه للعيادة. شغله مع المريض ده بيتحسب كمريضه هو (مثلًا 40%)؛ أي "
@@ -10201,10 +10159,9 @@ msgstr "تاريخ فتح الملف"
 
 #: apps/patients/models.py:266
 msgid ""
-"Today by itself. When typing in old paper files, write the date the file was"
-" opened."
-msgstr ""
-"تاريخ اليوم تلقائيًا. عند إدخال ملفات ورقية قديمة اكتب تاريخ فتح الملف."
+"Today by itself. When typing in old paper files, write the date the file was "
+"opened."
+msgstr "تاريخ اليوم تلقائيًا. عند إدخال ملفات ورقية قديمة اكتب تاريخ فتح الملف."
 
 #: apps/patients/models.py:269
 msgid "moved to the file"
@@ -10245,12 +10202,12 @@ msgstr "صورة أو PDF: الأشعة، أو تقرير الـ CBCT، أو ب�
 
 #: apps/patients/models.py:384
 msgid ""
-"For a CBCT (DICOM files, too big to upload): the folder on the server or the"
-" viewer link from the centre, e.g. \\\\CIA-SERVER\\CBCT\\CIA-00020 or "
+"For a CBCT (DICOM files, too big to upload): the folder on the server or the "
+"viewer link from the centre, e.g. \\\\CIA-SERVER\\CBCT\\CIA-00020 or "
 "https://…"
 msgstr ""
-"للـ CBCT (ملفات DICOM كبيرة جدًا على الرفع): المجلد على السيرفر أو رابط "
-"العرض من المركز، مثل \\\\CIA-SERVER\\CBCT\\CIA-00020 أو https://…"
+"للـ CBCT (ملفات DICOM كبيرة جدًا على الرفع): المجلد على السيرفر أو رابط العرض "
+"من المركز، مثل \\\\CIA-SERVER\\CBCT\\CIA-00020 أو https://…"
 
 #: apps/patients/models.py:386 templates/patients/patient_detail.html:250
 msgid "original scan"
@@ -10630,8 +10587,8 @@ msgid ""
 "The mobile %(phone)s belongs to another patient at %(place)s. Change the "
 "patient's first mobile, then move the file."
 msgstr ""
-"الموبايل %(phone)s خاص بمريض آخر في %(place)s. غيّر الموبايل الأول للمريض، "
-"ثم انقل الملف."
+"الموبايل %(phone)s خاص بمريض آخر في %(place)s. غيّر الموبايل الأول للمريض، ثم "
+"انقل الملف."
 
 #: apps/patients/transfer.py:51
 #, python-format
@@ -10675,8 +10632,8 @@ msgid ""
 "A short file was opened for %(name)s (%(file)s): choose the day and the "
 "time. Complete the file when he comes."
 msgstr ""
-"اتفتح ملف قصير لـ %(name)s (%(file)s): اختاري اليوم والساعة. كمّلي الملف لما"
-" ييجي."
+"اتفتح ملف قصير لـ %(name)s (%(file)s): اختاري اليوم والساعة. كمّلي الملف لما "
+"ييجي."
 
 #: apps/patients/views.py:240
 msgid "Call saved."
@@ -10772,8 +10729,8 @@ msgstr "التاريخ الطبي وتاريخ الأسنان — %(name)s"
 
 #: apps/patients/views.py:573
 msgid ""
-"The same questions as the paper chart. Ask the patient and tick or write the"
-" answers."
+"The same questions as the paper chart. Ask the patient and tick or write the "
+"answers."
 msgstr "نفس أسئلة الشارت الورقي. اسأل المريض وعلّم أو اكتب الإجابات."
 
 #: apps/patients/views.py:602
@@ -10864,9 +10821,9 @@ msgid "drug groups (interchangeable drugs)"
 msgstr "مجموعات الأدوية (أدوية بديلة لبعضها)"
 
 #: apps/prescriptions/models.py:35 apps/purchasing/forms.py:107
-#: apps/purchasing/models.py:59 apps/stock/forms.py:152
-#: apps/stock/models.py:43 apps/surgery/forms.py:499
-#: apps/surgery/implant_life.py:182 apps/surgery/models.py:836
+#: apps/purchasing/models.py:59 apps/stock/forms.py:152 apps/stock/models.py:43
+#: apps/surgery/forms.py:499 apps/surgery/implant_life.py:182
+#: apps/surgery/models.py:836
 msgid "group"
 msgstr "المجموعة"
 
@@ -10964,8 +10921,10 @@ msgstr "اتشرى لـ (المكان)"
 
 #: apps/purchasing/forms.py:60
 #, python-format
-msgid "Not in the list? <a href=\"%(url)s\" target=\"_blank\">Add a supplier</a>."
-msgstr "غير موجود في القائمة؟ <a href=\"%(url)s\" target=\"_blank\">أضف موردًا</a>."
+msgid ""
+"Not in the list? <a href=\"%(url)s\" target=\"_blank\">Add a supplier</a>."
+msgstr ""
+"غير موجود في القائمة؟ <a href=\"%(url)s\" target=\"_blank\">أضف موردًا</a>."
 
 #: apps/purchasing/forms.py:66
 msgid "Enter how much was paid."
@@ -11093,8 +11052,7 @@ msgstr "تصنيفات المشتريات"
 #: templates/core/overview.html:37 templates/dentists/dentist_detail.html:25
 #: templates/lab/client_detail.html:14 templates/lab/client_list.html:10
 #: templates/lab/client_list.html:15 templates/lab/report.html:85
-#: templates/lab/statement.html:18
-#: templates/purchasing/purchase_detail.html:21
+#: templates/lab/statement.html:18 templates/purchasing/purchase_detail.html:21
 msgid "Paid"
 msgstr "مدفوع"
 
@@ -11260,16 +11218,15 @@ msgstr "المردود"
 
 #: apps/purchasing/returns.py:44
 msgid ""
-"Written. The items given back went out of the stock. Next: when the supplier"
-" takes them, press “The supplier took them”."
+"Written. The items given back went out of the stock. Next: when the supplier "
+"takes them, press “The supplier took them”."
 msgstr ""
 "اتسجل. الأصناف المرتجعة خرجت من المخزن. الخطوة الجاية: لما المورّد ياخدهم "
 "اضغط «المورّد استلمهم»."
 
 #: apps/purchasing/returns.py:70
 msgid ""
-"Step 2 done. When the money, the credit or the new items come, finish step "
-"3."
+"Step 2 done. When the money, the credit or the new items come, finish step 3."
 msgstr ""
 "الخطوة 2 تمت. لما الفلوس أو الرصيد أو الأصناف الجديدة توصل، كمّل الخطوة 3."
 
@@ -11386,8 +11343,8 @@ msgstr "ليكي، مثلاً تهنئة العيد، عرض الزرعات ال
 #: apps/scheduling/bulk.py:37 apps/scheduling/models.py:507
 #, python-brace-format
 msgid ""
-"{patient} is replaced by each one's name; {clinic}, {phone} and {address} by"
-" the place's."
+"{patient} is replaced by each one's name; {clinic}, {phone} and {address} by "
+"the place's."
 msgstr ""
 "{patient} يتغير لاسم كل واحد؛ {clinic} و{phone} و{address} لبيانات المكان."
 
@@ -11733,8 +11690,7 @@ msgid "entered the room"
 msgstr "وقت دخول الغرفة"
 
 #: apps/scheduling/models.py:147 apps/scheduling/views.py:351
-#: templates/billing/day_review.html:19
-#: templates/dentists/dentist_list.html:21
+#: templates/billing/day_review.html:19 templates/dentists/dentist_list.html:21
 #: templates/surgery/_implant_sequence.html:42
 msgid "left"
 msgstr "وقت الانصراف"
@@ -11761,8 +11717,7 @@ msgstr "لا يحتاج زيارة قادمة"
 
 #: apps/scheduling/models.py:155
 msgid ""
-"Ticked by the reception when the patient left and needs no other "
-"appointment."
+"Ticked by the reception when the patient left and needs no other appointment."
 msgstr "يعلّمه الاستقبال لما المريض يمشي ولا يحتاج ميعادًا آخر."
 
 #: apps/scheduling/models.py:156
@@ -11814,8 +11769,8 @@ msgid ""
 "{amount} {date} {balance} {clinic} {phone}"
 msgstr ""
 "الكلمات بين الأقواس تُملأ تلقائيًا. المواعيد: {patient} {day} {date} {time} "
-"{dentist} {clinic} {phone} {address}. الأقساط: {candidate} {course} {amount}"
-" {date} {balance} {clinic} {phone}"
+"{dentist} {clinic} {phone} {address}. الأقساط: {candidate} {course} {amount} "
+"{date} {balance} {clinic} {phone}"
 
 #: apps/scheduling/models.py:320
 msgid "WhatsApp message"
@@ -12130,8 +12085,8 @@ msgid ""
 "%(dentist)s is not on the room schedule at this time: the booking waits for "
 "approval. Tell the patient it will be confirmed."
 msgstr ""
-"%(dentist)s غير موجود في جدول الغرف في هذا الوقت: الحجز ينتظر الموافقة. أخبر"
-" المريض أنه سيتم تأكيده."
+"%(dentist)s غير موجود في جدول الغرف في هذا الوقت: الحجز ينتظر الموافقة. أخبر "
+"المريض أنه سيتم تأكيده."
 
 #: apps/scheduling/views.py:160
 #, python-format
@@ -12295,8 +12250,7 @@ msgid ""
 "%(copied)s shifts copied from last week (%(skipped)s skipped because of "
 "clashes)."
 msgstr ""
-"تم نسخ %(copied)s شيفت من الأسبوع الماضي (وتم تخطي %(skipped)s بسبب "
-"التعارض)."
+"تم نسخ %(copied)s شيفت من الأسبوع الماضي (وتم تخطي %(skipped)s بسبب التعارض)."
 
 #: apps/scheduling/views.py:770
 msgid "This patient has no mobile number for WhatsApp."
@@ -13584,8 +13538,7 @@ msgstr "متابعات مفصل الفك"
 msgid "Records and planning"
 msgstr "السجلات والتخطيط"
 
-#: apps/specialties/models.py:513
-#: templates/clinical/restorative_finder.html:48
+#: apps/specialties/models.py:513 templates/clinical/restorative_finder.html:48
 #: templates/specialties/ortho_detail.html:60
 msgid "Retention"
 msgstr "التثبيت بعد العلاج"
@@ -14474,8 +14427,8 @@ msgid ""
 "Ticked: items already in stock are set to the quantity in the file. "
 "Unticked: the quantities are added (a delivery)."
 msgstr ""
-"مُعلَّم: الأصناف الموجودة تُضبط على الكمية في الملف. غير مُعلَّم: تُضاف "
-"الكميات (توريد)."
+"مُعلَّم: الأصناف الموجودة تُضبط على الكمية في الملف. غير مُعلَّم: تُضاف الكميات "
+"(توريد)."
 
 #: apps/stock/forms.py:177
 msgid "Upload an .xlsx or .csv file."
@@ -14528,8 +14481,7 @@ msgid ""
 "The lab opens each block (zirconia, e.max, PMMA...) and counts the units "
 "made from it."
 msgstr ""
-"المعمل بيفتح كل بلوك (زيركون، إي ماكس، PMMA...) ويعدّ الوحدات اللي اتعملت "
-"منه."
+"المعمل بيفتح كل بلوك (زيركون، إي ماكس، PMMA...) ويعدّ الوحدات اللي اتعملت منه."
 
 #: apps/stock/models.py:50
 msgid "stock category"
@@ -14577,8 +14529,7 @@ msgid ""
 "Empty = shared by all the places. Choose a place (e.g. CIC) for material "
 "bought for it only."
 msgstr ""
-"فارغ = مشترك بين كل الأماكن. اختر مكانًا (مثل CIC) للخامات التي اشتُريت له "
-"فقط."
+"فارغ = مشترك بين كل الأماكن. اختر مكانًا (مثل CIC) للخامات التي اشتُريت له فقط."
 
 #: apps/stock/models.py:77
 msgid "implant company / type"
@@ -14985,9 +14936,9 @@ msgstr "ماذا ومتى"
 #: templates/billing/day_review.html:30 templates/billing/payment_list.html:13
 #: templates/charting/case_report.html:28
 #: templates/charting/case_report.html:30 templates/charting/logbook.html:40
-#: templates/charting/plan_finder.html:33
-#: templates/charting/plan_print.html:29 templates/clinical/lab_detail.html:16
-#: templates/clinical/lab_list.html:18 templates/clinical/lab_print.html:32
+#: templates/charting/plan_finder.html:33 templates/charting/plan_print.html:29
+#: templates/clinical/lab_detail.html:16 templates/clinical/lab_list.html:18
+#: templates/clinical/lab_print.html:32
 #: templates/clinical/outside_print.html:35
 #: templates/clinical/restorative_finder.html:70
 #: templates/clinical/step_list.html:15
@@ -14995,11 +14946,10 @@ msgstr "ماذا ومتى"
 #: templates/clinics/statement.html:29 templates/clinics/statement.html:49
 #: templates/complaints/complaint_detail.html:13
 #: templates/complaints/complaint_list.html:19
-#: templates/dentists/dentist_detail.html:58
-#: templates/lab/block_detail.html:23 templates/lab/case_detail.html:89
-#: templates/lab/case_list.html:16 templates/lab/case_print.html:20
-#: templates/lab/client_detail.html:32 templates/lab/statement.html:18
-#: templates/lab/universal_form.html:15
+#: templates/dentists/dentist_detail.html:58 templates/lab/block_detail.html:23
+#: templates/lab/case_detail.html:89 templates/lab/case_list.html:16
+#: templates/lab/case_print.html:20 templates/lab/client_detail.html:32
+#: templates/lab/statement.html:18 templates/lab/universal_form.html:15
 #: templates/patients/calllist_detail.html:19
 #: templates/patients/medical_followup.html:43
 #: templates/patients/medical_followup.html:64
@@ -15009,8 +14959,7 @@ msgstr "ماذا ومتى"
 #: templates/scheduling/requests_approve.html:15
 #: templates/scheduling/requests_mine.html:20
 #: templates/scheduling/requests_reception.html:16
-#: templates/scheduling/today.html:82
-#: templates/scheduling/waiting_list.html:19
+#: templates/scheduling/today.html:82 templates/scheduling/waiting_list.html:19
 #: templates/scheduling/waiting_list.html:36
 #: templates/specialties/cases.html:21
 #: templates/specialties/ortho_detail.html:41
@@ -15095,8 +15044,8 @@ msgstr "الجرّاح 2 (أسنان أخرى)"
 
 #: apps/surgery/forms.py:26
 msgid ""
-"A second dentist working on other teeth: choose him as the operator of those"
-" teeth below."
+"A second dentist working on other teeth: choose him as the operator of those "
+"teeth below."
 msgstr "طبيب ثانٍ يعمل على أسنان أخرى: اختره كجرّاح لهذه الأسنان بالأسفل."
 
 #: apps/surgery/forms.py:29 apps/surgery/models.py:149
@@ -15245,9 +15194,8 @@ msgstr "على الزرعات"
 #: apps/surgery/forms.py:316 templates/billing/fawry.html:41
 #: templates/charting/plan_detail.html:34 templates/charting/plan_form.html:21
 #: templates/clinical/step_detail.html:17
-#: templates/patients/patient_detail.html:193
-#: templates/settings/backup.html:93 templates/settings/security.html:76
-#: templates/specialties/cases.html:21
+#: templates/patients/patient_detail.html:193 templates/settings/backup.html:93
+#: templates/settings/security.html:76 templates/specialties/cases.html:21
 msgid "Details"
 msgstr "التفاصيل"
 
@@ -15683,8 +15631,8 @@ msgstr "بونتيك"
 
 #: apps/surgery/models.py:168
 msgid ""
-"The teeth of the planned bridge or full arch with no implant under them "
-"(e.g. 15, 25): the chart shows them as pontics, not missing."
+"The teeth of the planned bridge or full arch with no implant under them (e."
+"g. 15, 25): the chart shows them as pontics, not missing."
 msgstr ""
 "أسنان الكوبري أو الفك الكامل اللي مفيش تحتها زرعة (مثلًا 15، 25): الشارت "
 "بيوريها سنة معلّقة، مش ناقصة."
@@ -16088,8 +16036,7 @@ msgid "Delivery photos taken"
 msgstr "صور التسليم اتصورت"
 
 #: apps/surgery/models.py:587
-msgid ""
-"Cleaning taught: floss / superfloss / water flosser / interdental brush"
+msgid "Cleaning taught: floss / superfloss / water flosser / interdental brush"
 msgstr "اتعلّم التنظيف: خيط / سوبر فلوس / دش مائي / فرشة ما بين الأسنان"
 
 #: apps/surgery/models.py:588
@@ -16704,8 +16651,8 @@ msgid ""
 "It was recorded automatically for the owner of the system. What you saved "
 "before is safe. If you were filling a form, go back and try saving again."
 msgstr ""
-"تم تسجيله تلقائيًا لصاحب النظام. ما حفظته من قبل سليم. إذا كنت تملأ نموذجًا،"
-" ارجع وحاول الحفظ مرة أخرى."
+"تم تسجيله تلقائيًا لصاحب النظام. ما حفظته من قبل سليم. إذا كنت تملأ نموذجًا، "
+"ارجع وحاول الحفظ مرة أخرى."
 
 #: templates/500.html:16 templates/academy/receipt.html:26
 #: templates/charting/plan_print.html:15 templates/clinical/lab_print.html:17
@@ -16727,11 +16674,10 @@ msgid "Remind"
 msgstr "تذكير"
 
 #: templates/academy/candidate_detail.html:8
-#: templates/academy/course_detail.html:7
-#: templates/charting/exam_detail.html:7 templates/charting/photos.html:44
-#: templates/charting/plan_detail.html:10 templates/clinical/lab_detail.html:9
-#: templates/clinics/prices.html:28 templates/clinics/rules.html:27
-#: templates/complaints/_follow_up.html:1
+#: templates/academy/course_detail.html:7 templates/charting/exam_detail.html:7
+#: templates/charting/photos.html:44 templates/charting/plan_detail.html:10
+#: templates/clinical/lab_detail.html:9 templates/clinics/prices.html:28
+#: templates/clinics/rules.html:27 templates/complaints/_follow_up.html:1
 #: templates/complaints/complaint_detail.html:8
 #: templates/dentists/dentist_detail.html:9 templates/lab/case_detail.html:16
 #: templates/lab/client_detail.html:10 templates/patients/lead_detail.html:8
@@ -16946,8 +16892,7 @@ msgstr "الكود"
 #: templates/academy/candidate_list.html:23
 #: templates/charting/exam_detail.html:17
 #: templates/dentists/dentist_list.html:17 templates/lab/staff.html:9
-#: templates/patients/lead_list.html:29
-#: templates/patients/patient_list.html:21
+#: templates/patients/lead_list.html:29 templates/patients/patient_list.html:21
 #: templates/purchasing/supplier_list.html:11
 #: templates/scheduling/bulk_detail.html:27 templates/settings/users.html:36
 msgid "Name"
@@ -17031,9 +16976,8 @@ msgstr "البداية"
 msgid "End"
 msgstr "النهاية"
 
-#: templates/academy/course_list.html:11
-#: templates/charting/plan_detail.html:34 templates/charting/plan_form.html:21
-#: templates/charting/plan_print.html:41
+#: templates/academy/course_list.html:11 templates/charting/plan_detail.html:34
+#: templates/charting/plan_form.html:21 templates/charting/plan_print.html:41
 msgid "Fee"
 msgstr "الرسوم"
 
@@ -17135,9 +17079,9 @@ msgstr "الإيصال"
 #: templates/specialties/ortho_detail.html:65
 #: templates/specialties/patient.html:23
 #: templates/specialties/referral_list.html:14
-#: templates/specialties/tmj_detail.html:61
-#: templates/stock/item_detail.html:58 templates/stock/movement_list.html:22
-#: templates/surgery/finder.html:107 templates/surgery/implant_detail.html:28
+#: templates/specialties/tmj_detail.html:61 templates/stock/item_detail.html:58
+#: templates/stock/movement_list.html:22 templates/surgery/finder.html:107
+#: templates/surgery/implant_detail.html:28
 #: templates/surgery/surgery_detail.html:23
 #: templates/surgery/surgery_list.html:16
 msgid "Date"
@@ -17169,8 +17113,8 @@ msgstr "لا توجد مدفوعات بعد."
 msgid "Installments of the month"
 msgstr "أقساط الشهر"
 
-#: templates/academy/installments_month.html:9
-#: templates/core/dashboard.html:50 templates/core/overview.html:10
+#: templates/academy/installments_month.html:9 templates/core/dashboard.html:50
+#: templates/core/overview.html:10
 msgid "This month"
 msgstr "هذا الشهر"
 
@@ -17288,12 +17232,11 @@ msgstr "حذف"
 #: templates/scheduling/appointment_form.html:37
 #: templates/settings/access.html:39 templates/settings/access.html:54
 #: templates/settings/list_edit.html:22 templates/settings/options.html:9
-#: templates/settings/user_form.html:10
-#: templates/specialties/endo_form.html:30
-#: templates/specialties/record_form.html:14
-#: templates/stock/categories.html:15 templates/stock/item_detail.html:53
-#: templates/stock/use.html:19 templates/surgery/delivery_check.html:48
-#: templates/surgery/finder.html:53 templates/surgery/implant_detail.html:50
+#: templates/settings/user_form.html:10 templates/specialties/endo_form.html:30
+#: templates/specialties/record_form.html:14 templates/stock/categories.html:15
+#: templates/stock/item_detail.html:53 templates/stock/use.html:19
+#: templates/surgery/delivery_check.html:48 templates/surgery/finder.html:53
+#: templates/surgery/implant_detail.html:50
 #: templates/surgery/implant_record_form.html:12
 #: templates/surgery/prosthesis_form.html:13
 msgid "Save"
@@ -17302,8 +17245,8 @@ msgstr "حفظ"
 #: templates/academy/plan_edit.html:24 templates/charting/exam_form.html:29
 #: templates/charting/photo_edit.html:36 templates/charting/plan_form.html:47
 #: templates/clinical/lab_form.html:19 templates/clinical/step_form.html:53
-#: templates/complaints/complaint_form.html:46
-#: templates/core/signature.html:19 templates/includes/form_page.html:15
+#: templates/complaints/complaint_form.html:46 templates/core/signature.html:19
+#: templates/includes/form_page.html:15
 #: templates/includes/id_check_texts.html:22 templates/lab/case_form.html:42
 #: templates/patients/consult_form.html:14
 #: templates/patients/history_form.html:15
@@ -17313,8 +17256,7 @@ msgstr "حفظ"
 #: templates/purchasing/return_form.html:17
 #: templates/scheduling/appointment_form.html:38
 #: templates/scheduling/bulk_form.html:15 templates/settings/list_edit.html:23
-#: templates/settings/user_form.html:11
-#: templates/specialties/endo_form.html:31
+#: templates/settings/user_form.html:11 templates/specialties/endo_form.html:31
 #: templates/specialties/record_form.html:15
 #: templates/specialties/referral_detail.html:14
 #: templates/specialties/referral_form.html:14
@@ -17358,9 +17300,9 @@ msgstr "الختم"
 
 #: templates/academy/receipt.html:25 templates/billing/bill.html:61
 #: templates/billing/day_review.html:8 templates/charting/case_report.html:9
-#: templates/charting/case_report.html:13
-#: templates/charting/exam_detail.html:9 templates/charting/logbook.html:22
-#: templates/charting/plan_print.html:20 templates/clinical/lab_print.html:18
+#: templates/charting/case_report.html:13 templates/charting/exam_detail.html:9
+#: templates/charting/logbook.html:22 templates/charting/plan_print.html:20
+#: templates/clinical/lab_print.html:18
 #: templates/clinical/outside_print.html:58 templates/clinics/_filters.html:4
 #: templates/includes/photos_per_page.html:21 templates/lab/case_label.html:17
 #: templates/lab/case_print.html:5 templates/lab/day.html:8
@@ -17394,8 +17336,8 @@ msgstr "جاري الحفظ…"
 
 #: templates/base.html:21
 msgid ""
-"TEST COPY: for trying things out. Nothing done here changes the real system,"
-" and nothing here is kept."
+"TEST COPY: for trying things out. Nothing done here changes the real system, "
+"and nothing here is kept."
 msgstr ""
 "نسخة تجريبية: للتجربة فقط. لا شيء تفعله هنا يغيّر النظام الحقيقي، ولا يُحفظ "
 "شيء هنا."
@@ -17758,8 +17700,8 @@ msgid ""
 "Your password is easy to guess: choose a stronger one (at least 8 letters "
 "and numbers, not like your name)."
 msgstr ""
-"كلمة السر بتاعتك سهلة تتخمّن: اختاري واحدة أقوى (8 حروف وأرقام على الأقل، "
-"ومش شبه اسمك)."
+"كلمة السر بتاعتك سهلة تتخمّن: اختاري واحدة أقوى (8 حروف وأرقام على الأقل، ومش "
+"شبه اسمك)."
 
 #: templates/base.html:263
 msgid "Change my password"
@@ -17866,8 +17808,7 @@ msgstr "عن"
 #: templates/reports/visits.html:19 templates/reports/visits.html:33
 #: templates/scheduling/appointment_detail.html:31
 #: templates/scheduling/appointment_list.html:15
-#: templates/scheduling/today.html:82
-#: templates/scheduling/waiting_list.html:19
+#: templates/scheduling/today.html:82 templates/scheduling/waiting_list.html:19
 msgid "Dentist"
 msgstr "الطبيب"
 
@@ -17971,8 +17912,7 @@ msgstr "سبب الخصم"
 msgid ""
 "Leave the price empty to use the price of the list (Settings → Paid "
 "services)."
-msgstr ""
-"اترك السعر فارغًا لاستخدام سعر القائمة (الإعدادات ← الخدمات المدفوعة)."
+msgstr "اترك السعر فارغًا لاستخدام سعر القائمة (الإعدادات ← الخدمات المدفوعة)."
 
 #: templates/billing/bill_form.html:28
 msgid ""
@@ -18162,13 +18102,13 @@ msgstr "حركة أخرى"
 #: templates/billing/fawry.html:12
 #, python-format
 msgid ""
-"Card payments taken on the machine for patients and course candidates appear"
-" here by themselves, with Fawry's %(percent)s%% taken off. Write here the "
-"bills paid through the machine (mobile, electricity...), money put on it and"
-" Fawry's transfers to the bank."
+"Card payments taken on the machine for patients and course candidates appear "
+"here by themselves, with Fawry's %(percent)s%% taken off. Write here the "
+"bills paid through the machine (mobile, electricity...), money put on it and "
+"Fawry's transfers to the bank."
 msgstr ""
-"المدفوعات بالكارت على الماكينة للمرضى ودارسي الكورسات تظهر هنا لوحدها، مخصوم"
-" منها نسبة فوري %(percent)s%%. اكتب هنا الفواتير المدفوعة من الماكينة "
+"المدفوعات بالكارت على الماكينة للمرضى ودارسي الكورسات تظهر هنا لوحدها، مخصوم "
+"منها نسبة فوري %(percent)s%%. اكتب هنا الفواتير المدفوعة من الماكينة "
 "(موبايل، كهرباء...)، والرصيد الذي يُحط عليها، وتحويلات فوري للبنك."
 
 #: templates/billing/fawry.html:12
@@ -18199,8 +18139,7 @@ msgid ""
 "Used for the card payments taken from now on. It is also in Settings → "
 "Clinic options."
 msgstr ""
-"تُستخدم لمدفوعات الكارت من الآن. وموجودة أيضًا في الإعدادات ← خيارات "
-"العيادة."
+"تُستخدم لمدفوعات الكارت من الآن. وموجودة أيضًا في الإعدادات ← خيارات العيادة."
 
 #: templates/billing/fawry.html:26 templates/reports/balance.html:33
 msgid "Card payments taken"
@@ -18399,8 +18338,8 @@ msgstr "الإيصال"
 
 #: templates/billing/receipt_change.html:9
 msgid ""
-"Only the receipts of today can be changed at the reception. Ask the owner or"
-" the head of CIA for an earlier one."
+"Only the receipts of today can be changed at the reception. Ask the owner or "
+"the head of CIA for an earlier one."
 msgstr ""
 "يمكن للاستقبال تعديل إيصالات اليوم فقط. اطلب من المالك أو رئيس الأكاديمية "
 "لإيصال سابق."
@@ -18410,8 +18349,8 @@ msgid ""
 "Nothing is deleted: every change is written on the receipt with your name "
 "and the reason, and the owner is told of cancellations and refunds."
 msgstr ""
-"لا شيء يُحذف: كل تعديل يُكتب على الإيصال باسمك والسبب، ويُبلَّغ المالك "
-"بالإلغاء ورد المبالغ."
+"لا شيء يُحذف: كل تعديل يُكتب على الإيصال باسمك والسبب، ويُبلَّغ المالك بالإلغاء "
+"ورد المبالغ."
 
 #: templates/billing/receipt_change.html:14
 msgid "Correct it"
@@ -18465,8 +18404,8 @@ msgid ""
 "part of it). 2. How it is given back and why. A refund receipt is printed; "
 "the original receipts stay as they were, and the owner is told."
 msgstr ""
-"1. اضغطي على كل خدمة هترجع فلوسها: المدفوع عليها يتكتب (قلّليه لو جزء منها)."
-" 2. هترجع إزاي وليه. يتطبع إيصال مرتجع؛ الإيصالات الأصلية تفضل زي ما هي، "
+"1. اضغطي على كل خدمة هترجع فلوسها: المدفوع عليها يتكتب (قلّليه لو جزء منها). "
+"2. هترجع إزاي وليه. يتطبع إيصال مرتجع؛ الإيصالات الأصلية تفضل زي ما هي، "
 "والمالك يتبلغ."
 
 #: templates/billing/refund.html:18 templates/lab/payment_list.html:17
@@ -18542,8 +18481,7 @@ msgstr ""
 msgid "Generated"
 msgstr "تاريخ الإنشاء"
 
-#: templates/charting/case_report.html:32
-#: templates/charting/plan_print.html:31
+#: templates/charting/case_report.html:32 templates/charting/plan_print.html:31
 #: templates/patients/lead_detail.html:27 templates/patients/lead_list.html:29
 #: templates/patients/patient_list.html:21
 msgid "Age"
@@ -18655,8 +18593,7 @@ msgstr "الكشف والتاريخ المرضي"
 #: templates/charting/chart.html:20 templates/lab/universal_form.html:1
 #: templates/lab/universal_form.html:10
 #: templates/patients/patient_detail.html:30
-#: templates/patients/patient_detail.html:37
-#: templates/scheduling/visit.html:34
+#: templates/patients/patient_detail.html:37 templates/scheduling/visit.html:34
 #: templates/specialties/prostho_detail.html:11
 msgid "Lab request"
 msgstr "طلب معمل"
@@ -18753,8 +18690,7 @@ msgid ""
 "None yet: single crowns, bridges and full arches on implants are written "
 "here."
 msgstr ""
-"لا يوجد بعد: الطرابيش المفردة والكباري والفكوك الكاملة على الزرعات تُكتب "
-"هنا."
+"لا يوجد بعد: الطرابيش المفردة والكباري والفكوك الكاملة على الزرعات تُكتب هنا."
 
 #: templates/charting/chart.html:76
 msgid "Open treatment plans"
@@ -18860,8 +18796,8 @@ msgid ""
 "The medical history is copied from the last examination (or from what the "
 "patient told the secretary) so you only change what is new."
 msgstr ""
-"التاريخ المرضي منقول من آخر كشف (أو مما قاله المريض للسكرتارية) فتغيّر "
-"الجديد فقط."
+"التاريخ المرضي منقول من آخر كشف (أو مما قاله المريض للسكرتارية) فتغيّر الجديد "
+"فقط."
 
 #: templates/charting/exam_form.html:10
 msgid "The dental chart (it changes as you write the teeth below)"
@@ -18877,8 +18813,8 @@ msgid ""
 "find different. Taking a tooth off a box takes it off the chart when you "
 "save."
 msgstr ""
-"خانات الأسنان تبدأ كما هو المخطط الآن: أضف أو شيل فقط ما تجده مختلفاً. شيل "
-"سن من خانة يشيله من المخطط عند الحفظ."
+"خانات الأسنان تبدأ كما هو المخطط الآن: أضف أو شيل فقط ما تجده مختلفاً. شيل سن "
+"من خانة يشيله من المخطط عند الحفظ."
 
 #: templates/charting/exam_form.html:28 templates/charting/plan_form.html:46
 #: templates/patients/history_form.html:14
@@ -18966,13 +18902,13 @@ msgstr "الرجوع للصور"
 
 #: templates/charting/photo_edit.html:9
 msgid ""
-"Drag a corner of the frame to crop the photo (4:3 fits the log book frames),"
-" drag inside the frame to move it, turn or mirror it (for mirror shots), and"
-" make it lighter. The photo as it was taken is kept."
+"Drag a corner of the frame to crop the photo (4:3 fits the log book frames), "
+"drag inside the frame to move it, turn or mirror it (for mirror shots), and "
+"make it lighter. The photo as it was taken is kept."
 msgstr ""
 "اسحب ركن من أركان الإطار عشان تقص الصورة (4:3 مناسبة لإطارات اللوج بوك)، "
-"واسحب من جوه الإطار عشان تحركه، ولفّ الصورة أو اعكسها (لصور المراية)، "
-"وفتّحها. الصورة الأصلية بتفضل محفوظة."
+"واسحب من جوه الإطار عشان تحركه، ولفّ الصورة أو اعكسها (لصور المراية)، وفتّحها. "
+"الصورة الأصلية بتفضل محفوظة."
 
 #: templates/charting/photo_edit.html:12
 msgid "The photo could not be saved."
@@ -19066,14 +19002,13 @@ msgstr "تنزيل كل الصور (ZIP)"
 #: templates/charting/photos.html:9
 #, python-format
 msgid ""
-"On the server PC the photos are also in the folder <b "
-"dir=\"ltr\">data/media/Patient photos/%(folder)s</b>, one folder per stage, "
-"each photo named by its shot: copy them from there without opening the "
-"system."
+"On the server PC the photos are also in the folder <b dir=\"ltr\">data/media/"
+"Patient photos/%(folder)s</b>, one folder per stage, each photo named by its "
+"shot: copy them from there without opening the system."
 msgstr ""
-"على جهاز السيرفر الصور موجودة أيضًا في المجلد <b "
-"dir=\"ltr\">data/media/Patient photos/%(folder)s</b>، مجلد لكل مرحلة، وكل "
-"صورة باسم اللقطة: انسخها من هناك بدون فتح النظام."
+"على جهاز السيرفر الصور موجودة أيضًا في المجلد <b dir=\"ltr\">data/media/"
+"Patient photos/%(folder)s</b>، مجلد لكل مرحلة، وكل صورة باسم اللقطة: انسخها "
+"من هناك بدون فتح النظام."
 
 #: templates/charting/photos.html:17
 msgid "Sessions"
@@ -19108,8 +19043,8 @@ msgid ""
 "parallel to the floor. Intra oral: shutter 1/180, F 22, ISO 100, clean dry "
 "mirror."
 msgstr ""
-"خارج الفم: shutter 1/180، F 11، ISO 100، مسافة 1.5 متر، مستوى فرانكفورت "
-"موازٍ للأرض. داخل الفم: shutter 1/180، F 22، ISO 100، مرآة نظيفة وجافة."
+"خارج الفم: shutter 1/180، F 11، ISO 100، مسافة 1.5 متر، مستوى فرانكفورت موازٍ "
+"للأرض. داخل الفم: shutter 1/180، F 22، ISO 100، مرآة نظيفة وجافة."
 
 #: templates/charting/photos.html:44
 msgid "Crop, turn or lighten"
@@ -19136,8 +19071,7 @@ msgstr "خطوات غير موجودة في القائمة: اكتب الاسم 
 msgid "Name of this photo (a step not on the list)"
 msgstr "اسم هذه الصورة (خطوة غير موجودة في القائمة)"
 
-#: templates/charting/photos.html:62
-#: templates/patients/patient_detail.html:261
+#: templates/charting/photos.html:62 templates/patients/patient_detail.html:261
 msgid "Upload"
 msgstr "رفع"
 
@@ -19172,8 +19106,7 @@ msgid "Print this page"
 msgstr "اطبع الصفحة دي"
 
 #: templates/charting/plan_detail.html:27
-#: templates/charting/plan_finder.html:33
-#: templates/charting/plan_print.html:32
+#: templates/charting/plan_finder.html:33 templates/charting/plan_print.html:32
 msgid "Planned by"
 msgstr "خطة بواسطة"
 
@@ -19185,13 +19118,11 @@ msgstr "اعتمدها"
 msgid "Comprehensive case"
 msgstr "حالة شاملة"
 
-#: templates/charting/plan_detail.html:29
-#: templates/charting/plan_print.html:35
+#: templates/charting/plan_detail.html:29 templates/charting/plan_print.html:35
 msgid "Diagnosis"
 msgstr "التشخيص"
 
-#: templates/charting/plan_detail.html:30
-#: templates/charting/plan_print.html:33
+#: templates/charting/plan_detail.html:30 templates/charting/plan_print.html:33
 #: templates/scheduling/appointment_detail.html:30
 msgid "Expected duration"
 msgstr "المدة المتوقعة"
@@ -19208,8 +19139,7 @@ msgstr "تعليم كمنفذ"
 msgid "Cancel item"
 msgstr "إلغاء البند"
 
-#: templates/charting/plan_detail.html:53
-#: templates/charting/plan_print.html:51
+#: templates/charting/plan_detail.html:53 templates/charting/plan_print.html:51
 msgid "No items."
 msgstr "لا توجد بنود."
 
@@ -19218,12 +19148,11 @@ msgid ""
 "Items are ticked automatically when the same procedure is recorded on the "
 "same teeth in the treatment log or the surgery chart."
 msgstr ""
-"البنود تُعلَّم تلقائيًا عند تسجيل نفس الإجراء على نفس الأسنان في سجل العلاج "
-"أو شارت العملية."
+"البنود تُعلَّم تلقائيًا عند تسجيل نفس الإجراء على نفس الأسنان في سجل العلاج أو "
+"شارت العملية."
 
 #: templates/charting/plan_finder.html:8
-#: templates/clinical/restorative_finder.html:8
-#: templates/surgery/finder.html:8
+#: templates/clinical/restorative_finder.html:8 templates/surgery/finder.html:8
 msgid "Export to Excel (CSV)"
 msgstr "تصدير إلى Excel ‏(CSV)"
 
@@ -19234,8 +19163,8 @@ msgid "Please correct the filters."
 msgstr "من فضلك صحح الفلاتر."
 
 #: templates/charting/plan_finder.html:25
-#: templates/clinical/restorative_finder.html:26
-#: templates/lab/whatsapp.html:10 templates/surgery/finder.html:47
+#: templates/clinical/restorative_finder.html:26 templates/lab/whatsapp.html:10
+#: templates/surgery/finder.html:47
 msgid "Find"
 msgstr "بحث"
 
@@ -19270,8 +19199,7 @@ msgstr "الصعوبة"
 msgid "Planned procedures"
 msgstr "الإجراءات المخططة"
 
-#: templates/charting/plan_finder.html:33
-#: templates/clinical/lab_detail.html:54
+#: templates/charting/plan_finder.html:33 templates/clinical/lab_detail.html:54
 msgid "Next appointment"
 msgstr "الموعد القادم"
 
@@ -19281,8 +19209,8 @@ msgstr "لا توجد خطط علاج تطابق هذه الفلاتر."
 
 #: templates/charting/plan_form.html:17
 msgid ""
-"Click the tooth button to choose one or several teeth: the same procedure is"
-" planned on all of them."
+"Click the tooth button to choose one or several teeth: the same procedure is "
+"planned on all of them."
 msgstr ""
 "اضغط زر السن لاختيار سن أو أكثر: نفس الإجراء يُخطط على كل الأسنان المختارة."
 
@@ -19292,8 +19220,7 @@ msgstr "بواسطة الطبيب"
 
 #: templates/charting/plan_form.html:31 templates/lab/case_form.html:18
 #: templates/purchasing/purchase_form.html:28
-#: templates/settings/list_edit.html:13
-#: templates/specialties/endo_form.html:20
+#: templates/settings/list_edit.html:13 templates/specialties/endo_form.html:20
 msgid "delete"
 msgstr "حذف"
 
@@ -19331,8 +19258,8 @@ msgstr "إجمالي الأتعاب المتوقعة"
 
 #: templates/charting/plan_print.html:54
 msgid ""
-"The fees are an estimate of the treatment written above: they change only if"
-" the treatment changes, and you are told first."
+"The fees are an estimate of the treatment written above: they change only if "
+"the treatment changes, and you are told first."
 msgstr ""
 "الأتعاب تقدير للعلاج المكتوب فوق: بتتغير بس لو العلاج اتغير، وبنبلغك قبلها."
 
@@ -19354,8 +19281,8 @@ msgid ""
 "explained to me, and I had the chance to ask my questions. I agree to start "
 "it."
 msgstr ""
-"العلاج اللي فوق وخطواته وأتعابه والاختيارات الأخرى اتشرحت لي، وكان عندي فرصة"
-" أسأل. أوافق على البدء."
+"العلاج اللي فوق وخطواته وأتعابه والاختيارات الأخرى اتشرحت لي، وكان عندي فرصة "
+"أسأل. أوافق على البدء."
 
 #: templates/charting/plan_print.html:74
 msgid "Patient's signature and date"
@@ -19663,16 +19590,15 @@ msgstr "التركيبة"
 #: templates/clinical/restorative_finder.html:48
 #: templates/reports/money.html:37 templates/settings/deleted_detail.html:10
 #: templates/specialties/patient.html:23
-#: templates/specialties/referral_list.html:14
-#: templates/surgery/finder.html:85
+#: templates/specialties/referral_list.html:14 templates/surgery/finder.html:85
 msgid "Number"
 msgstr "العدد"
 
 #: templates/clinical/restorative_finder.html:48
 #: templates/dentists/dentist_detail.html:44
-#: templates/dentists/dentist_detail.html:58
-#: templates/reports/dentists.html:15 templates/surgery/finder.html:85
-#: templates/surgery/finder.html:94 templates/surgery/patient_implants.html:3
+#: templates/dentists/dentist_detail.html:58 templates/reports/dentists.html:15
+#: templates/surgery/finder.html:85 templates/surgery/finder.html:94
+#: templates/surgery/patient_implants.html:3
 #: templates/surgery/patient_implants.html:5
 msgid "Implants"
 msgstr "الزرعات"
@@ -19760,10 +19686,9 @@ msgid ""
 "After saving, a change of operator is sent to the head of CIA for approval."
 msgstr "بعد الحفظ، تغيير الجرّاح يُرسل لرئيس الأكاديمية للموافقة."
 
-#: templates/clinical/step_detail.html:70
-#: templates/core/problem_report.html:14 templates/includes/app_modals.html:45
-#: templates/lab/case_detail.html:160 templates/lab/whatsapp.html:31
-#: templates/scheduling/_whatsapp_rows.html:18
+#: templates/clinical/step_detail.html:70 templates/core/problem_report.html:14
+#: templates/includes/app_modals.html:45 templates/lab/case_detail.html:160
+#: templates/lab/whatsapp.html:31 templates/scheduling/_whatsapp_rows.html:18
 #: templates/scheduling/bulk_detail.html:35
 msgid "Send"
 msgstr "إرسال"
@@ -19872,8 +19797,8 @@ msgid ""
 "that day (no treatment, examination or surgery chart). The dentist is "
 "reminded after one hour, and the supervisors after one day."
 msgstr ""
-"زيارات آخر 30 يومًا لم يُكتب عنها شيء في ملف المريض في نفس اليوم (لا علاج "
-"ولا كشف ولا شارت عملية). يتم تذكير الطبيب بعد ساعة، والمشرفين بعد يوم."
+"زيارات آخر 30 يومًا لم يُكتب عنها شيء في ملف المريض في نفس اليوم (لا علاج ولا "
+"كشف ولا شارت عملية). يتم تذكير الطبيب بعد ساعة، والمشرفين بعد يوم."
 
 #: templates/clinical/visits_missing_notes.html:13
 msgid "Write the notes"
@@ -19936,10 +19861,10 @@ msgstr ""
 
 #: templates/clinics/doctors.html:35
 msgid ""
-"A percentage is taken of what the patient has paid for the service so far; a"
-" fixed amount counts each service (each tooth) or each finished visit. "
-"“Still owed” is everything earned up to the end of the period, less "
-"everything paid to the doctor."
+"A percentage is taken of what the patient has paid for the service so far; a "
+"fixed amount counts each service (each tooth) or each finished visit. “Still "
+"owed” is everything earned up to the end of the period, less everything paid "
+"to the doctor."
 msgstr ""
 "النسبة تُحسب مما دفعه المريض للخدمة حتى الآن؛ والمبلغ الثابت يُحسب لكل خدمة "
 "(لكل سن) أو لكل زيارة انتهت. «المتبقي» هو كل ما استحقه الطبيب حتى نهاية "
@@ -19947,10 +19872,10 @@ msgstr ""
 
 #: templates/clinics/prices.html:16
 msgid ""
-"Each doctor can have his own price for a service at this place, e.g. the TMJ"
-" specialist's examination. A bill made for this doctor takes his price by "
-"itself (the reception can still change it). The usual lab or implant cost is"
-" written on the bill line and taken off before his percentage when his fee "
+"Each doctor can have his own price for a service at this place, e.g. the TMJ "
+"specialist's examination. A bill made for this doctor takes his price by "
+"itself (the reception can still change it). The usual lab or implant cost is "
+"written on the bill line and taken off before his percentage when his fee "
 "rule says so."
 msgstr ""
 "كل طبيب ممكن يبقى له سعر خاص لخدمة في المكان ده، مثلًا كشف أخصائي المفصل. "
@@ -20231,8 +20156,8 @@ msgstr "المتابعة متأخرة"
 #: templates/complaints/complaint_detail.html:14
 #: templates/complaints/complaint_list.html:19
 #: templates/purchasing/purchase_detail.html:29
-#: templates/purchasing/purchase_form.html:17
-#: templates/stock/item_list.html:41 templates/stock/price_changes.html:11
+#: templates/purchasing/purchase_form.html:17 templates/stock/item_list.html:41
+#: templates/stock/price_changes.html:11
 msgid "Category"
 msgstr "النوع"
 
@@ -20434,8 +20359,8 @@ msgid ""
 "Edits of patient data and corrections of visit times made by the reception "
 "wait here. Nothing changes until you approve."
 msgstr ""
-"تعديلات بيانات المرضى وتصحيح أوقات الزيارات التي يطلبها الاستقبال تنتظر هنا."
-" لا يتغير شيء حتى توافق."
+"تعديلات بيانات المرضى وتصحيح أوقات الزيارات التي يطلبها الاستقبال تنتظر هنا. "
+"لا يتغير شيء حتى توافق."
 
 #: templates/core/approvals.html:13
 msgid "Field"
@@ -20765,8 +20690,8 @@ msgstr "الحالات فين دلوقتي"
 
 #: templates/core/problem_report.html:10
 msgid ""
-"Tell the owner of the system what went wrong. The page you came from is sent"
-" with your message."
+"Tell the owner of the system what went wrong. The page you came from is sent "
+"with your message."
 msgstr "أخبر صاحب النظام بما حدث. الصفحة التي جئت منها تُرسل مع رسالتك."
 
 #: templates/core/problem_report.html:11 templates/core/problems.html:24
@@ -20787,8 +20712,8 @@ msgid ""
 "Problems told by the staff, and pages that stopped with an error (recorded "
 "automatically). Download them to send to whoever maintains the software."
 msgstr ""
-"مشاكل أبلغ عنها الموظفون، وصفحات توقفت بخطأ (تُسجل تلقائيًا). نزّلها وأرسلها"
-" لمن يصون البرنامج."
+"مشاكل أبلغ عنها الموظفون، وصفحات توقفت بخطأ (تُسجل تلقائيًا). نزّلها وأرسلها "
+"لمن يصون البرنامج."
 
 #: templates/core/problems.html:11
 msgid "Not solved"
@@ -20817,8 +20742,8 @@ msgstr "لا توجد مشاكل هنا."
 
 #: templates/core/signature.html:7
 msgid ""
-"Sign in the box with your finger, the pen of the tablet or the mouse, as you"
-" sign on paper. It is printed on the receipts and prescriptions."
+"Sign in the box with your finger, the pen of the tablet or the mouse, as you "
+"sign on paper. It is printed on the receipts and prescriptions."
 msgstr ""
 "امضي في المربع بصباعك أو بقلم التابلت أو بالماوس، زي ما بتمضي على الورق. "
 "التوقيع بيتطبع على الإيصالات والروشتات."
@@ -21012,8 +20937,7 @@ msgstr "%(a)s كطبيب منفذ · %(b)s كمساعد"
 msgid "%(c)s supervised"
 msgstr "%(c)s بإشرافه"
 
-#: templates/dentists/dentist_detail.html:46
-#: templates/reports/dentists.html:16
+#: templates/dentists/dentist_detail.html:46 templates/reports/dentists.html:16
 msgid "Average grade"
 msgstr "متوسط التقييم"
 
@@ -21035,8 +20959,7 @@ msgstr "الدور في العملية"
 msgid "No cases yet."
 msgstr "لا توجد حالات بعد."
 
-#: templates/dentists/dentist_detail.html:66
-#: templates/reports/dentists.html:38
+#: templates/dentists/dentist_detail.html:66 templates/reports/dentists.html:38
 msgid "Treatments by type"
 msgstr "العلاجات حسب النوع"
 
@@ -21056,8 +20979,8 @@ msgstr "الأطباء وناس الأكاديمية"
 #: templates/dentists/dentist_list.html:9
 msgid ""
 "Course candidates are added from Academy → Candidates and appear here "
-"automatically. Add the CIA junior dentists (full or part time, they log in),"
-" the training dentists and the supervisors here. Only the people 'in the "
+"automatically. Add the CIA junior dentists (full or part time, they log in), "
+"the training dentists and the supervisors here. Only the people 'in the "
 "lists' are offered on the forms; candidates leave the lists when their "
 "course ends."
 msgstr ""
@@ -21165,8 +21088,8 @@ msgstr ""
 
 #: templates/includes/app_modals.html:36
 msgid ""
-"To show something that moves, film the screen with your phone and choose the"
-" video."
+"To show something that moves, film the screen with your phone and choose the "
+"video."
 msgstr "علشان توضح حاجة بتتحرك، صوّر الشاشة بالموبايل واختار الفيديو."
 
 #: templates/includes/app_modals.html:51
@@ -21185,13 +21108,12 @@ msgstr "مقدرناش ناخد صورة: اختار صورة بدلها."
 msgid ""
 "The screen could not be recorded on this computer: film it with your phone "
 "and choose the video."
-msgstr ""
-"مينفعش تسجيل الشاشة على الكمبيوتر ده: صوّرها بالموبايل واختار الفيديو."
+msgstr "مينفعش تسجيل الشاشة على الكمبيوتر ده: صوّرها بالموبايل واختار الفيديو."
 
 #: templates/includes/app_modals.html:56
 msgid ""
-"What you typed here at <b data-draft-time></b> was not saved (the network or"
-" the server stopped)."
+"What you typed here at <b data-draft-time></b> was not saved (the network or "
+"the server stopped)."
 msgstr ""
 "اللي كتبتيه هنا الساعة <b data-draft-time></b> ما اتحفظش (الشبكة أو السيرفر "
 "وقفوا)."
@@ -21517,8 +21439,8 @@ msgstr "صور أصغر وصفحات أقل"
 
 #: templates/includes/send_to_patient.html:7
 msgid ""
-"The page was saved as a picture in Downloads. Attach it in the WhatsApp chat"
-" that opens."
+"The page was saved as a picture in Downloads. Attach it in the WhatsApp chat "
+"that opens."
 msgstr "تم حفظ الصفحة كصورة في التنزيلات. أرفقها في محادثة واتساب التي تفتح."
 
 #: templates/includes/send_to_patient.html:8
@@ -21768,10 +21690,8 @@ msgstr "ورقة الحالة"
 #: templates/lab/case_detail.html:22
 #, python-format
 msgid ""
-"Write <b>%(number)s</b> on the box, or print the label. Then tell the "
-"doctor."
-msgstr ""
-"اكتب <b>%(number)s</b> على العلبة أو اطبع الملصق، وبعدين بلّغ الدكتور."
+"Write <b>%(number)s</b> on the box, or print the label. Then tell the doctor."
+msgstr "اكتب <b>%(number)s</b> على العلبة أو اطبع الملصق، وبعدين بلّغ الدكتور."
 
 #: templates/lab/case_detail.html:23
 msgid "Print the label"
@@ -22071,8 +21991,8 @@ msgid ""
 "The reception of CIA, CIC or El Khadem sent these to the lab. When one "
 "arrives, tick what came with it and press Received."
 msgstr ""
-"استقبال الأكاديمية أو CIC أو عيادة الخادم بعت دول للمعمل. لما واحدة توصل "
-"علّم على اللي جه معاها واضغط «استلمناه»."
+"استقبال الأكاديمية أو CIC أو عيادة الخادم بعت دول للمعمل. لما واحدة توصل علّم "
+"على اللي جه معاها واضغط «استلمناه»."
 
 #: templates/lab/incoming.html:19
 msgid "Nothing on the way."
@@ -22106,8 +22026,8 @@ msgstr "مفيش إيصالات."
 #: templates/lab/prices.html:6
 msgid ""
 "One column per price list: CIA, CIC and El Khadem each have theirs, and the "
-"outside clinics theirs. Each client of the lab uses one list. An empty box ="
-" no price (it is typed on the case)."
+"outside clinics theirs. Each client of the lab uses one list. An empty box = "
+"no price (it is typed on the case)."
 msgstr ""
 "عمود لكل قائمة أسعار: الأكاديمية وCIC وعيادة الخادم لكل واحدة قائمتها، "
 "والعيادات الخارجية ليها قائمتها. كل عميل للمعمل بيستخدم قائمة واحدة. الخانة "
@@ -22193,8 +22113,7 @@ msgstr "مفيش مرحلة خلصت في الفترة دي."
 msgid ""
 "Middle = half the cases took less, half more: it is not pulled by one very "
 "long case."
-msgstr ""
-"الوسط = نص الحالات خدت أقل ونصها أكتر: مش بيتأثر بحالة واحدة طولت جدًا."
+msgstr "الوسط = نص الحالات خدت أقل ونصها أكتر: مش بيتأثر بحالة واحدة طولت جدًا."
 
 #: templates/lab/report.html:50
 msgid "From received to delivered, by kind of work"
@@ -22281,21 +22200,21 @@ msgid ""
 "Open a WhatsApp Business platform account at Meta for the lab's number (the "
 "number then works through the platform)."
 msgstr ""
-"افتح حساب منصة واتساب بيزنس عند ميتا لرقم المعمل (الرقم بعدها بيشتغل من خلال"
-" المنصة)."
+"افتح حساب منصة واتساب بيزنس عند ميتا لرقم المعمل (الرقم بعدها بيشتغل من خلال "
+"المنصة)."
 
 #: templates/lab/settings.html:13
 msgid ""
 "Make this server reachable from the internet with HTTPS (for example with a "
 "tunnel), and give Meta this webhook address:"
 msgstr ""
-"خلّي السيرفر ده متاح من الإنترنت بـ HTTPS (مثلًا بنفق)، وادّي ميتا عنوان الـ"
-" webhook ده:"
+"خلّي السيرفر ده متاح من الإنترنت بـ HTTPS (مثلًا بنفق)، وادّي ميتا عنوان الـ "
+"webhook ده:"
 
 #: templates/lab/settings.html:14
 msgid ""
-"Copy here the phone number ID, the access token and the app secret, choose a"
-" verify token, and tick the box."
+"Copy here the phone number ID, the access token and the app secret, choose a "
+"verify token, and tick the box."
 msgstr ""
 "انسخ هنا رقم تعريف الهاتف، ومفتاح الدخول، والسر الخاص بالتطبيق، واختار كلمة "
 "تحقق، وعلّم على الخانة."
@@ -22319,8 +22238,8 @@ msgid ""
 "without one, the manager records their steps."
 msgstr ""
 "المصممين (أغلبهم دكاترة الأكاديمية) والفنيين ورئيس المعمل. اللي ليه حساب "
-"دخول بيشوف شغله وبيوصله تنبيه لما حالة تتسلّمله، واللي ملوش حساب المدير "
-"بيسجّل مراحله."
+"دخول بيشوف شغله وبيوصله تنبيه لما حالة تتسلّمله، واللي ملوش حساب المدير بيسجّل "
+"مراحله."
 
 #: templates/lab/staff.html:9
 msgid "Cases with them now"
@@ -22440,8 +22359,8 @@ msgstr "مقفول"
 
 #: templates/lab/whatsapp.html:38
 msgid ""
-"The answers are sent from this page in one click. The automatic answer needs"
-" the WhatsApp Business platform of Meta and the server reachable from the "
+"The answers are sent from this page in one click. The automatic answer needs "
+"the WhatsApp Business platform of Meta and the server reachable from the "
 "internet (Settings of the lab)."
 msgstr ""
 "الردود بتتبعت من الصفحة دي بضغطة واحدة. الرد الآلي محتاج منصة واتساب بيزنس "
@@ -22514,8 +22433,7 @@ msgstr "الأمراض"
 
 #: templates/patients/_medical_summary.html:11
 msgid ""
-"The dentist takes the full medical history; ask the dentist if you need "
-"more."
+"The dentist takes the full medical history; ask the dentist if you need more."
 msgstr "الطبيب يأخذ التاريخ المرضي كاملًا؛ اسأل الطبيب إذا احتجت أكثر."
 
 #: templates/patients/_medical_summary.html:13
@@ -22600,8 +22518,7 @@ msgid ""
 "Waiting for the physician's answer since %(date)s. Give the letter to the "
 "patient; when he brings the answer back, record it below."
 msgstr ""
-"مستنيين رد الطبيب من %(date)s. ادّي الخطاب للمريض؛ ولما يرجع بالرد سجّله "
-"تحت."
+"مستنيين رد الطبيب من %(date)s. ادّي الخطاب للمريض؛ ولما يرجع بالرد سجّله تحت."
 
 #: templates/patients/consult_detail.html:17
 msgid "Record the physician's answer"
@@ -22628,12 +22545,12 @@ msgstr "احفظ الرد"
 
 #: templates/patients/consult_form.html:7
 msgid ""
-"The letter is ready from the medical history: check it, choose the procedure"
-" (the usual medicines after it are written for you), then save and print it."
-" The letter is in English, for the physician."
+"The letter is ready from the medical history: check it, choose the procedure "
+"(the usual medicines after it are written for you), then save and print it. "
+"The letter is in English, for the physician."
 msgstr ""
-"الخطاب جاهز من التاريخ المرضي: راجعه، واختار العملية (الأدوية المعتادة بعدها"
-" بتتكتب لوحدها)، وبعدين احفظه واطبعه. الخطاب بالإنجليزي عشان الطبيب."
+"الخطاب جاهز من التاريخ المرضي: راجعه، واختار العملية (الأدوية المعتادة بعدها "
+"بتتكتب لوحدها)، وبعدين احفظه واطبعه. الخطاب بالإنجليزي عشان الطبيب."
 
 #: templates/patients/consult_form.html:13
 msgid "Save and print the letter"
@@ -22808,8 +22725,8 @@ msgstr "مفيش مريض قراياته أعلى من الحدود."
 #: templates/patients/medical_followup.html:59
 #, python-format
 msgid ""
-"The limits are in Settings → Clinic options (usually HbA1c above 7%%, random"
-" blood sugar above 200 mg/dl, blood pressure from 160/100). For another "
+"The limits are in Settings → Clinic options (usually HbA1c above 7%%, random "
+"blood sugar above 200 mg/dl, blood pressure from 160/100). For another "
 "disease, open the patient's file and write the consultation from there."
 msgstr ""
 "الحدود في الإعدادات ← إعدادات العيادة (عادةً السكر التراكمي أعلى من 7%%، "
@@ -22861,8 +22778,7 @@ msgid "This patient's file is at %(place)s."
 msgstr "ملف هذا المريض في %(place)s."
 
 #: templates/patients/other_place.html:8
-msgid ""
-"Each place has its own patients. Switch to that place to open the file."
+msgid "Each place has its own patients. Switch to that place to open the file."
 msgstr "لكل مكان مرضاه. انتقل إلى ذلك المكان لفتح الملف."
 
 #: templates/patients/other_place.html:11
@@ -22889,8 +22805,7 @@ msgstr "الملف الجديد في %(place)s: %(file)s"
 msgid "Open complaint"
 msgstr "شكوى مفتوحة"
 
-#: templates/patients/patient_detail.html:32
-#: templates/settings/deleted.html:14
+#: templates/patients/patient_detail.html:32 templates/settings/deleted.html:14
 msgid "Record"
 msgstr "تسجيل"
 
@@ -22946,12 +22861,12 @@ msgstr "نقل لمكان آخر"
 #, python-format
 msgid ""
 "Move this patient to %(place)s? A new file is opened there with a new "
-"number, this file is closed (out), and the coming visits here are cancelled."
-" The visits, charts and bills stay in this file."
+"number, this file is closed (out), and the coming visits here are cancelled. "
+"The visits, charts and bills stay in this file."
 msgstr ""
-"نقل هذا المريض إلى %(place)s؟ يُفتح هناك ملف جديد برقم جديد، ويُغلق هذا "
-"الملف (خارج)، وتُلغى الزيارات القادمة هنا. الزيارات والرسومات والفواتير تبقى"
-" في هذا الملف."
+"نقل هذا المريض إلى %(place)s؟ يُفتح هناك ملف جديد برقم جديد، ويُغلق هذا الملف "
+"(خارج)، وتُلغى الزيارات القادمة هنا. الزيارات والرسومات والفواتير تبقى في هذا "
+"الملف."
 
 #: templates/patients/patient_detail.html:91
 msgid "Data"
@@ -23024,8 +22939,8 @@ msgstr "أخذ التاريخ المرضي"
 
 #: templates/patients/patient_detail.html:140
 msgid ""
-"Not taken yet: the dentist asks the same questions as the paper chart (blood"
-" pressure, sugar, allergies, smoking...)."
+"Not taken yet: the dentist asks the same questions as the paper chart (blood "
+"pressure, sugar, allergies, smoking...)."
 msgstr ""
 "لم يؤخذ بعد: يسأل الطبيب نفس أسئلة الملف الورقي (الضغط، السكر، الحساسية، "
 "التدخين...)."
@@ -23139,8 +23054,8 @@ msgstr "إضافة صلة"
 #: templates/patients/patient_form.html:7
 #, python-format
 msgid ""
-"Data copied from the call list (%(name)s). Complete the ID data and scan the"
-" ID card."
+"Data copied from the call list (%(name)s). Complete the ID data and scan the "
+"ID card."
 msgstr ""
 "تم نقل البيانات من قائمة المكالمات (%(name)s). أكملي بيانات البطاقة وارفعي "
 "صورتها."
@@ -23256,8 +23171,7 @@ msgstr "إضافة دواء"
 
 #: templates/prescriptions/prescription_print.html:6
 msgid ""
-"Prescription saved. Print it, then the post-op instructions for this "
-"surgery."
+"Prescription saved. Print it, then the post-op instructions for this surgery."
 msgstr "تم حفظ الروشتة. اطبعها ثم تعليمات ما بعد العملية."
 
 #: templates/prescriptions/prescription_print.html:7
@@ -23328,8 +23242,7 @@ msgstr "رجعلنا (فلوس أو رصيد)"
 msgid "Items (each item under its category)"
 msgstr "الأصناف (كل صنف تحت تصنيفه)"
 
-#: templates/purchasing/purchase_form.html:17
-#: templates/stock/item_list.html:41
+#: templates/purchasing/purchase_form.html:17 templates/stock/item_list.html:41
 msgid "Unit"
 msgstr "الوحدة"
 
@@ -23581,8 +23494,8 @@ msgid ""
 "Write your username: the owner is told and gives you a new password. There "
 "is no e-mail: the system works on the clinic's own network."
 msgstr ""
-"اكتب اسم المستخدم: يُبلَّغ المالك ويعطيك كلمة سر جديدة. لا يوجد بريد "
-"إلكتروني: البرنامج يعمل على شبكة العيادة فقط."
+"اكتب اسم المستخدم: يُبلَّغ المالك ويعطيك كلمة سر جديدة. لا يوجد بريد إلكتروني: "
+"البرنامج يعمل على شبكة العيادة فقط."
 
 #: templates/registration/password_forgot.html:34
 msgid "Note for the owner (optional)"
@@ -23659,13 +23572,13 @@ msgstr "علينا للموردين"
 
 #: templates/reports/balance.html:44
 msgid ""
-"Income is money received in the period (payments, not prices). Purchases are"
-" counted on the invoice date. A purchase paid with Fawry is counted once, "
+"Income is money received in the period (payments, not prices). Purchases are "
+"counted on the invoice date. A purchase paid with Fawry is counted once, "
 "under purchases; Fawry's percentage on it is under Fawry."
 msgstr ""
-"الإيرادات هي الفلوس المستلمة في الفترة (مدفوعات وليست أسعار). المشتريات "
-"تُحسب بتاريخ الفاتورة. المشتريات المدفوعة بفوري تُحسب مرة واحدة تحت "
-"المشتريات؛ ونسبة فوري عليها تحت فوري."
+"الإيرادات هي الفلوس المستلمة في الفترة (مدفوعات وليست أسعار). المشتريات تُحسب "
+"بتاريخ الفاتورة. المشتريات المدفوعة بفوري تُحسب مرة واحدة تحت المشتريات؛ "
+"ونسبة فوري عليها تحت فوري."
 
 #: templates/reports/dentists.html:3 templates/reports/dentists.html:5
 #: templates/reports/index.html:9
@@ -23737,8 +23650,7 @@ msgid ""
 "Call list conversion, where patients come from, top referring patients, "
 "complaint categories."
 msgstr ""
-"تحويل قائمة المكالمات لمرضى، مصادر المرضى، أكثر المرضى ترشيحًا، أنواع "
-"الشكاوى."
+"تحويل قائمة المكالمات لمرضى، مصادر المرضى، أكثر المرضى ترشيحًا، أنواع الشكاوى."
 
 #: templates/reports/index.html:12
 msgid ""
@@ -24056,8 +23968,8 @@ msgid ""
 "Not %(dentist)s's day or hours: this booking waits for the approval of the "
 "dentist or the head. The patient is confirmed once it is approved."
 msgstr ""
-"ليس يوم أو ساعات %(dentist)s: هذا الحجز ينتظر موافقة الطبيب أو الرئيس. "
-"يُؤكَّد للمريض بعد الموافقة."
+"ليس يوم أو ساعات %(dentist)s: هذا الحجز ينتظر موافقة الطبيب أو الرئيس. يُؤكَّد "
+"للمريض بعد الموافقة."
 
 #: templates/scheduling/appointment_detail.html:7
 msgid "note (optional)"
@@ -24079,8 +23991,8 @@ msgstr "بلّغ الطبيب على واتساب"
 #: templates/scheduling/appointment_detail.html:11
 #, python-format
 msgid ""
-"%(dentist)s is not on the room schedule at this time (not his day or hours)."
-" The supervisor was told."
+"%(dentist)s is not on the room schedule at this time (not his day or hours). "
+"The supervisor was told."
 msgstr ""
 "%(dentist)s ليس في جدول الغرف في هذا الوقت (ليس يومه أو ساعاته). تم إبلاغ "
 "المشرف."
@@ -24172,8 +24084,8 @@ msgstr "لم يحضر"
 #: templates/scheduling/appointment_detail.html:59
 #: templates/scheduling/today.html:117
 msgid ""
-"The patient came late and will not be seen today? You will then book another"
-" time."
+"The patient came late and will not be seen today? You will then book another "
+"time."
 msgstr "المريض جاء متأخرًا ولن يدخل اليوم؟ بعدها ستحجز له ميعادًا آخر."
 
 #: templates/scheduling/appointment_detail.html:59
@@ -24232,8 +24144,8 @@ msgid ""
 "Tick the ones the new appointment replaces: they are cancelled. The others "
 "are kept. Then press Save again."
 msgstr ""
-"علّم المواعيد التي يحل محلها الموعد الجديد: ستُلغى. والباقي يبقى. ثم اضغط "
-"حفظ مرة أخرى."
+"علّم المواعيد التي يحل محلها الموعد الجديد: ستُلغى. والباقي يبقى. ثم اضغط حفظ "
+"مرة أخرى."
 
 #: templates/scheduling/appointment_form.html:21
 msgid "The time chosen is not one he prefers."
@@ -24312,8 +24224,8 @@ msgstr ""
 #: templates/scheduling/bulk_detail.html:19
 #, python-format
 msgid ""
-"%(n)s sent today from this place: better to go on tomorrow, so WhatsApp does"
-" not block the number."
+"%(n)s sent today from this place: better to go on tomorrow, so WhatsApp does "
+"not block the number."
 msgstr ""
 "%(n)s اتبعتوا النهارده من المكان ده: الأحسن تكمّلي بكرة، علشان الواتساب "
 "مايقفلش الرقم."
@@ -24335,17 +24247,17 @@ msgstr "رسالة جديدة لكتير"
 #, python-format
 msgid ""
 "WhatsApp sends one message per press: after saving, “Send the next one” "
-"opens WhatsApp with the next person and the text ready; press send there and"
-" come back. Send to people who know the clinic, and not more than about 100 "
-"a day from one number: WhatsApp may block a number that sends too many "
+"opens WhatsApp with the next person and the text ready; press send there and "
+"come back. Send to people who know the clinic, and not more than about 100 a "
+"day from one number: WhatsApp may block a number that sends too many "
 "messages to people who did not save it. Up to %(limit)s people in one "
 "message."
 msgstr ""
 "الواتساب بيبعت رسالة واحدة مع كل ضغطة: بعد الحفظ، «ابعتي للي بعده» يفتح "
 "الواتساب بالشخص اللي بعده والرسالة جاهزة؛ اضغطي إرسال هناك وارجعي. ابعتي "
 "لناس يعرفوا العيادة، ومش أكتر من حوالي 100 في اليوم من رقم واحد: الواتساب "
-"ممكن يقفل رقم بيبعت رسايل كتير لناس مش حافظينه. لحد %(limit)s شخص في الرسالة"
-" الواحدة."
+"ممكن يقفل رقم بيبعت رسايل كتير لناس مش حافظينه. لحد %(limit)s شخص في الرسالة "
+"الواحدة."
 
 #: templates/scheduling/bulk_form.html:7
 #, python-format
@@ -24412,8 +24324,8 @@ msgstr ""
 
 #: templates/scheduling/day_planner.html:19
 msgid ""
-"Each column is a doctor, with the room of each patient. Click a free (green)"
-" place to book that time with the doctor."
+"Each column is a doctor, with the room of each patient. Click a free (green) "
+"place to book that time with the doctor."
 msgstr ""
 "كل عمود طبيب، ومعاه غرفة كل مريض. اضغط على مكان فاضي (أخضر) للحجز في الوقت "
 "ده مع الطبيب."
@@ -24423,8 +24335,8 @@ msgid ""
 "Each column is a room with the dentist working there. Click a free (green) "
 "place to book that time, or a patient to open the appointment."
 msgstr ""
-"كل عمود غرفة ومعها الطبيب الذي يعمل فيها. اضغط على مكان متاح (أخضر) للحجز في"
-" هذا الوقت، أو على مريض لفتح الموعد."
+"كل عمود غرفة ومعها الطبيب الذي يعمل فيها. اضغط على مكان متاح (أخضر) للحجز في "
+"هذا الوقت، أو على مريض لفتح الموعد."
 
 #: templates/scheduling/day_planner.html:22
 #: templates/scheduling/room_schedule.html:8
@@ -24469,8 +24381,8 @@ msgstr "إضافة وردية في هذه الغرفة"
 #: templates/scheduling/requests_approve.html:6
 msgid ""
 "Check each patient, the step and the time given. You can change the time "
-"before approving. Approved patients go to the reception to be called in this"
-" order."
+"before approving. Approved patients go to the reception to be called in this "
+"order."
 msgstr ""
 "راجع كل مريض والخطوة والوقت المعطى. يمكنك تغيير الوقت قبل الموافقة. المرضى "
 "الموافق عليهم يذهبون للاستقبال للاتصال بهم بهذا الترتيب."
@@ -24601,8 +24513,8 @@ msgid ""
 "Fill this week with the same dentists, rooms and hours as last week? Shifts "
 "that clash with ones already here are skipped."
 msgstr ""
-"ملء هذا الأسبوع بنفس أطباء وغرف وساعات الأسبوع الماضي؟ الشيفتات المتعارضة مع"
-" الموجودة سيتم تخطيها."
+"ملء هذا الأسبوع بنفس أطباء وغرف وساعات الأسبوع الماضي؟ الشيفتات المتعارضة مع "
+"الموجودة سيتم تخطيها."
 
 #: templates/scheduling/room_schedule.html:14
 msgid "Same as last week"
@@ -24615,12 +24527,12 @@ msgstr "إضافة شيفت"
 #: templates/scheduling/room_schedule.html:19
 msgid ""
 "The rooms are shared at this place: any doctor books any free room, and no "
-"room schedule is needed. Use it only to keep a visiting doctor's fixed days:"
-" the nearest free times then offer his days only."
+"room schedule is needed. Use it only to keep a visiting doctor's fixed days: "
+"the nearest free times then offer his days only."
 msgstr ""
-"الغرف مشتركة في المكان ده: أي طبيب يحجز أي غرفة فاضية، ومش محتاجين جدول غرف."
-" استخدمه بس لو عايز تسجل أيام ثابتة لطبيب زائر: وقتها المواعيد الفاضية بتطلع"
-" أيامه بس."
+"الغرف مشتركة في المكان ده: أي طبيب يحجز أي غرفة فاضية، ومش محتاجين جدول غرف. "
+"استخدمه بس لو عايز تسجل أيام ثابتة لطبيب زائر: وقتها المواعيد الفاضية بتطلع "
+"أيامه بس."
 
 #: templates/scheduling/room_schedule.html:19
 msgid "The day by doctor"
@@ -24634,8 +24546,8 @@ msgid ""
 "the others work a regular day."
 msgstr ""
 "“نفس جدول الأسبوع الماضي” ينسخ شيفتات الأسبوع الماضي (من يعمل في أي غرفة، "
-"والساعات، والمشرف) إلى هذا الأسبوع، فيُكتب الجدول الأسبوعي مرة واحدة فقط. "
-"يوم العمليات يُحدد لكل غرفة: غرفة يمكن أن يكون فيها عمليات والباقي يوم عادي."
+"والساعات، والمشرف) إلى هذا الأسبوع، فيُكتب الجدول الأسبوعي مرة واحدة فقط. يوم "
+"العمليات يُحدد لكل غرفة: غرفة يمكن أن يكون فيها عمليات والباقي يوم عادي."
 
 #: templates/scheduling/room_schedule.html:21
 msgid "Extra rooms (open on busy days):"
@@ -24774,8 +24686,8 @@ msgstr "لا يوجد كشف أو تاريخ مرضي بعد."
 
 #: templates/scheduling/visit.html:18
 msgid ""
-"Nothing is written for this visit yet. Record what was done: a treatment, an"
-" examination or the surgery chart."
+"Nothing is written for this visit yet. Record what was done: a treatment, an "
+"examination or the surgery chart."
 msgstr ""
 "لم يُكتب شيء عن هذه الزيارة بعد. سجّل ما تم: علاج أو كشف أو شارت العملية."
 
@@ -24821,8 +24733,8 @@ msgid ""
 "missed or moved, the reception is told that a place is free and who is "
 "waiting for it."
 msgstr ""
-"مرضى يريدون مكانًا في يوم مزدحم. لما ميعاد يتلغي أو المريض ما يجيش أو "
-"الميعاد يتغير، الاستقبال يتبلغ إن فيه مكان فاضي ومين منتظره."
+"مرضى يريدون مكانًا في يوم مزدحم. لما ميعاد يتلغي أو المريض ما يجيش أو الميعاد "
+"يتغير، الاستقبال يتبلغ إن فيه مكان فاضي ومين منتظره."
 
 #: templates/scheduling/waiting_list.html:10
 msgid "Add a patient to the waiting list"
@@ -24938,13 +24850,13 @@ msgstr "ما يراه الاستقبال في ملف المريض"
 
 #: templates/settings/access.html:48
 msgid ""
-"The reception always sees the patient's data, the bookings, the payments and"
-" a short medical summary. The dental work is the dentists': tick only what "
+"The reception always sees the patient's data, the bookings, the payments and "
+"a short medical summary. The dental work is the dentists': tick only what "
 "the secretaries need. The dentists, the heads and the owner see everything."
 msgstr ""
-"يرى الاستقبال دائمًا بيانات المريض والحجوزات والمدفوعات وملخصًا طبيًا "
-"قصيرًا. العمل على الأسنان خاص بالأطباء: علّم فقط ما تحتاجه السكرتارية. "
-"الأطباء والرؤساء والمالك يرون كل شيء."
+"يرى الاستقبال دائمًا بيانات المريض والحجوزات والمدفوعات وملخصًا طبيًا قصيرًا. "
+"العمل على الأسنان خاص بالأطباء: علّم فقط ما تحتاجه السكرتارية. الأطباء "
+"والرؤساء والمالك يرون كل شيء."
 
 #: templates/settings/backup.html:13
 #, python-format
@@ -25029,14 +24941,14 @@ msgstr "الصور والأشعة والمستندات"
 
 #: templates/settings/backup.html:41
 msgid ""
-"They are too big for a ZIP (hundreds of gigabytes in time). Every night they"
-" are copied as they are to the photo backup folder: only the new and changed"
-" files, so it takes minutes. Nothing is deleted there, so a photo deleted by"
-" mistake is still in the copy."
+"They are too big for a ZIP (hundreds of gigabytes in time). Every night they "
+"are copied as they are to the photo backup folder: only the new and changed "
+"files, so it takes minutes. Nothing is deleted there, so a photo deleted by "
+"mistake is still in the copy."
 msgstr ""
-"حجمها كبير جدًا على ملف ZIP (مئات الجيجابايت مع الوقت). كل ليلة تُنسخ كما هي"
-" إلى مجلد نسخ الصور: الملفات الجديدة والمتغيرة فقط، فتأخذ دقائق. لا يُحذف "
-"شيء هناك، فالصورة المحذوفة بالخطأ تبقى في النسخة."
+"حجمها كبير جدًا على ملف ZIP (مئات الجيجابايت مع الوقت). كل ليلة تُنسخ كما هي "
+"إلى مجلد نسخ الصور: الملفات الجديدة والمتغيرة فقط، فتأخذ دقائق. لا يُحذف شيء "
+"هناك، فالصورة المحذوفة بالخطأ تبقى في النسخة."
 
 #: templates/settings/backup.html:42
 msgid ""
@@ -25071,9 +24983,9 @@ msgid ""
 "another disk (a bigger one, or one that is backed up), check the folder "
 "here, then move them."
 msgstr ""
-"كل مريض له فولدر هناك (صور المرضى ← رقم الملف والاسم ← المرحلة)، علشان الصور"
-" تتفتح من غير النظام. علشان تحفظها على قرص تاني (أكبر، أو عليه نسخ احتياطي)،"
-" اختبر الفولدر هنا، وبعدين انقلها."
+"كل مريض له فولدر هناك (صور المرضى ← رقم الملف والاسم ← المرحلة)، علشان الصور "
+"تتفتح من غير النظام. علشان تحفظها على قرص تاني (أكبر، أو عليه نسخ احتياطي)، "
+"اختبر الفولدر هنا، وبعدين انقلها."
 
 #: templates/settings/backup.html:58
 msgid "Another folder"
@@ -25264,8 +25176,7 @@ msgid ""
 "The checks, who is logged in now, closed logins, the security log and the "
 "deleted records."
 msgstr ""
-"المراجعات، ومين داخل دلوقتي، والدخول المقفول، وسجل الأمان، والسجلات "
-"الممسوحة."
+"المراجعات، ومين داخل دلوقتي، والدخول المقفول، وسجل الأمان، والسجلات الممسوحة."
 
 #: templates/settings/home.html:16
 msgid "Full backup of all data and files; all data as an Excel file."
@@ -25308,8 +25219,8 @@ msgid ""
 "Items are never deleted, because old records use them: untick “active” to "
 "stop using one."
 msgstr ""
-"لا تُحذف العناصر لأن السجلات القديمة تستخدمها: ألغِ علامة “نشط” لإيقاف "
-"استخدام العنصر."
+"لا تُحذف العناصر لأن السجلات القديمة تستخدمها: ألغِ علامة “نشط” لإيقاف استخدام "
+"العنصر."
 
 #: templates/settings/list_edit.html:9
 msgid "Lines"
@@ -25392,8 +25303,7 @@ msgstr "تخرّج كل الباقيين دلوقتي؟ الشغل اللي ما
 msgid "Log out everyone else"
 msgstr "خرّج كل الباقيين"
 
-#: templates/settings/security.html:45
-#: templates/specialties/tmj_detail.html:18
+#: templates/settings/security.html:45 templates/specialties/tmj_detail.html:18
 msgid "Since"
 msgstr "من"
 
@@ -25449,14 +25359,14 @@ msgstr "حساب دخول جديد"
 msgid ""
 "Roles decide which parts of the system a person uses. For this person only, "
 "you can change one part below (for example the academy for one secretary), "
-"make everything read only, or limit the days and hours. A part can be opened"
-" again here after Access by role closed it, but never beyond what the role "
+"make everything read only, or limit the days and hours. A part can be opened "
+"again here after Access by role closed it, but never beyond what the role "
 "itself allows. The owner is never limited."
 msgstr ""
 "الأدوار تحدد أجزاء البرنامج التي يستخدمها الشخص. لهذا الشخص فقط يمكنك تغيير "
 "جزء بالأسفل (مثل الأكاديمية لسكرتيرة واحدة)، أو جعل كل شيء اطلاع فقط، أو "
-"تحديد الأيام والساعات. يمكن فتح جزء هنا بعد أن أغلقته “الصلاحيات حسب الدور”،"
-" لكن ليس أكثر مما يسمح به الدور نفسه. المالك لا يُقيد أبدًا."
+"تحديد الأيام والساعات. يمكن فتح جزء هنا بعد أن أغلقته “الصلاحيات حسب الدور”، "
+"لكن ليس أكثر مما يسمح به الدور نفسه. المالك لا يُقيد أبدًا."
 
 #: templates/settings/users.html:12
 #, python-format
@@ -25465,8 +25375,8 @@ msgstr "كلمة سر مؤقتة جديدة لـ %(name)s:"
 
 #: templates/settings/users.html:13
 msgid ""
-"Tell it to the person (it is shown only now). They choose their own password"
-" when they log in."
+"Tell it to the person (it is shown only now). They choose their own password "
+"when they log in."
 msgstr "أخبر بها الشخص (تظهر الآن فقط). يختار كلمة سر خاصة به عند الدخول."
 
 #: templates/settings/users.html:14
@@ -25518,8 +25428,7 @@ msgstr "محدود بوقت"
 msgid "normal"
 msgstr "عادي"
 
-#: templates/specialties/cases.html:10
-#: templates/specialties/endo_detail.html:3
+#: templates/specialties/cases.html:10 templates/specialties/endo_detail.html:3
 #: templates/specialties/endo_detail.html:7
 #: templates/specialties/patient.html:35
 msgid "Endodontics"
@@ -26011,8 +25920,8 @@ msgstr "خطوات التركيبات التي تمت"
 
 #: templates/specialties/record_form.html:8
 msgid ""
-"Take the shade in daylight or under a shade lamp, before the preparation and"
-" before the teeth dry. Tap a tab to choose it: the colours on a screen are "
+"Take the shade in daylight or under a shade lamp, before the preparation and "
+"before the teeth dry. Tap a tab to choose it: the colours on a screen are "
 "close to the real guide, not exact."
 msgstr ""
 "خد اللون في ضوء النهار أو تحت لمبة الألوان، قبل التحضير وقبل ما الأسنان "
@@ -26290,8 +26199,8 @@ msgstr "استيراد قائمة مخزن"
 #: templates/stock/import.html:7
 msgid ""
 "Use the lists you already keep in Excel, for example the materials and "
-"instruments list: one row per item with the quantity and the name. New items"
-" are created; items already in stock are updated."
+"instruments list: one row per item with the quantity and the name. New items "
+"are created; items already in stock are updated."
 msgstr ""
 "استخدم القوائم الموجودة عندك في Excel، مثل قائمة الخامات والأدوات: صف لكل "
 "صنف بالكمية والاسم. الأصناف الجديدة تُضاف، والموجودة يتم تحديثها."
@@ -26418,8 +26327,8 @@ msgstr "لا توجد حركات في هذه الفترة."
 #: templates/stock/price_changes.html:7
 #, python-format
 msgid ""
-"Each material and instrument bought in these dates at another price than the"
-" time before: the last price paid against the one before, the biggest rise "
+"Each material and instrument bought in these dates at another price than the "
+"time before: the last price paid against the one before, the biggest rise "
 "first. A rise of 10%% or more is also told to the owner and the stock "
 "manager when the purchase is saved."
 msgstr ""
@@ -26725,8 +26634,7 @@ msgstr "علّم الكل"
 msgid ""
 "Deliver the prosthesis? The implants become loaded and the pontics show on "
 "the chart."
-msgstr ""
-"تسليم التركيبة؟ الزرعات هتبقى محمّلة والأسنان المعلّقة هتظهر على الشارت."
+msgstr "تسليم التركيبة؟ الزرعات هتبقى محمّلة والأسنان المعلّقة هتظهر على الشارت."
 
 #: templates/surgery/delivery_check.html:49
 msgid "Save: delivered"
@@ -26924,8 +26832,8 @@ msgid ""
 "delivery or implant failure in the treatment log. Use this form only to "
 "correct them."
 msgstr ""
-"المراحل تتحرك تلقائيًا عند تسجيل المرحلة الثانية أو الطبعة / المسح أو "
-"التركيب أو فشل الزرعة في سجل العلاج. استخدم هذا النموذج للتصحيح فقط."
+"المراحل تتحرك تلقائيًا عند تسجيل المرحلة الثانية أو الطبعة / المسح أو التركيب "
+"أو فشل الزرعة في سجل العلاج. استخدم هذا النموذج للتصحيح فقط."
 
 #: templates/surgery/implant_record_form.html:6
 msgid "The implant"
@@ -26981,8 +26889,8 @@ msgstr "طربوش مفرد: علّم زرعته؛ والسن يتكتب لوح�
 
 #: templates/surgery/prosthesis_form.html:25
 msgid ""
-"Bridge: write all its teeth (e.g. 34-37) and tick the implants under it; the"
-" other teeth are pontics."
+"Bridge: write all its teeth (e.g. 34-37) and tick the implants under it; the "
+"other teeth are pontics."
 msgstr ""
 "كوبري: اكتب كل أسنانه (مثل 34-37) وعلّم الزرعات التي تحته؛ باقي الأسنان "
 "بونتيك."
@@ -26997,8 +26905,8 @@ msgstr ""
 
 #: templates/surgery/prosthesis_form.html:27
 msgid ""
-"When it is delivered, the implants become loaded and the pontics show on the"
-" chart."
+"When it is delivered, the implants become loaded and the pontics show on the "
+"chart."
 msgstr "عند التركيب تُسجل الزرعات محمّلة ويظهر البونتيك على الشارت."
 
 #: templates/surgery/surgery_detail.html:8
@@ -27129,6 +27037,9 @@ msgstr "رقم العملية أو اسم المريض أو رقم الملف"
 msgid "No surgeries recorded."
 msgstr "لا توجد عمليات مسجلة."
 
+#~ msgid "A file must keep a number."
+#~ msgstr "الملف لازم يفضل له رقم."
+
 #~ msgid "Surgery and implants"
 #~ msgstr "الجراحة والزرع"
 
@@ -27146,8 +27057,8 @@ msgstr "لا توجد عمليات مسجلة."
 #~ "اكتب الأسنان وشوف الشارت هيتغير إزاي قبل الحفظ."
 
 #~ msgid ""
-#~ "Write what the patient said, in their words. The supervisors and the owner "
-#~ "are told at once."
+#~ "Write what the patient said, in their words. The supervisors and the "
+#~ "owner are told at once."
 #~ msgstr "اكتب ما قاله المريض بكلماته. يصل تنبيه فورًا للمشرفين والمالك."
 
 #~ msgid ""
@@ -27169,8 +27080,8 @@ msgstr "لا توجد عمليات مسجلة."
 #~ "الأكاديمية."
 
 #~ msgid ""
-#~ "Lists, clinic options and logins. Nothing is deleted: untick active to stop "
-#~ "using an item."
+#~ "Lists, clinic options and logins. Nothing is deleted: untick active to "
+#~ "stop using an item."
 #~ msgstr ""
 #~ "القوائم وإعدادات العيادة وحسابات الدخول. لا يُحذف شيء: أزل علامة «نشط» "
 #~ "لإيقاف استخدام أي عنصر."
@@ -27195,8 +27106,8 @@ msgstr "لا توجد عمليات مسجلة."
 #~ "themselves. Fields with a red * are needed. The medical history is the "
 #~ "dentist's: skip it if you like."
 #~ msgstr ""
-#~ "اكتب الرقم القومي الأول: تاريخ الميلاد والنوع بيتكتبوا لوحدهم. الخانات اللي "
-#~ "عليها * حمرا لازم تتملى. التاريخ المرضي بياخده الطبيب: ممكن تسيبه."
+#~ "اكتب الرقم القومي الأول: تاريخ الميلاد والنوع بيتكتبوا لوحدهم. الخانات "
+#~ "اللي عليها * حمرا لازم تتملى. التاريخ المرضي بياخده الطبيب: ممكن تسيبه."
 
 #~ msgid ""
 #~ "Open complaints come first. Tap one to follow it up or to write what was "
@@ -27210,7 +27121,8 @@ msgstr "لا توجد عمليات مسجلة."
 #~ msgstr "اكتب رقم ملف أو موبايل المريض الذي رشّحه."
 
 #, python-format
-#~ msgid "The ID number %%s was read from the card and written above: check it."
+#~ msgid ""
+#~ "The ID number %%s was read from the card and written above: check it."
 #~ msgstr "تمت قراءة الرقم القومي %%s من البطاقة وكتابته بالأعلى: راجعه."
 
 #, python-format

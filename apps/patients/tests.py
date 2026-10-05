@@ -918,11 +918,11 @@ class Round15PatientTests(TestCase):
             "old_file": "on", "typed_file_number": "77", "full_name": "محمد أحمد علي حسن", "id_type": "nid",
             "national_id": "29001150101234", "phone_primary": "01001234567", "preferred_phone": "primary",
             "missing_teeth": "single"})
-        self.assertContains(response, "already used")
+        self.assertContains(response, "رقم الملف CIA-00077 مستخدم")  # the secretary reads Arabic
         response = self.client.post("/patients/new/", {
             "old_file": "on", "full_name": "محمد أحمد علي حسن", "id_type": "nid", "national_id": "29001150101234",
             "phone_primary": "01001234567", "preferred_phone": "primary", "missing_teeth": "single"})
-        self.assertContains(response, "Write the number of the paper file.")
+        self.assertContains(response, "اكتبي رقم الملف الورقي.")
         # Without the tick, the round 13 boxes are still needed.
         response = self.client.post("/patients/new/", {
             "full_name": "محمد أحمد علي حسن", "id_type": "nid", "national_id": "29001150101234",

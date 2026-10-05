@@ -347,9 +347,7 @@ class PatientForm(StyledModelForm):
         """The paper file's number: 1234 becomes CIA-01234 (the place's letters); letters typed are kept as typed."""
         value = clean_digits_value(self.cleaned_data.get("typed_file_number")).strip().upper().replace(" ", "")
         if not value:
-            if self.instance.pk:
-                raise forms.ValidationError(_("A file must keep a number."))
-            return ""
+            return ""  # a new file takes the next number; a file edited keeps its own
         place = self.instance.branch if self.instance.pk else current_place()
         if value.isdigit():
             value = f"{place.badge if place else 'CIA'}-{int(value):05d}"
@@ -383,7 +381,7 @@ class PatientForm(StyledModelForm):
             data["governorate"] = data.get("governorate") or nid["governorate_code"]
             if data["birth_date"] != nid["birth_date"]:
                 self.add_error("birth_date", _("The date of birth does not match the national ID."))
-        if self.data_entry and not data.get("typed_file_number"):
+        if self.data_entry and not data.get("typed_file_number") and "typed_file_number" not in self.errors:
             self.add_error("typed_file_number", _("Write the number of the paper file."))
         for name in ([] if self.data_entry else self.FROM_ID):
             if not data.get(name) and name not in self.errors:
