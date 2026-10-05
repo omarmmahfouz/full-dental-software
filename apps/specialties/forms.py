@@ -9,7 +9,7 @@ from apps.dentists.forms import DentistChoiceField
 
 from . import shades
 from .models import (
-    EndoCanal, EndoCase, EndoVisit, OrthoCase, OrthoVisit, Referral, ShadeRecord, TMJExam, TMJVisit,
+    EndoCanal, EndoCase, EndoVisit, OrthoCase, OrthoVisit, ProsthoCase, Referral, ShadeRecord, TMJExam, TMJVisit,
 )
 
 
@@ -277,3 +277,44 @@ class ShadeRecordForm(RecordForm):
             if value and guide and shades.guide_of(value) not in ("", guide):
                 self.add_error(name, _("This shade is not in the chosen shade guide."))
         return data
+
+
+class ProsthoCaseForm(RecordForm):
+    """The prosthodontist's chart (round 15)."""
+
+    abutment_findings = ticks(ProsthoCase.ABUTMENT_CHECKS, _("abutment findings"))
+    parafunction = ticks(ProsthoCase.PARAFUNCTION, _("parafunction"))
+
+    fieldsets = [
+        (_("The case"), ["examined_on", "dentist", "status", "chief_complaint"]),
+        (_("Missing teeth and abutments"), ["upper", "lower", "missing_teeth", "ridge", "abutment_teeth",
+                                           "abutment_findings"]),
+        (_("The occlusion"), ["vertical_dimension", "interocclusal_space", "scheme", "parafunction"]),
+        (_("Esthetics"), ["smile_line", "lip_support", "midline", "old_prosthesis"]),
+        (_("Diagnosis and plan"), ["diagnosis", "plan", "plan_teeth", "material", "retention", "other_options",
+                                   "delivered_on", "next_recall", "notes"]),
+    ]
+
+    class Meta:
+        model = ProsthoCase
+        fields = ["examined_on", "dentist", "status", "chief_complaint", "upper", "lower", "missing_teeth", "ridge",
+                  "abutment_teeth", "abutment_findings", "vertical_dimension", "interocclusal_space", "scheme",
+                  "parafunction", "smile_line", "lip_support", "midline", "old_prosthesis", "diagnosis", "plan",
+                  "plan_teeth", "material", "retention", "other_options", "delivered_on", "next_recall", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("missing_teeth", "abutment_teeth", "plan_teeth"):
+            self.fields[name].widget.attrs.update({"data-teeth-picker": "multi", "data-digits": "1"})
+
+    def _teeth(self, name):
+        return format_teeth(parse_teeth(self.cleaned_data.get(name)))
+
+    def clean_missing_teeth(self):
+        return self._teeth("missing_teeth")
+
+    def clean_abutment_teeth(self):
+        return self._teeth("abutment_teeth")
+
+    def clean_plan_teeth(self):
+        return self._teeth("plan_teeth")

@@ -633,3 +633,48 @@ class MedicalConsult(TimeStampedModel):
     @property
     def days_waiting(self):
         return (timezone.localdate() - self.sent_on).days if self.status == self.Status.WAITING else None
+
+
+class MedicalRecall(models.Model):
+    """A call to ask a patient for a new test (round 15): a reading above the limits (HbA1c above 7%, a high blood
+    sugar or pressure) is checked again after the days of Settings → Clinic options (3 months for the HbA1c). The
+    reception (or the dentist) calls, writes what he said, and the next call date; a new reading closes it."""
+
+    class Status(models.TextChoices):
+        OPEN = "open", _("To call")
+        DONE = "done", _("New test done")
+        STOPPED = "stopped", _("Not needed")
+
+    class Outcome(models.TextChoices):
+        WILL_DO = "will_do", _("He will do the test")
+        NO_ANSWER = "no_answer", _("No answer")
+        DONE = "done", _("He did it: the result is written")
+        REFUSED = "refused", _("He does not want to")
+
+    patient = models.ForeignKey(Patient, verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="medical_recalls")
+    reason = models.CharField(_("why"), max_length=15, choices=MedicalConsult.Reason.choices)
+    reading = models.CharField(_("the reading"), max_length=120)
+    reading_on = models.DateField(_("reading of"))
+    due_on = models.DateField(_("call on"), db_index=True)
+    status = models.CharField(_("status"), max_length=8, choices=Status.choices, default=Status.OPEN, db_index=True)
+    calls = models.PositiveSmallIntegerField(_("calls made"), default=0)
+    last_outcome = models.CharField(_("last answer"), max_length=10, choices=Outcome.choices, blank=True)
+    last_call_at = models.DateTimeField(_("last call"), null=True, blank=True)
+    last_call_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                                     related_name="+", verbose_name=_("called by"))
+    notes = models.CharField(_("notes"), max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["due_on", "pk"]
+        verbose_name = _("call for a new test")
+        verbose_name_plural = _("calls for a new test")
+        constraints = [models.UniqueConstraint(fields=["patient", "reason", "reading_on"],
+                                               name="one_recall_per_reading")]
+
+    def __str__(self):
+        return f"{self.patient} — {self.get_reason_display()} {self.due_on:%d/%m/%Y}"
+
+    @property
+    def is_late(self):
+        return self.status == self.Status.OPEN and self.due_on < timezone.localdate()

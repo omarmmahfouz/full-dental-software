@@ -427,3 +427,32 @@ class Round15LabListTests(TestCase):
         self.assertEqual(len(self.client.get("/clinical/lab/?part=planned").context["page_obj"]), 2)
         done = self.client.get("/clinical/lab/?part=done").context["page_obj"]
         self.assertEqual([lr.status for lr in done], ["delivered"])
+
+
+class Round15SpanTests(TestCase):
+    """Round 15: the finders tell a single crown from a bridge and a full arch."""
+
+    def test_span_kind(self):
+        from apps.charting.teeth import span_kind
+
+        self.assertEqual(span_kind("36", "Zirconia crown", "fixed"), "single")
+        self.assertEqual(span_kind("34-36", "Bridge", "fixed"), "bridge")
+        self.assertEqual(span_kind("17-27", "PFM bridge", "fixed"), "full_arch")
+        self.assertEqual(span_kind("", "All-on-4 fixed prosthesis", "implant_teeth"), "full_arch")
+        self.assertEqual(span_kind("36", "Composite filling", "fillings"), "")
+
+    def test_the_restorative_finder_filters_by_span(self):
+        from django.utils import timezone
+
+        branch = setup_clinic()
+        make_user("owner", "owner")
+        patient = make_patient(branch)
+        crown = TreatmentStepType.objects.filter(group="fixed").first()
+        for teeth in ("36", "44-46"):
+            TreatmentStep.objects.create(patient=patient, step_type=crown, teeth=teeth,
+                                         performed_at=timezone.now())
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/clinical/restorative-finder/", {"span": "bridge"})
+        self.assertEqual([step.teeth for step in page.context["page_obj"]], ["44-46"])
+        grouped = self.client.get("/clinical/restorative-finder/", {"group_by": "span"})
+        self.assertIn("Bridge", [str(row["key"]) for row in grouped.context["groups"]])

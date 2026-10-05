@@ -734,3 +734,121 @@ class ShadeRecord(SpecialistRecord):
 
     def colour(self, name):
         return shades.COLOURS.get(name, "")
+
+
+# ------------------------------------------------------------------ prosthodontics: the case (round 15)
+class ProsthoCase(SpecialistRecord):
+    """The prosthodontist's chart (the shade is only one step of it): the missing teeth (Kennedy class, or the
+    edentulous jaw), the abutment teeth, the occlusion (vertical dimension, space, scheme, parafunction), the
+    esthetics (smile line, lip support, midline), the old prosthesis, then the plan: the prosthesis, its material
+    and retention, and how far it has gone."""
+
+    class Status(models.TextChoices):
+        EXAMINED = "examined", _("Examined and planned")
+        IN_WORK = "in_work", _("In work (preparation to try-in)")
+        DELIVERED = "delivered", _("Delivered")
+        RECALL = "recall", _("On recall")
+
+    class Kennedy(models.TextChoices):
+        I = "I", _("Class I (bilateral free end)")  # noqa: E741
+        II = "II", _("Class II (one free end)")
+        III = "III", _("Class III (bounded, one side)")
+        IV = "IV", _("Class IV (anterior, across the midline)")
+        EDENTULOUS = "edentulous", _("Completely edentulous")
+        NONE = "none", _("No missing teeth")
+
+    class Ridge(models.TextChoices):
+        GOOD = "good", _("Good height and width")
+        RESORBED = "resorbed", _("Resorbed")
+        KNIFE = "knife", _("Knife edge")
+        FLABBY = "flabby", _("Flabby ridge")
+
+    class VerticalDimension(models.TextChoices):
+        NORMAL = "normal", _("Normal")
+        REDUCED = "reduced", _("Reduced (collapsed bite)")
+        INCREASED = "increased", _("Increased")
+
+    class Scheme(models.TextChoices):
+        CANINE = "canine", _("Canine guidance")
+        GROUP = "group", _("Group function")
+        BALANCED = "balanced", _("Bilateral balanced (dentures)")
+        MUTUALLY = "mutually", _("Mutually protected")
+
+    class SmileLine(models.TextChoices):
+        LOW = "low", _("Low (teeth only)")
+        MEDIUM = "medium", _("Medium (papillae show)")
+        HIGH = "high", _("High (gummy smile)")
+
+    class Plan(models.TextChoices):
+        SINGLE_CROWNS = "crowns", _("Single crowns")
+        BRIDGE = "bridge", _("Bridge on teeth")
+        IMPLANT_CROWNS = "implant_crowns", _("Crowns / bridge on implants")
+        FULL_ARCH_FIXED = "full_arch", _("Full arch fixed on implants")
+        OVERDENTURE = "overdenture", _("Overdenture on implants")
+        COMPLETE_DENTURE = "complete_denture", _("Complete denture")
+        PARTIAL_DENTURE = "partial_denture", _("Removable partial denture")
+        VENEERS = "veneers", _("Veneers")
+        INLAYS = "inlays", _("Inlays / onlays")
+        OTHER = "other", _("Other")
+
+    class Material(models.TextChoices):
+        ZIRCONIA = "zirconia", _("Zirconia")
+        EMAX = "emax", _("E.max (lithium disilicate)")
+        PFM = "pfm", _("Porcelain fused to metal")
+        PMMA = "pmma", _("PMMA (temporary)")
+        ACRYLIC = "acrylic", _("Acrylic")
+        COCR = "cocr", _("Cobalt-chrome framework")
+        PEEK = "peek", _("PEEK / BioHPP")
+        OTHER = "other", _("Other")
+
+    ABUTMENT_CHECKS = [("mobility", _("Mobility")), ("perio", _("Bone loss / pockets")),
+                       ("crown_root", _("Poor crown-root ratio")), ("rct", _("Root canal treated")),
+                       ("caries", _("Caries or a big restoration")), ("tilted", _("Tilted / drifted"))]
+    PARAFUNCTION = [("bruxism", _("Bruxism (grinding)")), ("clenching", _("Clenching")),
+                    ("wear", _("Tooth wear")), ("tmj", _("TMJ signs"))]
+
+    examined_on = models.DateField(_("date"), default=timezone.localdate)
+    status = models.CharField(_("status"), max_length=10, choices=Status.choices, default=Status.EXAMINED)
+    chief_complaint = models.TextField(_("chief complaint and wishes"), blank=True)
+    upper = models.CharField(_("upper jaw"), max_length=12, choices=Kennedy.choices, blank=True)
+    lower = models.CharField(_("lower jaw"), max_length=12, choices=Kennedy.choices, blank=True)
+    missing_teeth = models.CharField(_("missing teeth"), max_length=150, blank=True)
+    ridge = models.CharField(_("the ridge"), max_length=10, choices=Ridge.choices, blank=True)
+    abutment_teeth = models.CharField(_("abutment teeth"), max_length=100, blank=True)
+    abutment_findings = models.JSONField(_("abutment findings"), default=list, blank=True)
+    vertical_dimension = models.CharField(_("vertical dimension"), max_length=10,
+                                          choices=VerticalDimension.choices, blank=True)
+    interocclusal_space = models.DecimalField(_("space for the prosthesis (mm)"), max_digits=4, decimal_places=1,
+                                              null=True, blank=True)
+    scheme = models.CharField(_("occlusal scheme"), max_length=10, choices=Scheme.choices, blank=True)
+    parafunction = models.JSONField(_("parafunction"), default=list, blank=True)
+    smile_line = models.CharField(_("smile line"), max_length=8, choices=SmileLine.choices, blank=True)
+    lip_support = models.CharField(_("lip support"), max_length=100, blank=True)
+    midline = models.CharField(_("midline"), max_length=100, blank=True)
+    old_prosthesis = models.CharField(_("the old prosthesis"), max_length=255, blank=True)
+    diagnosis = models.TextField(_("prosthodontic diagnosis"), blank=True)
+    plan = models.CharField(_("the prosthesis planned"), max_length=20, choices=Plan.choices, blank=True)
+    plan_teeth = models.CharField(_("on the teeth"), max_length=100, blank=True)
+    material = models.CharField(_("material"), max_length=10, choices=Material.choices, blank=True)
+    retention = models.CharField(_("retention"), max_length=40, blank=True,
+                                 help_text=_("e.g. cemented, screw-retained, locators, bar"))
+    other_options = models.TextField(_("other options told to the patient"), blank=True)
+    delivered_on = models.DateField(_("delivered on"), null=True, blank=True)
+    next_recall = models.DateField(_("next recall"), null=True, blank=True)
+
+    class Meta:
+        ordering = ["-examined_on", "-pk"]
+        verbose_name = _("prosthodontic case")
+        verbose_name_plural = _("prosthodontic cases")
+
+    def __str__(self):
+        return f"{_('Prosthodontic case')} {self.get_plan_display() or ''} {self.plan_teeth}".strip()
+
+    def get_absolute_url(self):
+        return reverse("specialties:prostho", args=[self.pk])
+
+    def abutment_labels(self):
+        return labels(self.ABUTMENT_CHECKS, self.abutment_findings)
+
+    def parafunction_labels(self):
+        return labels(self.PARAFUNCTION, self.parafunction)

@@ -22,7 +22,7 @@ from apps.patients.models import Gender, Patient
 from apps.scheduling.models import Appointment
 
 from .models import PlanItem, TreatmentPlan
-from .teeth import parse_teeth
+from .teeth import SPAN_CHOICES, parse_teeth, span_kind, span_label
 
 OPEN = [TreatmentPlan.Status.PROPOSED, TreatmentPlan.Status.APPROVED]
 
@@ -38,6 +38,8 @@ class PlanFinderForm(StyledForm):
     include_done = forms.BooleanField(label=gettext_lazy("also show procedures already done"), required=False)
     phase = forms.MultipleChoiceField(label=gettext_lazy("phase"), required=False, choices=PlanItem.Phase.choices)
     teeth = forms.CharField(label=gettext_lazy("teeth"), required=False)
+    span = forms.MultipleChoiceField(label=gettext_lazy("single crown, bridge or full arch"), required=False,
+                                     choices=SPAN_CHOICES, widget=forms.CheckboxSelectMultiple)
     dentist = DentistChoiceField(label=gettext_lazy("planned by"), required=False, empty_label=gettext_lazy("Any"))
     gender = forms.ChoiceField(label=gettext_lazy("gender"), required=False,
                                choices=[("", gettext_lazy("Any"))] + list(Gender.choices))
@@ -91,7 +93,8 @@ def find_plans(data, part=None):
         plans = plans.exclude(patient_id__in=upcoming)
 
     pending_only = not data.get("include_done")
-    item_filters = bool(data.get("procedures") or data.get("phase") or data.get("teeth"))
+    item_filters = bool(data.get("procedures") or data.get("phase") or data.get("teeth") or data.get("span"))
+    wanted_spans = set(data.get("span") or [])
     wanted_types = {t.pk for t in data.get("procedures") or []}
     wanted_phases = {int(p) for p in data.get("phase") or []}
     wanted_teeth = set(data.get("teeth") or [])
@@ -111,6 +114,10 @@ def find_plans(data, part=None):
                 continue
             if wanted_teeth and not wanted_teeth & set(parse_teeth(item.teeth) if item.teeth else []):
                 continue
+            item.span = span_kind(item.teeth, item.step_type.name_en, item.step_type.group)
+            if wanted_spans and item.span not in wanted_spans:
+                continue
+            item.span_label = span_label(item.span)
             items.append(item)
         if items or (not item_filters and not part):
             results.append((plan, items))

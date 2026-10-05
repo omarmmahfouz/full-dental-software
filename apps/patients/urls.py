@@ -23,6 +23,7 @@ urlpatterns = [
     path("<int:pk>/move/", views.patient_transfer, name="transfer"),
     path("<int:pk>/relations/<int:rel_pk>/delete/", views.relation_delete, name="relation_delete"),
     path("medical-follow-up/", consults.medical_followup, name="medical_followup"),
+    path("medical-follow-up/calls/<int:pk>/", consults.recall_call, name="recall_call"),
     path("<int:pk>/consult/", consults.consult_create, name="consult_create"),
     path("<int:pk>/consult/medicines/", consults.consult_medications, name="consult_medications"),
     path("<int:pk>/consult/not-needed/", consults.consult_not_needed, name="consult_not_needed"),

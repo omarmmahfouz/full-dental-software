@@ -11,7 +11,7 @@ from apps.core.models import Notification, staff_at
 from apps.core.notify import notify_users
 from apps.core.roles import SECRETARY
 
-from .models import EndoCase, OrthoCase, Referral, ShadeRecord, TMJExam
+from .models import EndoCase, OrthoCase, ProsthoCase, Referral, ShadeRecord, TMJExam
 
 
 def tell_about_referral(referral, user):
@@ -89,5 +89,6 @@ def records_of(patient):
         "endo": list(EndoCase.objects.filter(patient=patient).select_related("dentist")),
         "tmj": list(TMJExam.objects.filter(patient=patient).select_related("dentist")),
         "ortho": list(OrthoCase.objects.filter(patient=patient).select_related("dentist")),
+        "prostho": list(ProsthoCase.objects.filter(patient=patient).select_related("dentist")),
         "shades": list(ShadeRecord.objects.filter(patient=patient).select_related("dentist")),
     }

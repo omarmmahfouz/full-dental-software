@@ -35,8 +35,8 @@
         </div>
       </details>
     {% else %}
-      <details class="card mb-3" {% if forloop.last %}open{% endif %}>
-        <summary class="card-header" style="cursor:pointer">{{ title }}</summary>
+      <details class="card mb-3" {% if forloop.last %}open{% endif %}{% with first=fields.0.name %}{% if first == "block_graft" %} data-needs="gbr"{% elif first == "sinus_approach" %} data-needs="open_sinus"{% elif first == "sutured" %} data-needs-own="sutured"{% elif first == "membrane_used" %} data-needs-own="membrane_used"{% endif %}{% endwith %}>
+        <summary class="card-header" style="cursor:pointer">{{ title }} <span class="badge text-bg-warning ms-1 needed-badge" hidden>{% trans "needed: fill it" %}</span></summary>
         <div class="card-body"><div class="row g-3">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div></div>
       </details>
     {% endif %}
@@ -53,6 +53,37 @@
 <script>
   // Open any collapsed section that contains an error so it is not missed.
   document.querySelectorAll("details").forEach(function (d) { if (d.querySelector(".errorlist")) d.open = true; });
+
+  // Round 15: a part chosen must be filled. A tooth with a GBR (or an open sinus lift) opens the GBR (sinus) part
+  // and marks it needed; "Sutured: Yes" and "Membrane used" mark their boxes needed. The server checks it too.
+  (function () {
+    var form = document.querySelector("form[data-teeth-missing]");
+    if (!form) return;
+    function mark(section, on) {
+      section.classList.toggle("is-needed", on);
+      var badge = section.querySelector(".needed-badge");
+      if (badge) badge.hidden = !on;
+      if (on && !section.open) section.open = true;
+    }
+    function check() {
+      form.querySelectorAll("details[data-needs]").forEach(function (section) {
+        var code = section.getAttribute("data-needs");
+        var on = Array.prototype.some.call(form.querySelectorAll("input[name$='-" + code + "']"), function (box) {
+          var row = box.closest("[data-formset-row], .site-card, .col-12, .col-md-6");
+          var gone = row && row.querySelector("input[name$='-DELETE']:checked");
+          return box.checked && !gone;
+        });
+        mark(section, on);
+      });
+      form.querySelectorAll("details[data-needs-own]").forEach(function (section) {
+        var box = form.querySelector("[name='" + section.getAttribute("data-needs-own") + "']");
+        mark(section, !!box && (box.type === "checkbox" ? box.checked : box.value === "true"));
+      });
+    }
+    form.addEventListener("change", check);
+    form.addEventListener("arch:changed", check);
+    check();
+  })();
 
   // Implants from stock: choosing the company lists the implants in stock (size, lot, expiry, how many
   // left); choosing one fills the size and the lot. The chart takes it out of stock when saved.

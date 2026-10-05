@@ -13,7 +13,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.charting.teeth import is_anterior, jaw, parse_teeth, tooth_type
+from apps.charting.teeth import SPAN_CHOICES, is_anterior, jaw, parse_teeth, span_kind, span_label, tooth_type
 from apps.core.forms import StyledForm
 from apps.core.mixins import role_required
 from apps.core.roles import MANAGEMENT
@@ -25,7 +25,8 @@ from apps.patients.models import Gender, Patient
 from .models import StepGroup, TreatmentStep, TreatmentStepType
 
 # The kinds of work that are restorative (surgery and the records have their own finder and pages).
-RESTORATIVE_GROUPS = [code for code, _label in StepGroup.choices if code not in (StepGroup.SURGERY, StepGroup.RECORDS)]
+RESTORATIVE_GROUPS = [code for code, _label in StepGroup.choices
+                      if code not in (StepGroup.SURGERY, StepGroup.IMPLANT_SURGERY, StepGroup.RECORDS)]
 
 GROUP_CHOICES = [
     ("", _("No grouping")),
@@ -34,6 +35,7 @@ GROUP_CHOICES = [
     ("operator", _("Operator")),
     ("operator_kind", _("Operator type")),
     ("material", _("Material")),
+    ("span", _("Single crown, bridge or full arch")),
     ("jaw", _("Jaw")),
     ("region", _("Anterior / posterior")),
     ("tooth_type", _("Tooth type")),
@@ -46,7 +48,8 @@ GROUP_CHOICES = [
     ("month", _("Month")),
 ]
 # One tap groups the results (the filters stay).
-QUICK_GROUPS = [("group", _("Kind of work")), ("step", _("Step")), ("operator", _("Operator")),
+QUICK_GROUPS = [("group", _("Kind of work")), ("step", _("Step")), ("span", _("Single crown, bridge or full arch")),
+                ("operator", _("Operator")),
                 ("material", _("Material")), ("tooth_type", _("Tooth type")), ("month", _("Month"))]
 
 
@@ -57,6 +60,8 @@ class RestorativeFinderForm(StyledForm):
                                        choices=[(c, l) for c, l in StepGroup.choices if c in RESTORATIVE_GROUPS],
                                        widget=forms.CheckboxSelectMultiple)
     steps = forms.ModelMultipleChoiceField(label=_("step (any of)"), required=False, queryset=None)
+    span = forms.MultipleChoiceField(label=_("single crown, bridge or full arch"), required=False,
+                                     choices=SPAN_CHOICES, widget=forms.CheckboxSelectMultiple)
     teeth = forms.CharField(label=_("teeth"), required=False, help_text=_("e.g. 36, 46 or 34-37"))
     jaw = forms.ChoiceField(label=_("jaw"), required=False, choices=[("", _("Any")), ("upper", _("Upper")),
                                                                      ("lower", _("Lower"))])
@@ -130,6 +135,10 @@ def find_steps(data):
             continue
         if data.get("region") and not any(is_anterior(t) == (data["region"] == "anterior") for t in teeth):
             continue
+        step.span = span_kind(teeth, step.step_type.name_en, step.step_type.group)
+        if data.get("span") and step.span not in data["span"]:
+            continue
+        step.span_label = span_label(step.span)
         step.teeth_list = teeth
         result.append(step)
     return result
@@ -154,6 +163,8 @@ def values(step, key):
         return [step.operator.get_kind_display() if step.operator_id else "—"]
     if key == "material":
         return [step.material or "—"]
+    if key == "span":
+        return [str(getattr(step, "span_label", "") or "—")]
     teeth = getattr(step, "teeth_list", _teeth(step))
     if key == "jaw":
         return sorted({str(_("Upper") if jaw(t) == "upper" else _("Lower")) for t in teeth}) or ["—"]
@@ -255,12 +266,12 @@ def restorative_finder(request):
         response.write("\ufeff")
         writer = csv.writer(response)
         writer.writerow(["date", "patient_file", "gender", "age", "kind_of_work", "step", "teeth", "surfaces",
-                         "material", "operator", "operator_type", "checked", "grade"])
+                         "prosthesis", "material", "operator", "operator_type", "checked", "grade"])
         for step in steps:
             p = step.patient
             writer.writerow([timezone.localtime(step.performed_at).date().isoformat(), p.file_number, p.gender, p.age,
                              step.step_type.group, step.step_type.name_en or step.step_type, step.teeth,
-                             step.surfaces, step.material, step.operator or "",
+                             step.surfaces, getattr(step, "span", ""), step.material, step.operator or "",
                              step.operator.kind if step.operator_id else "", "yes" if step.verified_at else "no",
                              step.grade or ""])
         return response

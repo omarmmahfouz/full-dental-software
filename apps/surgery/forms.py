@@ -5,13 +5,15 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.charting.teeth import TOOTH_CHOICES
 from apps.core.forms import BootstrapFormMixin, StyledForm, StyledModelForm, validate_upload
+from apps.core.widgets import DatalistInput
 from apps.dentists.forms import DentistChoiceField
 from apps.dentists.models import Dentist
 from apps.patients.access import visible_patients
 from apps.patients.forms import PatientLookupField, lookup_value
 
 from .models import (
-    DeliveryCheck, ImplantComplication, ImplantFollowUp, ImplantSystem, Prosthesis, Surgery, SurgerySite,
+    DeliveryCheck, ImplantComplication, ImplantFollowUp, ImplantSystem, Prosthesis, Surgery, SurgeryOption,
+    SurgerySite,
 )
 
 
@@ -51,7 +53,7 @@ class SurgeryForm(StyledModelForm):
             "augmentation_sites", "frenectomy", "soft_tissue_bone_graft", "soft_tissue_notes",
         ]),
         (_("Suture, temporization and X-ray"), [
-            "suture_size", "suture_material", "suture_technique", "xray_taken", "xray_notes", "temporary",
+            "sutured", "suture_size", "suture_material", "suture_technique", "xray_taken", "xray_notes", "temporary",
         ]),
         (_("Notes"), ["notes", "complications", "update_chart"]),
     ]
@@ -72,6 +74,21 @@ class SurgeryForm(StyledModelForm):
         for name in ("gbr_notes", "sinus_notes", "soft_tissue_notes", "notes", "complications"):
             self.fields[name].widget.attrs["rows"] = 2
         self.fields["update_chart"].col = "col-12"
+        # The lists the owner keeps in Settings → Surgery chart lists (round 15).
+        for kind in SurgeryOption.CHOICE_KINDS:
+            field = self.fields[kind]
+            self.fields[kind] = forms.ChoiceField(
+                label=field.label, required=False, help_text=field.help_text,
+                choices=[("", "---------")] + SurgeryOption.choices_for(kind, getattr(self.instance, kind, "")))
+            self.fields[kind].widget.attrs["class"] = "form-select"
+        suggested = [k for k, _label in SurgeryOption.Kind.choices if k not in SurgeryOption.CHOICE_KINDS]
+        for kind in suggested:
+            if kind in self.fields:
+                self.fields[kind].widget = DatalistInput(_option_names(kind), attrs=self.fields[kind].widget.attrs)
+        self.fields["sutured"] = forms.NullBooleanField(
+            label=self.fields["sutured"].label, required=False, help_text=self.fields["sutured"].help_text,
+            widget=forms.Select(choices=[("unknown", "—"), ("true", _("Yes")), ("false", _("No"))],
+                                attrs={"class": "form-select"}))
 
     def clean_patient_lookup(self):
         patient = self.cleaned_data["patient_lookup"]
@@ -97,7 +114,48 @@ class SurgeryForm(StyledModelForm):
             self.add_error("autogenous_percent", _("Write the autogenous percentage of the mix."))
         if data.get("block_graft") and not data.get("block_donor"):
             self.add_error("block_donor", _("Choose the donor site of the block."))
+        if data.get("sutured") is None and (data.get("suture_size") or data.get("suture_material")):
+            data["sutured"] = True
         return data
+
+    # Round 15: a part chosen must be filled: the GBR when a tooth has a GBR, the sinus when a tooth has an open
+    # sinus lift, the suture when it is "Yes", the membrane when one was used, the soft tissue graft when chosen.
+    NEEDED = [
+        ("gbr", ["bone_particle", "bone_material"]),
+        ("open_sinus", ["sinus_approach", "sinus_fill_material"]),
+        ("block_graft", ["block_donor", "cut_by", "screws_count"]),
+        ("membrane_used", ["membrane_material", "membrane_size"]),
+        ("sutured", ["suture_size", "suture_material", "suture_technique"]),
+        ("soft_tissue_graft", ["soft_tissue_technique", "donor_site"]),
+    ]
+
+    def require_details(self, procedures):
+        """Adds an error to each box of a chosen part left empty; ``procedures`` are the codes ticked on the teeth
+        (gbr, open_sinus...). Returns True when all is filled."""
+        data, ok = self.cleaned_data, True
+        chosen = set(procedures)
+        for name in ("block_graft", "membrane_used", "sutured", "soft_tissue_graft"):
+            if data.get(name):
+                chosen.add(name)
+        for part, names in self.NEEDED:
+            if part not in chosen:
+                continue
+            for name in names:
+                if data.get(name) in (None, "") and name not in self.errors:
+                    self.add_error(name, _("Needed: %(part)s was chosen.") % {"part": NEEDED_LABELS[part]})
+                    ok = False
+        return ok
+
+
+NEEDED_LABELS = {"gbr": _("GBR"), "open_sinus": _("an open sinus lift"), "block_graft": _("a block graft"),
+                 "membrane_used": _("a membrane"), "sutured": _("the suture"),
+                 "soft_tissue_graft": _("a soft tissue graft")}
+
+
+def _option_names(kind):
+    def names():
+        return [str(o) for o in SurgeryOption.objects.filter(kind=kind, is_active=True)]
+    return names
 
 
 class SurgerySiteForm(BootstrapFormMixin, forms.ModelForm):

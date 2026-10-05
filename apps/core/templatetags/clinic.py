@@ -228,3 +228,12 @@ def hours_minutes(minutes):
     from apps.core.utils import hours_minutes as words
 
     return words(minutes)
+
+
+@register.filter
+def step_span(step):
+    """ "Single crown / unit", "Bridge" or "Full arch" for a prosthetic step (round 15), else ""."""
+    from apps.charting.teeth import span_kind, span_label
+
+    kind = step.step_type
+    return span_label(span_kind(step.teeth, kind.name_en, kind.group))

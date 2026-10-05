@@ -109,9 +109,9 @@ class Surgery(TimeStampedModel):
 
     # Guided bone regeneration
     block_graft = models.BooleanField(_("block graft"), default=False)
-    block_donor = models.CharField(_("block donor site"), max_length=20, choices=BlockDonor.choices, blank=True)
+    block_donor = models.CharField(_("block donor site"), max_length=40, choices=BlockDonor.choices, blank=True)
     block_donor_other = models.CharField(_("other donor site"), max_length=100, blank=True)
-    cut_by = models.CharField(_("cut by"), max_length=10, choices=CutBy.choices, blank=True)
+    cut_by = models.CharField(_("cut by"), max_length=40, choices=CutBy.choices, blank=True)
     screws_count = models.PositiveSmallIntegerField(_("number of screws"), null=True, blank=True)
     bone_particle = models.CharField(_("bone particle"), max_length=20, choices=Particle.choices, blank=True)
     autogenous_percent = models.PositiveSmallIntegerField(
@@ -136,7 +136,7 @@ class Surgery(TimeStampedModel):
     tacks_company = models.CharField(_("tacks company"), max_length=100, blank=True)
 
     # Soft tissue
-    soft_tissue_graft = models.CharField(_("soft tissue graft"), max_length=10, choices=SoftTissueGraft.choices, blank=True)
+    soft_tissue_graft = models.CharField(_("soft tissue graft"), max_length=40, choices=SoftTissueGraft.choices, blank=True)
     soft_tissue_technique = models.CharField(_("surgery technique"), max_length=150, blank=True)
     exposure = models.BooleanField(_("exposure"), null=True, blank=True)
     custom_healing_teeth = models.CharField(_("customized healing collar - teeth"), max_length=100, blank=True)
@@ -153,12 +153,14 @@ class Surgery(TimeStampedModel):
     soft_tissue_notes = models.TextField(_("soft tissue notes"), blank=True)
 
     # Suture, temporization, X-ray
-    suture_size = models.CharField(_("suture size"), max_length=5, choices=SutureSize.choices, blank=True)
-    suture_material = models.CharField(_("suture material"), max_length=10, choices=SutureMaterial.choices, blank=True)
+    sutured = models.BooleanField(_("sutured"), null=True, blank=True,
+                                  help_text=_("Yes: the size, the material and the technique are needed."))
+    suture_size = models.CharField(_("suture size"), max_length=40, choices=SutureSize.choices, blank=True)
+    suture_material = models.CharField(_("suture material"), max_length=40, choices=SutureMaterial.choices, blank=True)
     suture_technique = models.CharField(_("suture technique"), max_length=100, blank=True)
     xray_taken = models.BooleanField(_("X-ray taken"), default=False)
     xray_notes = models.CharField(_("X-ray notes"), max_length=200, blank=True)
-    temporary = models.CharField(_("temporary"), max_length=20, choices=Temporary.choices, blank=True)
+    temporary = models.CharField(_("temporary"), max_length=40, choices=Temporary.choices, blank=True)
     notes = models.TextField(_("notes"), blank=True)
     complications = models.TextField(_("complications / post-operative notes"), blank=True)
     pontics = models.CharField(
@@ -210,6 +212,68 @@ class Surgery(TimeStampedModel):
             return parse_teeth(self.pontics)
         except Exception:  # noqa: BLE001 - an old value that no longer reads is shown as it is
             return []
+
+
+class SurgeryOption(models.Model):
+    """The lists of the surgery chart, kept by the owner in Settings → Surgery chart lists (round 15): the block's
+    donor sites, the cutting tools, the soft tissue grafts, the suture sizes and materials, the temporaries (lists to
+    choose from), and the suggestions for the bone graft, the sinus, the membrane, the tacks and the techniques."""
+
+    class Kind(models.TextChoices):
+        BLOCK_DONOR = "block_donor", _("Block donor site")
+        CUT_BY = "cut_by", _("Cut by")
+        SOFT_TISSUE_GRAFT = "soft_tissue_graft", _("Soft tissue graft")
+        SUTURE_SIZE = "suture_size", _("Suture size")
+        SUTURE_MATERIAL = "suture_material", _("Suture material")
+        TEMPORARY = "temporary", _("Temporary")
+        BONE_MATERIAL = "bone_material", _("Bone graft material / brand (suggestions)")
+        SINUS_APPROACH = "sinus_approach", _("Sinus approach (suggestions)")
+        SINUS_FILL = "sinus_fill_material", _("Sinus fill material (suggestions)")
+        MEMBRANE_MATERIAL = "membrane_material", _("Membrane material (suggestions)")
+        MEMBRANE_COMPANY = "membrane_company", _("Membrane company (suggestions)")
+        TACKS_COMPANY = "tacks_company", _("Tacks company (suggestions)")
+        SOFT_TISSUE_TECHNIQUE = "soft_tissue_technique", _("Soft tissue technique (suggestions)")
+        SUTURE_TECHNIQUE = "suture_technique", _("Suture technique (suggestions)")
+
+    # The lists the box must take from; the others are suggestions (anything can still be typed).
+    CHOICE_KINDS = ("block_donor", "cut_by", "soft_tissue_graft", "suture_size", "suture_material", "temporary")
+
+    kind = models.CharField(_("list"), max_length=25, choices=Kind.choices, db_index=True)
+    code = models.CharField(_("code"), max_length=20, blank=True,
+                            help_text=_("Kept on the surgery charts. Empty: made from the English name."))
+    name_en = models.CharField(_("name (English)"), max_length=100)
+    name_ar = models.CharField(_("name (Arabic)"), max_length=100, blank=True)
+    sort_order = models.PositiveIntegerField(_("sort order"), default=0)
+    is_active = models.BooleanField(_("active"), default=True)
+
+    class Meta:
+        ordering = ["kind", "sort_order", "name_en"]
+        verbose_name = _("surgery chart list item")
+        verbose_name_plural = _("surgery chart lists")
+        constraints = [models.UniqueConstraint(fields=["kind", "code"], name="one_code_per_surgery_list")]
+
+    def __str__(self):
+        from django.utils.translation import get_language
+
+        if self.name_ar and not (get_language() or "en").startswith("en"):
+            return self.name_ar
+        return self.name_en
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            from django.utils.text import slugify
+
+            self.code = (slugify(self.name_en) or "item")[:20]
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def choices_for(cls, kind, keep=""):
+        """[(code, label)] of a list, with the value already saved kept even when it was taken off the list."""
+        rows = [(o.code, str(o)) for o in cls.objects.filter(kind=kind, is_active=True)]
+        if keep and keep not in dict(rows):
+            field = Surgery._meta.get_field(kind)
+            rows.append((keep, str(dict(field.flatchoices).get(keep, keep))))
+        return rows
 
 
 def mm(value):

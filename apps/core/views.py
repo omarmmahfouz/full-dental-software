@@ -126,6 +126,14 @@ def dashboard(request):
             Lead.objects.filter(status__in=(Lead.Status.NEW, Lead.Status.FOLLOW_UP), branch=branch)
             .order_by("first_call_on", "created_at")[:8]
         )
+        from apps.patients.medical import recalls_due, sync_recalls
+
+        here = Patient.objects.filter(branch=branch)
+        if branch is not None and cache.add(f"recalls-{branch.pk}", True, ALERTS_EVERY_SECONDS):
+            sync_recalls(here)  # a high HbA1c three months ago: a call for a new test (round 15)
+        context["tests_to_call"] = list(recalls_due(here)[:6])
+        context["tests_to_call_count"] = recalls_due(here).count() if len(context["tests_to_call"]) == 6 \
+            else len(context["tests_to_call"])
         from apps.billing.models import Bill, bill_totals
 
         since = today - timedelta(days=30)

@@ -186,6 +186,21 @@
       </div>
     </div>
   </div>
+  {% if tests_to_call %}
+  <div class="col-lg-6">
+    <div class="card h-100 border-info">
+      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-telephone-forward"></i> {% trans "Calls for a new test" %} <span class="badge text-bg-info">{{ tests_to_call_count }}</span></span><a href="{% url 'patients:medical_followup' %}#recalls" class="small">{% trans "All" %}</a></div>
+      <div class="list-group list-group-flush">
+        {% for r in tests_to_call %}
+        <a class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-1" href="{% url 'patients:medical_followup' %}#recalls">
+          <span>{{ r.patient.full_name }} <span class="text-muted small ltr">{{ r.patient.preferred_number }}</span></span>
+          <span class="small">{{ r.get_reason_display }} <span class="ltr">{{ r.reading }}</span> {% if r.is_late %}<span class="badge text-bg-danger">{% trans "late" %}</span>{% endif %}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
   <div class="col-lg-6">
     <div class="card h-100">
       <div class="card-header"><i class="bi bi-lab-request"></i> {% trans "Lab work" %}</div>

@@ -491,6 +491,31 @@ class TMJOrthoShadeTests(KhademMixin, TestCase):
                          ("A2", "ND2", "11, 21"))
 
 
+class Round15ProsthoTests(KhademMixin, TestCase):
+    """Round 15: the prosthodontist has a real chart (the shade is one step of it)."""
+
+    def test_the_prosthodontic_chart_and_its_page(self):
+        from apps.specialties.models import ProsthoCase
+
+        self.login("amr")
+        tiles = self.client.get(f"/specialists/patient/{self.patient.pk}/")
+        self.assertContains(tiles, "Prosthodontic chart")
+        response = self.client.post(f"/specialists/prostho/new/?patient={self.patient.pk}", {
+            "patient": self.patient.pk, "examined_on": "01/09/2026", "dentist": self.amr.pk, "status": "examined",
+            "upper": "III", "lower": "none", "missing_teeth": "15, 16", "abutment_teeth": "14 17",
+            "abutment_findings": ["rct"], "vertical_dimension": "normal", "scheme": "canine",
+            "parafunction": ["bruxism"], "smile_line": "medium", "plan": "bridge", "plan_teeth": "14-17",
+            "material": "zirconia", "retention": "cemented"})
+        case = ProsthoCase.objects.get()
+        self.assertRedirects(response, case.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual((case.missing_teeth, case.abutment_teeth, case.abutment_findings),
+                         ("16, 15", "17, 14", ["rct"]))  # in the order of the chart
+        page = self.client.get(case.get_absolute_url())
+        self.assertContains(page, "Bridge on teeth")
+        self.assertContains(page, "Bruxism")
+        self.assertContains(self.client.get("/specialists/?kind=prostho"), "Bridge on teeth")
+
+
 # ------------------------------------------------------------------ the printed plan and lab request
 class PrintTests(KhademMixin, TestCase):
     def test_the_treatment_plan_for_the_patient_with_the_team_and_the_fees(self):

@@ -224,7 +224,12 @@ def surgery_edit(request, pk=None):
                                  form_kwargs={"branch": surgery.branch if surgery else branch_for_user(request.user)})
     if request.method == "POST" and form.is_valid():
         formset.team = tuple(d for d in (form.cleaned_data.get("operator_1"), form.cleaned_data.get("operator_2")) if d)
+    details_ok = True
     if request.method == "POST" and form.is_valid() and formset.is_valid():
+        procedures = {name for row in formset.cleaned_data if row and not row.get("DELETE")
+                      for name, _label in SurgerySite.PROCEDURES if row.get(name)}
+        details_ok = form.require_details(procedures)
+    if request.method == "POST" and details_ok and form.is_valid() and formset.is_valid():
         operator_requests = _operator_changes(surgery, form, formset, request.user)
         with transaction.atomic():
             obj = form.save(commit=False)

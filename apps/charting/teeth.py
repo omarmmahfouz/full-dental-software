@@ -132,3 +132,36 @@ def teeth_ar(text):
     if not explained:
         return text or ""
     return "، ".join(f"{tooth} ({name})" for tooth, name in explained)
+
+
+# Round 15: how big a prosthesis (or a planned one) is, read from its teeth and its name.
+SPAN_CHOICES = [("single", _("Single crown / unit")), ("bridge", _("Bridge")), ("full_arch", _("Full arch"))]
+_FULL_ARCH_WORDS = ("all-on", "full arch", "full-arch", "overdenture", "complete denture")
+_PROSTHETIC_GROUPS = ("fixed", "implant_teeth", "removable")
+
+
+def span_kind(teeth, name="", group=""):
+    """"single", "bridge" or "full_arch" for prosthetic work (crowns, bridges, teeth on implants, dentures), else "".
+    A full arch: its name says so (All-on-X, overdenture, denture) or 10 teeth or more in one jaw; a bridge: 2 teeth
+    or more; a single crown: one tooth."""
+    if group and group not in _PROSTHETIC_GROUPS:
+        return ""
+    lower = (name or "").lower()
+    if any(word in lower for word in _FULL_ARCH_WORDS) or ("denture" in lower and "partial" not in lower):
+        return "full_arch"
+    try:
+        numbers = parse_teeth(teeth) if isinstance(teeth, str) else list(teeth or [])
+    except Exception:  # noqa: BLE001 - an old value that does not read
+        numbers = []
+    if not numbers:
+        return ""
+    by_jaw = {}
+    for tooth in numbers:
+        by_jaw[tooth // 10 in (1, 2, 5, 6)] = by_jaw.get(tooth // 10 in (1, 2, 5, 6), 0) + 1
+    if max(by_jaw.values()) >= 10:
+        return "full_arch"
+    return "bridge" if len(numbers) > 1 else "single"
+
+
+def span_label(kind):
+    return dict(SPAN_CHOICES).get(kind, "")

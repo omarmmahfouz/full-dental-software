@@ -22,10 +22,10 @@ from apps.patients.models import Patient
 
 from . import shades
 from .forms import (
-    CanalFormSet, EndoCaseForm, EndoVisitForm, OrthoCaseForm, OrthoVisitForm, ReferralForm, ReplyForm,
-    ShadeRecordForm, TMJExamForm, TMJVisitForm,
+    CanalFormSet, EndoCaseForm, EndoVisitForm, OrthoCaseForm, OrthoVisitForm, ProsthoCaseForm, ReferralForm,
+    ReplyForm, ShadeRecordForm, TMJExamForm, TMJVisitForm,
 )
-from .models import EndoCanal, EndoCase, OrthoCase, OrthoVisit, Referral, ShadeRecord, TMJExam
+from .models import EndoCanal, EndoCase, OrthoCase, OrthoVisit, ProsthoCase, Referral, ShadeRecord, TMJExam
 from .services import finish_endo, tell_about_referral, tell_reply
 
 # Canals usually found in each tooth (FDI), offered with one click on the endodontic chart.
@@ -80,11 +80,12 @@ def cases(request):
     if not has_role(request.user, *CLINICAL):
         raise PermissionDenied
     place = _place(request)
-    kind = request.GET.get("kind") if request.GET.get("kind") in ("endo", "tmj", "ortho", "shade") else "endo"
+    kind = request.GET.get("kind") if request.GET.get("kind") in ("endo", "tmj", "ortho", "prostho", "shade") \
+        else "endo"
     me = _me(request)
     mine = request.GET.get("mine") == "1" or (is_only_dentist(request.user) and me is not None
                                               and request.GET.get("mine") != "0")
-    models = {"endo": EndoCase, "tmj": TMJExam, "ortho": OrthoCase, "shade": ShadeRecord}
+    models = {"endo": EndoCase, "tmj": TMJExam, "ortho": OrthoCase, "prostho": ProsthoCase, "shade": ShadeRecord}
     counts = {}
     for code, model in models.items():
         rows = model.objects.filter(branch=place)
@@ -95,12 +96,13 @@ def cases(request):
     if mine and me is not None:
         rows = rows.filter(dentist=me)
     status = request.GET.get("status", "")
-    if status and kind in ("endo", "ortho"):
+    if status and kind in ("endo", "ortho", "prostho"):
         rows = rows.filter(status=status)
     page = Paginator(rows, 100).get_page(request.GET.get("page"))
     return render(request, "specialties/cases.html", {
         "kind": kind, "counts": counts, "page_obj": page, "mine": mine, "me": me, "status": status,
-        "statuses": {"endo": EndoCase.Status.choices, "ortho": OrthoCase.Status.choices}.get(kind, []),
+        "statuses": {"endo": EndoCase.Status.choices, "ortho": OrthoCase.Status.choices,
+                     "prostho": ProsthoCase.Status.choices}.get(kind, []),
         "open_referrals": Referral.objects.filter(branch=place, status__in=Referral.OPEN).filter(
             Q(to_dentist=me) if mine and me is not None else Q()).count(),
     })
@@ -351,6 +353,29 @@ def ortho_detail(request, pk):
     return render(request, "specialties/ortho_detail.html", {
         "case": case, "patient": case.patient, "visits": case.visits.all(), "visit_form": visit_form,
         "wires": OrthoVisit.WIRES, "last": last,
+    })
+
+
+# ------------------------------------------------------------------ prosthodontics (round 15)
+def prostho_edit(request, pk=None):
+    return _edit(request, ProsthoCase, ProsthoCaseForm, "specialties/record_form.html", pk,
+                 _("Prosthodontic chart"))
+
+
+def prostho_detail(request, pk):
+    """The prosthodontic case, with its shades, its lab requests and the prosthetic steps of the treatment log."""
+    from apps.clinical.models import StepGroup
+
+    case, switch = _record(request, ProsthoCase, pk)
+    if switch is not None:
+        return switch
+    patient = case.patient
+    steps = patient.treatment_steps.filter(step_type__group__in=(
+        StepGroup.FIXED, StepGroup.REMOVABLE, StepGroup.IMPLANT_TEETH)).select_related("step_type", "operator")
+    return render(request, "specialties/prostho_detail.html", {
+        "case": case, "patient": patient, "steps": steps[:40],
+        "shades": ShadeRecord.objects.filter(patient=patient).select_related("dentist")[:10],
+        "lab_requests": patient.lab_requests.select_related("work_type", "lab")[:10],
     })
 
 

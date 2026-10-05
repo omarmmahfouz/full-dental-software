@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Prosthodontics" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+{% include "specialties/_head.html" with place=case.branch clinical_nav=True %}
+<div class="page-header">
+  <h1><i class="bi bi-gem"></i> {% trans "Prosthodontic case" %} <span class="badge text-bg-light fs-6">{{ case.get_status_display }}</span></h1>
+  <div class="d-flex flex-wrap gap-2 no-print">
+    <a class="btn btn-outline-secondary" href="{% url 'specialties:prostho_edit' case.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    <a class="btn btn-outline-primary" href="{% url 'specialties:shade_create' %}?patient={{ patient.pk }}&amp;teeth={{ case.plan_teeth|urlencode }}"><i class="bi bi-palette2"></i> {% trans "Take the shade" %}</a>
+    <a class="btn btn-outline-primary" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-lab-request"></i> {% trans "Lab request" %}</a>
+    {% if case.referral %}<a class="btn btn-outline-primary" href="{{ case.referral.get_absolute_url }}"><i class="bi bi-reply"></i> {% trans "Answer the referral" %}</a>{% endif %}
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  </div>
+</div>
+<div class="small text-muted mb-3">{{ case.dentist|default:"" }} · {{ case.examined_on|date:"d/m/Y" }}{% if case.delivered_on %} · {% trans "delivered" %} {{ case.delivered_on|date:"d/m/Y" }}{% endif %}{% if case.next_recall %} · {% trans "next recall" %} {{ case.next_recall|date:"d/m/Y" }}{% endif %}</div>
+{% if case.chief_complaint %}<div class="alert alert-light border small">{{ case.chief_complaint|linebreaksbr }}</div>{% endif %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-grid-3x2-gap"></i> {% trans "Missing teeth and abutments" %}</div><div class="card-body small"><dl class="dl-grid">
+    <dt>{% trans "Upper jaw" %}</dt><dd>{{ case.get_upper_display|default:"—" }}</dd>
+    <dt>{% trans "Lower jaw" %}</dt><dd>{{ case.get_lower_display|default:"—" }}</dd>
+    <dt>{% trans "Missing teeth" %}</dt><dd>{{ case.missing_teeth|default:"—" }}</dd>
+    <dt>{% trans "The ridge" %}</dt><dd>{{ case.get_ridge_display|default:"—" }}</dd>
+    <dt>{% trans "Abutment teeth" %}</dt><dd>{{ case.abutment_teeth|default:"—" }}{% for label in case.abutment_labels %} <span class="badge text-bg-warning">{{ label }}</span>{% endfor %}</dd>
+  </dl></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-arrows-collapse"></i> {% trans "The occlusion" %}</div><div class="card-body small"><dl class="dl-grid">
+    <dt>{% trans "Vertical dimension" %}</dt><dd>{{ case.get_vertical_dimension_display|default:"—" }}</dd>
+    <dt>{% trans "Space for the prosthesis" %}</dt><dd>{% if case.interocclusal_space is not None %}{{ case.interocclusal_space }} mm{% else %}—{% endif %}</dd>
+    <dt>{% trans "Occlusal scheme" %}</dt><dd>{{ case.get_scheme_display|default:"—" }}</dd>
+    <dt>{% trans "Parafunction" %}</dt><dd>{{ case.parafunction_labels|join:", "|default:"—" }}</dd>
+  </dl></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-emoji-smile"></i> {% trans "Esthetics" %}</div><div class="card-body small"><dl class="dl-grid">
+    <dt>{% trans "Smile line" %}</dt><dd>{{ case.get_smile_line_display|default:"—" }}</dd>
+    <dt>{% trans "Lip support" %}</dt><dd>{{ case.lip_support|default:"—" }}</dd>
+    <dt>{% trans "Midline" %}</dt><dd>{{ case.midline|default:"—" }}</dd>
+    <dt>{% trans "The old prosthesis" %}</dt><dd>{{ case.old_prosthesis|default:"—" }}</dd>
+  </dl></div></div></div>
+</div>
+<div class="card mb-3"><div class="card-header"><i class="bi bi-clipboard2-check"></i> {% trans "Diagnosis and plan" %}</div><div class="card-body">
+  {% if case.diagnosis %}<p>{{ case.diagnosis|linebreaksbr }}</p>{% endif %}
+  <div class="fs-5 fw-semibold">{{ case.get_plan_display|default:"—" }} {{ case.plan_teeth }}{% if case.material %} · {{ case.get_material_display }}{% endif %}{% if case.retention %} · {{ case.retention }}{% endif %}</div>
+  {% if case.other_options %}<div class="small text-muted mt-2">{% trans "Other options told to the patient" %}: {{ case.other_options|linebreaksbr }}</div>{% endif %}
+  {% if case.notes %}<div class="small mt-2">{{ case.notes|linebreaksbr }}</div>{% endif %}
+</div></div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><i class="bi bi-list-check"></i> {% trans "The prosthetic steps done" %}</div>
+    <ul class="list-group list-group-flush small">{% for s in steps %}<li class="list-group-item d-flex justify-content-between"><span><a href="{{ s.get_absolute_url }}">{{ s.step_type }}</a> <b>{{ s.teeth }}</b></span><span class="text-muted">{{ s.performed_at|date:"d/m/Y" }} · {{ s.operator|default:"" }}</span></li>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}</ul></div></div>
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-palette2"></i> {% trans "Shades taken" %}</div>
+      <ul class="list-group list-group-flush small">{% for s in shades %}<a class="list-group-item list-group-item-action" href="{{ s.get_absolute_url }}"><span class="shade-chip" style="--shade: {{ s|shade_colour }}"></span> <b>{{ s.shade }}</b> — {{ s.teeth }} <span class="text-muted">{{ s.taken_on|date:"d/m/Y" }}</span></a>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}</ul></div>
+    <div class="card"><div class="card-header"><i class="bi bi-lab-request"></i> {% trans "Lab requests" %}</div>
+      <ul class="list-group list-group-flush small">{% for lr in lab_requests %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ lr.get_absolute_url }}"><span>{{ lr.number }} · {{ lr.work_type }} <b>{{ lr.teeth }}</b></span>{% status_badge lr %}</a>{% empty %}<li class="list-group-item text-muted">{% trans "None yet." %}</li>{% endfor %}</ul></div>
+  </div>
+</div>
+{% endblock %}

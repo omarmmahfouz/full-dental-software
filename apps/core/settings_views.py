@@ -32,7 +32,7 @@ from apps.prescriptions.models import (
 from apps.purchasing.models import PurchaseCategory
 from apps.scheduling.models import MessageTemplate, Room
 from apps.stock.models import StockCategory
-from apps.surgery.models import ImplantSystem
+from apps.surgery.models import ImplantSystem, SurgeryOption
 
 from .access import AREA_LABELS, AREAS
 from .forms import BootstrapFormMixin, StyledForm, StyledModelForm
@@ -52,6 +52,9 @@ LISTS = {
                          "surgery_procedure", "default_material", "service", "implant_record", "shots", "sort_order",
                          "is_active"], ["name_en", "name_ar", "group", "service"], None,
                         gettext_lazy("Clinical")),
+    "surgery_options": (gettext_lazy("Surgery chart lists"), SurgeryOption,
+                        ["kind", "name_en", "name_ar", "code", "sort_order", "is_active"],
+                        ["kind", "name_en", "name_ar"], None, gettext_lazy("Clinical")),
     "photo_types": (gettext_lazy("Photo checklist"), PhotoType, ["stage", "name_ar", "name_en", "optional", "sort_order",
                                                                  "is_active"], ["stage", "name_en"], None,
                     gettext_lazy("Clinical")),
@@ -261,7 +264,7 @@ class OptionsForm(StyledModelForm):
         fields = ["day_start", "day_end", "default_appointment_minutes", "surgery_days", "late_threshold_minutes",
                   "complaint_follow_up_days", "stock_expiry_days", "reminder_days_before", "whatsapp_country_code",
                   "dicom_email", "fawry_fee_percent", "hba1c_limit", "glucose_limit", "systolic_limit",
-                  "diastolic_limit", "follow_up_sinus_days", "follow_up_graft_days", "follow_up_days",
+                  "diastolic_limit", "hba1c_recheck_days", "readings_recheck_days", "follow_up_sinus_days", "follow_up_graft_days", "follow_up_days",
                   "idle_logout_minutes", "force_strong_passwords", "one_device_per_login"]
         widgets = {"surgery_days": WeekdaysWidget}
 

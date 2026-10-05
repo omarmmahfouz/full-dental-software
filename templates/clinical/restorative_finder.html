@@ -19,7 +19,7 @@
       {% if form.errors %}<div class="alert alert-danger small">{% trans "Please correct the filters." %}</div>{% endif %}
       {% for field in form %}
       <div class="mb-2"><label class="form-label small mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {% if field.name == "groups" %}<div class="small">{{ field }}</div>{% else %}{{ field }}{% endif %}
+        {% if field.name == "groups" or field.name == "span" %}<div class="small">{{ field }}</div>{% else %}{{ field }}{% endif %}
         {% if field.help_text %}<div class="form-text small mt-0">{{ field.help_text }}</div>{% endif %}
         {% for e in field.errors %}<div class="errorlist">{{ e }}</div>{% endfor %}</div>
       {% endfor %}
@@ -67,16 +67,17 @@
     {% endif %}
     <div class="card"><div class="card-header">{% blocktrans with n=page_obj.paginator.count %}{{ n }} results{% endblocktrans %}</div>
       <div class="table-responsive"><table class="table table-sm table-hover mb-0">
-        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Step" %}</th><th>{% trans "Material" %}</th><th>{% trans "Operator" %}</th><th>{% trans "Checked" %}</th></tr></thead>
+        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Step" %}</th><th>{% trans "Prosthesis" %}</th><th>{% trans "Material" %}</th><th>{% trans "Operator" %}</th><th>{% trans "Checked" %}</th></tr></thead>
         <tbody>{% for step in page_obj %}<tr>
           <td class="nowrap"><a href="{% url 'clinical:step_detail' step.pk %}">{{ step.performed_at|date:"d/m/Y" }}</a></td>
           <td><a href="{% url 'charting:chart' step.patient_id %}">{{ step.patient.file_number }}</a> <span class="small text-muted">{{ step.patient.get_gender_display }}{% if step.patient.age is not None %}, {{ step.patient.age }}{% endif %}</span></td>
           <td class="fw-bold">{{ step.teeth|default:"—" }}{% if step.surfaces %} <span class="small text-muted">{{ step.surfaces }}</span>{% endif %}</td>
           <td class="small">{{ step.step_type }}<div class="text-muted">{{ step.step_type.get_group_display }}</div></td>
+          <td class="small">{% if step.span_label %}<span class="badge text-bg-light">{{ step.span_label }}</span>{% else %}—{% endif %}</td>
           <td class="small">{{ step.material|default:"—" }}</td>
           <td class="small">{{ step.operator|default:"—" }}</td>
           <td class="small">{% if step.verified_at %}<i class="bi bi-check2-circle text-success"></i>{% if step.grade %} {{ step.grade }}{% endif %}{% else %}—{% endif %}</td>
-        </tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No steps match these filters." %}</td></tr>{% endfor %}</tbody>
+        </tr>{% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No steps match these filters." %}</td></tr>{% endfor %}</tbody>
       </table></div>
     </div>
     {% include "includes/pagination.html" %}

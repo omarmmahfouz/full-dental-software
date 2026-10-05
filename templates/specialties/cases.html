@@ -10,6 +10,7 @@
   <li class="nav-item"><a class="nav-link {% if kind == 'endo' %}active{% endif %}" href="?kind=endo{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-bullseye"></i> {% trans "Endodontics" %} <span class="badge text-bg-light">{{ counts.endo }}</span></a></li>
   <li class="nav-item"><a class="nav-link {% if kind == 'tmj' %}active{% endif %}" href="?kind=tmj{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-person-bounding-box"></i> {% trans "TMJ" %} <span class="badge text-bg-light">{{ counts.tmj }}</span></a></li>
   <li class="nav-item"><a class="nav-link {% if kind == 'ortho' %}active{% endif %}" href="?kind=ortho{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-distribute-horizontal"></i> {% trans "Orthodontics" %} <span class="badge text-bg-light">{{ counts.ortho }}</span></a></li>
+  <li class="nav-item"><a class="nav-link {% if kind == 'prostho' %}active{% endif %}" href="?kind=prostho{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-gem"></i> {% trans "Prosthodontics" %} <span class="badge text-bg-light">{{ counts.prostho }}</span></a></li>
   <li class="nav-item"><a class="nav-link {% if kind == 'shade' %}active{% endif %}" href="?kind=shade{% if mine %}&amp;mine=1{% endif %}"><i class="bi bi-palette2"></i> {% trans "Shades" %} <span class="badge text-bg-light">{{ counts.shade }}</span></a></li>
 </ul>
 <div class="d-flex flex-wrap gap-2 mb-3 no-print">
@@ -30,6 +31,10 @@
     {% elif kind == "ortho" %}
     <td class="nowrap"><a href="{{ r.get_absolute_url }}">{{ r.records_on|date:"d/m/Y" }}</a></td><td>{{ r.patient.full_name }} <span class="small text-muted">{{ r.patient.file_number }}</span></td><td>{{ r.dentist|default:"—" }}</td>
     <td class="small">{{ r.get_appliance_display|default:"—" }}{% if r.months_in_treatment is not None %} · {% blocktrans count n=r.months_in_treatment %}{{ n }} month{% plural %}{{ n }} months{% endblocktrans %}{% endif %}</td>
+    <td><span class="badge text-bg-light">{{ r.get_status_display }}</span></td>
+    {% elif kind == "prostho" %}
+    <td class="nowrap"><a href="{{ r.get_absolute_url }}">{{ r.examined_on|date:"d/m/Y" }}</a></td><td>{{ r.patient.full_name }} <span class="small text-muted">{{ r.patient.file_number }}</span></td><td>{{ r.dentist|default:"—" }}</td>
+    <td class="small">{{ r.get_plan_display|default:"—" }} {{ r.plan_teeth }}{% if r.material %} · {{ r.get_material_display }}{% endif %}</td>
     <td><span class="badge text-bg-light">{{ r.get_status_display }}</span></td>
     {% else %}
     <td class="nowrap"><a href="{{ r.get_absolute_url }}">{{ r.taken_on|date:"d/m/Y" }}</a></td><td>{{ r.patient.full_name }} <span class="small text-muted">{{ r.patient.file_number }}</span></td><td>{{ r.dentist|default:"—" }}</td>

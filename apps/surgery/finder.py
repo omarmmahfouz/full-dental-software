@@ -60,6 +60,15 @@ GROUP_CHOICES = [
 ]
 
 
+
+def _options(kind):
+    """The choices of a surgery chart list (Settings → Surgery chart lists, round 15), read when the page opens."""
+    def choices():
+        from .models import SurgeryOption
+
+        return SurgeryOption.choices_for(kind)
+    return choices
+
 class FinderForm(StyledForm):
     result = forms.ChoiceField(
         label=_("look at"), required=False,
@@ -93,11 +102,11 @@ class FinderForm(StyledForm):
     difficulty = forms.MultipleChoiceField(label=_("case difficulty"), required=False, choices=Surgery.Difficulty.choices)
     bone_particle = forms.MultipleChoiceField(label=_("bone particle"), required=False, choices=Surgery.Particle.choices)
     block_graft = forms.ChoiceField(label=_("block graft"), required=False, choices=YES_NO)
-    block_donor = forms.MultipleChoiceField(label=_("block donor site"), required=False, choices=Surgery.BlockDonor.choices)
+    block_donor = forms.MultipleChoiceField(label=_("block donor site"), required=False, choices=_options("block_donor"))
     membrane_used = forms.ChoiceField(label=_("membrane"), required=False, choices=YES_NO)
-    soft_tissue_graft = forms.MultipleChoiceField(label=_("soft tissue graft"), required=False, choices=Surgery.SoftTissueGraft.choices)
-    temporary = forms.MultipleChoiceField(label=_("temporary"), required=False, choices=Surgery.Temporary.choices)
-    suture_material = forms.MultipleChoiceField(label=_("suture material"), required=False, choices=Surgery.SutureMaterial.choices)
+    soft_tissue_graft = forms.MultipleChoiceField(label=_("soft tissue graft"), required=False, choices=_options("soft_tissue_graft"))
+    temporary = forms.MultipleChoiceField(label=_("temporary"), required=False, choices=_options("temporary"))
+    suture_material = forms.MultipleChoiceField(label=_("suture material"), required=False, choices=_options("suture_material"))
     # Site
     teeth = forms.CharField(label=_("teeth"), required=False, help_text=_("e.g. 36, 46 or 34-37"))
     jaw = forms.ChoiceField(label=_("jaw"), required=False, choices=[("", _("Any")), ("upper", _("Upper")), ("lower", _("Lower"))])

@@ -35,7 +35,7 @@
           <td><a class="fw-semibold" href="{% url 'charting:chart' plan.patient_id %}">{{ plan.patient.full_name }}</a><div class="small text-muted">{{ plan.patient.file_number }} · <span class="ltr">{{ plan.patient.preferred_number }}</span></div></td>
           <td class="small"><a href="{{ plan.get_absolute_url }}">{{ plan.title }}</a><div>{% status_badge plan %}</div></td>
           <td class="small">{{ plan.get_difficulty_display|default:"—" }}</td>
-          <td class="small">{% for item in items %}<div>{{ item.step_type }} <b>{{ item.teeth }}</b>{% if item.status == "done" %} <span class="badge text-bg-success">{% trans "done" %}</span>{% endif %}</div>{% empty %}—{% endfor %}</td>
+          <td class="small">{% for item in items %}<div>{{ item.step_type }} <b>{{ item.teeth }}</b>{% if item.span_label %} <span class="badge text-bg-light">{{ item.span_label }}</span>{% endif %}{% if item.status == "done" %} <span class="badge text-bg-success">{% trans "done" %}</span>{% endif %}</div>{% empty %}—{% endfor %}</td>
           <td class="small">{{ plan.dentist|default:"—" }}</td>
           <td class="small nowrap">{% if next %}{{ next|date:"d/m/Y g:i A" }}{% else %}<span class="text-danger">{% trans "none" %}</span>{% endif %}</td>
         </tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">{% trans "No treatment plans match these filters." %}</td></tr>{% endfor %}</tbody>

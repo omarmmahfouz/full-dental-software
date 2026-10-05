@@ -552,7 +552,9 @@ def medical_history(request, pk):
                 history.conditions.set(initial["conditions"])
             sync_medical_history(history)
         if part in (None, "medical"):
-            from .medical import reading_flags
+            from .medical import reading_flags, sync_recalls
+
+            sync_recalls(Patient.objects.filter(pk=patient.pk))  # a new reading closes or opens a call for a test
 
             for _code, text in reading_flags(history):
                 messages.warning(request, _("%(reading)s: a physician's opinion is needed before surgery "

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n clinic %}
 {% block title %}{% trans "Treatment log" %}{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -18,7 +18,7 @@
   <tr>
     <td class="nowrap">{{ s.performed_at|date:"d/m/Y" }}</td>
     <td><a href="{% url 'charting:chart' s.patient_id %}">{{ s.patient.full_name }}</a></td>
-    <td><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a>{% if s.material %} <span class="text-muted small">{{ s.material }}</span>{% endif %}{% if s.chart_updated %} <i class="bi bi-diagram-3 text-success" title="{% trans 'Dental chart updated' %}"></i>{% endif %}</td>
+    <td><a href="{% url 'clinical:step_detail' s.pk %}">{{ s.step_type }}</a>{% with span=s|step_span %}{% if span %} <span class="badge text-bg-light">{{ span }}</span>{% endif %}{% endwith %}{% if s.material %} <span class="text-muted small">{{ s.material }}</span>{% endif %}{% if s.chart_updated %} <i class="bi bi-diagram-3 text-success" title="{% trans 'Dental chart updated' %}"></i>{% endif %}</td>
     <td class="nowrap">{{ s.teeth|default:"—" }}{% if s.surfaces %} <span class="text-muted">{{ s.surfaces }}</span>{% endif %}</td>
     <td>{{ s.operator|default:"—" }}{% if s.assistant %}<div class="small text-muted">+ {{ s.assistant }}</div>{% endif %}</td>
     <td>{{ s.supervisor|default:"—" }}</td>

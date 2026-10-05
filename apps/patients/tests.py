@@ -964,3 +964,67 @@ class Round15PatientTests(TestCase):
         self.assertFalse(patient.is_expected)
         self.assertEqual(patient.national_id, "29001150101234")
         self.assertEqual(lead.status, Lead.Status.CONVERTED)
+
+
+class Round15MedicalRecallTests(TestCase):
+    """Round 15: a high HbA1c gives a call for a new test after 3 months (the days are in Settings); the reception
+    writes what the patient said and the next call date; a new reading closes it."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from apps.charting.models import Examination
+
+        self.branch = setup_clinic()
+        self.patient = make_patient(self.branch)
+        make_user("sec", "secretary")
+        self.old = timezone.localdate() - timedelta(days=100)
+        self.exam = Examination.objects.create(patient=self.patient, history_only=True, medical_taken=True,
+                                               hba1c=Decimal("8.4"), hba1c_date=self.old, exam_date=self.old)
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_a_high_hba1c_is_called_after_three_months(self):
+        from apps.patients.models import MedicalRecall
+
+        page = self.client.get("/patients/medical-follow-up/")
+        recall = MedicalRecall.objects.get()
+        self.assertEqual((recall.reason, recall.reading, recall.due_on),
+                         ("hba1c", "8.4%", self.old + timedelta(days=90)))
+        self.assertEqual(page.context["recalls"], [recall])
+        self.assertIn("https://wa.me/20", page.context["recalls"][0].whatsapp)
+        self.assertContains(self.client.get("/"), "8.4%")  # the reception's home page
+        # Seen again: no second call for the same reading.
+        self.client.get("/patients/medical-follow-up/")
+        self.assertEqual(MedicalRecall.objects.count(), 1)
+
+    def test_the_answers_set_the_next_call(self):
+        from apps.patients.medical import sync_recalls
+        from apps.patients.models import MedicalRecall
+
+        sync_recalls(Patient.objects.all())
+        recall = MedicalRecall.objects.get()
+        url = f"/patients/medical-follow-up/calls/{recall.pk}/"
+        self.client.post(url, {"outcome": "no_answer"})
+        recall.refresh_from_db()
+        self.assertEqual((recall.calls, recall.due_on), (1, timezone.localdate() + timedelta(days=2)))
+        self.client.post(url, {"outcome": "will_do", "notes": "بعد العيد"})
+        recall.refresh_from_db()
+        self.assertEqual((recall.calls, recall.due_on, recall.notes, recall.status),
+                         (2, timezone.localdate() + timedelta(days=14), "بعد العيد", "open"))
+        self.assertEqual(self.client.get("/patients/medical-follow-up/").context["recalls"], [])  # not due yet
+        self.client.post(url, {"outcome": "refused"})
+        recall.refresh_from_db()
+        self.assertEqual(recall.status, "stopped")
+
+    def test_a_new_reading_closes_the_call(self):
+        from decimal import Decimal
+
+        from apps.charting.models import Examination
+        from apps.patients.medical import sync_recalls
+        from apps.patients.models import MedicalRecall
+
+        sync_recalls(Patient.objects.all())
+        Examination.objects.create(patient=self.patient, history_only=True, medical_taken=True,
+                                   hba1c=Decimal("6.5"), hba1c_date=timezone.localdate())
+        sync_recalls(Patient.objects.all())
+        self.assertEqual(MedicalRecall.objects.get().status, "done")

@@ -163,3 +163,74 @@ def reasons_for(patient, exam=None):
         if "aspirin" in exam.bleeding_or_aspirin.lower() or "warfarin" in exam.drugs_taken.lower():
             codes.append(MedicalConsult.Reason.BLOOD_THINNER)
     return codes
+
+
+# ------------------------------------------------------------------ calls for a new test (round 15)
+RECALL_REASONS = (MedicalConsult.Reason.HBA1C, MedicalConsult.Reason.GLUCOSE, MedicalConsult.Reason.PRESSURE)
+
+
+def reading_value(exam, code):
+    """The reading alone, the same in every language ("8.2%", "260 mg/dl", "170/100")."""
+    if code == MedicalConsult.Reason.HBA1C:
+        return f"{exam.hba1c}%"
+    if code == MedicalConsult.Reason.GLUCOSE:
+        return f"{exam.glucose_random_clinic} mg/dl"
+    return f"{exam.bp_clinic_systolic or '—'}/{exam.bp_clinic_diastolic or '—'}"
+
+
+def sync_recalls(patients):
+    """A call for a new test for every reading above the limits of the patients' last medical history: the HbA1c
+    after the days of Settings (90), the sugar and the pressure after theirs (30). A newer history without that
+    reading above the limit closes the older calls (the new test was done). Few look-ups for any number of
+    patients (``patients`` is a queryset)."""
+    from .models import MedicalRecall
+
+    options = ClinicSettings.get()
+    latest = Examination.objects.filter(patient=OuterRef("patient"), medical_taken=True).order_by(
+        "-exam_date", "-pk").values("pk")[:1]
+    exams = list(Examination.objects.filter(medical_taken=True, patient__in=patients).filter(
+        pk=Subquery(latest)).only("pk", "patient_id", "exam_date", "hba1c", "hba1c_date", "glucose_random_clinic",
+                                  "bp_clinic_systolic", "bp_clinic_diastolic"))
+    flagged, new = {}, []
+    for exam in exams:
+        for code, _text in reading_flags(exam, options):
+            if code not in RECALL_REASONS:
+                continue
+            on = exam.hba1c_date if code == MedicalConsult.Reason.HBA1C and exam.hba1c_date else exam.exam_date
+            days = options.hba1c_recheck_days if code == MedicalConsult.Reason.HBA1C else options.readings_recheck_days
+            flagged[(exam.patient_id, code)] = on
+            new.append(MedicalRecall(patient_id=exam.patient_id, reason=code, reading_on=on, reading=reading_value(exam, code),
+                                     due_on=on + timedelta(days=days)))
+    patient_ids = [exam.patient_id for exam in exams]
+    known = set(MedicalRecall.objects.filter(patient_id__in=patient_ids).values_list(
+        "patient_id", "reason", "reading_on"))
+    MedicalRecall.objects.bulk_create([r for r in new if (r.patient_id, r.reason, r.reading_on) not in known],
+                                      ignore_conflicts=True)
+    # The open calls of a reading that is no longer the last one above the limit: a newer test was written.
+    stale = [pk for pk, patient, reason, on in MedicalRecall.objects.filter(
+        patient_id__in=patient_ids, status=MedicalRecall.Status.OPEN).values_list("pk", "patient_id", "reason",
+                                                                                 "reading_on")
+             if flagged.get((patient, reason)) != on]
+    if stale:
+        MedicalRecall.objects.filter(pk__in=stale).update(status=MedicalRecall.Status.DONE)
+
+
+def recalls_due(patients, until=None):
+    """The calls for a new test due by ``until`` (today), the late ones first."""
+    from .models import MedicalRecall
+
+    until = until or timezone.localdate()
+    return MedicalRecall.objects.filter(patient__in=patients, status=MedicalRecall.Status.OPEN,
+                                        due_on__lte=until).select_related("patient", "last_call_by")
+
+
+def recall_text(recall):
+    """The WhatsApp message to the patient (Arabic, as every message to the patients)."""
+    from apps.core.models import Branch
+
+    place = recall.patient.branch or Branch.default()
+    tests = {MedicalConsult.Reason.HBA1C: "تحليل السكر التراكمي (HbA1c)",
+             MedicalConsult.Reason.GLUCOSE: "تحليل السكر", MedicalConsult.Reason.PRESSURE: "قياس الضغط"}
+    return (f"أهلًا {recall.patient.full_name}، نتمنى تكون بخير. مر وقت على آخر {tests.get(recall.reason, 'تحليل')} "
+            f"({recall.reading_on:%d/%m/%Y}). برجاء عمل {tests.get(recall.reason, 'التحليل')} من جديد وإرسال النتيجة "
+            f"لنا قبل العلاج القادم. — {place.name_ar if place else ''} {place.phone if place else ''}").strip()

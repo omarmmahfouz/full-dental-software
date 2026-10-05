@@ -2123,3 +2123,9 @@ a.place-tab .badge { font-weight: 600; }
 .tooth-status-implant { border-inline-start: 3px solid var(--section); padding-inline-start: .5rem; margin: .3rem 0; }
 .step-group.is-suggested { box-shadow: 0 0 0 2px var(--bs-warning); }
 .step-group.is-suggested::after { content: "★"; color: #C68A00; margin-inline-start: .3rem; }
+/* The surgery chart: a part chosen (GBR, sinus, suture, membrane) must be filled */
+details.card.is-needed { border-color: var(--bs-warning); box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-warning) 30%, transparent); }
+
+/* Calls for a new test (round 15): the answer buttons wrap under the patient on a tablet. */
+.recall-answer { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .45rem; }
+.recall-answer .form-control { flex: 1 1 12rem; max-width: 22rem; }

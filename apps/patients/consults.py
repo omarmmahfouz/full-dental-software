@@ -13,17 +13,19 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from apps.core.mixins import role_required
-from apps.core.models import branch_for_user
+from apps.core.models import ClinicSettings, branch_for_user
 from apps.core.notify import notify_users
-from apps.core.roles import CLINICAL, PATIENT_VIEWERS, has_role, is_only_dentist
+from apps.core.roles import CLINICAL, FRONT_DESK, PATIENT_VIEWERS, has_role, is_only_dentist
 from apps.dentists.models import Dentist
+from apps.scheduling.whatsapp import whatsapp_url
 
 from .access import get_visible_patient_or_403, visible_patients
 from .forms import ConsultAnswerForm, MedicalConsultForm
 from .medical import (
-    latest_history, letter_findings, needing_consult, reading_flags, reasons_for, usual_medications,
+    latest_history, letter_findings, needing_consult, reading_flags, reasons_for, recall_text, recalls_due,
+    sync_recalls, usual_medications,
 )
-from .models import MedicalConsult
+from .models import MedicalConsult, MedicalRecall
 
 QUESTION = ("Kindly examine the patient and tell us whether he is medically fit for this surgery under local "
             "anaesthesia, with any precautions: changes to his medicines, antibiotic cover, stopping blood thinners, "
@@ -53,11 +55,63 @@ def medical_followup(request):
     cleared = sorted((c for c in latest if c.is_cleared and (c.answered_on or c.sent_on) >= today - timedelta(days=30)),
                      key=lambda c: c.answered_on or c.sent_on, reverse=True)
     needing = needing_consult(patients)
+    sync_recalls(patients)
+    recalls = list(recalls_due(patients)[:200])
+    for recall in recalls:
+        recall.whatsapp = whatsapp_url(recall.patient.preferred_number, recall_text(recall)) \
+            if recall.patient.preferred_number else ""
+    coming = MedicalRecall.objects.filter(patient__in=patients, status=MedicalRecall.Status.OPEN,
+                                          due_on__gt=today, due_on__lte=today + timedelta(days=30)).count()
     return render(request, "patients/medical_followup.html", {
         "needing": Paginator(needing, 50).get_page(request.GET.get("page")), "needing_count": len(needing),
+        "recalls": recalls, "recalls_coming": coming, "outcomes": MedicalRecall.Outcome.choices,
+        "options": ClinicSettings.get(),
         "waiting": waiting, "held": held, "cleared": cleared,
         "mine": mine, "has_dentist": me is not None, "today": today, "is_clinical": has_role(request.user, *CLINICAL),
     })
+
+
+# After each answer, the next call (days): a patient who will do the test is asked again in two weeks.
+NEXT_CALL = {MedicalRecall.Outcome.WILL_DO: 14, MedicalRecall.Outcome.NO_ANSWER: 2}
+
+
+@require_POST
+@role_required(*PATIENT_VIEWERS)
+def recall_call(request, pk):
+    """The answer of a call for a new test (round 15): he will do it (asked again in two weeks), no answer (again
+    in two days), he did it (the new reading is written in the medical history) or he does not want to."""
+    recall = get_object_or_404(MedicalRecall, pk=pk)
+    patient = get_visible_patient_or_403(request.user, recall.patient_id)
+    outcome = request.POST.get("outcome", "")
+    if outcome not in MedicalRecall.Outcome.values:
+        messages.error(request, _("Choose what the patient said."))
+        return redirect(reverse("patients:medical_followup") + "#recalls")
+    today = timezone.localdate()
+    recall.calls += 1
+    recall.last_outcome, recall.last_call_at, recall.last_call_by = outcome, timezone.now(), request.user
+    note = (request.POST.get("notes") or "").strip()
+    if note:
+        recall.notes = note[:255]
+    if outcome == MedicalRecall.Outcome.DONE:
+        recall.status = MedicalRecall.Status.DONE
+    elif outcome == MedicalRecall.Outcome.REFUSED:
+        recall.status = MedicalRecall.Status.STOPPED
+    else:
+        recall.due_on = today + timedelta(days=NEXT_CALL[outcome])
+    recall.save()
+    if outcome == MedicalRecall.Outcome.DONE:
+        messages.success(request, _("Write the new result of %(name)s in the medical history: the call is closed.")
+                         % {"name": patient.full_name})
+        from .access import file_parts
+
+        if has_role(request.user, *FRONT_DESK, *CLINICAL) and "medical" in file_parts(request.user):
+            return redirect(reverse("patients:medical_history", args=[patient.pk]) + "?part=medical")
+    elif recall.status == MedicalRecall.Status.OPEN:
+        messages.success(request, _("Saved. The next call to %(name)s is on %(date)s.")
+                         % {"name": patient.full_name, "date": recall.due_on.strftime("%d/%m/%Y")})
+    else:
+        messages.success(request, _("Saved: %(name)s leaves the list of calls.") % {"name": patient.full_name})
+    return redirect(reverse("patients:medical_followup") + "#recalls")
 
 
 def _dentist_for(request, patient):

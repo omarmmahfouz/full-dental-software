@@ -296,6 +296,11 @@ class ClinicSettings(models.Model):
         _("blood pressure from (systolic, mmHg) needs a physician's opinion"), default=160)
     diastolic_limit = models.PositiveSmallIntegerField(
         _("blood pressure from (diastolic, mmHg) needs a physician's opinion"), default=100)
+    # Round 15: call the patient for a new test after a reading above the limits (apps/patients/medical.py).
+    hba1c_recheck_days = models.PositiveSmallIntegerField(
+        _("a high HbA1c: call for a new test after (days)"), default=90)
+    readings_recheck_days = models.PositiveSmallIntegerField(
+        _("a high blood sugar or pressure: call to check it again after (days)"), default=30)
     # The visit after a surgery (apps/surgery/followup.py).
     follow_up_sinus_days = models.PositiveSmallIntegerField(_("check after a sinus lift (days)"), default=2)
     follow_up_graft_days = models.PositiveSmallIntegerField(_("check after a bone or gum graft (days)"), default=7)

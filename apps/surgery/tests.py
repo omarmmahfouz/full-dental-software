@@ -670,3 +670,66 @@ class Round15ImplantLifeTests(TestCase):
             self.assertTrue(Notification.objects.filter(recipient=person, title__startswith="Price").exists())
         self.assertEqual(self.client.get(f"/clinical/steps/bill-info/?patient={self.patient.pk}").json()["owes"],
                          "850.00")
+
+
+class Round15SurgeryChartTests(TestCase):
+    """Round 15: a part chosen on the surgery chart must be filled (GBR, sinus, suture...), and its lists are kept
+    in Settings."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+        self.system = ImplantSystem.objects.get(company="Osstem")
+        ToothState.objects.create(patient=self.patient, tooth=36, status=ToothState.Status.MISSING)
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def site(self, **extra):
+        site = {"tooth": 36, "flap": True, "simple_implant": True, "implant_system": self.system.pk,
+                "implant_diameter": "4.5", "implant_length": "10", "insertion_torque": 35}
+        site.update(extra)
+        return site
+
+    def test_a_gbr_needs_its_details(self):
+        response = self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, [self.site(gbr=True)]))
+        self.assertEqual(Surgery.objects.count(), 0)
+        errors = response.context["form"].errors
+        self.assertIn("bone_particle", errors)
+        self.assertIn("Needed: GBR was chosen.", errors["bone_material"])
+        self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, [self.site(gbr=True)],
+                                                       bone_particle="xenograft", bone_material="Bio-Oss (Geistlich)"))
+        self.assertEqual(Surgery.objects.get().bone_material, "Bio-Oss (Geistlich)")
+
+    def test_a_suture_said_yes_needs_its_size_material_and_technique(self):
+        response = self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, [self.site()],
+                                                                  sutured="true"))
+        self.assertEqual(Surgery.objects.count(), 0)
+        self.assertIn("suture_material", response.context["form"].errors)
+        page = self.client.get("/surgery/new/")
+        self.assertContains(page, "data-needs")
+        size = page.context["form"].fields["suture_size"].choices[1][0]
+        material = page.context["form"].fields["suture_material"].choices[1][0]
+        self.client.post("/surgery/new/", surgery_data(self.patient, self.dentist, [self.site()], sutured="true",
+                                                       suture_size=size, suture_material=material,
+                                                       suture_technique="Simple interrupted"))
+        self.assertTrue(Surgery.objects.get().sutured)
+
+    def test_the_lists_are_kept_in_settings(self):
+        from apps.surgery.forms import SurgeryForm
+        from apps.surgery.models import SurgeryOption
+
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertEqual(self.client.get("/settings/lists/surgery_options/").status_code, 200)
+        self.client.post("/settings/lists/surgery_options/new/", {
+            "kind": "suture_material", "name_en": "PTFE", "name_ar": "تفلون", "sort_order": 1, "is_active": "on"})
+        option = SurgeryOption.objects.get(name_en="PTFE")
+        self.assertEqual(option.code, "ptfe")
+        self.assertIn(("ptfe", "PTFE"), SurgeryForm().fields["suture_material"].choices)
+        # A choice taken off the list stays on the charts that have it.
+        option.is_active = False
+        option.save()
+        surgery = Surgery.objects.create(branch=self.branch, patient=self.patient, operator_1=self.dentist,
+                                         date=timezone.localdate(), suture_material="ptfe")
+        self.assertNotIn("ptfe", dict(SurgeryForm().fields["suture_material"].choices))
+        self.assertIn("ptfe", dict(SurgeryForm(instance=surgery).fields["suture_material"].choices))

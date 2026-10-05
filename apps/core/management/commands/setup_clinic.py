@@ -6,7 +6,7 @@ from django.db import transaction
 
 from apps.charting.models import PhotoType
 from apps.clinical.models import Lab, LabWorkType, TreatmentStepType
-from apps.surgery.models import ImplantSystem
+from apps.surgery.models import ImplantSystem, Surgery, SurgeryOption
 from apps.core.models import Branch, ClinicSettings
 from apps.core.roles import ALL_ROLES
 from apps.billing.models import FawryMachine, Service
@@ -466,6 +466,24 @@ LAB_WORK_TYPES = [
     ("أخرى", "Other", "other", "case"),
 ]
 
+# Round 15: the suggestions of the surgery chart's free boxes (the owner adds and changes them in Settings).
+SURGERY_SUGGESTIONS = {
+    "bone_material": [("Bio-Oss (Geistlich)", "بيو أوس"), ("Cerabone", "سيرابون"), ("OsteoBiol", "أوستيوبيول"),
+                      ("Autogenous chips", "عظم ذاتي"), ("Allograft (FDBA)", "ألوجرافت")],
+    "sinus_approach": [("Lateral window", "نافذة جانبية"), ("Crestal (osteotome)", "من القمة (أوستيوتوم)"),
+                       ("Crestal (balloon / hydraulic)", "من القمة (بالون / ماء)")],
+    "sinus_fill_material": [("Xenograft", "عظم بقري"), ("Xenograft + autogenous", "عظم بقري + ذاتي"),
+                            ("PRF only", "PRF فقط"), ("No graft (tenting)", "بدون عظم")],
+    "membrane_material": [("Collagen resorbable", "كولاجين يذوب"), ("PTFE non-resorbable", "PTFE لا يذوب"),
+                          ("Titanium-reinforced PTFE", "PTFE مقوى بالتيتانيوم"), ("PRF", "PRF")],
+    "membrane_company": [("Geistlich (Bio-Gide)", "جايستليش"), ("Botiss (Jason)", "بوتيس"), ("Osteogenics", "أوستيوجينكس")],
+    "tacks_company": [("Meisinger", "مايسنجر"), ("Osteogenics", "أوستيوجينكس")],
+    "soft_tissue_technique": [("Tunnel", "نفق"), ("Coronally advanced flap", "سحب الغشاء للأمام"),
+                              ("Envelope", "ظرف"), ("Roll flap", "لف الغشاء")],
+    "suture_technique": [("Simple interrupted", "غرز منفصلة"), ("Horizontal mattress", "ماتريس أفقي"),
+                         ("Vertical mattress", "ماتريس رأسي"), ("Continuous", "غرزة متصلة"), ("Sling", "سلينج")],
+}
+
 IMPLANT_SYSTEMS = [
     ("Osstem", "TS III"), ("Dentium", "SuperLine"), ("MIS", "C1"), ("Neodent", "Grand Morse"),
     ("Straumann", "BLT"), ("Nobel Biocare", "NobelActive"), ("Megagen", "AnyRidge"), ("Dio", "UF II"),
@@ -710,6 +728,28 @@ class Command(BaseCommand):
             TreatmentStepType.objects.filter(name_en=name_en, description_ar="").update(description_ar=explanation)
         for company, line in IMPLANT_SYSTEMS:
             ImplantSystem.objects.get_or_create(company=company, line=line)
+        # The surgery chart's lists, kept in Settings (round 15): the lists to choose from start with the old fixed
+        # choices (their codes stay on the charts), the free boxes with some suggestions.
+        added_options = 0
+        from django.utils import translation
+
+        for kind in SurgeryOption.CHOICE_KINDS:
+            for order, (code, label) in enumerate(Surgery._meta.get_field(kind).choices, start=1):
+                with translation.override("ar"):
+                    name_ar = str(label)
+                with translation.override("en"):
+                    name_en = str(label)
+                _obj, created = SurgeryOption.objects.get_or_create(
+                    kind=kind, code=code, defaults={"name_en": name_en, "name_ar": name_ar if name_ar != name_en else "",
+                                                    "sort_order": order})
+                added_options += created
+        for kind, rows in SURGERY_SUGGESTIONS.items():
+            if SurgeryOption.objects.filter(kind=kind).exists():
+                continue  # the owner's list stays as he made it
+            for order, (name_en, name_ar) in enumerate(rows, start=1):
+                SurgeryOption.objects.create(kind=kind, name_en=name_en, name_ar=name_ar, sort_order=order)
+                added_options += 1
+        counts["surgery chart list items"] = added_options
         added_photos = 0
         for stage, items in PHOTO_CHECKLIST.items():
             for order, (name_en, name_ar, optional) in enumerate(items, start=1):
