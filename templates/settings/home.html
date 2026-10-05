@@ -15,7 +15,7 @@
   <a class="settings-tile" href="{% url 'settings:security' %}"><i class="bi bi-shield-check"></i><span><b>{% trans "Security and health" %}</b><small>{% trans "The checks, who is logged in now, closed logins, the security log and the deleted records." %}</small></span></a>
   <a class="settings-tile" href="{% url 'settings:backup' %}"><i class="bi bi-safe"></i><span><b>{% trans "Backup and export" %}</b><small>{% trans "Full backup of all data and files; all data as an Excel file." %}</small></span></a>
   {% endif %}
-  <a class="settings-tile" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i><span><b>{% trans "Dentists" %}</b><small>{% trans "CIA dentists, training dentists and supervisors. Candidates come from the academy." %}</small></span></a>
+  <a class="settings-tile" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i><span><b>{% trans "Dentists and the academy's people" %}</b><small>{% trans "CIA junior dentists (full or part time), training dentists, supervisors and the candidates by batch; who is offered on the forms." %}</small></span></a>
 </div>
 
 {% if place_cards %}

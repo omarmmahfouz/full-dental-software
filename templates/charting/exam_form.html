@@ -6,6 +6,21 @@
 {% if file_steps %}{% include "patients/_file_steps.html" %}{% endif %}
 <div class="card"><div class="card-header fs-5"><i class="bi bi-clipboard2-pulse"></i> {{ title }}</div><div class="card-body">
   {% if not exam %}<p class="text-muted small">{% trans "The medical history is copied from the last examination (or from what the patient told the secretary) so you only change what is new." %}</p>{% endif %}
+  <details class="card exam-chart mb-3" open data-exam-chart>
+    <summary class="card-header"><i class="bi bi-grid-3x3-gap"></i> {% trans "The dental chart (it changes as you write the teeth below)" %}</summary>
+    <div class="card-body">
+      <div class="odontogram-wrap">{{ svg }}</div>
+      <div class="exam-chart-key small">
+        <span><i class="key-dot" style="--key: var(--exam-missing)"></i> {% trans "Missing" %}</span>
+        <span><i class="key-dot" style="--key: var(--exam-caries)"></i> {% trans "Carious" %}</span>
+        <span><i class="key-dot" style="--key: var(--exam-filled)"></i> {% trans "Filled" %}</span>
+        <span><i class="key-dot" style="--key: var(--exam-hopeless)"></i> {% trans "Hopeless" %}</span>
+        <span><i class="key-dot" style="--key: var(--exam-implant)"></i> {% trans "Implant" %}</span>
+        <span><i class="key-dot" style="--key: var(--exam-other)"></i> {% trans "Mobile / not sure" %}</span>
+      </div>
+      {% if not exam %}<p class="small text-muted mb-0 mt-2">{% trans "The tooth boxes start as the chart is now: add or take off only what you find different. Taking a tooth off a box takes it off the chart when you save." %}</p>{% endif %}
+    </div>
+  </details>
   <form method="post" novalidate>{% csrf_token %}
     {% if flow %}<input type="hidden" name="flow" value="1">{% endif %}
     {% include "includes/form_fields.html" %}

@@ -1,30 +1,33 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% trans "Dentists" %}{% endblock %}
+{% block title %}{% trans "Dentists and the academy's people" %}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-person-badge"></i> {% trans "Dentists" %}</h1>
+  <h1><i class="bi bi-person-badge"></i> {% trans "Dentists and the academy's people" %}</h1>
   {% if roles.owner or roles.head_cia %}<a class="btn btn-primary" href="{% url 'dentists:create' %}"><i class="bi bi-plus-lg"></i> {% trans "New dentist" %}</a>{% endif %}
 </div>
-<p class="small text-muted">{% trans "Course candidates are added from Academy → Candidates and appear here automatically. Add training dentists, full-time dentists and supervisors here." %}</p>
+<p class="small text-muted">{% trans "Course candidates are added from Academy → Candidates and appear here automatically. Add the CIA junior dentists (full or part time, they log in), the training dentists and the supervisors here. Only the people 'in the lists' are offered on the forms; candidates leave the lists when their course ends." %}</p>
+<nav class="place-tabs mb-3 no-print" aria-label="{% trans 'Groups' %}">{% for tab in tabs %}<a class="btn btn-sm {% if tab.active %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?{{ tab.query }}">{{ tab.label }} <span class="badge text-bg-light">{{ tab.n }}</span></a>{% endfor %}</nav>
 <form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
   {% for field in filter_form %}<div class="col-md-3"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}
   <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
 </div></form>
 <div class="card"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Type" %}</th><th>{% trans "Batch" %}</th><th>{% trans "Mobile" %}</th><th>{% trans "Surgeries (operator 1)" %}</th><th>{% trans "Implants placed" %}</th><th>{% trans "Treatments" %}</th><th>{% trans "Login" %}</th></tr></thead>
+  <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Type" %}</th><th>{% trans "Batch" %}</th><th>{% trans "Mobile" %}</th><th>{% trans "Surgeries (operator 1)" %}</th><th>{% trans "Implants placed" %}</th><th>{% trans "Treatments" %}</th><th>{% trans "Login" %}</th><th>{% trans "In the lists" %}</th></tr></thead>
   <tbody>
   {% for d in page_obj %}
   <tr>
     <td><a class="fw-semibold" href="{{ d.get_absolute_url }}">{{ d.full_name }}</a>{% if not d.is_active %} <span class="badge text-bg-secondary">{% trans "left" %}</span>{% endif %}</td>
-    <td>{{ d.get_kind_display }}{% if d.specialty %}<div class="small text-muted">{{ d.get_specialty_display }}</div>{% endif %}</td>
-    <td>{% if d.candidate %}{% with e=d.candidate.current_enrollment %}{{ e.course.code|default:"—" }}{% endwith %}{% else %}—{% endif %}</td>
+    <td>{{ d.get_kind_display }}{% if d.work_time %} · {{ d.get_work_time_display }}{% endif %}{% if d.specialty %}<div class="small text-muted">{{ d.get_specialty_display }}</div>{% endif %}</td>
+    <td>{{ d.batch|default:"—" }}</td>
     <td><span class="ltr">{{ d.phone|default:"—" }}</span></td>
     <td>{{ d.surgeries }}</td><td class="fw-bold">{{ d.implants }}</td><td>{{ d.treatments }}</td>
     <td>{% if d.user %}<i class="bi bi-check-circle text-success"></i> {{ d.user.username }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+    <td class="nowrap">{% if d.listed %}<span class="badge text-bg-success">{% trans "yes" %}</span>{% elif d.kind == "candidate" and d.show_in_lists %}<span class="badge text-bg-light">{% trans "course ended" %}</span>{% else %}<span class="badge text-bg-secondary">{% trans "no" %}</span>{% endif %}
+      {% if can_manage and d.kind != "candidate" %}<form method="post" action="{% url 'dentists:toggle_lists' d.pk %}" class="d-inline no-print" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><button class="btn btn-sm btn-link p-0 ms-1">{% if d.show_in_lists %}{% trans "take off" %}{% else %}{% trans "put back" %}{% endif %}</button></form>{% endif %}</td>
   </tr>
-  {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No dentists." %}</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="9" class="text-center text-muted py-4">{% trans "No dentists." %}</td></tr>{% endfor %}
   </tbody>
 </table>
 </div></div>

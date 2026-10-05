@@ -13,6 +13,7 @@
 <div class="row g-3">
   <div class="col-lg-4"><div class="card h-100"><div class="card-body">
     <dl class="dl-grid">
+      <dt>{% trans "Bought for" %}</dt><dd><span class="badge text-bg-light">{{ p.branch.badge }}</span> {{ p.branch }}</dd>
       <dt>{% trans "Supplier" %}</dt><dd><a href="{{ p.supplier.get_absolute_url }}">{{ p.supplier }}</a></dd>
       <dt>{% trans "Invoice no." %}</dt><dd>{{ p.invoice_number|default:"—" }}</dd>
       <dt>{% trans "Payment method" %}</dt><dd>{{ p.get_payment_method_display }}</dd>

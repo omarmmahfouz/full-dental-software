@@ -106,6 +106,7 @@
             {% if "surgery" not in hidden_areas %}
             <li><a class="dropdown-item" href="{% url 'surgery:list' %}"><i class="bi bi-implant"></i> {% trans "Implant surgeries" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'surgery:create' %}"><i class="bi bi-plus-circle"></i> {% trans "New surgery chart" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'surgery:day' %}"><i class="bi bi-calendar2-check"></i> {% trans "Surgery day (the supervisor)" %}</a></li>
             {% endif %}
             {% endif %}
             {% if "specialists" not in hidden_areas %}{% if is_clinical %}<li><a class="dropdown-item" href="{% url 'specialties:cases' %}"><i class="bi bi-person-lines-fill"></i> {% trans "Specialist cases" %}</a></li>{% endif %}
@@ -125,7 +126,7 @@
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-mortarboard"></i> {% trans "Academy" %}</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="{% url 'academy:candidate_list' %}"><i class="bi bi-mortarboard"></i> {% trans "Candidates" %}</a></li>
-            <li><a class="dropdown-item" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i> {% trans "Dentists" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'dentists:list' %}"><i class="bi bi-person-badge"></i> {% trans "The academy's people" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'academy:course_list' %}"><i class="bi bi-journal-bookmark"></i> {% trans "Courses" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'academy:payment_list' %}"><i class="bi bi-cash-coin"></i> {% trans "Installment payments" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'academy:installments_month' %}"><i class="bi bi-calendar2-month"></i> {% trans "Installments of the month" %}</a></li>

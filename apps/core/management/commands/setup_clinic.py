@@ -569,22 +569,37 @@ PHOTO_CHECKLIST = {
 }
 
 PURCHASE_CATEGORIES = [
-    # Arabic, English, kind
-    ("زرعات ومكوناتها", "Implants & components", PurchaseCategory.Kind.DENTAL),
-    ("ترقيع عظم وأغشية", "Bone grafts & membranes", PurchaseCategory.Kind.DENTAL),
-    ("مستهلكات (جوانتي، ماسكات، شاش...)", "Consumables (gloves, masks, gauze...)", PurchaseCategory.Kind.DENTAL),
-    ("مواد طبعات", "Impression materials", PurchaseCategory.Kind.DENTAL),
-    ("بنج", "Anaesthesia", PurchaseCategory.Kind.DENTAL),
-    ("تعقيم", "Sterilisation", PurchaseCategory.Kind.DENTAL),
-    ("أدوات وآلات", "Instruments", PurchaseCategory.Kind.DENTAL),
-    ("أدوية", "Medications", PurchaseCategory.Kind.DENTAL),
-    ("شاي وقهوة وسكر", "Tea, coffee & sugar", PurchaseCategory.Kind.NON_DENTAL),
-    ("أدوات مكتبية", "Stationery", PurchaseCategory.Kind.NON_DENTAL),
-    ("أطعمة وحلويات", "Food & candies", PurchaseCategory.Kind.NON_DENTAL),
-    ("مياه", "Water", PurchaseCategory.Kind.NON_DENTAL),
-    ("أدوات نظافة", "Cleaning supplies", PurchaseCategory.Kind.NON_DENTAL),
-    ("صيانة", "Maintenance", PurchaseCategory.Kind.NON_DENTAL),
-    ("أخرى", "Other", PurchaseCategory.Kind.NON_DENTAL),
+    # Arabic, English, kind, group (round 15: dental or not, then the group)
+    ("زرعات ومكوناتها", "Implants & components", PurchaseCategory.Kind.DENTAL, "implants"),
+    ("أجزاء تركيبات الزرعات (دعامات، ملتي يونت، سكان بودي)",
+     "Implant prosthetic parts (abutments, multi-units, scan bodies)", PurchaseCategory.Kind.DENTAL, "implants"),
+    ("ترقيع عظم وأغشية", "Bone grafts & membranes", PurchaseCategory.Kind.DENTAL, "implants"),
+    ("خيوط جراحية ومستلزمات الجراحة", "Sutures & surgical supplies", PurchaseCategory.Kind.DENTAL, "implants"),
+    ("دريلات وأطقم جراحة", "Surgical drills & kits", PurchaseCategory.Kind.DENTAL, "implants"),
+    ("مواد حشو وبوندنج", "Fillings & bonding (composite, GIC)", PurchaseCategory.Kind.DENTAL, "materials"),
+    ("مواد حشو العصب", "Endodontic materials (files, gutta-percha, sealers)", PurchaseCategory.Kind.DENTAL,
+     "materials"),
+    ("مواد طبعات", "Impression materials", PurchaseCategory.Kind.DENTAL, "materials"),
+    ("أسمنت ومواد مؤقتة", "Cements & temporaries", PurchaseCategory.Kind.DENTAL, "materials"),
+    ("أدوات وآلات", "Instruments", PurchaseCategory.Kind.DENTAL, "instruments"),
+    ("فرز (برز)", "Burs & rotary", PurchaseCategory.Kind.DENTAL, "instruments"),
+    ("هاندبيس وموتورات", "Handpieces & motors", PurchaseCategory.Kind.DENTAL, "instruments"),
+    ("أجهزة ومعدات", "Equipment & devices", PurchaseCategory.Kind.DENTAL, "instruments"),
+    ("مستهلكات (جوانتي، ماسكات، شاش...)", "Consumables (gloves, masks, gauze...)", PurchaseCategory.Kind.DENTAL,
+     "consumables"),
+    ("تعقيم", "Sterilisation", PurchaseCategory.Kind.DENTAL, "consumables"),
+    ("بنج", "Anaesthesia", PurchaseCategory.Kind.DENTAL, "medicines"),
+    ("أدوية", "Medications", PurchaseCategory.Kind.DENTAL, "medicines"),
+    ("بلوكات وديسكات ومواد المعمل", "Lab blocks, discs & materials", PurchaseCategory.Kind.DENTAL, "lab"),
+    ("شاي وقهوة وسكر", "Tea, coffee & sugar", PurchaseCategory.Kind.NON_DENTAL, "hospitality"),
+    ("أطعمة وحلويات", "Food & candies", PurchaseCategory.Kind.NON_DENTAL, "hospitality"),
+    ("مياه", "Water", PurchaseCategory.Kind.NON_DENTAL, "hospitality"),
+    ("أدوات مكتبية", "Stationery", PurchaseCategory.Kind.NON_DENTAL, "office"),
+    ("أدوات نظافة", "Cleaning supplies", PurchaseCategory.Kind.NON_DENTAL, "cleaning"),
+    ("صيانة", "Maintenance", PurchaseCategory.Kind.NON_DENTAL, "building"),
+    ("فواتير كهرباء ومياه وإنترنت", "Electricity, water & internet bills", PurchaseCategory.Kind.NON_DENTAL,
+     "building"),
+    ("أخرى", "Other", PurchaseCategory.Kind.NON_DENTAL, "other"),
 ]
 
 
@@ -690,10 +705,13 @@ class Command(BaseCommand):
             ),
             "lab work types": _lookup(LabWorkType, LAB_WORK_TYPES, extra_fields=lambda r: {"category": r[2],
                                                                                           "unit": r[3]}),
-            "purchase categories": _lookup(PurchaseCategory, PURCHASE_CATEGORIES, extra_fields=lambda r: {"kind": r[2]}),
+            "purchase categories": _lookup(PurchaseCategory, PURCHASE_CATEGORIES,
+                                           extra_fields=lambda r: {"kind": r[2], "group": r[3]}),
             "stock categories": _lookup(StockCategory, STOCK_CATEGORIES, extra_fields=lambda r: {"group": r[2]}),
         }
         StockCategory.objects.filter(name_en="Lab blocks and discs", lab_blocks=False).update(lab_blocks=True)
+        for row in PURCHASE_CATEGORIES:  # round 15: the categories made before get their group
+            PurchaseCategory.objects.filter(name_en=row[1], group="").update(group=row[3])
         Lab.objects.get_or_create(name="معمل الأسنان (معملنا)", defaults={"branch": Branch.objects.get(code="LAB")})
         Lab.objects.filter(name="معمل الأسنان (معملنا)", name_en="").update(name_en="Our dental lab")
         # Older installations: give existing treatment types their chart effect once.

@@ -238,7 +238,7 @@ class CancelForm(StyledForm):
 class AppointmentFilterForm(StyledForm):
     date_from = forms.DateField(label=_("From"), required=False)
     date_to = forms.DateField(label=_("To"), required=False)
-    dentist = DentistChoiceField(label=_("dentist"), required=False, empty_label=_("All"))
+    dentist = DentistChoiceField(everyone=True, label=_("dentist"), required=False, empty_label=_("All"))
     room = forms.ModelChoiceField(
         label=_("room"), queryset=Room.objects.filter(is_active=True), required=False, empty_label=_("All")
     )

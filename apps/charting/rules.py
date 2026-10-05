@@ -237,8 +237,49 @@ def apply_changes(patient, changes, user, source, treatment=None, surgery=None, 
     return len(changes)
 
 
-def exam_changes(patient, exam):
-    """Chart changes from the tooth lists written on the examination (page 1 of the paper chart)."""
+def chart_to_exam(patient, states=None):
+    """The examination's tooth boxes as the dental chart has them now (round 15): a new examination starts from the
+    chart, so the dentist changes only what he finds different, and the file and the chart say the same."""
+    from .teeth import format_teeth
+
+    states = current_states(patient) if states is None else states
+    boxes = {name: [] for name in ("teeth_carious", "teeth_filled", "teeth_missing", "teeth_not_sure",
+                                   "teeth_mobility", "teeth_hopeless", "teeth_implant_placed")}
+    for tooth, state in states.items():
+        snap = _snapshot(state)
+        status = snap["status"]
+        if status == S.MISSING:
+            boxes["teeth_missing"].append(tooth)
+        elif status == S.IMPLANT:
+            boxes["teeth_implant_placed"].append(tooth)
+        if status in NATURAL:
+            if snap.get("caries"):
+                boxes["teeth_carious"].append(tooth)
+            if snap.get("filled"):
+                boxes["teeth_filled"].append(tooth)
+            if snap.get("hopeless"):
+                boxes["teeth_hopeless"].append(tooth)
+            if snap.get("mobility"):
+                boxes["teeth_mobility"].append(tooth)
+        if snap.get("not_sure"):
+            boxes["teeth_not_sure"].append(tooth)
+    return {name: format_teeth(teeth) for name, teeth in boxes.items()}
+
+
+# A tooth taken off a box of a new examination (it was on the chart): what the chart loses (round 15).
+_TAKEN_OFF = {
+    "teeth_carious": {"caries": False, "caries_surfaces": ""},
+    "teeth_filled": {"filled": False, "filling_surfaces": "", "filling_material": ""},
+    "teeth_hopeless": {"hopeless": False},
+    "teeth_mobility": {"mobility": 0},
+    "teeth_not_sure": {"not_sure": False},
+}
+
+
+def exam_changes(patient, exam, chart_before=None):
+    """Chart changes from the tooth lists written on the examination (page 1 of the paper chart). For a new
+    examination, ``chart_before`` (the boxes as the chart had them, ``chart_to_exam``) also takes off what the
+    dentist removed: a tooth no longer carious, a missing tooth that is there after all."""
     from .teeth import parse_teeth
 
     effects = [
@@ -265,6 +306,17 @@ def exam_changes(patient, exam):
         snap = dict(merged.get(tooth, states.get(tooth, dict(DEFAULT))))
         snap["mobility"] = snap.get("mobility") or 1
         merged[tooth] = snap
+    for name, before in (chart_before or {}).items():
+        removed = set(parse_teeth(before)) - set(parse_teeth(getattr(exam, name)))
+        for tooth in removed:
+            snap = dict(merged.get(tooth, states.get(tooth, dict(DEFAULT))))
+            if name == "teeth_missing" and snap["status"] == S.MISSING:
+                snap["status"] = S.PRESENT
+            elif name in _TAKEN_OFF:
+                snap.update(_TAKEN_OFF[name])
+            else:
+                continue  # an implant is taken off the chart by its surgery, not by the examination
+            merged[tooth] = snap
     changes = []
     for tooth, after in sorted(merged.items()):
         before = states.get(tooth, dict(DEFAULT))

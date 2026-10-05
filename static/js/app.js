@@ -1664,6 +1664,33 @@
     var row = event.detail && event.detail.row;
     if (row) row.querySelectorAll("[data-teeth-picker]").forEach(setupTeethPicker);
   });
+  // Examination (round 15): the dental chart above the form colours each tooth as it is written in a tooth box
+  // (<input data-exam-teeth="teeth_missing">...), so the examination and the chart say the same thing.
+  var examChart = document.querySelector("[data-exam-chart]");
+  if (examChart) {
+    var EXAM_ORDER = ["teeth_missing", "teeth_hopeless", "teeth_carious", "teeth_filled", "teeth_implant_placed",
+                      "teeth_implant_failed", "teeth_mobility", "teeth_not_sure"];
+    var EXAM_CLASS = { teeth_missing: "missing", teeth_hopeless: "hopeless", teeth_carious: "caries",
+                       teeth_filled: "filled", teeth_implant_placed: "implant", teeth_implant_failed: "missing",
+                       teeth_mobility: "other", teeth_not_sure: "other" };
+    var examBoxes = document.querySelectorAll("[data-exam-teeth]");
+    var paintExam = function () {
+      var marks = {};
+      EXAM_ORDER.forEach(function (name) {
+        var box = document.querySelector('[data-exam-teeth="' + name + '"]');
+        if (!box) return;
+        parseTeeth(box.value).forEach(function (tooth) { if (!marks[tooth]) marks[tooth] = EXAM_CLASS[name]; });
+      });
+      examChart.querySelectorAll("g.tooth[data-tooth]").forEach(function (g) {
+        var mark = marks[g.getAttribute("data-tooth")] || "";
+        ["missing", "hopeless", "caries", "filled", "implant", "other"].forEach(function (name) {
+          g.classList.toggle("exam-" + name, mark === name);
+        });
+      });
+    };
+    examBoxes.forEach(function (box) { box.addEventListener("input", paintExam); box.addEventListener("change", paintExam); });
+    paintExam();
+  }
   // Shade guide: under each <select data-shade> the tabs of the chosen guide (VITA classical or 3D-Master, from
   // the <select data-shade-guide> of the same form) and under <select data-stump> the stump tabs, in their colours
   // (from <script id="shade-guides">). Tapping a tab chooses it; the list shows only the chosen guide's shades.

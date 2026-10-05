@@ -10,6 +10,8 @@
         <div class="form-check"><input class="form-check-input" type="checkbox" name="stage" value="{{ code }}" id="st-{{ code }}" {% if code in chosen %}checked{% endif %}><label class="form-check-label" for="st-{{ code }}">{{ label }}</label></div>
       {% empty %}<span class="text-muted">{% trans "No photos uploaded yet." %}</span>{% endfor %}</div>
     </div>
+    {% if operators %}<div><label class="form-label mb-1" for="lb-operator">{% trans "Whose log book" %}</label>
+      <select class="form-select" id="lb-operator" name="operator"><option value="">{% trans "The whole case" %}</option>{% for o in operators %}<option value="{{ o.pk }}" {% if chosen_operator == o %}selected{% endif %}>{{ o }}</option>{% endfor %}</select></div>{% endif %}
     <div><label class="form-label mb-1" for="per-page">{% trans "Photos on each page" %}</label>
       <select class="form-select" id="per-page" name="per_page"><option value="4" {% if per_page == "4" %}selected{% endif %}>4 ({% trans "large" %})</option><option value="6" {% if per_page == "6" %}selected{% endif %}>6</option></select></div>
     <div><label class="form-label mb-1" for="fit">{% trans "Photo in the frame" %}</label>

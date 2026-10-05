@@ -38,8 +38,8 @@ def split_amount(total, parts):
 class CourseForm(StyledModelForm):
     class Meta:
         model = Course
-        fields = ["name", "code", "start_date", "end_date", "fee", "capacity", "implants_required", "is_active",
-                  "description"]
+        fields = ["name", "code", "kind", "batch_number", "start_date", "end_date", "fee", "capacity",
+                  "implants_required", "is_active", "description"]
 
 
 class CandidateForm(StyledModelForm):
@@ -220,3 +220,10 @@ class PaymentFilterForm(StyledForm):
 class CandidateFilterForm(StyledForm):
     q = forms.CharField(label=_("Search"), required=False)
     course = forms.ModelChoiceField(label=_("batch / course"), queryset=Course.objects.all(), required=False, empty_label=_("All"))
+    # Round 15: the candidates by batch, regular or private, online or in the academy, studying or finished.
+    kind = forms.ChoiceField(label=_("regular or private"), required=False,
+                             choices=[("", _("All"))] + list(Course.Kind.choices))
+    study_mode = forms.ChoiceField(label=_("attends the lectures"), required=False,
+                                   choices=[("", _("All"))] + list(Enrollment.StudyMode.choices))
+    status = forms.ChoiceField(label=_("status"), required=False,
+                               choices=[("", _("All"))] + list(Enrollment.Status.choices))

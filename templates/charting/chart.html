@@ -44,6 +44,14 @@
 
 <div class="row g-3">
   <div class="col-xl-5">
+    <div class="card mb-3 border-primary-subtle"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-clipboard2-pulse"></i> {% trans "Examination" %}</span>
+      {% if can_edit %}<a class="small no-print" href="{% url 'charting:exam_create' patient.pk %}">{% if exam %}{% trans "Examine again (starts from this chart)" %}{% else %}{% trans "Examine (starts from this chart)" %}{% endif %}</a>{% endif %}</div>
+      <div class="card-body small">{% if exam %}
+        <a href="{% url 'charting:exam_detail' exam.pk %}" class="fw-semibold">{{ exam.exam_date|date:"d/m/Y" }}</a>{% if exam.examined_by %} · {{ exam.examined_by }}{% endif %}{% if exam.supervisor %} · {% trans "supervisor" %}: {{ exam.supervisor }}{% endif %}
+        {% if exam.chief_complaint %}<div class="text-muted mt-1">{{ exam.chief_complaint|truncatechars:160 }}</div>{% endif %}
+        <div class="text-muted mt-1">{% trans "The examination and this chart are one: the teeth written in an examination change the chart, and a new examination starts from the chart." %}</div>
+      {% else %}<span class="text-muted">{% trans "No examination yet." %}</span>{% endif %}</div>
+    </div>
     <div class="card mb-3"><div class="card-header">{% trans "Teeth that are not sound" %}</div>
       <div class="table-responsive"><table class="table table-sm mb-0">
         <tbody>

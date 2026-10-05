@@ -79,7 +79,9 @@ class ExaminationForm(StyledModelForm):
         super().__init__(*args, **kwargs)
         self.fields["conditions"].queryset = MedicalCondition.objects.filter(is_active=True)
         for name in Examination.TOOTH_FIELDS:
-            self.fields[name].widget.attrs.update({"data-digits": "1", "placeholder": "e.g. 16, 26"})
+            # Round 15: the teeth diagram opens from each box, and the chart beside colours them as they are typed.
+            self.fields[name].widget.attrs.update({"data-digits": "1", "placeholder": "e.g. 16, 26",
+                                                   "data-teeth-picker": "multi", "data-exam-teeth": name})
             self.fields[name].col = "col-md-6 col-lg-3"
         for name in ("chief_complaint", "operator_notices", "medical_comment", "conditions_comment",
                      "drugs_taken", "operator_comments"):

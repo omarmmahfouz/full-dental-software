@@ -68,7 +68,7 @@ class RestorativeFinderForm(StyledForm):
     region = forms.ChoiceField(label=_("region"), required=False,
                                choices=[("", _("Any")), ("anterior", _("Anterior")), ("posterior", _("Posterior"))])
     material = forms.CharField(label=_("material (contains)"), required=False)
-    operator = DentistChoiceField(label=_("operator"), required=False, empty_label=_("Any"))
+    operator = DentistChoiceField(everyone=True, label=_("operator"), required=False, empty_label=_("Any"))
     operator_kind = forms.ChoiceField(label=_("operator type"), required=False,
                                       choices=[("", _("Any"))] + list(Dentist.Kind.choices))
     checked = forms.ChoiceField(label=_("checked by a supervisor"), required=False,

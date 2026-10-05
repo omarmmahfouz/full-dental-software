@@ -19,16 +19,38 @@ class SupplierForm(StyledModelForm):
         fields = ["name", "phone", "contact_person", "address", "is_active", "notes"]
 
 
+def purchase_places(user):
+    """The places a person buys for (round 15: each place has its own purchases): every place for the owner, the
+    head of CIA and the stock manager, else the places this person can open."""
+    from apps.core.models import Branch, switch_places
+    from apps.core.roles import HEAD_CIA, OWNER, STOCK, has_role
+
+    if has_role(user, OWNER, HEAD_CIA, STOCK):
+        return list(Branch.objects.filter(is_active=True).order_by("sort_order", "pk"))
+    return switch_places(user)
+
+
 class PurchaseForm(StyledModelForm):
     class Meta:
         model = Purchase
         fields = [
-            "supplier", "purchase_date", "invoice_number", "payment_method",
+            "branch", "supplier", "purchase_date", "invoice_number", "payment_method",
             "payment_status", "amount_paid", "invoice_image", "notes",
         ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, place=None, **kwargs):
         super().__init__(*args, **kwargs)
+        places = purchase_places(user) if user is not None else []
+        if self.instance.pk and self.instance.branch not in places:
+            places.append(self.instance.branch)
+        if len(places) > 1:
+            self.fields["branch"].label = _("bought for (place)")
+            self.fields["branch"].queryset = self.fields["branch"].queryset.filter(pk__in=[p.pk for p in places])
+            self.fields["branch"].empty_label = None
+            if not self.instance.pk and place is not None:
+                self.fields["branch"].initial = place.pk
+        else:
+            del self.fields["branch"]
         self.fields["supplier"].queryset = Supplier.objects.filter(is_active=True)
         self.fields["invoice_image"].validators.append(validate_upload)
         self.fields["invoice_image"].widget.attrs["accept"] = "image/*,application/pdf"
@@ -53,6 +75,7 @@ class PurchaseItemForm(BootstrapFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["category"].queryset = PurchaseCategory.objects.filter(is_active=True)
+        self.fields["category"].choices = [("", "---------")] + PurchaseCategory.grouped_choices()
         self.fields["stock_item"].queryset = StockItem.objects.filter(is_active=True)
         self.fields["stock_item"].empty_label = _("not a stock item")
         for field in self.fields.values():
@@ -80,6 +103,13 @@ class PurchaseFilterForm(StyledForm):
         label=_("category"), queryset=PurchaseCategory.objects.all(), required=False, empty_label=_("All")
     )
     kind = forms.ChoiceField(label=_("type"), required=False, choices=[("", _("All"))] + list(PurchaseCategory.Kind.choices))
+    group = forms.ChoiceField(label=_("group"), required=False,
+                              choices=[("", _("All"))] + list(PurchaseCategory.Group.choices))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["category"].choices = [("", _("All"))] + PurchaseCategory.grouped_choices(
+            PurchaseCategory.objects.all())
 
 
 class ReturnForm(StyledModelForm):

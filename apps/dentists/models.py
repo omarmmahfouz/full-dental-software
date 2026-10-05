@@ -37,7 +37,7 @@ class Dentist(TimeStampedModel):
     class Kind(models.TextChoices):
         CANDIDATE = "candidate", _("Course candidate")
         TRAINING = "training", _("Training dentist")
-        FULLTIME = "fulltime", _("CIA dentist (full / part time)")
+        FULLTIME = "fulltime", _("CIA junior dentist (full / part time)")
         SUPERVISOR = "supervisor", _("Supervisor")
         SPECIALIST = "specialist", _("Specialist")
         FREELANCER = "freelancer", _("Freelance dentist")
@@ -83,6 +83,12 @@ class Dentist(TimeStampedModel):
     is_active = models.BooleanField(
         _("working now"), default=True, help_text=_("Untick when they leave, so they no longer appear in the lists.")
     )
+    show_in_lists = models.BooleanField(
+        _("in the drop lists"), default=True,
+        help_text=_("Untick for someone who comes rarely: his work stays, he is not offered on the forms. Candidates "
+                    "leave the lists by themselves when their course ends."))
+    work_time = models.CharField(_("full or part time"), max_length=4, blank=True,
+                                 choices=[("full", _("Full time")), ("part", _("Part time"))])
     notes = models.TextField(_("notes"), blank=True)
     signature = models.TextField(
         _("signature"), blank=True, editable=False,

@@ -2129,3 +2129,31 @@ details.card.is-needed { border-color: var(--bs-warning); box-shadow: 0 0 0 2px 
 /* Calls for a new test (round 15): the answer buttons wrap under the patient on a tablet. */
 .recall-answer { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .45rem; }
 .recall-answer .form-control { flex: 1 1 12rem; max-width: 22rem; }
+
+/* Purchases by place, dental or not, then the group (round 15). */
+.place-tabs { display: flex; flex-wrap: wrap; gap: .35rem; }
+.purchase-kind + .purchase-kind { margin-top: .75rem; }
+.purchase-kind-title { display: flex; gap: .5rem; font-weight: 700; border-bottom: 2px solid var(--bs-border-color); padding-bottom: .2rem; margin-bottom: .35rem; }
+.purchase-group > summary { display: flex; justify-content: space-between; gap: .5rem; cursor: pointer; padding: .3rem .25rem; border-radius: .4rem; }
+.purchase-group > summary:hover { background: var(--bs-tertiary-bg); }
+.purchase-group table { margin-inline-start: 1rem; width: calc(100% - 1rem); }
+
+/* The surgery day (round 15): each operator with his own teeth. */
+.day-operator { display: inline-block; margin-inline-end: .75rem; }
+
+/* The examination with its dental chart (round 15): each tooth coloured as written in the boxes below. */
+:root { --exam-missing: #6c757d; --exam-caries: #dc3545; --exam-filled: #0d6efd; --exam-hopeless: #fd7e14;
+        --exam-implant: #198754; --exam-other: #6f42c1; }
+.exam-chart > summary { cursor: pointer; list-style: none; }
+.exam-chart > summary::-webkit-details-marker { display: none; }
+.exam-chart .odontogram-wrap { max-width: 900px; margin-inline: auto; }
+.exam-chart g.tooth > rect:first-of-type { transition: fill .15s ease; }
+.exam-chart g.tooth.exam-missing > rect:first-of-type { fill: color-mix(in srgb, var(--exam-missing) 28%, transparent); }
+.exam-chart g.tooth.exam-caries > rect:first-of-type { fill: color-mix(in srgb, var(--exam-caries) 22%, transparent); }
+.exam-chart g.tooth.exam-filled > rect:first-of-type { fill: color-mix(in srgb, var(--exam-filled) 20%, transparent); }
+.exam-chart g.tooth.exam-hopeless > rect:first-of-type { fill: color-mix(in srgb, var(--exam-hopeless) 25%, transparent); }
+.exam-chart g.tooth.exam-implant > rect:first-of-type { fill: color-mix(in srgb, var(--exam-implant) 22%, transparent); }
+.exam-chart g.tooth.exam-other > rect:first-of-type { fill: color-mix(in srgb, var(--exam-other) 18%, transparent); }
+.exam-chart-key { display: flex; flex-wrap: wrap; gap: .4rem 1rem; justify-content: center; margin-top: .5rem; }
+.key-dot { display: inline-block; width: .8rem; height: .8rem; border-radius: .2rem; background: var(--key); vertical-align: -.1rem; }
+@media (prefers-reduced-motion: reduce) { .exam-chart g.tooth > rect:first-of-type { transition: none; } }

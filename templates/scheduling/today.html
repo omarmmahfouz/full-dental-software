@@ -163,7 +163,7 @@
       {% if room.next_in %}<div class="small mt-1"><span class="badge text-bg-light">{% trans "Next" %} {{ room.next_in.scheduled_at|time:"g:i A" }}</span> {{ room.next_in.patient.full_name }}<div class="text-muted">{{ room.next_in.dentist|default:"" }}</div></div>{% endif %}
       {% if not room.now_in and not room.next_in %}<span class="small text-muted">{% trans "Free" %}</span>{% endif %}
       {% else %}
-      {% for s in room.day_shifts %}<span class="shift-chip">{% if s.day_type == "surgery" %}<span class="badge text-bg-danger">{% trans "Surgery day" %}</span><br>{% endif %}{{ s.dentist }}{% if s.second_dentist %} + {{ s.second_dentist }}{% endif %}<br><span class="ltr small">{{ s.start_time|time:"H:i" }}-{{ s.end_time|time:"H:i" }}</span>{% if s.supervisor %}<br><span class="small text-muted">{% trans "Supervisor" %}: {{ s.supervisor }}</span>{% endif %}</span>
+      {% for s in room.day_shifts %}<span class="shift-chip">{% if s.day_type == "surgery" %}<span class="badge text-bg-danger">{% trans "Surgery day" %}</span><br>{% elif s.day_type == "preparation" %}<span class="badge text-bg-info">{% trans "Preparation day" %}</span><br>{% endif %}{{ s.dentist }}{% if s.second_dentist %} + {{ s.second_dentist }}{% endif %}<br><span class="ltr small">{{ s.start_time|time:"H:i" }}-{{ s.end_time|time:"H:i" }}</span>{% if s.supervisor %}<br><span class="small text-muted">{% trans "Supervisor" %}: {{ s.supervisor }}</span>{% endif %}</span>
       {% empty %}<span class="small text-muted">{% trans "Free" %}</span>{% endfor %}
       {% endif %}
     </div></div>

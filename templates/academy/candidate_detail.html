@@ -35,7 +35,8 @@
         <thead><tr><th>{% trans "Course" %}</th><th>{% trans "Fee after discount" %}</th><th>{% trans "Paid" %}</th><th>{% trans "Remaining" %}</th><th>{% trans "Implants required" %}</th><th>{% trans "Status" %}</th></tr></thead>
         <tbody>
         {% for e in enrollments %}
-        <tr><td><a href="{{ e.get_absolute_url }}">{{ e.course }}</a></td><td>{{ e.net_fee|money }}</td><td class="text-success">{{ e.total_paid|money }}</td><td class="fw-bold">{{ e.balance|money }}</td><td>{{ e.implants_required|default:"—" }}</td><td>{% status_badge e %}</td></tr>
+        <tr><td><a href="{{ e.get_absolute_url }}">{{ e.course }}</a> <span class="badge text-bg-light">{{ e.course.batch_label }}</span>
+          <div class="small text-muted">{% if e.study_mode == "online" %}<i class="bi bi-wifi"></i> {% trans "Online" %}{% else %}<i class="bi bi-building"></i> {% trans "In the academy" %}{% endif %} · {{ e.course.get_kind_display }}</div></td><td>{{ e.net_fee|money }}</td><td class="text-success">{{ e.total_paid|money }}</td><td class="fw-bold">{{ e.balance|money }}</td><td>{{ e.implants_required|default:"—" }}</td><td>{% status_badge e %}</td></tr>
         {% empty %}<tr><td colspan="6" class="text-muted">{% trans "Not enrolled in any course yet." %}</td></tr>{% endfor %}
         </tbody>
       </table></div>
@@ -51,6 +52,13 @@
       <a href="{{ dentist.get_absolute_url }}">{% trans "Open all cases, surgeries and treatments" %} <i class="bi bi-arrow-right-short"></i></a>
     </div></div>
     {% endwith %}
+    <div class="card mt-3"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-calendar2-week"></i> {% trans "Days at CIA (from the room schedule)" %}</span>
+      <span class="small">{% for label, n in day_counts %}<span class="badge text-bg-light">{{ label }}: {{ n }}</span> {% endfor %}</span></div>
+      <div class="list-group list-group-flush small">{% for s in days %}
+        <div class="list-group-item d-flex flex-wrap justify-content-between gap-2"><span>{{ s.date|date:"d/m/Y" }} · <b>{{ s.get_day_type_display }}</b> · {{ s.room }}</span>
+          <span class="text-muted">{% if s.second_dentist == dentist %}{% blocktrans with name=s.dentist %}with {{ name }}{% endblocktrans %}{% elif s.second_dentist %}{% blocktrans with name=s.second_dentist %}with {{ name }}{% endblocktrans %}{% endif %}{% if s.supervisor %} · {% trans "supervisor" %}: {{ s.supervisor }}{% endif %}</span></div>
+      {% empty %}<div class="list-group-item text-muted">{% trans "No days written yet. Put him on the room schedule (as the dentist or the second dentist with a CIA junior) on a preparation or surgery day." %}</div>{% endfor %}</div>
+    </div>
     {% endif %}
   </div>
 </div>

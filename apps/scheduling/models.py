@@ -41,10 +41,11 @@ class RoomShift(TimeStampedModel):
 
     class DayType(models.TextChoices):
         REGULAR = "regular", _("Regular day")
+        PREPARATION = "preparation", _("Preparation day")
         SURGERY = "surgery", _("Surgery day")
 
     room = models.ForeignKey(Room, verbose_name=_("room"), on_delete=models.CASCADE, related_name="shifts")
-    day_type = models.CharField(_("day type"), max_length=10, choices=DayType.choices, default=DayType.REGULAR)
+    day_type = models.CharField(_("day type"), max_length=12, choices=DayType.choices, default=DayType.REGULAR)
     date = models.DateField(_("date"), db_index=True)
     start_time = models.TimeField(_("from"))
     end_time = models.TimeField(_("to"))

@@ -220,7 +220,7 @@ class LabActionForm(StyledForm):
 class StepFilterForm(StyledForm):
     date_from = forms.DateField(label=_("From"), required=False)
     date_to = forms.DateField(label=_("To"), required=False)
-    dentist = DentistChoiceField(label=_("dentist"), required=False, empty_label=_("All"))
+    dentist = DentistChoiceField(everyone=True, label=_("dentist"), required=False, empty_label=_("All"))
     step_type = forms.ModelChoiceField(
         label=_("treatment"), queryset=TreatmentStepType.objects.all(), required=False, empty_label=_("All")
     )

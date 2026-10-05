@@ -24,9 +24,18 @@ class PaymentMethod(models.TextChoices):
 
 
 class Course(TimeStampedModel):
+    class Kind(models.TextChoices):
+        REGULAR = "regular", _("Regular course (a batch)")
+        PRIVATE = "private", _("Private course")
+
     branch = models.ForeignKey(Branch, verbose_name=_("branch"), on_delete=models.PROTECT, related_name="courses")
     name = models.CharField(_("course name"), max_length=150)
     code = models.CharField(_("code / batch"), max_length=30, unique=True)
+    kind = models.CharField(_("regular or private"), max_length=10, choices=Kind.choices, default=Kind.REGULAR,
+                            help_text=_("A private course is for one candidate (or a few) at their own times."))
+    batch_number = models.PositiveSmallIntegerField(
+        _("batch number"), null=True, blank=True,
+        help_text=_("Batch 1, 2, 3...: the candidates are listed by it."))
     start_date = models.DateField(_("start date"), null=True, blank=True)
     end_date = models.DateField(_("end date"), null=True, blank=True)
     fee = models.DecimalField(_("course fee"), max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
@@ -39,7 +48,7 @@ class Course(TimeStampedModel):
     description = models.TextField(_("description"), blank=True)
 
     class Meta:
-        ordering = ["-start_date", "name"]
+        ordering = ["-batch_number", "-start_date", "name"]
         verbose_name = _("course")
         verbose_name_plural = _("courses")
 
@@ -48,6 +57,15 @@ class Course(TimeStampedModel):
 
     def get_absolute_url(self):
         return reverse("academy:course_detail", args=[self.pk])
+
+    @property
+    def batch_label(self):
+        """"Batch 7", or "Private" for a private course, else the code."""
+        if self.kind == self.Kind.PRIVATE:
+            return _("Private · %(code)s") % {"code": self.code}
+        if self.batch_number:
+            return _("Batch %(n)s") % {"n": self.batch_number}
+        return self.code
 
 
 def candidate_id_path(instance, filename):

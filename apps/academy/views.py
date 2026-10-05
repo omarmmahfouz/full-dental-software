@@ -1,10 +1,11 @@
 import calendar
+from collections import Counter
 from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, F, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -88,15 +89,17 @@ def course_detail(request, pk):
 
 # ------------------------------------------------------------ candidates
 class CandidateListView(RoleRequiredMixin, SearchMixin, ListView):
+    """The candidates by batch (round 15): each batch (or private course) with its candidates, how they attend the
+    lectures (online or in the academy) and whether they are still studying."""
+
     allowed_roles = ACADEMY_ROLES
     template_name = "academy/candidate_list.html"
-    paginate_by = 40
+    paginate_by = 60
 
     def get_queryset(self):
         self.filter_form = CandidateFilterForm(self.request.GET or None)
-        qs = Candidate.objects.prefetch_related("enrollments__course").select_related("dentist")
-        if self.filter_form.is_valid() and self.filter_form.cleaned_data.get("course"):
-            qs = qs.filter(enrollments__course=self.filter_form.cleaned_data["course"])
+        data = self.filter_form.cleaned_data if self.filter_form.is_valid() else {}
+        candidates = Candidate.objects.all()
         q = clean_digits_value(self.get_search_query())
         if q:
             query = (Q(full_name__icontains=q) | Q(national_id__icontains=q) | Q(university__icontains=q)
@@ -104,12 +107,37 @@ class CandidateListView(RoleRequiredMixin, SearchMixin, ListView):
             phone = normalize_phone(q)
             if phone:
                 query |= Q(phone_primary__contains=phone) | Q(phone_secondary__contains=phone)
-            qs = qs.filter(query).distinct()
-        return qs.distinct()
+            candidates = candidates.filter(query)
+        rows = Enrollment.objects.filter(candidate__in=candidates).select_related(
+            "candidate__dentist", "course")
+        if data.get("course"):
+            rows = rows.filter(course=data["course"])
+        if data.get("kind"):
+            rows = rows.filter(course__kind=data["kind"])
+        if data.get("study_mode"):
+            rows = rows.filter(study_mode=data["study_mode"])
+        if data.get("status"):
+            rows = rows.filter(status=data["status"])
+        self.filtered = any(data.get(name) for name in ("course", "kind", "study_mode", "status"))
+        self.without_course = [] if self.filtered else list(
+            candidates.filter(enrollments__isnull=True).order_by("full_name")[:50])
+        return rows.order_by(F("course__batch_number").desc(nulls_last=True), "-course__start_date", "course__code",
+                             "candidate__full_name")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["filter_form"] = self.filter_form
+        batches = []
+        for enrollment in context["page_obj"]:
+            if not batches or batches[-1]["course"] != enrollment.course:
+                batches.append({"course": enrollment.course, "rows": []})
+            batches[-1]["rows"].append(enrollment)
+        course_ids = [batch["course"].pk for batch in batches]
+        counts = {row["course"]: row for row in Enrollment.objects.filter(course__in=course_ids).values("course")
+                  .annotate(n=Count("pk"), online=Count("pk", filter=Q(study_mode=Enrollment.StudyMode.ONLINE)),
+                            studying=Count("pk", filter=Q(status=Enrollment.Status.ACTIVE)))}
+        for batch in batches:
+            batch["counts"] = counts.get(batch["course"].pk, {})
+        context.update(filter_form=self.filter_form, batches=batches, without_course=self.without_course)
         return context
 
 
@@ -134,13 +162,18 @@ def candidate_detail(request, pk):
     candidate = get_object_or_404(Candidate.objects.select_related("dentist", "referral_source"), pk=pk)
     enrollments = candidate.enrollments.select_related("course")
     dentist = getattr(candidate, "dentist", None)
-    placed = 0
+    placed, days = 0, []
     if dentist is not None:
+        from apps.scheduling.models import RoomShift
         from apps.surgery.models import SurgerySite
 
         placed = SurgerySite.objects.done_by(dentist).exclude(implant_status="").count()
+        # Round 15: the days he came (a surgery day, or a preparation day with a CIA junior), from the room schedule.
+        days = list(RoomShift.objects.filter(Q(dentist=dentist) | Q(second_dentist=dentist)).select_related(
+            "room", "dentist", "second_dentist", "supervisor").order_by("-date", "-start_time")[:40])
     return render(request, "academy/candidate_detail.html", {
         "candidate": candidate, "enrollments": enrollments, "dentist": dentist, "implants_placed": placed,
+        "days": days, "day_counts": Counter(day.get_day_type_display() for day in days).most_common(),
     })
 
 

@@ -33,16 +33,60 @@ class Supplier(TimeStampedModel):
 
 
 class PurchaseCategory(LookupModel):
+    """What was bought, in two levels (round 15): dental or not, then a group (implants and surgery, materials,
+    instruments...), then the category itself."""
+
     class Kind(models.TextChoices):
         DENTAL = "dental", _("Dental")
         NON_DENTAL = "non_dental", _("Non-dental")
 
+    class Group(models.TextChoices):
+        IMPLANTS = "implants", _("Implants and surgery")
+        MATERIALS = "materials", _("Dental materials")
+        INSTRUMENTS = "instruments", _("Instruments and equipment")
+        CONSUMABLES = "consumables", _("Consumables and infection control")
+        MEDICINES = "medicines", _("Medicines and anaesthesia")
+        LAB = "lab", _("Lab materials")
+        HOSPITALITY = "hospitality", _("Kitchen and guests")
+        OFFICE = "office", _("Office and printing")
+        CLEANING = "cleaning", _("Cleaning")
+        BUILDING = "building", _("Maintenance, bills and the building")
+        OTHER = "other", _("Other")
+
+    DENTAL_GROUPS = ("implants", "materials", "instruments", "consumables", "medicines", "lab")
+
     kind = models.CharField(_("type"), max_length=20, choices=Kind.choices)
+    group = models.CharField(_("group"), max_length=20, choices=Group.choices, blank=True,
+                             help_text=_("Dental groups: implants and surgery, materials, instruments, consumables, "
+                                         "medicines, lab. The type follows the group."))
 
     class Meta(LookupModel.Meta):
-        ordering = ["kind", "sort_order", "name_ar"]
+        ordering = ["kind", "group", "sort_order", "name_ar"]
         verbose_name = _("purchase category")
         verbose_name_plural = _("purchase categories")
+
+    def save(self, *args, **kwargs):
+        if self.group:
+            self.kind = self.Kind.DENTAL if self.group in self.DENTAL_GROUPS else self.Kind.NON_DENTAL
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def grouped_choices(cls, queryset=None):
+        """[(group label, [(pk, name)])], dental groups first, for a list with headings."""
+        queryset = cls.objects.filter(is_active=True) if queryset is None else queryset
+        order = [code for code, _label in cls.Group.choices]
+        labels = dict(cls.Group.choices)
+        kinds = dict(cls.Kind.choices)
+        rows = {}
+        for category in queryset:
+            rows.setdefault(category.group or ("" if category.kind == cls.Kind.DENTAL else "other"), []).append(
+                (category.pk, str(category)))
+        result = []
+        for code in sorted(rows, key=lambda c: order.index(c) if c in order else -1):
+            label = labels.get(code) or kinds[cls.Kind.DENTAL]
+            kind = kinds[cls.Kind.DENTAL] if (code in cls.DENTAL_GROUPS or not code) else kinds[cls.Kind.NON_DENTAL]
+            result.append((f"{kind} · {label}" if code else str(label), rows[code]))
+        return result
 
 
 def invoice_path(instance, filename):

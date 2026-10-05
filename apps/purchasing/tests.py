@@ -158,3 +158,52 @@ class Round13PricesAndReturnsTests(TestCase):
         self.item.refresh_from_db()
         self.assertEqual((back.status, self.item.quantity), (PurchaseReturn.Status.CANCELLED, Decimal("50")))
         self.assertEqual(self.first.items.get().returned_quantity(), 0)
+
+
+class Round15PlacesAndGroupsTests(TestCase):
+    """Round 15: each place has its own purchases, and what is bought is dental or not, then a group (implants and
+    surgery, materials, instruments...), then the category."""
+
+    def setUp(self):
+        from apps.core.models import Branch
+
+        self.cia = setup_clinic()
+        self.cic = Branch.objects.get(code="CIC")
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+        self.supplier = Supplier.objects.create(name="Dental depot")
+        self.bone = PurchaseCategory.objects.get(name_en="Bone grafts & membranes")
+        self.tea = PurchaseCategory.objects.get(name_en="Tea, coffee & sugar")
+
+    def post(self, place, category, price):
+        return self.client.post("/purchases/new/", {
+            "branch": place.pk, "supplier": self.supplier.pk, "purchase_date": "2026-09-20", "payment_method": "cash",
+            "payment_status": "paid", "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0",
+            "items-MIN_NUM_FORMS": "0", "items-MAX_NUM_FORMS": "1000", "items-0-category": category.pk,
+            "items-0-description": "x", "items-0-quantity": "1", "items-0-unit_price": price})
+
+    def test_the_categories_are_grouped(self):
+        self.assertEqual((self.bone.kind, self.bone.group), ("dental", "implants"))
+        self.assertEqual((self.tea.kind, self.tea.group), ("non_dental", "hospitality"))
+        other = PurchaseCategory.objects.create(name_ar="ليزر", name_en="Laser tips", kind="non_dental",
+                                                group="instruments")
+        self.assertEqual(other.kind, "dental")  # the type follows the group
+        page = self.client.get("/purchases/new/")
+        labels = [label for label, _rows in page.context["formset"].forms[0].fields["category"].choices][1:]
+        self.assertEqual(labels[0], "Dental · Implants and surgery")
+        self.assertContains(page, "<optgroup")
+
+    def test_each_place_has_its_own_purchases(self):
+        self.post(self.cia, self.bone, "3000")
+        self.post(self.cic, self.tea, "200")
+        self.assertEqual(Purchase.objects.get(branch=self.cic).total, Decimal("200"))
+        dates = {"date_from": "01/09/2026", "date_to": "30/09/2026"}
+        here = self.client.get("/purchases/", dates)  # the owner works at CIA now
+        self.assertEqual(here.context["total"], Decimal("3000"))
+        self.assertEqual(here.context["by_kind"][0]["groups"][0]["label"], "Implants and surgery")
+        cic = self.client.get("/purchases/", dict(dates, place=self.cic.pk))
+        self.assertEqual(cic.context["total"], Decimal("200"))
+        both = self.client.get("/purchases/", dict(dates, place="all"))
+        self.assertEqual(both.context["total"], Decimal("3200"))
+        dental = self.client.get("/purchases/", dict(dates, place="all", group="implants"))
+        self.assertEqual(dental.context["total"], Decimal("3000"))

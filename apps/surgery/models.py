@@ -898,3 +898,39 @@ class ImplantComplication(TimeStampedModel):
                 and not self.resolved_on:
             self.resolved_on = timezone.localdate()
         super().save(*args, **kwargs)
+
+
+class DaySupervisor(models.Model):
+    """Who supervised the surgery day (round 15): written on the day by the CIA juniors, so each surgery of that day
+    (at that place, in those hours) gets him as its instructor, printed on the case report and the log book."""
+
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), on_delete=models.CASCADE, related_name="+")
+    date = models.DateField(_("date"), default=timezone.localdate, db_index=True)
+    supervisor = models.ForeignKey("dentists.Dentist", verbose_name=_("supervisor"), on_delete=models.PROTECT,
+                                   related_name="days_supervised")
+    from_time = models.TimeField(_("from"), null=True, blank=True)
+    to_time = models.TimeField(_("to"), null=True, blank=True)
+    notes = models.CharField(_("notes"), max_length=255, blank=True)
+    written_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                                   related_name="+", verbose_name=_("written by"))
+    written_at = models.DateTimeField(_("written at"), auto_now_add=True)
+
+    class Meta:
+        ordering = ["date", "from_time", "pk"]
+        verbose_name = _("supervisor of the surgery day")
+        verbose_name_plural = _("supervisors of the surgery days")
+        constraints = [models.UniqueConstraint(fields=["branch", "date", "supervisor"],
+                                               name="one_day_supervisor_row")]
+
+    def __str__(self):
+        return f"{self.supervisor} {self.date:%d/%m/%Y}"
+
+    @classmethod
+    def on(cls, branch, day, at=None):
+        """The supervisor of that day at that place: the one whose hours hold ``at`` (a time), else the only one."""
+        rows = list(cls.objects.filter(branch=branch, date=day).select_related("supervisor"))
+        if at is not None:
+            for row in rows:
+                if row.from_time and row.to_time and row.from_time <= at < row.to_time:
+                    return row.supervisor
+        return rows[0].supervisor if len(rows) == 1 else None

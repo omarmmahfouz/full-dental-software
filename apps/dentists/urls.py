@@ -11,4 +11,5 @@ urlpatterns = [
     path("<int:pk>/edit/", views.dentist_edit, name="update"),
     path("<int:pk>/login/", views.create_login, name="create_login"),
     path("<int:pk>/signature/", views.dentist_signature, name="signature"),
+    path("<int:pk>/lists/", views.toggle_lists, name="toggle_lists"),
 ]

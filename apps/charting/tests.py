@@ -694,3 +694,86 @@ class Round14PhotoPagesTests(TestCase):
         self.assertContains(page, "photo-editor-save")
         page = self.client.get(f"/chart/photo/{photo.pk}/edit/?next=https://example.com/")
         self.assertTrue(page.context["back"].startswith(f"/chart/patient/{self.patient.pk}/photos/"))
+
+
+class Round15LogBookByOperatorTests(TestCase):
+    """Round 15: two candidates on one patient (one did 36, the other 46) each print the photos of their teeth."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+
+        from django.test import override_settings
+
+        self.media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.media, ignore_errors=True)
+        settings_override = override_settings(MEDIA_ROOT=self.media)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
+        self.branch = setup_clinic()
+        self.first = make_dentist("dentist", kind="candidate")
+        self.second = make_dentist("other", kind="candidate", login=False)
+        self.supervisor = make_dentist("sup", kind="supervisor", login=False)
+        self.patient = make_patient(self.branch, assigned_dentist=self.first)
+
+    def test_each_operator_prints_his_own_teeth(self):
+        from django.core.files.base import ContentFile
+
+        from apps.charting.models import ClinicalPhoto
+
+        surgery = Surgery.objects.create(branch=self.branch, patient=self.patient, operator_1=self.first,
+                                         operator_2=self.second, instructor=self.supervisor)
+        SurgerySite.objects.create(surgery=surgery, tooth=36, simple_implant=True)
+        SurgerySite.objects.create(surgery=surgery, tooth=46, simple_implant=True, operator=self.second)
+        for teeth in ("36", "46", ""):
+            ClinicalPhoto.objects.create(patient=self.patient, stage="surgery", surgery=surgery, teeth=teeth,
+                                         file=ContentFile(b"jpeg", name="IMG.JPG"))
+        self.client.login(username="dentist", password=PASSWORD)
+        url = f"/chart/patient/{self.patient.pk}/photos/logbook/"
+        page = self.client.get(url)
+        self.assertEqual(len(page.context["operators"]), 2)
+        self.assertEqual(len(page.context["pages"][0]["photos"]), 3)
+        mine = self.client.get(url, {"operator": self.second.pk}).context["pages"][0]
+        self.assertEqual(sorted(p.teeth for p in mine["photos"]), ["", "46"])
+        self.assertEqual((mine["operator"], mine["supervisor"]), (self.second, self.supervisor))
+
+
+class Round15ExamAndChartTests(TestCase):
+    """Round 15: the examination and the dental chart are one: a new examination starts from the chart, its tooth
+    boxes open the teeth diagram, and a tooth taken off a box is taken off the chart."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+        ToothState.objects.create(patient=self.patient, tooth=36, status=ToothState.Status.MISSING)
+        ToothState.objects.create(patient=self.patient, tooth=16, caries=True, caries_surfaces="O")
+        ToothState.objects.create(patient=self.patient, tooth=26, filled=True)
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def test_a_new_examination_starts_from_the_chart(self):
+        page = self.client.get(f"/chart/patient/{self.patient.pk}/exam/new/")
+        initial = page.context["form"].initial
+        self.assertEqual((initial["teeth_missing"], initial["teeth_carious"], initial["teeth_filled"]),
+                         ("36", "16", "26"))
+        self.assertContains(page, 'data-exam-teeth="teeth_carious"')
+        self.assertContains(page, 'data-teeth-picker="multi"')
+        self.assertContains(page, 'data-exam-chart')
+
+    def test_taking_a_tooth_off_takes_it_off_the_chart(self):
+        today = timezone.localdate().strftime("%d/%m/%Y")
+        response = self.client.post(f"/chart/patient/{self.patient.pk}/exam/new/", {
+            "exam_date": today, "teeth_missing": "36", "teeth_carious": "", "teeth_filled": "26, 46",
+            "update_chart": "on"})
+        self.assertEqual(response.status_code, 302, response.context and response.context["form"].errors)
+        states = {s.tooth: s for s in ToothState.objects.filter(patient=self.patient)}
+        self.assertFalse(states[16].caries)  # taken off "carious"
+        self.assertTrue(states[46].filled)  # added
+        self.assertEqual(states[36].status, ToothState.Status.MISSING)  # unchanged
+
+    def test_editing_an_old_examination_never_takes_off(self):
+        exam = Examination.objects.create(patient=self.patient, teeth_carious="")
+        today = timezone.localdate().strftime("%d/%m/%Y")
+        self.client.post(f"/chart/exam/{exam.pk}/edit/", {"exam_date": today, "teeth_carious": "",
+                                                          "update_chart": "on"})
+        self.assertTrue(ToothState.objects.get(patient=self.patient, tooth=16).caries)

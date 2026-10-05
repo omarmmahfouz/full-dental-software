@@ -506,4 +506,4 @@ class ComplicationFilterForm(StyledForm):
                                 choices=[("", _("All"))] + list(ImplantComplication.Outcome.choices))
     system = forms.ModelChoiceField(label=_("implant type"), required=False, queryset=ImplantSystem.objects.all(),
                                     empty_label=_("All"))
-    operator = DentistChoiceField(label=_("operator"), required=False, empty_label=_("All"))
+    operator = DentistChoiceField(everyone=True, label=_("operator"), required=False, empty_label=_("All"))

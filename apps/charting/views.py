@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Count, Q
 from django.http import FileResponse, Http404, JsonResponse
@@ -30,7 +30,7 @@ from .forms import (
 )
 from .models import ClinicalPhoto, Examination, PhotoStage, PhotoType, PlanItem, ToothChange, ToothState, TreatmentPlan
 from .plans import planned_by_tooth
-from .rules import DEFAULT, apply_changes, current_states, exam_changes, plan_changes, state_label
+from .rules import DEFAULT, apply_changes, chart_to_exam, current_states, exam_changes, plan_changes, state_label
 from .sync import missing_teeth, sync_medical_history
 from .teeth import ALL_TEETH, VALID_TEETH, chart_order, format_teeth, parse_surfaces, parse_teeth
 
@@ -185,6 +185,7 @@ def exam_edit(request, patient_pk=None, pk=None):
             initial["conditions"] = list(set(previous.conditions.all()) | set(patient.medical_conditions.all()))
         else:
             initial["conditions"] = list(patient.medical_conditions.all())
+        initial.update(chart_to_exam(patient))  # the teeth as the dental chart has them now (round 15)
     form = ExaminationForm(request.POST or None, instance=exam, initial=initial)
     histories = patient.examinations.aggregate(medical=Count("pk", filter=Q(medical_taken=True)),
                                                dental=Count("pk", filter=Q(dental_taken=True)))
@@ -202,7 +203,9 @@ def exam_edit(request, patient_pk=None, pk=None):
                 sync_medical_history(obj)
             changed = 0
             if form.cleaned_data.get("update_chart"):
-                changed = apply_changes(patient, exam_changes(patient, obj), request.user,
+                # A new examination started from the chart: a tooth taken off a box is taken off the chart too.
+                before = chart_to_exam(patient) if exam is None else None
+                changed = apply_changes(patient, exam_changes(patient, obj, before), request.user,
                                         ToothChange.Source.EXAM, examination=obj)
         messages.success(request, _("Examination and history saved.") + (
             " " + _("Dental chart updated for %(n)s teeth.") % {"n": changed} if changed else ""))
@@ -215,7 +218,7 @@ def exam_edit(request, patient_pk=None, pk=None):
             return redirect(f"{reverse('clinical:outside_create')}?{query}")
         return redirect(after)
     return render(request, "charting/exam_form.html", {
-        "form": form, "patient": patient, "exam": exam,
+        "form": form, "patient": patient, "exam": exam, "svg": chart_svg(patient, clickable=False),
         "title": _("Edit examination & history") if exam else _("New examination & history"),
         "file_steps": None if exam else file_steps(patient, current="exam"), "flow": request.GET.get("flow"),
     })
@@ -463,7 +466,6 @@ def photo_delete(request, pk):
 def photo_edit(request, pk):
     """Crop, turn, mirror or lighten a photo before it goes in the log book. The page does the editing; the edited
     picture comes back here and takes the photo's place, the original is kept (photo_edit.py)."""
-    from django.core.exceptions import ValidationError
 
     from .photo_edit import restore_original, save_edited
 
@@ -542,6 +544,13 @@ def _stage_description(stage, photos, surgeries, steps, plan_items):
     return "\n".join(dict.fromkeys(lines))
 
 
+def _teeth_set(text):
+    try:
+        return set(parse_teeth(text or ""))
+    except ValidationError:  # an old text that does not read as teeth
+        return set()
+
+
 def logbook(request, patient_pk):
     """The case's photos on printable log-book pages: fixed frame size, one stage per page,
     each photo named, with the description of the procedure."""
@@ -552,8 +561,28 @@ def logbook(request, patient_pk):
     chosen = [code for code in request.GET.getlist("stage") if code in dict(available)] or [c for c, _l in available]
     per_page, action, keep = per_page_of(request)
     surgeries = list(patient.surgeries.select_related("instructor", "operator_1").prefetch_related(
-        "sites__implant_system"))
+        "sites__implant_system", "sites__operator"))
     steps = list(TreatmentStep.objects.filter(patient=patient).select_related("step_type", "operator"))
+    # Round 15: two candidates on one patient (one did 36, the other 46): each prints his own log book, with the
+    # photos of his teeth (and the photos of the whole mouth), his name and the supervisor of his surgery.
+    operators, teeth_of = {}, {}
+    for surgery in surgeries:
+        for site in surgery.sites.all():
+            operators.setdefault(site.done_by.pk, site.done_by)
+            teeth_of.setdefault(site.done_by.pk, set()).add(site.tooth)
+    for step in steps:
+        if step.operator_id:
+            operators.setdefault(step.operator_id, step.operator)
+            teeth_of.setdefault(step.operator_id, set()).update(_teeth_set(step.teeth))
+    chosen_operator = operators.get(int(request.GET["operator"])) if request.GET.get("operator", "").isdigit() \
+        else None
+    if chosen_operator is not None:
+        mine = teeth_of.get(chosen_operator.pk, set())
+        all_photos = [p for p in all_photos if not _teeth_set(p.teeth) or _teeth_set(p.teeth) & mine]
+        available = [(code, label) for code, label in available if any(p.stage == code for p in all_photos)]
+        chosen = [code for code in chosen if code in dict(available)]
+        surgeries = [s for s in surgeries if any(site.done_by == chosen_operator for site in s.sites.all())] \
+            or surgeries
     plan_items = list(PlanItem.objects.filter(plan__patient=patient, plan__status__in=TreatmentPlan.OPEN_STATUSES)
                       .exclude(status=PlanItem.Status.CANCELLED).select_related("step_type"))
     pages = []
@@ -562,13 +591,14 @@ def logbook(request, patient_pk):
             continue
         photos = sorted((p for p in all_photos if p.stage == code),
                         key=lambda p: (p.photo_type.sort_order if p.photo_type_id else 999, p.taken_on))
-        surgery = next((p.surgery for p in photos if p.surgery_id), None)
+        surgery = next((p.surgery for p in photos if p.surgery_id and (chosen_operator is None or p.surgery in
+                                                                        surgeries)), None)
         typed = request.GET.get(f"desc_{code}")  # the text changed on the page before choosing 4 or 6 a page
         stage = {
             "code": code, "label": label,
             "dates": sorted({p.taken_on for p in photos}),
             "teeth": format_teeth({t for p in photos for t in parse_teeth(p.teeth)}),
-            "operator": (surgery.operator_1 if surgery else None) or patient.assigned_dentist,
+            "operator": chosen_operator or (surgery.operator_1 if surgery else None) or patient.assigned_dentist,
             "supervisor": surgery.instructor if surgery else None,
             "description": typed if typed is not None else _stage_description(code, photos, surgeries, steps,
                                                                               plan_items),
@@ -578,6 +608,8 @@ def logbook(request, patient_pk):
     width, height = LOGBOOK_FRAMES[per_page]
     return render(request, "charting/logbook.html", {
         "patient": patient, "pages": pages, "available": available, "chosen": chosen, "per_page": per_page,
+        "operators": sorted(operators.values(), key=str) if len(operators) > 1 else [],
+        "chosen_operator": chosen_operator,
         "action": action, "keep": keep,
         "frame_width": width, "frame_height": height, "fit": "contain" if request.GET.get("fit") == "contain" else "cover",
         "anonymous": request.GET.get("anonymous") == "1",

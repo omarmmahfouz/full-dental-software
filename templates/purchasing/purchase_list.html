@@ -6,27 +6,35 @@
   <h1><i class="bi bi-receipt"></i> {% trans "Purchases" %} <small class="text-muted fs-6">{{ date_from|date:"d/m/Y" }} — {{ date_to|date:"d/m/Y" }}</small></h1>
   <a class="btn btn-primary" href="{% url 'purchasing:purchase_create' %}"><i class="bi bi-plus-lg"></i> {% trans "New purchase" %}</a>
 </div>
-<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
-  {% for field in filter_form %}<div class="col-6 col-md-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}
-  <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
+{% if places %}<nav class="place-tabs no-print mb-3" aria-label="{% trans 'Place' %}">
+  {% for p in places %}<a class="btn btn-sm {% if place == p %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?{{ query }}{% if query %}&amp;{% endif %}place={{ p.pk }}">{{ p.badge }} · {{ p }}</a>{% endfor %}
+  <a class="btn btn-sm {% if not place %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="?{{ query }}{% if query %}&amp;{% endif %}place=all">{% trans "All places" %}</a>
+</nav>{% endif %}
+<form class="card card-body mb-3 no-print">{% if place %}<input type="hidden" name="place" value="{{ place.pk }}">{% elif places %}<input type="hidden" name="place" value="all">{% endif %}<div class="row g-2 align-items-end">
+  {% for field in filter_form %}<div class="col-6 col-md-4 col-lg-2"><label class="form-label">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <div class="col-12 col-lg-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
 </div></form>
 <div class="row g-3 mb-3">
-  <div class="col-md-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ total|money }}</div><div class="stat-label">{% trans "Total spent" %} ({{ CLINIC.CURRENCY }})</div></div></div></div>
-  <div class="col-md-8"><div class="card h-100"><div class="card-header">{% trans "By category" %}</div><div class="card-body">
-    <table class="table table-sm mb-0"><tbody>
-    {% for category, amount in by_category %}
-      <tr><td>{{ category }} <span class="badge text-bg-light">{{ category.get_kind_display }}</span></td><td class="fw-bold nowrap">{{ amount|money }}</td></tr>
-    {% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}
-    </tbody></table>
+  <div class="col-md-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ total|money }}</div><div class="stat-label">{% trans "Total spent" %} ({{ CLINIC.CURRENCY }}){% if place %} · {{ place }}{% elif places %} · {% trans "All places" %}{% endif %}</div>
+    {% for kind in by_kind %}<div class="d-flex justify-content-between mt-2"><span>{{ kind.label }}</span><b>{{ kind.total|money }}</b></div>{% endfor %}</div></div></div>
+  <div class="col-md-8"><div class="card h-100"><div class="card-header">{% trans "By group and category" %}</div><div class="card-body">
+    {% for kind in by_kind %}<div class="purchase-kind"><div class="purchase-kind-title">{{ kind.label }} <span class="ms-auto">{{ kind.total|money }}</span></div>
+      {% for group in kind.groups %}<details class="purchase-group"{% if forloop.first %} open{% endif %}>
+        <summary><span>{{ group.label }}</span> <b class="nowrap">{{ group.total|money }}</b></summary>
+        <table class="table table-sm mb-1"><tbody>{% for category, amount in group.categories %}
+          <tr><td>{{ category }}</td><td class="text-end nowrap">{{ amount|money }}</td></tr>{% endfor %}</tbody></table>
+      </details>{% endfor %}</div>
+    {% empty %}<div class="text-muted">—</div>{% endfor %}
   </div></div></div>
 </div>
 <div class="card"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Supplier" %}</th><th>{% trans "Invoice no." %}</th><th>{% trans "Items" %}</th><th>{% trans "Total" %}</th><th>{% trans "Payment" %}</th><th>{% trans "Entered by" %}</th></tr></thead>
+  <thead><tr><th>{% trans "Date" %}</th>{% if places and not place %}<th>{% trans "Place" %}</th>{% endif %}<th>{% trans "Supplier" %}</th><th>{% trans "Invoice no." %}</th><th>{% trans "Items" %}</th><th>{% trans "Total" %}</th><th>{% trans "Payment" %}</th><th>{% trans "Entered by" %}</th></tr></thead>
   <tbody>
   {% for p in purchases %}
   <tr>
     <td class="nowrap"><a href="{{ p.get_absolute_url }}">{{ p.purchase_date|date:"d/m/Y" }}</a></td>
+    {% if places and not place %}<td><span class="badge text-bg-light">{{ p.branch.badge }}</span></td>{% endif %}
     <td><a href="{{ p.supplier.get_absolute_url }}">{{ p.supplier }}</a></td>
     <td>{{ p.invoice_number|default:"—" }}</td>
     <td class="small">{% for i in p.items.all %}{{ i.description }} <span class="text-muted">({{ i.category }})</span>{% if not forloop.last %}، {% endif %}{% endfor %}</td>
@@ -34,7 +42,7 @@
     <td>{{ p.get_payment_method_display }} {% status_badge p "payment_status" %}</td>
     <td class="small">{{ p.created_by|default:"—" }}</td>
   </tr>
-  {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">{% trans "No purchases in this period." %}</td></tr>{% endfor %}
+  {% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No purchases in this period." %}</td></tr>{% endfor %}
   </tbody>
 </table>
 </div></div>

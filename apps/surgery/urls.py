@@ -1,12 +1,14 @@
 from django.urls import path
 
-from . import implant_life, views
+from . import day, implant_life, views
 
 app_name = "surgery"
 
 urlpatterns = [
     path("", views.surgery_list, name="list"),
     path("new/", views.surgery_edit, name="create"),
+    path("day/", day.surgery_day, name="day"),
+    path("day/supervisor/<int:pk>/remove/", day.remove_day_supervisor, name="day_supervisor_remove"),
     path("<int:pk>/", views.surgery_detail, name="detail"),
     path("<int:pk>/edit/", views.surgery_edit, name="update"),
     path("implant/<int:pk>/", views.implant_detail, name="implant"),

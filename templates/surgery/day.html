@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Surgery day" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-calendar2-check"></i> {% trans "Surgery day" %} <small class="text-muted fs-6">{{ day|date:"l d/m/Y" }} · {{ place }}</small></h1>
+  <div class="btn-group no-print" role="group" aria-label="{% trans 'Day' %}">
+    <a class="btn btn-outline-secondary" href="?date={{ previous|date:'Y-m-d' }}" aria-label="{% trans 'Day before' %}"><i class="bi bi-chevron-left"></i></a>
+    <a class="btn btn-outline-secondary" href="?">{% trans "Today" %}</a>
+    <a class="btn btn-outline-secondary" href="?date={{ next|date:'Y-m-d' }}" aria-label="{% trans 'Day after' %}"><i class="bi bi-chevron-right"></i></a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card mb-3 border-primary">
+      <div class="card-header"><i class="bi bi-person-check"></i> {% trans "Who supervised the surgery day" %}</div>
+      <div class="list-group list-group-flush">{% for row in supervisors %}
+        <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <span><b>{{ row.supervisor }}</b>{% if row.from_time %} <span class="text-muted small">{{ row.from_time|time:"g:i A" }} – {{ row.to_time|time:"g:i A" }}</span>{% endif %}
+            {% if row.notes %}<span class="small text-muted"> · {{ row.notes }}</span>{% endif %}
+            <span class="d-block small text-muted">{% blocktrans with name=row.written_by.get_full_name|default:row.written_by.username %}written by {{ name }}{% endblocktrans %}</span></span>
+          {% if can_remove or row.written_by_id == request.user.pk %}<form method="post" action="{% url 'surgery:day_supervisor_remove' row.pk %}" class="no-print" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-outline-danger" data-confirm="{% trans 'Remove this supervisor from the day?' %}" aria-label="{% trans 'Remove' %}"><i class="bi bi-x-lg"></i></button></form>{% endif %}
+        </div>
+      {% empty %}<div class="list-group-item text-muted">{% trans "Not written yet. A CIA junior writes the supervisor of the day here." %}</div>{% endfor %}</div>
+      <div class="card-body no-print">
+        <form method="post" novalidate>{% csrf_token %}<input type="hidden" name="date" value="{{ day|date:'Y-m-d' }}">
+          {% include "includes/form_fields.html" %}
+          <button class="btn btn-primary"><i class="bi bi-check-lg"></i> {% trans "Save the supervisor of the day" %}</button>
+        </form>
+      </div>
+      <div class="card-footer small text-muted">{% trans "Each surgery of the day without an instructor takes him (by the hours when two share the day). He is printed on the case report and the log book." %}</div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-door-open"></i> {% trans "In the rooms" %}</div>
+      <div class="list-group list-group-flush small">{% for s in shifts %}
+        <div class="list-group-item">
+          <b>{{ s.room }}</b> <span class="text-muted">{{ s.start_time|time:"g:i A" }} – {{ s.end_time|time:"g:i A" }}</span> <span class="badge text-bg-light">{{ s.get_day_type_display }}</span><br>
+          {{ s.dentist|default:"—" }}{% if s.second_dentist %} + {{ s.second_dentist }}{% endif %}{% if s.supervisor %} · <span class="text-muted">{% trans "supervisor" %}: {{ s.supervisor }}</span>{% endif %}
+        </div>
+      {% empty %}<div class="list-group-item text-muted">{% trans "No room shifts on this day." %}</div>{% endfor %}</div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-implant"></i> {% trans "The surgeries of the day" %}</span>{% if roles.dentist or is_management %}<a class="small no-print" href="{% url 'surgery:create' %}">{% trans "New surgery chart" %}</a>{% endif %}</div>
+      <div class="list-group list-group-flush">{% for s in surgeries %}
+        <a class="list-group-item list-group-item-action" href="{{ s.get_absolute_url }}">
+          <div class="d-flex flex-wrap justify-content-between gap-2"><span><b>{{ s.patient.full_name }}</b> <span class="text-muted small">{{ s.patient.file_number }} · {{ s.number }}</span></span>
+            <span class="small">{% trans "Instructor" %}: {% if s.instructor %}<b>{{ s.instructor }}</b>{% else %}<span class="text-danger">{% trans "not written" %}</span>{% endif %}</span></div>
+          <div class="small mt-1">{% for operator, teeth in s.teeth_by.items %}<span class="day-operator"><i class="bi bi-person"></i> {{ operator }}: <b>{{ teeth|join:", " }}</b></span> {% empty %}{{ s.operator_1 }}{% endfor %}
+            {% if s.assistant %}<span class="text-muted"> · {% trans "assistant" %}: {{ s.assistant }}</span>{% endif %}</div>
+        </a>
+      {% empty %}<div class="list-group-item text-muted">{% trans "No surgery chart written on this day yet." %}</div>{% endfor %}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

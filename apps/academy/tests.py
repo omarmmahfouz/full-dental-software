@@ -108,3 +108,86 @@ class InstallmentReminderTests(TestCase):
         self.assertIn("د. أحمد", text)
         self.assertEqual(SentMessage.objects.get().installment, installment)
         self.assertEqual(len(self.client.get("/schedule/whatsapp/").context["installments"]), 1)
+
+
+class Round15AcademyTests(TestCase):
+    """Round 15: the candidates by batch (regular or private, online or in the academy), the drop lists without the
+    candidates whose course ended, the surgery day's supervisor written by the juniors."""
+
+    def setUp(self):
+        from apps.dentists.models import Dentist
+
+        self.branch = setup_clinic()
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+        self.batch7 = Course.objects.create(branch=self.branch, name="Implant diploma", code="IMP-7", batch_number=7,
+                                            fee=Decimal("40000"))
+        self.batch6 = Course.objects.create(branch=self.branch, name="Implant diploma", code="IMP-6", batch_number=6,
+                                            fee=Decimal("40000"))
+        self.private = Course.objects.create(branch=self.branch, name="Private implant course", code="PRV-1",
+                                             kind="private", fee=Decimal("60000"))
+        self.mona = self.candidate("Dr. Mona", "01001234561", self.batch7, study_mode="online")
+        self.ali = self.candidate("Dr. Ali", "01001234562", self.batch7)
+        self.old = self.candidate("Dr. Old", "01001234563", self.batch6, status="completed")
+        self.sara = self.candidate("Dr. Sara", "01001234564", self.private)
+        self.junior = Dentist.objects.create(full_name="Dr. Junior", kind="fulltime", work_time="part")
+        self.rare = Dentist.objects.create(full_name="Dr. Rare", kind="training", show_in_lists=False)
+        self.supervisor = Dentist.objects.create(full_name="Dr. Supervisor", kind="supervisor")
+
+    def candidate(self, name, phone, course, **extra):
+        person = Candidate.objects.create(full_name=name, phone_primary=phone)
+        Enrollment.objects.create(candidate=person, course=course, agreed_fee=course.fee, **extra)
+        return person
+
+    def test_the_candidates_are_listed_by_batch(self):
+        page = self.client.get("/academy/candidates/")
+        self.assertEqual([batch["course"].code for batch in page.context["batches"]], ["IMP-7", "IMP-6", "PRV-1"])
+        self.assertEqual(page.context["batches"][0]["counts"]["online"], 1)
+        self.assertContains(page, "Batch 7")
+        online = self.client.get("/academy/candidates/", {"study_mode": "online"})
+        self.assertEqual([e.candidate for b in online.context["batches"] for e in b["rows"]], [self.mona])
+        private = self.client.get("/academy/candidates/", {"kind": "private"})
+        self.assertEqual([e.candidate for b in private.context["batches"] for e in b["rows"]], [self.sara])
+
+    def test_the_drop_lists_leave_out_the_finished_and_the_rare(self):
+        from apps.surgery.forms import SurgeryForm
+
+        html = str(SurgeryForm()["operator_1"])
+        self.assertIn("Dr. Mona — Batch 7", html)
+        self.assertIn('<optgroup label="Candidates · Batch 7">', html)
+        self.assertIn('<optgroup label="CIA junior dentists">', html)
+        self.assertIn("Dr. Junior — Part time", html)
+        self.assertNotIn("Dr. Old", html)  # his course ended
+        self.assertNotIn("Dr. Rare", html)  # taken off the lists in Settings
+        # A surgery he did keeps him on its form.
+        surgery = SurgeryForm(initial={"operator_1": self.old.dentist.pk})
+        self.assertIn("Dr. Old", str(surgery["operator_1"]))
+        # The finders still offer everyone.
+        from apps.surgery.finder import FinderForm
+
+        self.assertIn("Dr. Old", str(FinderForm()["operator"]))
+        # Settings: take someone off the lists, and back.
+        self.client.post(f"/dentists/{self.junior.pk}/lists/")
+        self.junior.refresh_from_db()
+        self.assertFalse(self.junior.show_in_lists)
+        people = self.client.get("/dentists/", {"kind": "candidate"})
+        self.assertContains(people, "course ended")
+
+    def test_the_juniors_write_the_supervisor_of_the_surgery_day(self):
+        from apps.core.testing import make_patient
+        from apps.surgery.models import DaySupervisor, Surgery
+
+        junior = make_user("junior", "dentist")
+        self.junior.user = junior
+        self.junior.save()
+        patient = make_patient(self.branch)
+        surgery = Surgery.objects.create(branch=self.branch, patient=patient, operator_1=self.mona.dentist)
+        self.client.login(username="junior", password=PASSWORD)
+        page = self.client.get("/surgery/day/")
+        self.assertEqual(list(page.context["surgeries"]), [surgery])
+        self.client.post("/surgery/day/", {"supervisor": self.supervisor.pk})
+        self.assertEqual(DaySupervisor.objects.get().written_by, junior)
+        surgery.refresh_from_db()
+        self.assertEqual(surgery.instructor, self.supervisor)  # the surgery of the day takes him
+        form = self.client.get("/surgery/new/").context["form"]
+        self.assertEqual(form.initial["instructor"], self.supervisor)

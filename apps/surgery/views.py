@@ -34,7 +34,7 @@ from apps.stock.implants import lot_choices, take_implants
 
 from .finder import FinderForm, SiteFacts, export_csv, filter_sites, procedure_totals, prosthesis_totals, statistics
 from .forms import DeliveryCheckForm, ImplantUpdateForm, ProsthesisForm, SurgeryForm, SurgerySiteFormSet
-from .models import DeliveryCheck, ImplantSystem, Prosthesis, SavedSearch, Surgery, SurgerySite
+from .models import DaySupervisor, DeliveryCheck, ImplantSystem, Prosthesis, SavedSearch, Surgery, SurgerySite
 from .followup import follow_up
 from .prostheses import apply_stage, plan_from_surgery
 
@@ -217,6 +217,9 @@ def surgery_edit(request, pk=None):
     if surgery is None and me is not None:
         # CIA dentists assist the candidates in surgery.
         initial["instructor" if me.kind == Dentist.Kind.SUPERVISOR else "assistant"] = me
+    if surgery is None and "instructor" not in initial:
+        initial["instructor"] = DaySupervisor.on(branch_for_user(request.user), timezone.localdate(),
+                                                 timezone.localtime().time())
     form = SurgeryForm(request.POST or None, request.FILES or None, instance=surgery, user=request.user,
                        patient=patient, initial=initial)
     formset = SurgerySiteFormSet(request.POST or None, request.FILES or None,
@@ -240,6 +243,9 @@ def surgery_edit(request, pk=None):
             if not obj.pk:
                 obj.branch = branch_for_user(request.user)
                 obj.created_by = request.user
+            if obj.instructor_id is None:  # the supervisor of the surgery day, written by the juniors (round 15)
+                at = timezone.localtime(obj.appointment.scheduled_at).time() if obj.appointment_id else None
+                obj.instructor = DaySupervisor.on(obj.branch, obj.date, at)
             obj.save()
             formset.instance = obj
             formset.save()

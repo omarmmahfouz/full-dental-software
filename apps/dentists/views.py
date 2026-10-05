@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -57,7 +58,44 @@ def dentist_list(request):
     if active in ("0", "1"):
         qs = qs.filter(is_active=active == "1")
     page = Paginator(qs, 50).get_page(request.GET.get("page"))
-    return render(request, "dentists/dentist_list.html", {"page_obj": page, "filter_form": form})
+    # Round 15: the people in groups (tabs), the candidates with their batch, and who is offered on the forms.
+    from .forms import GROUP_NAMES, GROUP_ORDER, list_facts
+
+    facts = list_facts()
+    for dentist in page:
+        batch = facts["batch"].get(dentist.pk)
+        dentist.batch, dentist.listed = (batch[0] if batch else ""), dentist.pk not in facts["hidden"]
+    counts = dict(_dentists_for(request.user).filter(is_active=True).values_list("kind").annotate(n=Count("pk")))
+    chosen = form.cleaned_data.get("kind", "") if form.is_valid() else ""
+    params = request.GET.copy()
+    params.pop("page", None)
+    tabs = []
+    for kind in ("",) + GROUP_ORDER:
+        if kind and not counts.get(kind):
+            continue
+        query = params.copy()
+        query["kind"] = kind
+        tabs.append({"label": GROUP_NAMES.get(kind, _("Everyone")), "n": counts.get(kind) if kind else
+                     sum(counts.values()), "query": query.urlencode(), "active": chosen == kind})
+    return render(request, "dentists/dentist_list.html", {
+        "page_obj": page, "filter_form": form, "tabs": tabs,
+        "can_manage": has_role(request.user, OWNER, HEAD_CIA)})
+
+
+@require_POST
+@role_required(OWNER, HEAD_CIA)
+def toggle_lists(request, pk):
+    """Offer this person on the forms' drop lists, or not (round 15): his work stays."""
+    dentist = get_object_or_404(Dentist, pk=pk)
+    dentist.show_in_lists = not dentist.show_in_lists
+    dentist.save(update_fields=["show_in_lists"])
+    messages.success(request, (_("%(name)s is offered on the forms again.") if dentist.show_in_lists else
+                               _("%(name)s is no longer offered on the forms; his work stays."))
+                     % {"name": dentist})
+    back = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}):
+        back = ""
+    return redirect(back or "dentists:list")
 
 
 def _opens(user):

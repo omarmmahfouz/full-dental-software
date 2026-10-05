@@ -91,8 +91,8 @@ class FinderForm(StyledForm):
         label=_("referral source"), required=False, queryset=ReferralSource.objects.all(), empty_label=_("Any")
     )
     # Team
-    dentist = DentistChoiceField(label=_("dentist (any role)"), required=False, empty_label=_("Any"))
-    operator = DentistChoiceField(label=_("operator 1"), required=False, empty_label=_("Any"))
+    dentist = DentistChoiceField(everyone=True, label=_("dentist (any role)"), required=False, empty_label=_("Any"))
+    operator = DentistChoiceField(everyone=True, label=_("operator 1"), required=False, empty_label=_("Any"))
     dentist_kind = forms.ChoiceField(
         label=_("operator type"), required=False, choices=[("", _("Any"))] + list(Dentist.Kind.choices)
     )
