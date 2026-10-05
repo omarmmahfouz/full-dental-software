@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import finder, views
+from . import finder, teeth_status, views
 
 app_name = "clinical"
 
@@ -8,6 +8,8 @@ urlpatterns = [
     path("steps/", views.StepListView.as_view(), name="step_list"),
     path("restorative-finder/", finder.restorative_finder, name="restorative_finder"),
     path("steps/new/", views.step_create, name="step_create"),
+    path("steps/teeth-status/", teeth_status.teeth_status_json, name="teeth_status"),
+    path("steps/bill-info/", teeth_status.bill_info_json, name="bill_info"),
     path("steps/<int:pk>/", views.step_detail, name="step_detail"),
     path("steps/<int:pk>/operator/", views.step_operator, name="step_operator"),
     path("steps/<int:pk>/photo/", views.step_photo, name="step_photo"),

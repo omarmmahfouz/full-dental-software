@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Implant complications" %}{% endblock %}
+{% block content %}
+{% include "includes/finder_tabs.html" with here="complications" %}
+<div class="page-header"><h1><i class="bi bi-exclamation-octagon"></i> {% trans "Implant complications and follow-up" %}</h1>
+  <a class="btn btn-outline-success" href="?{{ query }}{% if query %}&amp;{% endif %}excel=1" data-no-progress><i class="bi bi-file-earmark-excel"></i> {% trans "Excel (for papers)" %}</a></div>
+<form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
+  {% for field in form %}<div class="col-6 col-md-3 col-xl-2"><label class="form-label small">{{ field.label }}</label>{{ field }}</div>{% endfor %}
+  <div class="col-6 col-md-3 col-xl-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
+</div></form>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ rows|length }}</div><div class="stat-label">{% trans "Complications" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ implants }} / {{ total_implants }}</div><div class="stat-label">{% trans "Implants with a complication" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ patients }}</div><div class="stat-label">{% trans "Patients" %}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value text-warning">{{ open }}</div><div class="stat-label">{% trans "Still being followed" %}</div></div></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "By group" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, n, percent in by_group %}<tr><td>{{ label }}</td><td class="text-end fw-bold">{{ n }}</td><td class="text-end small text-muted">{{ percent }}% {% trans "of the implants" %}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "The most frequent" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, n in by_kind %}<tr><td>{{ label }}</td><td class="text-end fw-bold">{{ n }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "The checks: tissues around the implants" %}</div><table class="table table-sm mb-0"><tbody>
+    {% for label, n in by_status %}<tr><td>{{ label }}</td><td class="text-end fw-bold">{{ n }}</td></tr>{% empty %}<tr><td class="text-muted">—</td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+<div class="card"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
+  <thead><tr><th>{% trans "Found on" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Tooth" %}</th><th>{% trans "Implant" %}</th><th>{% trans "Complication" %}</th><th>{% trans "When" %}</th><th>{% trans "Severity" %}</th><th>{% trans "Treatment" %}</th><th>{% trans "Outcome" %}</th></tr></thead>
+  <tbody>{% for c in rows %}<tr>
+    <td class="nowrap"><a href="{% url 'surgery:implant_complication_edit' c.site_id c.pk %}">{{ c.found_on|date:"d/m/Y" }}</a><div class="small text-muted">{% blocktrans with m=c.months_since_placement %}{{ m }} months{% endblocktrans %}</div></td>
+    <td><a href="{{ c.patient.get_absolute_url }}">{{ c.patient.full_name }}</a></td>
+    <td><a href="{% url 'surgery:implant' c.site_id %}">{{ c.site.tooth }}</a></td>
+    <td class="small">{{ c.site.implant_label }}</td>
+    <td><b>{{ c.get_kind_display }}</b><div class="small text-muted">{{ c.get_group_display }}{% if c.nerve %} · {{ c.get_nerve_display }}{% endif %}</div></td>
+    <td class="small">{{ c.get_timing_display }}</td><td class="small">{{ c.get_severity_display }}</td>
+    <td class="small">{{ c.get_treatment_display|default:"—" }}</td>
+    <td><span class="badge complication-{{ c.outcome }}">{{ c.get_outcome_display }}</span>{% if c.days_to_resolve is not None %}<div class="small text-muted">{% blocktrans with d=c.days_to_resolve %}{{ d }} days{% endblocktrans %}</div>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="9" class="text-center text-muted py-4">{% trans "No complication found." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

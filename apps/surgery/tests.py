@@ -552,3 +552,121 @@ class Round13GroupingTests(TestCase):
         page = self.find()
         self.assertTrue(any(g["query"].endswith("group_by=full_arch") for g in page.context["quick_groups"]))
         self.assertContains(page, "Full-arch cases")
+
+
+class Round15ImplantLifeTests(TestCase):
+    """Round 15: the checks and the complications of an implant, the finder for papers, the treatment page that
+    asks for the teeth first and shows their state."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.owner = make_user("owner", "owner")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+        self.system = ImplantSystem.objects.first()
+        self.surgery = Surgery.objects.create(branch=self.branch, patient=self.patient, operator_1=self.dentist,
+                                              date=timezone.localdate() - timedelta(days=200))
+        self.site = SurgerySite.objects.create(surgery=self.surgery, tooth=36, simple_implant=True,
+                                               implant_system=self.system, implant_diameter=Decimal("4"),
+                                               implant_length=Decimal("10"))
+        ToothState.objects.create(patient=self.patient, tooth=36, status=ToothState.Status.IMPLANT,
+                                  implant_site=self.site)
+        self.client.login(username="dentist", password=PASSWORD)
+
+    def test_a_check_finds_the_class_of_the_tissues(self):
+        from apps.surgery.models import ImplantFollowUp, PeriImplantStatus
+
+        day = timezone.localdate().strftime("%d/%m/%Y")
+        response = self.client.post(f"/surgery/implant/{self.site.pk}/check/", {
+            "checked_on": day, "dentist": self.dentist.pk, "probing_depth": "6", "bleeding": "true",
+            "suppuration": "false", "bone_loss": "3.5", "isq": "70"})
+        self.assertRedirects(response, f"/surgery/implant/{self.site.pk}/", fetch_redirect_response=False)
+        check = ImplantFollowUp.objects.get()
+        self.assertEqual(check.status, PeriImplantStatus.PERI_IMPLANTITIS)
+        self.assertEqual(check.patient, self.patient)
+        self.assertAlmostEqual(check.months_since_placement, 6.6, places=1)
+        self.assertEqual(ImplantFollowUp(site=self.site, bleeding=True).classify(), PeriImplantStatus.MUCOSITIS)
+        self.assertEqual(ImplantFollowUp(site=self.site, bleeding=False).classify(), PeriImplantStatus.HEALTH)
+        page = self.client.get(f"/surgery/implant/{self.site.pk}/")
+        self.assertEqual(list(page.context["checks"]), [check])
+
+    def test_a_paresthesia_needs_its_nerve_and_a_removal_fails_the_implant(self):
+        from apps.surgery.models import ImplantComplication
+
+        url = f"/surgery/implant/{self.site.pk}/complication/"
+        day = timezone.localdate().strftime("%d/%m/%Y")
+        data = {"kind": "paresthesia", "found_on": day, "severity": "moderate", "outcome": "open"}
+        response = self.client.post(url, data)
+        self.assertIn("nerve", response.context["form"].errors)
+        self.client.post(url, {**data, "nerve": "ian", "side": "left", "area": "lower lip"})
+        nerve = ImplantComplication.objects.get()
+        self.assertEqual((nerve.group, nerve.timing), ("nerve", "healing"))  # not loaded yet
+        self.client.post(url, {"kind": "late_failure", "found_on": day, "severity": "severe", "outcome": "implant_lost",
+                               "treatment": "removed"})
+        self.site.refresh_from_db()
+        self.assertEqual(self.site.implant_status, SurgerySite.ImplantStatus.FAILED)
+        self.assertEqual(ToothState.objects.get(patient=self.patient, tooth=36).status, ToothState.Status.MISSING)
+        lost = ImplantComplication.objects.get(kind="late_failure")
+        self.assertEqual((lost.group, lost.resolved_on), ("failure", timezone.localdate()))
+
+    def test_the_finder_and_its_excel(self):
+        from apps.surgery.models import ImplantComplication
+
+        ImplantComplication.objects.create(site=self.site, kind="screw_loosening", found_on=timezone.localdate())
+        ImplantComplication.objects.create(site=self.site, kind="mucositis", found_on=timezone.localdate(),
+                                           outcome="resolved")
+        self.client.logout()
+        self.client.login(username="owner", password=PASSWORD)
+        page = self.client.get("/surgery/complications/")
+        self.assertEqual(len(page.context["rows"]), 2)
+        self.assertEqual(page.context["implants"], 1)
+        self.assertEqual(page.context["open"], 1)
+        self.assertEqual(len(self.client.get("/surgery/complications/?group=mechanical").context["rows"]), 1)
+        excel = self.client.get("/surgery/complications/?excel=1")
+        self.assertEqual(excel["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        self.client.logout()
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/surgery/complications/").status_code, 403)
+
+    def test_the_teeth_first_and_a_check_after_the_step(self):
+        from apps.clinical.models import TreatmentStep
+
+        status = self.client.get(f"/clinical/steps/teeth-status/?patient={self.patient.pk}&teeth=36, 11").json()
+        teeth = {row["tooth"]: row for row in status["teeth"]}
+        self.assertEqual(teeth[36]["implant"]["label"], self.site.implant_label)
+        self.assertIn("implant_teeth", status["groups"])
+        self.assertEqual(teeth[11]["now"], "sound")
+        check = TreatmentStepType.objects.get(name_en="Implant check (follow-up)")
+        self.assertEqual((check.group, check.implant_record), ("implant_care", "follow_up"))
+        response = self.client.post(f"/clinical/steps/new/?patient={self.patient.pk}", {
+            "patient_lookup": self.patient.file_number, "performed_at_0": timezone.localdate().strftime("%d/%m/%Y"),
+            "performed_at_1": "10:00", "step_type": check.pk, "teeth": "36", "operator": self.dentist.pk})
+        step = TreatmentStep.objects.get()
+        self.assertRedirects(response, f"/surgery/implant/{self.site.pk}/check/?step={step.pk}",
+                             fetch_redirect_response=False)
+
+    def test_the_bill_of_the_step_and_a_changed_price(self):
+        from apps.billing.models import Bill, Service
+        from apps.clinical.models import TreatmentStep
+        from apps.core.models import Notification
+
+        moderator = make_user("mod", "moderator")
+        filling = TreatmentStepType.objects.get(name_en="Composite restoration")
+        self.assertEqual(filling.service.name_en, "Filling")
+        Service.objects.filter(pk=filling.service_id).update(price=Decimal("500"))
+        info = self.client.get(f"/clinical/steps/bill-info/?service={filling.service_id}&patient={self.patient.pk}")
+        self.assertEqual(info.json()["price"], "500.00")
+        data = {"patient_lookup": self.patient.file_number,
+                "performed_at_0": timezone.localdate().strftime("%d/%m/%Y"), "performed_at_1": "10:00",
+                "step_type": filling.pk, "teeth": "46", "operator": self.dentist.pk,
+                "bill_service": filling.service_id, "bill_price": "500"}
+        self.client.post(f"/clinical/steps/new/?patient={self.patient.pk}", data)
+        self.assertFalse(Notification.objects.filter(recipient=self.owner, title__startswith="Price").exists())
+        self.client.post(f"/clinical/steps/new/?patient={self.patient.pk}", {**data, "bill_price": "350"})
+        self.assertEqual(TreatmentStep.objects.count(), 2)
+        self.assertEqual(Bill.objects.count(), 2)
+        for person in (self.owner, moderator):
+            self.assertTrue(Notification.objects.filter(recipient=person, title__startswith="Price").exists())
+        self.assertEqual(self.client.get(f"/clinical/steps/bill-info/?patient={self.patient.pk}").json()["owes"],
+                         "850.00")

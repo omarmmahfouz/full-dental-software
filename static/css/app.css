@@ -2099,3 +2099,27 @@ a.place-tab .badge { font-weight: 600; }
 .slot-key.slot-busy { background: #E9ECEF; border-color: #DEE2E6; }
 /* The complaints of one patient are listed under his name */
 .complaint-patient th { background: var(--surface-2); font-weight: 600; border-top: 2px solid var(--line-strong); }
+/* Giving money back: each service paid is a row to tap */
+.refund-service { cursor: pointer; }
+.refund-service.is-chosen { background: color-mix(in srgb, var(--bs-success) 9%, #fff); border-color: color-mix(in srgb, var(--bs-success) 45%, #fff); }
+.refund-amount { width: 7.5rem; flex: none; }
+/* The bill on the receipt printer (80 mm), with what the patient owes in all */
+.bill-80 .bill-80-services { border-top: 1px dashed #999; border-bottom: 1px dashed #999; margin: .3rem 0; }
+.bill-80 .bill-80-services td { padding: .15rem 0; vertical-align: top; }
+.bill-80 .bill-80-owes th, .bill-80 .bill-80-owes td { font-size: 1.05em; font-weight: 700; border-top: 1px solid #333; padding-top: .25rem; }
+/* The tissues around an implant (2017 World Workshop) and how a complication ended */
+.badge.peri-health { background: #E3F4E6; color: #1E6B33; }
+.badge.peri-mucositis { background: #FFF3CD; color: #7A5B00; }
+.badge.peri-peri_implantitis, .badge.peri-failed { background: #FDE2E2; color: #8A1C1C; }
+.badge.peri-soft_deficiency { background: #E7EEF9; color: #23426E; }
+.badge.complication-open, .badge.complication-improving { background: #FFF3CD; color: #7A5B00; }
+.badge.complication-resolved { background: #E3F4E6; color: #1E6B33; }
+.badge.complication-persistent, .badge.complication-implant_lost { background: #FDE2E2; color: #8A1C1C; }
+/* The treatment page: how the teeth chosen are now (round 15) */
+.teeth-status-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: .6rem; }
+.tooth-status { border: 1px solid var(--line); border-radius: 12px; padding: .55rem .7rem; background: var(--surface-2); }
+.tooth-status-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .2rem; }
+.tooth-status-no { display: inline-grid; place-items: center; min-width: 2.2rem; height: 2.2rem; border-radius: 10px; background: var(--section); color: #fff; font-variant-numeric: tabular-nums; }
+.tooth-status-implant { border-inline-start: 3px solid var(--section); padding-inline-start: .5rem; margin: .3rem 0; }
+.step-group.is-suggested { box-shadow: 0 0 0 2px var(--bs-warning); }
+.step-group.is-suggested::after { content: "★"; color: #C68A00; margin-inline-start: .3rem; }

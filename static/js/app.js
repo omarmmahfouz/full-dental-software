@@ -113,6 +113,25 @@
     }
   });
 
+  // An implant complication: the nerve's boxes show for a nerve injury only (round 15).
+  document.querySelectorAll("select[data-nerve-kinds]").forEach(function (select) {
+    var kinds = select.getAttribute("data-nerve-kinds").split(",");
+    function show() {
+      ["nerve", "side", "area", "sensory_test"].forEach(function (name) {
+        var box = select.form && select.form.querySelector('[name="' + name + '"]');
+        var wrap = box && box.closest("[class*='col-']");
+        if (wrap) wrap.hidden = kinds.indexOf(select.value) < 0 && !wrap.querySelector(".errorlist") && !box.value;
+      });
+      var legend = Array.prototype.find.call(select.form ? select.form.querySelectorAll("fieldset") : [], function (set) {
+        return set.querySelector('[name="nerve"]');
+      });
+      if (legend) legend.hidden = kinds.indexOf(select.value) < 0 && !legend.querySelector(".errorlist") &&
+        !legend.querySelector('[name="nerve"]').value;
+    }
+    select.addEventListener("change", show);
+    show();
+  });
+
   // A tick that shows its own boxes (round 15): data-reveals="name,name" names the fields shown only while it is
   // ticked (e.g. "An old paper file" shows the file number; a GBR shows its details). A field with an error stays.
   function revealFrom(box) {

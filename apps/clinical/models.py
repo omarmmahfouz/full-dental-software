@@ -27,25 +27,29 @@ class ChartEffect(models.TextChoices):
 
 
 class StepGroup(models.TextChoices):
-    """The kinds of work a treatment step belongs to: the dentist taps the kind, then the step itself (e.g.
-    Endodontics → access / access and cleaning / obturation / all in a single visit)."""
+    """The kinds of work a treatment step belongs to, as the dental specialties are taught (round 15): the dentist
+    taps the kind, then the step itself (e.g. Endodontics → access / cleaning and shaping / obturation)."""
 
     RECORDS = "records", _("Diagnosis and records")
-    SURGERY = "surgery", _("Surgery and implants")
-    IMPLANT_TEETH = "implant_teeth", _("Teeth on implants")
+    GUMS = "gums", _("Periodontics and prevention")
+    FILLINGS = "fillings", _("Operative dentistry (fillings)")
     ENDO = "endo", _("Endodontics (root canal)")
-    FILLINGS = "fillings", _("Fillings")
-    FIXED = "fixed", _("Crowns and bridges")
-    REMOVABLE = "removable", _("Dentures")
-    GUMS = "gums", _("Gums and cleaning")
+    FIXED = "fixed", _("Fixed prosthodontics (crowns, bridges, veneers)")
+    REMOVABLE = "removable", _("Removable prosthodontics (dentures)")
+    SURGERY = "surgery", _("Oral surgery (extractions)")
+    IMPLANT_SURGERY = "implant_surgery", _("Implant surgery and bone grafting")
+    IMPLANT_TEETH = "implant_teeth", _("Implant prosthodontics (teeth on implants)")
+    IMPLANT_CARE = "implant_care", _("Implant follow-up and complications")
     ORTHO = "ortho", _("Orthodontics and TMJ")
+    PEDO = "pedo", _("Pediatric dentistry")
     OTHER = "other", _("Other")
 
 
 STEP_GROUP_ICONS = {
-    "records": "bi-clipboard2-pulse", "surgery": "bi-implant", "implant_teeth": "bi-bricks", "endo": "bi-droplet-half",
+    "records": "bi-clipboard2-pulse", "surgery": "bi-scissors", "implant_surgery": "bi-implant",
+    "implant_teeth": "bi-bricks", "implant_care": "bi-heart-pulse", "endo": "bi-droplet-half",
     "fillings": "bi-circle-half", "fixed": "bi-gem", "removable": "bi-emoji-smile", "gums": "bi-stars",
-    "ortho": "bi-arrows-collapse", "other": "bi-three-dots",
+    "ortho": "bi-arrows-collapse", "pedo": "bi-balloon-heart", "other": "bi-three-dots",
 }
 
 # The photos and periapical X-rays a step should have (TreatmentStepType.shots), kept on the step
@@ -92,6 +96,14 @@ class TreatmentStepType(LookupModel):
         help_text=_("When this step is recorded on tooth numbers, the chart of those teeth is updated this way."),
     )
     default_material = models.CharField(_("default material"), max_length=60, blank=True)
+    service = models.ForeignKey(
+        "billing.Service", verbose_name=_("paid service (bill)"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="step_types",
+        help_text=_("Recording this step offers its bill with this service and its price (round 15)."))
+    implant_record = models.CharField(
+        _("on an implant, also write"), max_length=12, blank=True,
+        choices=[("follow_up", _("Implant follow-up (the findings)")), ("complication", _("Implant complication"))],
+        help_text=_("Recorded on an implant tooth, the page of the implant's follow-up or complication opens next."))
     surgery_procedure = models.CharField(
         _("matching surgery-chart procedure"), max_length=20, blank=True,
         choices=[

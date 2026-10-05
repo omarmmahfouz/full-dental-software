@@ -8,7 +8,7 @@ from apps.core.forms import BootstrapFormMixin, StyledForm, StyledModelForm
 from apps.dentists.forms import DentistChoiceField
 from apps.patients.forms import PatientLookupField, lookup_value
 
-from .models import Charge, FawryMachine, FawryMove, PatientPayment, Service
+from .models import Charge, FawryMachine, FawryMove, OwnerCash, PatientPayment, Service
 
 NEEDS_REFERENCE = (PaymentMethod.INSTAPAY, PaymentMethod.WALLET, PaymentMethod.BANK, PaymentMethod.BANK_DEPOSIT,
                    PaymentMethod.CHEQUE)
@@ -366,6 +366,49 @@ class RefundForm(StyledForm):
         data = super().clean()
         check_fawry_machine(self, data)
         return data
+
+
+class ServiceRefundForm(StyledForm):
+    """Give money back by tapping the services (round 15): the amount of each is filled in, and can be lowered."""
+
+    method = forms.ChoiceField(label=_("given back by"), choices=PaymentMethod.choices, initial=PaymentMethod.CASH)
+    fawry_machine = fawry_machine_field()
+    reason = forms.CharField(label=_("why the refund"), max_length=255)
+    not_done = forms.BooleanField(
+        label=_("the service was not done: take it off his account"), required=False,
+        help_text=_("Else the service stays on his account and he owes what was given back."))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["method"].widget = method_buttons()
+        for field in self.fields.values():
+            field.col = "col-12"
+        self.fields["fawry_machine"].col = "col-md-6"
+
+    def clean(self):
+        data = super().clean()
+        check_fawry_machine(self, data)
+        return data
+
+
+class OwnerCashForm(StyledModelForm):
+    """Money put in (or taken) by the owner at a place (round 15)."""
+
+    class Meta:
+        model = OwnerCash
+        fields = ["direction", "amount", "method", "moved_on", "reason"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.core.widgets import ChoiceButtons
+
+        self.fields["direction"].widget = ChoiceButtons(choices=OwnerCash.Direction.choices,
+                                                        icons={"in": "bi-box-arrow-in-down", "out": "bi-box-arrow-up"})
+        self.fields["method"].widget = method_buttons()
+        for name in ("amount", "moved_on"):
+            self.fields[name].col = "col-md-6"
+        for name in ("direction", "method", "reason"):
+            self.fields[name].col = "col-12"
 
 
 class DayCloseForm(StyledForm):

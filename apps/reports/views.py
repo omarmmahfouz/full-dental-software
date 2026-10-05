@@ -399,6 +399,16 @@ def balance_sheet(request):
     income_rows, income_totals, income_total = section(income_lines)
     cost_rows, cost_totals, cost_total = section(cost_lines)
     net = [a - b for a, b in zip(income_totals, cost_totals)]
+    # The owner's money (round 15): put in when the spending is more than the income, or taken out. Apart from the
+    # income and the costs, then the money left after it.
+    from apps.billing.models import OwnerCash
+
+    for row in OwnerCash.objects.filter(moved_on__range=(date_from, date_to)).values("branch", "direction").annotate(
+            total=Sum("amount")):
+        table["owner_in" if row["direction"] == OwnerCash.Direction.IN else "owner_out"][row["branch"]] += row["total"]
+    owner_rows, _owner_totals, _owner_total = section([("owner_in", _("Put in by the owner")),
+                                                      ("owner_out", _("Taken by the owner"))])
+    after_owner = [n + table["owner_in"][b.pk] - table["owner_out"][b.pk] for n, b in zip(net, columns)]
 
     method_labels = dict(PaymentMethod.choices)
     by_method = defaultdict(lambda: zero)
@@ -418,6 +428,8 @@ def balance_sheet(request):
         "income_rows": income_rows, "income_totals": income_totals, "income_total": income_total,
         "cost_rows": cost_rows, "cost_totals": cost_totals, "cost_total": cost_total,
         "net": net, "net_total": income_total - cost_total,
+        "owner_rows": owner_rows if any(row["total"] for row in owner_rows) else [],
+        "after_owner": after_owner, "after_owner_total": sum(after_owner, zero),
         "by_method": sorted(((method_labels.get(m, m), a) for m, a in by_method.items()), key=lambda r: -r[1]),
         "fawry": {k: v or zero for k, v in fawry_in_period.items()},
         "fawry_held_start": held_at_fawry(until=date_from - timedelta(days=1)),

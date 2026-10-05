@@ -318,6 +318,35 @@ class DayClosing(models.Model):
         return self.cash_counted - self.cash_expected
 
 
+class OwnerCash(TimeStampedModel):
+    """Money the owner puts in at a place when the spending is more than what came in (round 15), or takes out.
+    Cash counts in the drawer of that day; every move counts in the balance sheet as the owner's money."""
+
+    class Direction(models.TextChoices):
+        IN = "in", _("Put in by the owner")
+        OUT = "out", _("Taken by the owner")
+
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), on_delete=models.PROTECT, related_name="owner_cash")
+    moved_on = models.DateField(_("date"), default=timezone.localdate, db_index=True)
+    direction = models.CharField(_("money"), max_length=3, choices=Direction.choices, default=Direction.IN)
+    amount = models.DecimalField(_("amount"), max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    method = models.CharField(_("how"), max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
+    reason = models.CharField(_("what for"), max_length=255,
+                              help_text=_("e.g. to pay the implant supplier, the salaries, the rent."))
+
+    class Meta:
+        ordering = ["-moved_on", "-pk"]
+        verbose_name = _("owner's money")
+        verbose_name_plural = _("owner's money")
+
+    def __str__(self):
+        return f"{self.get_direction_display()} {self.amount:,.2f} {self.moved_on:%d/%m/%Y}"
+
+    @property
+    def signed(self):
+        return self.amount if self.direction == self.Direction.IN else -self.amount
+
+
 def _share_payments(charges, payments, detail=None):
     """What is paid on each service ({charge pk: paid}): a payment made for a service pays that service,
     one made for a bill pays that bill's services; other payments pay the oldest unpaid services first.

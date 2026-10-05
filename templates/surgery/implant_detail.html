@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n clinic %}
 {% block title %}{% trans "Implant" %} {{ site.tooth }}{% endblock %}
 {% block content %}
 {% with active="surgery" %}{% include "includes/patient_nav.html" %}{% endwith %}
@@ -8,7 +8,7 @@
     <dl class="dl-grid">
       <dt>{% trans "Implant" %}</dt><dd>{{ site.implant_label }}</dd>
       <dt>{% trans "Lot" %}</dt><dd>{{ site.lot_number|default:"—" }}{% if site.sticker %} <a href="{{ site.sticker.url }}" target="_blank"><i class="bi bi-image"></i> {% trans "sticker" %}</a>{% endif %}</dd>
-      <dt>{% trans "Surgery" %}</dt><dd><a href="{{ site.surgery.get_absolute_url }}">{{ site.surgery.number }}</a> — {{ site.surgery.date|date:"d/m/Y" }}</dd>
+      <dt>{% trans "Surgery" %}</dt><dd><a href="{{ site.surgery.get_absolute_url }}">{{ site.surgery.number }}</a> — {{ site.surgery.date|date:"d/m/Y" }} <span class="small text-muted">({% blocktrans %}{{ months }} months ago{% endblocktrans %})</span></dd>
       <dt>{% trans "Operator 1" %}</dt><dd>{{ site.surgery.operator_1 }}</dd>
       <dt>{% trans "Procedures" %}</dt><dd>{{ site.procedure_labels|join:", " }}</dd>
       <dt>{% trans "Torque / ISQ" %}</dt><dd>{{ site.insertion_torque|default:"—" }} Ncm / {{ site.isq|default:"—" }}</dd>
@@ -21,11 +21,35 @@
         {% if form %}<a class="small no-print" href="{% url 'surgery:prosthesis_create' patient.pk %}?implant={{ site.pk }}"><i class="bi bi-plus"></i> {% trans "Add a crown, bridge or full arch on it" %}</a>{% endif %}</dd>
     </dl>
   </div></div></div>
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2"><span><i class="bi bi-heart-pulse"></i> {% trans "Checks of this implant" %} <span class="badge rounded-pill text-bg-light">{{ checks|length }}</span></span>
+      {% if form %}<a class="btn btn-sm btn-primary no-print" href="{% url 'surgery:implant_check' site.pk %}"><i class="bi bi-plus-lg"></i> {% trans "Add a check" %}</a>{% endif %}</div>
+      <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Probing" %}</th><th>{% trans "BOP" %}</th><th>{% trans "Pus" %}</th><th>{% trans "Bone loss" %}</th><th>ISQ</th><th>{% trans "Tissues" %}</th></tr></thead>
+        <tbody>{% for c in checks %}<tr>
+          <td class="nowrap">{% if form %}<a href="{% url 'surgery:implant_check_edit' site.pk c.pk %}">{{ c.checked_on|date:"d/m/Y" }}</a>{% else %}{{ c.checked_on|date:"d/m/Y" }}{% endif %}<div class="small text-muted">{% blocktrans with m=c.months_since_placement %}{{ m }} months{% endblocktrans %}</div></td>
+          <td>{{ c.probing_depth|default:"—" }}</td><td>{{ c.bleeding|yesno:"✓,✗,—" }}</td><td>{{ c.suppuration|yesno:"✓,✗,—" }}</td>
+          <td>{% if c.bone_loss is not None %}{{ c.bone_loss }} mm{% else %}—{% endif %}</td><td>{{ c.isq|default:"—" }}</td>
+          <td><span class="badge peri-{{ c.status }}">{{ c.get_status_display }}</span>{% if c.notes %}<div class="small text-muted">{{ c.notes|truncatechars:80 }}</div>{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="7" class="text-muted small">{% trans "No check written yet." %}</td></tr>{% endfor %}</tbody>
+      </table></div></div>
+    <div class="card mb-3"><div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2"><span><i class="bi bi-exclamation-octagon"></i> {% trans "Complications" %} <span class="badge rounded-pill text-bg-light">{{ complications|length }}</span></span>
+      {% if form %}<a class="btn btn-sm btn-outline-danger no-print" href="{% url 'surgery:implant_complication' site.pk %}"><i class="bi bi-plus-lg"></i> {% trans "Add a complication" %}</a>{% endif %}</div>
+      <ul class="list-group list-group-flush">{% for c in complications %}
+        <li class="list-group-item">
+          <div class="d-flex flex-wrap gap-2 align-items-center"><b>{% if form %}<a href="{% url 'surgery:implant_complication_edit' site.pk c.pk %}">{{ c.get_kind_display }}</a>{% else %}{{ c.get_kind_display }}{% endif %}</b>
+            <span class="badge text-bg-light">{{ c.get_group_display }}</span> <span class="small">{{ c.found_on|date:"d/m/Y" }} · {{ c.get_timing_display }} · {{ c.get_severity_display }}</span>
+            <span class="badge complication-{{ c.outcome }}">{{ c.get_outcome_display }}{% if c.resolved_on %} {{ c.resolved_on|date:"d/m/Y" }}{% endif %}</span></div>
+          {% if c.nerve %}<div class="small">{{ c.get_nerve_display }}{% if c.side %} · {{ c.get_side_display }}{% endif %}{% if c.area %} · {{ c.area }}{% endif %}</div>{% endif %}
+          {% if c.treatment %}<div class="small text-muted">{{ c.get_treatment_display }}{% if c.treatment_notes %}: {{ c.treatment_notes|truncatechars:120 }}{% endif %}</div>{% endif %}
+        </li>{% empty %}<li class="list-group-item text-muted small">{% trans "No complication." %}</li>{% endfor %}
+      </ul></div>
   {% if form %}
-  <div class="col-lg-7"><div class="card h-100"><div class="card-header">{% trans "Update implant stage" %}</div><div class="card-body">
+  <div class="card"><div class="card-header">{% trans "Update implant stage" %}</div><div class="card-body">
     <p class="small text-muted">{% trans "Stages move automatically when you record 2nd stage, impression / scan, delivery or implant failure in the treatment log. Use this form only to correct them." %}</p>
     <form method="post">{% csrf_token %}{% include "includes/form_fields.html" %}<button class="btn btn-primary mt-3">{% trans "Save" %}</button></form>
-  </div></div></div>
+  </div></div>
   {% endif %}
+  </div>
 </div>
 {% endblock %}

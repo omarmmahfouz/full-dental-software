@@ -416,3 +416,82 @@ class Round13ReceiptAndFawryTests(TestCase):
         self.assertEqual(ClinicSettings.objects.get().fawry_fee_percent, Decimal("1.75"))
         self.client.post("/billing/fawry/percent/", {"percent": "50"})  # refused: not a real percentage
         self.assertEqual(ClinicSettings.objects.get().fawry_fee_percent, Decimal("1.75"))
+
+
+class Round15MoneyTests(TestCase):
+    """Round 15: giving money back by tapping the services, the owner's money, the small bill."""
+
+    def setUp(self):
+        from apps.billing.models import create_bill
+
+        self.branch = setup_clinic()
+        self.patient = make_patient(self.branch)
+        self.secretary = make_user("sec", "secretary")
+        self.owner = make_user("owner", "owner")
+        self.client.login(username="sec", password=PASSWORD)
+        self.cbct = Service.objects.get(name_en="CBCT")
+        self.consult = Service.objects.get(name_en="Consultation")
+        self.bill = create_bill(self.patient, [{"service": self.cbct, "price": Decimal("1000")},
+                                               {"service": self.consult, "price": Decimal("300")}], self.secretary)
+        self.cbct_line, self.consult_line = self.bill.charges.order_by("pk")
+        self.paid = PatientPayment.objects.create(patient=self.patient, bill=self.bill, amount=Decimal("1300"),
+                                                  created_by=self.secretary)
+
+    def test_tap_the_service_to_give_back(self):
+        from apps.billing.receipts import service_receipts
+
+        url = f"/billing/patient/{self.patient.pk}/refund/"
+        page = self.client.get(url)
+        rows = {row["charge"].pk: row for row in page.context["rows"]}
+        self.assertEqual(rows[self.cbct_line.pk]["paid"], Decimal("1000"))
+        self.assertEqual(rows[self.cbct_line.pk]["receipts"], [(self.paid, Decimal("1000"))])  # the original
+        # Nothing tapped: nothing given back.
+        self.client.post(url, {"method": "cash", "reason": "x"})
+        self.assertFalse(PatientPayment.objects.filter(amount__lt=0).exists())
+        # The CBCT was not done: all of it back, and taken off his account.
+        response = self.client.post(url, {f"take_{self.cbct_line.pk}": "1", f"amount_{self.cbct_line.pk}": "1000",
+                                          "method": "cash", "reason": "CBCT machine broken", "not_done": "on"})
+        back = PatientPayment.objects.get(amount__lt=0)
+        self.assertRedirects(response, back.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual((back.amount, back.refund_of, back.charge), (Decimal("-1000"), self.paid, self.cbct_line))
+        self.cbct_line.refresh_from_db()
+        self.assertEqual(self.cbct_line.net, Decimal("0"))
+        self.assertEqual(account(self.patient)["balance"], Decimal("0"))
+        self.assertEqual(service_receipts(self.patient)[self.cbct_line.pk]["paid"], Decimal("0"))
+        # More than was paid is refused.
+        self.client.post(url, {f"take_{self.consult_line.pk}": "1", f"amount_{self.consult_line.pk}": "500",
+                               "method": "cash", "reason": "x"})
+        self.assertEqual(PatientPayment.objects.filter(amount__lt=0).count(), 1)
+        # Part of it, the service stays: he owes what was given back.
+        self.client.post(url, {f"take_{self.consult_line.pk}": "1", f"amount_{self.consult_line.pk}": "100",
+                               "method": "cash", "reason": "late"})
+        self.assertEqual(account(self.patient)["balance"], Decimal("100"))
+
+    def test_owner_money_counts_in_the_drawer_and_the_balance_sheet(self):
+        from apps.billing.models import OwnerCash
+        from apps.core.models import Notification
+
+        response = self.client.post("/billing/owner-money/", {
+            "place": "CIA", "direction": "in", "amount": "5000", "method": "cash", "moved_on": timezone.localdate()
+            .strftime("%d/%m/%Y"), "reason": "to pay the implant supplier"})
+        self.assertEqual(response.status_code, 302)
+        move = OwnerCash.objects.get()
+        self.assertEqual((move.branch, move.signed), (self.branch, Decimal("5000")))
+        self.assertTrue(Notification.objects.filter(recipient=self.owner).exists())  # the reception wrote it
+        day = self.client.get("/billing/day/").context["summary"]
+        self.assertEqual(day["owner_cash"], Decimal("5000"))
+        self.assertEqual(day["drawer"], Decimal("6300"))  # the cash receipt and the owner's cash
+        self.client.logout()
+        self.client.login(username="owner", password=PASSWORD)
+        sheet = self.client.get("/reports/balance/").context
+        self.assertEqual(sheet["owner_rows"][0]["total"], Decimal("5000"))
+        self.assertEqual(sheet["after_owner_total"], sheet["net_total"] + Decimal("5000"))
+
+    def test_the_bill_is_small_and_says_what_he_owes(self):
+        from apps.billing.models import create_bill
+
+        create_bill(self.patient, [{"service": self.consult, "price": Decimal("400")}], self.secretary)
+        page = self.client.get(self.bill.get_absolute_url())
+        self.assertContains(page, "receipt-80 bill-80")
+        self.assertEqual(page.context["account"]["balance"], Decimal("400"))  # the other bill is owed too
+        self.assertContains(self.client.get(self.bill.get_absolute_url() + "?a4=1"), "bill-print")

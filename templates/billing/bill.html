@@ -1,7 +1,34 @@
 {% extends "base.html" %}
 {% load i18n clinic static %}
 {% block title %}{{ bill.number }}{% endblock %}
+{% block extra_head %}{% if not a4 %}<style>@media print { @page { size: 80mm auto; margin: 2mm; } main { max-width: none !important; } }</style>{% endif %}{% endblock %}
 {% block content %}
+{% if not a4 %}
+{# Round 15: the bill is small (80 mm, the receipt printer) and says what the patient owes in all. #}
+<div class="receipt-80 bill-80" id="bill">
+  <div class="text-center receipt-head">
+    {% include "includes/place_letterhead.html" with place=bill.branch %}
+    <div class="receipt-title">{% trans "Bill" %} {{ bill.number }}</div>
+  </div>
+  <table class="receipt-lines">
+    <tr><th>{% trans "Date" %}</th><td>{{ bill.billed_on|date:"d/m/Y" }}</td></tr>
+    <tr><th>{% trans "Patient" %}</th><td>{{ bill.patient.full_name }}<br><span class="ltr">{{ bill.patient.file_number }}</span></td></tr>
+    {% if bill.dentist %}<tr><th>{% trans "Dentist" %}</th><td>{{ bill.dentist }}</td></tr>{% endif %}
+  </table>
+  <table class="receipt-lines bill-80-services">
+    {% for row in totals.rows %}{% with c=row.charge %}<tr><td>{{ c.service }}{% if c.teeth %} <span class="ltr">({{ c.teeth }})</span>{% endif %}{% if c.discount_percent %}<div class="small">{% trans "Discount" %} {{ c.discount_percent|floatformat:"-2" }}%{% if c.discount_reason %}: {{ c.discount_reason }}{% endif %}</div>{% endif %}</td><td class="text-end text-nowrap">{{ c.net|money }}</td></tr>{% endwith %}{% endfor %}
+  </table>
+  <table class="receipt-lines">
+    <tr class="receipt-amount"><th>{% trans "Total" %}</th><td>{{ totals.net|money }} {{ CLINIC.CURRENCY }}</td></tr>
+    <tr><th>{% trans "Paid" %}</th><td>{{ totals.paid|money }}</td></tr>
+    <tr><th>{% trans "Left on this bill" %}</th><td class="fw-bold">{{ totals.left|money }}</td></tr>
+    <tr class="bill-80-owes"><th>{% if account.balance < 0 %}{% trans "Credit for the patient" %}{% else %}{% trans "He owes in all" %}{% endif %}</th><td>{{ account.balance|money }} {{ CLINIC.CURRENCY }}</td></tr>
+  </table>
+  {% if payments %}<div class="small mt-1">{% trans "Payments" %}: {% for p in payments %}{{ p.receipt_number }} {{ p.paid_on|date:"d/m" }} {{ p.amount|money }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+  {% if bill.notes %}<div class="small mt-1">{{ bill.notes }}</div>{% endif %}
+  <div class="small mt-2">{% trans "Made by" %}: {{ bill.created_by|default:"" }}</div>
+</div>
+{% else %}
 <div class="card mx-auto bill-print" id="bill" style="max-width: 820px"><div class="card-body p-4">
   <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
     {% include "includes/place_letterhead.html" with place=bill.branch %}
@@ -29,10 +56,12 @@
   {% if account.balance != totals.left %}<div class="small text-muted">{% trans "All the patient's account" %}: {% trans "still to pay" %} {{ account.balance|money }} {{ CLINIC.CURRENCY }}</div>{% endif %}
   <div class="mt-5 d-flex justify-content-between"><span>{% trans "Signature" %}: __________________</span><span>{% trans "Made by" %}: {{ bill.created_by|default:"" }}</span></div>
 </div></div>
+{% endif %}
 <div class="d-flex flex-wrap justify-content-center gap-2 mt-3 no-print">
-  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+  <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% if a4 %}{% trans "Print" %}{% else %}{% trans "Print (80 mm)" %}{% endif %}</button>
   <button class="btn btn-outline-primary" data-save-as="jpeg" data-save-target="#bill" data-save-name="{{ bill.number }}"><i class="bi bi-image"></i> {% trans "Save as a picture" %}</button>
-  <button class="btn btn-outline-primary" data-save-as="pdf" data-page="a4" data-save-target="#bill" data-save-name="{{ bill.number }}"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
+  <button class="btn btn-outline-primary" data-save-as="pdf" data-page="{% if a4 %}a4{% else %}80mm{% endif %}" data-save-target="#bill" data-save-name="{{ bill.number }}"><i class="bi bi-filetype-pdf"></i> {% trans "Save as PDF" %}</button>
+  {% if a4 %}<a class="btn btn-outline-secondary" href="?"><i class="bi bi-receipt"></i> {% trans "Small (80 mm)" %}</a>{% else %}<a class="btn btn-outline-secondary" href="?a4=1"><i class="bi bi-file-earmark"></i> {% trans "Full page (A4)" %}</a>{% endif %}
   {% with patient=bill.patient %}{% include "includes/send_to_patient.html" with kind="bill" target="#bill" name=bill.number text="فاتورة رقم "|add:bill.number %}{% endwith %}
   {% if pay_form %}<a class="btn btn-outline-secondary" href="{% url 'billing:account' bill.patient_id %}">{% trans "Patient account" %}</a>{% endif %}
 </div>

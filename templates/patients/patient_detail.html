@@ -33,6 +33,7 @@
       <ul class="dropdown-menu">
         <li><a class="dropdown-item" href="{% url 'clinical:step_create' %}?patient={{ patient.pk }}"><i class="bi bi-plus-square"></i> {% trans "Treatment step" %}</a></li>
         <li><a class="dropdown-item" href="{% url 'surgery:create' %}?patient={{ patient.pk }}"><i class="bi bi-implant"></i> {% trans "Surgery chart" %}</a></li>
+        <li><a class="dropdown-item" href="{% url 'surgery:patient_implants' patient.pk %}"><i class="bi bi-heart-pulse"></i> {% trans "Implant check or complication" %}</a></li>
         <li><a class="dropdown-item" href="{% url 'clinical:lab_create' %}?patient={{ patient.pk }}"><i class="bi bi-lab-request"></i> {% trans "Lab request" %}</a></li>
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="{% url 'clinical:outside_create' %}?patient={{ patient.pk }}&amp;kind=cbct"><i class="bi bi-radioactive"></i> {% trans "CBCT request" %}</a></li>

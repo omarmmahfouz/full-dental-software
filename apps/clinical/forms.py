@@ -48,10 +48,12 @@ class TreatmentStepForm(_PatientScopedForm):
     bill_price = forms.DecimalField(label=_("price"), required=False, min_value=0, max_digits=10, decimal_places=2,
                                     help_text=_("Leave empty for the price of the list."))
 
+    # Round 15: the teeth first (their state shows), then what was done, then who and the bill.
     fieldsets = [
-        ("", ["patient_lookup", "performed_at", "step_type", "notes", "teeth", "surfaces", "material"]),
-        ("", ["operator", "assistant", "supervisor", "next_visit", "update_chart"]),
-        (_("Bill"), ["bill_service", "bill_price"]),
+        (_("The patient and the teeth"), ["patient_lookup", "teeth", "performed_at"]),
+        (_("The details"), ["step_type", "surfaces", "material", "notes"]),
+        (_("Who did it"), ["operator", "assistant", "supervisor", "next_visit", "update_chart"]),
+        (_("The bill"), ["bill_service", "bill_price"]),
     ]
 
     class Meta:
@@ -70,6 +72,8 @@ class TreatmentStepForm(_PatientScopedForm):
         for name in ("patient_lookup", "performed_at", "step_type", "teeth", "surfaces", "material",
                      "operator", "assistant", "supervisor"):
             self.fields[name].col = "col-md-4"
+        self.fields["teeth"].help_text = _("Tap the teeth first: how each one is now and what was done on it show "
+                                           "below.")
         self.fields["notes"].col = "col-12"
         self.fields["next_visit"].col = "col-md-8"
         self.fields["update_chart"].col = "col-12"
@@ -82,6 +86,8 @@ class TreatmentStepForm(_PatientScopedForm):
         self.fields["bill_service"].widget.attrs["class"] = "form-select"
         self.fields["bill_service"].col = "col-md-6"
         self.fields["bill_price"].col = "col-md-3"
+        self.fields["bill_price"].help_text = _("The usual price fills in; a different price is told to the clinic "
+                                                "manager and the owner.")
         if self.instance.pk:  # the bill is added once, with the new treatment
             del self.fields["bill_service"], self.fields["bill_price"]
 

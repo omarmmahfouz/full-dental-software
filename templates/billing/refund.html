@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Give money back" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-arrow-return-left"></i> {% trans "Give money back" %}: <a href="{{ patient.get_absolute_url }}">{{ patient.full_name }}</a> <small class="text-muted fs-6">{{ patient.file_number }}</small></h1>
+  <a class="btn btn-outline-secondary" href="{% url 'billing:account' patient.pk %}"><i class="bi bi-wallet2"></i> {% trans "Account & payments" %}</a></div>
+<p class="text-muted small">{% trans "1. Tap each service given back: what was paid on it fills in (lower it for part of it). 2. How it is given back and why. A refund receipt is printed; the original receipts stay as they were, and the owner is told." %}</p>
+{% if rows %}
+<form method="post" novalidate data-refund-form>{% csrf_token %}
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="list-group refund-services">{% for row in rows %}{% with c=row.charge %}
+      <label class="list-group-item refund-service d-flex gap-3 align-items-start{% if row.chosen %} is-chosen{% endif %}">
+        <input class="form-check-input mt-1" type="checkbox" name="take_{{ c.pk }}" value="1" data-refund-take{% if row.chosen %} checked{% endif %}>
+        <span class="flex-grow-1">
+          <b>{{ c.service }}</b>{% if c.teeth %} <span class="ltr text-muted">({{ c.teeth }})</span>{% endif %} <span class="small text-muted">{{ c.charged_on|date:"d/m/Y" }}</span>
+          <span class="d-block small">{% trans "To pay" %} {{ c.net|money }} · <span class="text-success">{% trans "Paid" %} {{ row.paid|money }}</span></span>
+          <span class="d-block small">{% trans "Paid by" %}: {% for payment, part in row.receipts %}<a href="{{ payment.get_absolute_url }}" target="_blank" class="me-2"><i class="bi bi-receipt"></i> {{ payment.receipt_number }} ({{ payment.paid_on|date:"d/m" }}, {{ part|money }})</a>{% empty %}—{% endfor %}</span>
+        </span>
+        <span class="refund-amount"><input class="form-control form-control-sm text-end" name="amount_{{ c.pk }}" value="{{ row.amount|floatformat:'-2' }}" data-refund-amount data-max="{{ row.paid|floatformat:'-2' }}" inputmode="decimal" aria-label="{% trans 'amount given back' %}"></span>
+      </label>{% endwith %}{% endfor %}
+    </div>
+    <div class="fs-5 fw-bold mt-2">{% trans "Given back" %}: <span data-refund-total>0</span></div>
+  </div>
+  <div class="col-lg-5"><div class="card"><div class="card-body">
+    {% include "includes/form_fields.html" %}
+    <button class="btn btn-success btn-lg mt-3 w-100" data-confirm="{% trans 'Give this money back? A refund receipt is made.' %}"><i class="bi bi-arrow-return-left"></i> {% trans "Save the refund" %}</button>
+  </div></div></div>
+</div>
+</form>
+{% else %}<div class="alert alert-info">{% trans "Nothing paid yet: there is nothing to give back." %}</div>{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var form = document.querySelector("[data-refund-form]");
+  if (!form) return;
+  function total() {
+    var sum = 0;
+    form.querySelectorAll(".refund-service").forEach(function (row) {
+      var take = row.querySelector("[data-refund-take]"), box = row.querySelector("[data-refund-amount]");
+      row.classList.toggle("is-chosen", take.checked);
+      var value = parseFloat((box.value || "0").replace(/[٠-٩]/g, function (d) { return d.charCodeAt(0) - 1632; }));
+      var most = parseFloat(box.getAttribute("data-max"));
+      if (value > most) { box.value = most; value = most; }
+      if (take.checked && value > 0) sum += value;
+    });
+    form.querySelector("[data-refund-total]").textContent = sum.toLocaleString(undefined, { minimumFractionDigits: 2 });
+  }
+  form.addEventListener("change", total);
+  form.addEventListener("input", total);
+  form.querySelectorAll("[data-refund-amount]").forEach(function (box) {
+    box.addEventListener("focus", function () { box.closest(".refund-service").querySelector("[data-refund-take]").checked = true; total(); });
+  });
+  total();
+})();
+</script>
+{% endblock %}

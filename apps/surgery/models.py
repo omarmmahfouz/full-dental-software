@@ -579,3 +579,258 @@ class DeliveryCheck(TimeStampedModel):
         items = [code for _group, rows in self.items_for(self.prosthesis) for code, _label, optional in rows]
         done = sum(1 for code in items if code in set(self.ticked))
         return done, len(items)
+
+
+# ------------------------------------------------------------------ the life of an implant after its surgery (round 15)
+class PeriImplantStatus(models.TextChoices):
+    """The 2017 World Workshop (Berglundh et al. 2018) classes of the tissues around an implant."""
+
+    HEALTH = "health", _("Peri-implant health")
+    MUCOSITIS = "mucositis", _("Peri-implant mucositis")
+    PERI_IMPLANTITIS = "peri_implantitis", _("Peri-implantitis")
+    SOFT_DEFICIENCY = "soft_deficiency", _("Soft or hard tissue deficiency")
+    FAILED = "failed", _("Failed (mobile / lost)")
+
+
+class ImplantFollowUp(TimeStampedModel):
+    """One check of an implant: the probing, bleeding, suppuration, mobility, the bone lost on the X-ray, the ISQ and
+    the class of the tissues around it (health, mucositis, peri-implantitis), with the date and the notes. For the
+    follow-up of every implant and for papers (the finder of complications and follow-ups)."""
+
+    site = models.ForeignKey(SurgerySite, verbose_name=_("implant"), on_delete=models.CASCADE,
+                             related_name="follow_ups")
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="implant_follow_ups")
+    checked_on = models.DateField(_("date of the check"), default=timezone.localdate, db_index=True)
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="implant_checks")
+    treatment_step = models.ForeignKey("clinical.TreatmentStep", verbose_name=_("treatment step"), null=True,
+                                       blank=True, on_delete=models.SET_NULL, related_name="implant_follow_ups")
+    probing_depth = models.DecimalField(_("deepest probing (mm)"), max_digits=3, decimal_places=1, null=True,
+                                        blank=True)
+    bleeding = models.BooleanField(_("bleeding on probing"), null=True, blank=True)
+    suppuration = models.BooleanField(_("suppuration (pus)"), null=True, blank=True)
+    mobility = models.BooleanField(_("mobility of the implant"), null=True, blank=True)
+    plaque = models.BooleanField(_("plaque"), null=True, blank=True)
+    keratinized_mm = models.DecimalField(_("keratinized mucosa (mm)"), max_digits=3, decimal_places=1, null=True,
+                                         blank=True)
+    bone_loss = models.DecimalField(_("marginal bone loss on the X-ray (mm)"), max_digits=3, decimal_places=1,
+                                    null=True, blank=True, help_text=_("From the bone level at the loading."))
+    xray_taken = models.BooleanField(_("periapical X-ray taken"), default=False)
+    isq = models.PositiveSmallIntegerField(_("ISQ"), null=True, blank=True, validators=[MaxValueValidator(100)])
+    status = models.CharField(_("tissues around the implant"), max_length=20, choices=PeriImplantStatus.choices,
+                              blank=True, help_text=_("Empty: found from the findings."))
+    notes = models.TextField(_("notes"), blank=True)
+    next_check = models.DateField(_("next check"), null=True, blank=True)
+
+    class Meta:
+        ordering = ["-checked_on", "-pk"]
+        verbose_name = _("implant follow-up")
+        verbose_name_plural = _("implant follow-ups")
+
+    def __str__(self):
+        return f"{self.site.tooth} {self.checked_on:%d/%m/%Y}"
+
+    def classify(self):
+        """The class from the findings (Berglundh 2018): bleeding or pus without bone loss is mucositis; with bone
+        loss (3 mm or more, or probing of 6 mm or more with bleeding) it is peri-implantitis."""
+        if self.mobility:
+            return PeriImplantStatus.FAILED
+        inflamed = bool(self.bleeding or self.suppuration)
+        lost = (self.bone_loss or 0) >= 3 or ((self.probing_depth or 0) >= 6 and inflamed)
+        if inflamed and lost:
+            return PeriImplantStatus.PERI_IMPLANTITIS
+        if inflamed:
+            return PeriImplantStatus.MUCOSITIS
+        return PeriImplantStatus.HEALTH
+
+    def save(self, *args, **kwargs):
+        if not self.status:
+            self.status = self.classify()
+        if not self.patient_id:
+            self.patient_id = self.site.surgery.patient_id
+        super().save(*args, **kwargs)
+
+    @property
+    def months_since_placement(self):
+        return _months(self.site.surgery.date, self.checked_on)
+
+    @property
+    def months_since_loading(self):
+        return _months(self.site.loaded_on, self.checked_on) if self.site.loaded_on else None
+
+
+def _months(start, end):
+    if not start or not end:
+        return None
+    return round((end - start).days / 30.44, 1)
+
+
+class ImplantComplication(TimeStampedModel):
+    """A complication of an implant, kept in detail for the follow-up and for papers: its group (biological,
+    surgical, nerve, mechanical, prosthetic, esthetic, failure), the exact kind, when it showed (during the surgery,
+    before or after the loading), how severe, the nerve and the area for a paresthesia, what was done, how it ended
+    and when. A removal makes the implant failed on the chart."""
+
+    class Group(models.TextChoices):
+        BIOLOGICAL = "biological", _("Biological (tissues around the implant)")
+        SURGICAL = "surgical", _("Surgical (during or after the surgery)")
+        NERVE = "nerve", _("Nerve injury (sensory)")
+        MECHANICAL = "mechanical", _("Mechanical (implant and its parts)")
+        PROSTHETIC = "prosthetic", _("Technical (the prosthesis)")
+        ESTHETIC = "esthetic", _("Esthetic")
+        FAILURE = "failure", _("Implant failure")
+
+    # (code, label, group)
+    KINDS = [
+        ("mucositis", _("Peri-implant mucositis"), "biological"),
+        ("peri_implantitis", _("Peri-implantitis"), "biological"),
+        ("infection", _("Early infection of the site"), "biological"),
+        ("bone_loss", _("Marginal bone loss"), "biological"),
+        ("recession", _("Soft tissue recession"), "biological"),
+        ("fistula", _("Fistula / abscess"), "biological"),
+        ("bleeding", _("Bleeding"), "surgical"),
+        ("hematoma", _("Hematoma / swelling"), "surgical"),
+        ("dehiscence", _("Wound dehiscence"), "surgical"),
+        ("membrane_exposure", _("Membrane or graft exposure"), "surgical"),
+        ("graft_loss", _("Bone graft lost"), "surgical"),
+        ("sinus_perforation", _("Sinus membrane perforation"), "surgical"),
+        ("oroantral", _("Oroantral communication"), "surgical"),
+        ("sinusitis", _("Sinusitis"), "surgical"),
+        ("adjacent_tooth", _("Damage to the next tooth"), "surgical"),
+        ("plate_fracture", _("Fracture of the bone plate"), "surgical"),
+        ("no_stability", _("No primary stability"), "surgical"),
+        ("malposition", _("Implant malposition"), "surgical"),
+        ("paresthesia", _("Paresthesia (tingling, pins and needles)"), "nerve"),
+        ("hypoesthesia", _("Hypoesthesia (less feeling)"), "nerve"),
+        ("anesthesia", _("Anesthesia (no feeling, numbness)"), "nerve"),
+        ("dysesthesia", _("Dysesthesia (painful feeling)"), "nerve"),
+        ("screw_loosening", _("Abutment / prosthetic screw loosening"), "mechanical"),
+        ("screw_fracture", _("Screw fracture"), "mechanical"),
+        ("abutment_fracture", _("Abutment fracture"), "mechanical"),
+        ("implant_fracture", _("Implant fracture"), "mechanical"),
+        ("chipping", _("Veneer chipping / fracture"), "prosthetic"),
+        ("framework_fracture", _("Framework fracture"), "prosthetic"),
+        ("decementation", _("Loss of retention (decementation)"), "prosthetic"),
+        ("attachment_wear", _("Attachment / insert wear (overdenture)"), "prosthetic"),
+        ("occlusion", _("Occlusal problem / overload"), "prosthetic"),
+        ("food_impaction", _("Food impaction / open contact"), "prosthetic"),
+        ("grey_show", _("Grey showing through the gum"), "esthetic"),
+        ("papilla_loss", _("Papilla loss / black triangle"), "esthetic"),
+        ("esthetic_other", _("Other esthetic problem"), "esthetic"),
+        ("early_failure", _("Early failure (no osseointegration, before loading)"), "failure"),
+        ("late_failure", _("Late failure (after loading)"), "failure"),
+        ("other", _("Other"), ""),
+    ]
+    KIND_CHOICES = [(code, label) for code, label, _group in KINDS]
+    KIND_GROUP = {code: group for code, _label, group in KINDS}
+
+    class Timing(models.TextChoices):
+        DURING = "during", _("During the surgery")
+        HEALING = "healing", _("While healing (before loading)")
+        LOADED = "loaded", _("After loading")
+
+    class Severity(models.TextChoices):
+        MILD = "mild", _("Mild")
+        MODERATE = "moderate", _("Moderate")
+        SEVERE = "severe", _("Severe")
+
+    class Treatment(models.TextChoices):
+        WATCH = "watch", _("Watched only")
+        MEDICINES = "medicines", _("Medicines (antibiotic, analgesic, steroid, vitamin B...)")
+        CLEANING = "cleaning", _("Non-surgical cleaning / debridement")
+        SURGICAL = "surgical", _("Surgical treatment")
+        REGENERATIVE = "regenerative", _("Regenerative surgery (graft / membrane)")
+        RETIGHTEN = "retighten", _("Screw tightened again")
+        PART_REPLACED = "part_replaced", _("Part replaced (screw / abutment)")
+        PROSTHESIS_REPAIRED = "prosthesis", _("Prosthesis repaired or remade")
+        IMPLANT_REMOVED = "removed", _("Implant removed")
+        IMPLANT_BACKED_OUT = "backed_out", _("Implant backed out a little")
+        OTHER = "other", _("Other")
+
+    class Outcome(models.TextChoices):
+        OPEN = "open", _("Still being followed")
+        IMPROVING = "improving", _("Improving")
+        RESOLVED = "resolved", _("Resolved")
+        PERSISTENT = "persistent", _("Persistent / permanent")
+        IMPLANT_LOST = "implant_lost", _("Implant lost")
+
+    class Nerve(models.TextChoices):
+        IAN = "ian", _("Inferior alveolar nerve")
+        MENTAL = "mental", _("Mental nerve")
+        LINGUAL = "lingual", _("Lingual nerve")
+        INFRAORBITAL = "infraorbital", _("Infraorbital nerve")
+        NASOPALATINE = "nasopalatine", _("Nasopalatine nerve")
+        OTHER = "other", _("Other")
+
+    site = models.ForeignKey(SurgerySite, verbose_name=_("implant"), on_delete=models.CASCADE,
+                             related_name="complications")
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="implant_complications")
+    found_on = models.DateField(_("found on"), default=timezone.localdate, db_index=True)
+    kind = models.CharField(_("complication"), max_length=20, choices=KIND_CHOICES, db_index=True)
+    group = models.CharField(_("group"), max_length=12, choices=Group.choices, blank=True, db_index=True,
+                             editable=False)
+    timing = models.CharField(_("when it showed"), max_length=8, choices=Timing.choices, blank=True,
+                              help_text=_("Empty: found from the dates of the surgery and the loading."))
+    severity = models.CharField(_("severity"), max_length=8, choices=Severity.choices, default=Severity.MODERATE)
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("found by"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="implant_complications")
+    treatment_step = models.ForeignKey("clinical.TreatmentStep", verbose_name=_("treatment step"), null=True,
+                                       blank=True, on_delete=models.SET_NULL, related_name="implant_complications")
+    signs = models.TextField(_("signs and what the patient feels"), blank=True)
+    cause = models.CharField(_("likely cause"), max_length=255, blank=True)
+    # A nerve injury
+    nerve = models.CharField(_("nerve"), max_length=14, choices=Nerve.choices, blank=True)
+    side = models.CharField(_("side"), max_length=6, blank=True,
+                            choices=[("right", _("Right")), ("left", _("Left")), ("both", _("Both"))])
+    area = models.CharField(_("area felt (lip, chin, tongue, cheek...)"), max_length=150, blank=True)
+    sensory_test = models.CharField(_("sensory tests (two points, brush, pin, hot / cold)"), max_length=255,
+                                    blank=True)
+    # What was done and how it ended
+    treatment = models.CharField(_("treatment"), max_length=14, choices=Treatment.choices, blank=True)
+    treatment_notes = models.TextField(_("treatment details"), blank=True)
+    outcome = models.CharField(_("outcome"), max_length=14, choices=Outcome.choices, default=Outcome.OPEN,
+                               db_index=True)
+    resolved_on = models.DateField(_("resolved / ended on"), null=True, blank=True)
+    next_check = models.DateField(_("next check"), null=True, blank=True)
+    notes = models.TextField(_("notes for the follow-up"), blank=True)
+
+    class Meta:
+        ordering = ["-found_on", "-pk"]
+        verbose_name = _("implant complication")
+        verbose_name_plural = _("implant complications")
+
+    def __str__(self):
+        return f"{self.site.tooth} {self.get_kind_display()} {self.found_on:%d/%m/%Y}"
+
+    def find_timing(self):
+        surgery_day = self.site.surgery.date
+        if self.found_on <= surgery_day:
+            return self.Timing.DURING
+        if self.site.loaded_on and self.found_on >= self.site.loaded_on:
+            return self.Timing.LOADED
+        return self.Timing.HEALING
+
+    @property
+    def is_nerve(self):
+        return self.group == self.Group.NERVE
+
+    @property
+    def days_to_resolve(self):
+        return (self.resolved_on - self.found_on).days if self.resolved_on else None
+
+    @property
+    def months_since_placement(self):
+        return _months(self.site.surgery.date, self.found_on)
+
+    def save(self, *args, **kwargs):
+        self.group = self.KIND_GROUP.get(self.kind, "")
+        if not self.timing:
+            self.timing = self.find_timing()
+        if not self.patient_id:
+            self.patient_id = self.site.surgery.patient_id
+        if self.outcome in (self.Outcome.RESOLVED, self.Outcome.IMPLANT_LOST, self.Outcome.PERSISTENT) \
+                and not self.resolved_on:
+            self.resolved_on = timezone.localdate()
+        super().save(*args, **kwargs)

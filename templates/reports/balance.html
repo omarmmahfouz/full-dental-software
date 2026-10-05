@@ -19,6 +19,9 @@
     {% for r in cost_rows %}<tr><td>{{ r.label }}</td>{% for v in r.values %}<td class="text-end">{{ v|money }}</td>{% endfor %}<td class="text-end fw-semibold">{{ r.total|money }}</td></tr>{% endfor %}
     <tr class="fw-bold"><td>{% trans "Total costs" %}</td>{% for v in cost_totals %}<td class="text-end">{{ v|money }}</td>{% endfor %}<td class="text-end">{{ cost_total|money }}</td></tr>
     <tr class="table-primary fw-bold fs-6"><td>{% trans "Net" %}</td>{% for v in net %}<td class="text-end {% if v < 0 %}text-danger{% endif %}">{{ v|money }}</td>{% endfor %}<td class="text-end {% if net_total < 0 %}text-danger{% endif %}">{{ net_total|money }}</td></tr>
+    {% if owner_rows %}<tr class="table-light"><th colspan="{{ columns|length|add:2 }}">{% trans "The owner's money" %}</th></tr>
+    {% for row in owner_rows %}<tr><td>{{ row.label }}</td>{% for v in row.values %}<td class="text-end">{{ v|money }}</td>{% endfor %}<td class="text-end fw-semibold">{{ row.total|money }}</td></tr>{% endfor %}
+    <tr class="fw-bold"><td>{% trans "After the owner's money" %}</td>{% for v in after_owner %}<td class="text-end {% if v < 0 %}text-danger{% endif %}">{{ v|money }}</td>{% endfor %}<td class="text-end {% if after_owner_total < 0 %}text-danger{% endif %}">{{ after_owner_total|money }}</td></tr>{% endif %}
   </tbody>
 </table></div></div>
 <div class="row g-3">

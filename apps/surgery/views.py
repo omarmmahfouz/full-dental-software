@@ -336,7 +336,11 @@ def implant_detail(request, pk):
                     apply_changes(patient, changes, request.user, ToothChange.Source.MANUAL)
             messages.success(request, _("Implant updated."))
             return redirect("surgery:implant", pk=site.pk)
-    return render(request, "surgery/implant_detail.html", {"site": site, "patient": patient, "form": form})
+    return render(request, "surgery/implant_detail.html", {
+        "site": site, "patient": patient, "form": form,
+        "checks": site.follow_ups.select_related("dentist"),
+        "complications": site.complications.select_related("dentist"),
+        "months": round((timezone.localdate() - site.surgery.date).days / 30.44, 1)})
 
 
 # ------------------------------------------------------------ prostheses on implants

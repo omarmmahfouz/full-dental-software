@@ -72,6 +72,7 @@
             <li><a class="dropdown-item" href="{% url 'billing:bill_list' %}"><i class="bi bi-receipt-cutoff"></i> {% trans "Bills" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'billing:payment_list' %}"><i class="bi bi-cash-stack"></i> {% trans "Patient payments" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'billing:day' %}"><i class="bi bi-calendar-check"></i> {% trans "End of the day" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'billing:owner_cash' %}"><i class="bi bi-safe2"></i> {% trans "The owner's money" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'billing:fawry' %}"><i class="bi bi-credit-card-2-front"></i> {% trans "Fawry machine" %}</a></li>{% endif %}
             {% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% trans "All patients" %}</a></li>
@@ -200,6 +201,7 @@
             <li><h6 class="dropdown-header">{% trans "Cases and statistics" %}</h6></li>
             <li><a class="dropdown-item" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i> {% trans "Cases and statistics: implants" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'clinical:restorative_finder' %}"><i class="bi bi-bar-chart-line"></i> {% trans "Cases and statistics: restorative" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'surgery:complications' %}"><i class="bi bi-exclamation-octagon"></i> {% trans "Implant complications" %}</a></li>
             {% endif %}
           </ul>
         </li>

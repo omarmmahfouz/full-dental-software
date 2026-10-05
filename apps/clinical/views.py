@@ -147,10 +147,13 @@ def step_create(request):
                                    branch=step.appointment.branch if step.appointment_id else branch_for_user(request.user))
         message = _("Treatment saved.")
         if bill is not None:
-            from apps.billing.views import send_bill_to_reception
+            from apps.billing.views import send_bill_to_reception, tell_price_changes
 
             send_bill_to_reception(bill, request.user)
             message += " " + _("Bill %(number)s sent to the reception to collect.") % {"number": bill.number}
+            if tell_price_changes(bill, request.user, [(form.cleaned_data["bill_service"], step.teeth,
+                                                        form.cleaned_data.get("bill_price"))]):
+                message += " " + _("The price is not the usual one: the clinic manager and the owner are told.")
         if changed:
             message += " " + _("Dental chart updated for %(n)s teeth.") % {"n": changed}
         if completed:
@@ -158,6 +161,10 @@ def step_create(request):
         messages.success(request, message)
         if "add_another" in request.POST:
             return redirect(f"{reverse('clinical:step_create')}?patient={step.patient_id}")
+        implant_page = implant_record_page(step)
+        if implant_page:  # round 15: the check or the complication of the implant is written next
+            messages.info(request, _("Now write the findings of the implant."))
+            return redirect(implant_page)
         if step.step_type.shots:  # then its photos and periapical X-rays
             messages.info(request, _("Now take the photos and X-rays of this step."))
             return redirect(step)
@@ -165,8 +172,30 @@ def step_create(request):
     return render(
         request, "clinical/step_form.html",
         {"form": form, "title": _("Record treatment"), "appointment": appointment, "patient": patient,
-         "step_groups": step_groups(), "chosen_group": request.GET.get("group", "")},
+         "step_groups": step_groups(), "chosen_group": request.GET.get("group", ""),
+         "step_services": {str(pk): str(service) for pk, service in TreatmentStepType.objects.filter(
+             is_active=True, service__isnull=False).values_list("pk", "service")}},
     )
+
+
+def implant_record_page(step):
+    """The page of the check or the complication of the implant the step was done on, if its type asks for it."""
+    from apps.charting.teeth import parse_teeth
+    from apps.surgery.models import SurgerySite
+
+    kind = step.step_type.implant_record
+    if not kind:
+        return None
+    try:
+        teeth = parse_teeth(step.teeth)
+    except Exception:  # noqa: BLE001
+        teeth = []
+    site = next((s for s in SurgerySite.objects.filter(surgery__patient=step.patient, tooth__in=teeth)
+                .order_by("-surgery__date") if s.has_implant), None)
+    if site is None:
+        return None
+    name = "surgery:implant_check" if kind == "follow_up" else "surgery:implant_complication"
+    return f"{reverse(name, args=[site.pk])}?step={step.pk}"
 
 
 def step_groups():

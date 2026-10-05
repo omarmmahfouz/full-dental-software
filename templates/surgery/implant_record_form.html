@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-implant"></i> {{ title }}</h1>
+  <a class="btn btn-outline-secondary" href="{% url 'surgery:implant' site.pk %}"><i class="bi bi-arrow-left-right"></i> {% trans "The implant" %}</a></div>
+<p class="text-muted small"><a href="{{ patient.get_absolute_url }}">{{ patient.full_name }}</a> · {{ site.implant_label }} · {% trans "placed on" %} {{ site.surgery.date|date:"d/m/Y" }}{% if site.loaded_on %} · {% trans "loaded on" %} {{ site.loaded_on|date:"d/m/Y" }}{% endif %} · {{ site.get_implant_status_display }}</p>
+<div class="card"><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}{% if step %}<input type="hidden" name="step" value="{{ step.pk }}">{% endif %}
+    {% include "includes/form_fields.html" %}
+    <div class="form-actions mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+      <a class="btn btn-outline-secondary" href="{% url 'surgery:implant' site.pk %}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -16,8 +16,9 @@ from django.views.decorators.http import require_POST
 from apps.academy.models import PaymentMethod
 from apps.core.mixins import role_required
 from apps.core.models import Branch, ClinicSettings, Notification, branch_for_user, staff_at, working_places
-from apps.core.notify import notify_users
+from apps.core.notify import notify_roles, notify_users
 from apps.core.roles import CLINICAL, FRONT_DESK, HEAD_CIA, OWNER, SECRETARY, has_role
+from apps.core.utils import normalize_digits
 from apps.dentists.models import Dentist
 from apps.patients.models import Patient
 from apps.scheduling.models import Appointment
@@ -39,7 +40,9 @@ from .forms import (
     PayNowForm,
     ReceiptCancelForm,
     ReceiptCorrectForm,
+    OwnerCashForm,
     RefundForm,
+    ServiceRefundForm,
     chosen_places,
 )
 from .models import (
@@ -100,6 +103,42 @@ def receipt(request, pk):
         "signatures": [(_("Received by"), *person_signature(payment.created_by)),
                        (_("Doctor"), str(doctor) if doctor else "", doctor.signature_image if doctor else "")],
     })
+
+
+@role_required(*FRONT_DESK)
+def refund_page(request, pk):
+    """Give money back by tapping what is given back (round 15): each service the patient paid, with the receipts
+    that paid it (they open beside it, to show the patient); the amount fills in by itself."""
+    patient = get_object_or_404(Patient.objects.here(), pk=pk)
+    rows = [row for row in receipts.service_receipts(patient).values() if row["paid"] > 0]
+    form = ServiceRefundForm(request.POST or None)
+    chosen = {}
+    if request.method == "POST":
+        for row in rows:
+            pk_ = row["charge"].pk
+            if request.POST.get(f"take_{pk_}"):
+                try:
+                    chosen[pk_] = Decimal(normalize_digits(request.POST.get(f"amount_{pk_}") or "0"))
+                except InvalidOperation:
+                    chosen[pk_] = Decimal("0")
+        if not chosen:
+            messages.error(request, _("Tap the services given back."))
+        elif form.is_valid():
+            data = form.cleaned_data
+            try:
+                backs = receipts.refund_services(patient, request.user, list(chosen.items()), data["method"],
+                                                 data["reason"], data.get("fawry_machine"), data["not_done"])
+            except ValidationError as error:
+                messages.error(request, error.messages[0])
+            else:
+                total = -sum((back.amount for back in backs), Decimal("0"))
+                messages.success(request, _("%(amount)s given back: receipt %(numbers)s.") % {
+                    "amount": f"{total:,.2f}", "numbers": ", ".join(back.receipt_number for back in backs)})
+                return redirect(backs[0]) if len(backs) == 1 else redirect("billing:account", pk=patient.pk)
+    for row in rows:
+        row["chosen"] = row["charge"].pk in chosen
+        row["amount"] = chosen.get(row["charge"].pk, row["paid"])
+    return render(request, "billing/refund.html", {"patient": patient, "rows": rows, "form": form})
 
 
 @role_required(*FRONT_DESK)
@@ -164,7 +203,7 @@ def day_review(request):
         if action == "close" and closing is None and close_form.is_valid():
             DayClosing.objects.create(
                 branch=place, day=day, totals={row[2]: str(row[1]) for row in summary["by_method"]},
-                total=summary["total"], receipts=summary["count"], cash_expected=summary["cash"],
+                total=summary["total"], receipts=summary["count"], cash_expected=summary["drawer"],
                 cash_counted=close_form.cleaned_data["cash_counted"], notes=close_form.cleaned_data.get("notes", ""),
                 closed_by=request.user)
             messages.success(request, _("The day is closed. The owner can now review it."))
@@ -178,6 +217,39 @@ def day_review(request):
     return render(request, "billing/day_review.html", {
         "form": form, "day": day, "place": place, "summary": summary, "closing": closing, "reviewer": reviewer,
         "close_form": close_form, "review_form": review_form, "is_today": day == today,
+    })
+
+
+@role_required(*FRONT_DESK)
+def owner_cash(request):
+    """Money the owner puts in at a place when the spending is more than what came in, or takes out (round 15):
+    the cash counts in the day's drawer and every move in the balance sheet. The owner is told when the reception
+    writes one."""
+    from .models import OwnerCash
+
+    here, places = branch_for_user(request.user), list(working_places(request.user))
+    code = request.GET.get("place") or request.POST.get("place")
+    place = next((p for p in places if p.code == code), here)
+    form = OwnerCashForm(request.POST or None, initial={"moved_on": timezone.localdate()})
+    if request.method == "POST" and form.is_valid():
+        move = form.save(commit=False)
+        move.branch, move.created_by = place, request.user
+        move.save()
+        if not has_role(request.user, OWNER):
+            notify_roles((OWNER,), gettext_lazy("The owner's money at %(place)s: %(what)s %(amount)s"), "%(reason)s",
+                         reverse("billing:owner_cash") + f"?place={place.code}", exclude=request.user,
+                         params={"place": place.code, "what": move.get_direction_display(),
+                                 "amount": f"{move.amount:,.2f}", "reason": move.reason})
+        messages.success(request, _("Saved: %(what)s %(amount)s.") % {"what": move.get_direction_display(),
+                                                                      "amount": f"{move.amount:,.2f}"})
+        return redirect(f"{reverse('billing:owner_cash')}?place={place.code}")
+    moves = list(OwnerCash.objects.filter(branch=place).select_related("created_by")[:100])
+    month = timezone.localdate().replace(day=1)
+    this_month = [m for m in moves if m.moved_on >= month]
+    return render(request, "billing/owner_cash.html", {
+        "form": form, "place": place, "places": places, "moves": moves,
+        "month_in": sum((m.amount for m in this_month if m.direction == "in"), Decimal("0")),
+        "month_out": sum((m.amount for m in this_month if m.direction == "out"), Decimal("0")),
     })
 
 
@@ -278,6 +350,8 @@ def bill_create(request):
                                                            "receipt": payment.receipt_number})
         elif not at_desk:
             send_bill_to_reception(bill, request.user)
+            tell_price_changes(bill, request.user, [(line["service"], line.get("teeth", ""), line.get("price"))
+                                                    for line in chosen])
             messages.success(request, _("Bill %(number)s sent to the reception to collect.") % {"number": bill.number})
         else:
             messages.success(request, _("Bill %(number)s saved.") % {"number": bill.number})
@@ -292,6 +366,29 @@ def bill_create(request):
         "quick_services": Service.for_place(here).filter(quick_button=True), "at_desk": at_desk,
         "doctor_prices": doctor_prices,
     })
+
+
+def tell_price_changes(bill, user, wanted):
+    """A dentist wrote another price than the usual one (round 15): the clinic manager of the place and the owner
+    are told. ``wanted`` is [(service, teeth, price typed or None)], the lines as the dentist wrote them."""
+    from apps.clinics.prices import price_and_cost
+    from apps.core.roles import MODERATOR
+
+    changed = []
+    for service, teeth, price in wanted:
+        if price is None:
+            continue
+        usual, _cost = price_and_cost(service, bill.dentist, bill.branch, teeth)
+        if price != usual:
+            changed.append(f"{service}: {usual:,.2f} → {price:,.2f}")
+    if not changed:
+        return []
+    people = list(staff_at(bill.branch, MODERATOR)) + list(staff_at(None, OWNER))
+    notify_users(people, gettext_lazy("Price changed by %(dentist)s: %(patient)s"), "%(lines)s",
+                 bill.get_absolute_url(), Notification.Level.WARNING, exclude=user,
+                 params={"dentist": str(bill.dentist or user), "patient": bill.patient.full_name,
+                         "lines": " · ".join(changed)})
+    return changed
 
 
 def send_bill_to_reception(bill, user):
@@ -314,7 +411,7 @@ def bill_detail(request, pk, pay_form=None):
     current = account(bill.patient)
     return render(request, "billing/bill.html", {
         "bill": bill, "totals": bill.totals(current), "account": current,
-        "payments": bill.payments.order_by("paid_on", "pk"),
+        "payments": bill.payments.order_by("paid_on", "pk"), "a4": bool(request.GET.get("a4")),
         "pay_form": pay_form or (PayNowForm(prefix="pay") if has_role(request.user, *FRONT_DESK) else None),
     })
 

@@ -84,8 +84,9 @@ def cancel(payment, user, reason):
     return payment
 
 
-def refund(payment, user, amount, method, reason, fawry_machine=None):
-    """Give money back on a paid receipt: a new receipt with the amount below zero."""
+def refund(payment, user, amount, method, reason, fawry_machine=None, charge=None):
+    """Give money back on a paid receipt: a new receipt with the amount below zero (for one of its services when
+    ``charge`` is given)."""
     if not has_role(user, OWNER, HEAD_CIA, *FRONT_DESK):
         raise PermissionDenied
     if payment.is_cancelled:
@@ -98,7 +99,7 @@ def refund(payment, user, amount, method, reason, fawry_machine=None):
         raise ValidationError(_("The refund can be up to %(amount)s.") % {"amount": f"{payment.refundable():,.2f}"})
     with transaction.atomic():
         back = PatientPayment.objects.create(
-            patient=payment.patient, bill=payment.bill, charge=payment.charge, branch=payment.branch,
+            patient=payment.patient, bill=payment.bill, charge=charge or payment.charge, branch=payment.branch,
             amount=-amount, method=method, fawry_machine=fawry_machine if method == PaymentMethod.FAWRY else None,
             refund_of=payment, notes=reason.strip()[:255], created_by=user)
         PaymentLog.objects.create(payment=payment, action=PaymentLog.Action.REFUNDED, before=_describe(payment),
@@ -106,6 +107,65 @@ def refund(payment, user, amount, method, reason, fawry_machine=None):
                                   done_by=user)
     _tell_owner(payment, gettext_lazy("Money given back to a patient"), reason, user)
     return back
+
+
+def service_receipts(patient):
+    """For each service the patient paid: what is paid on it and the receipts that paid it, the latest first
+    ({charge pk: {"paid", "receipts": [(payment, part)]}}): the refund is taken from them (round 15)."""
+    from .models import _share_payments
+
+    charges = list(patient.charges.select_related("service").order_by("charged_on", "pk"))
+    payments = list(patient.patient_payments.order_by("paid_on", "pk"))
+    detail = {}
+    paid = _share_payments(charges, payments, detail)
+    by_pk = {payment.pk: payment for payment in payments}
+    rows = {charge.pk: {"charge": charge, "paid": paid[charge.pk], "receipts": []} for charge in charges}
+    for payment_pk, parts in detail.items():
+        payment = by_pk.get(payment_pk)
+        if payment is None or payment.amount <= 0:
+            continue
+        for charge_pk, part in parts:
+            rows[charge_pk]["receipts"].append((payment, part))
+    for row in rows.values():
+        row["receipts"].sort(key=lambda item: (item[0].paid_on, item[0].pk), reverse=True)
+    return rows
+
+
+def refund_services(patient, user, wanted, method, reason, fawry_machine=None, not_done=False):
+    """Give money back for the services tapped (round 15): ``wanted`` is [(charge pk, amount)]. Each amount is taken
+    from the receipts that paid that service, the latest first (one refund receipt for each receipt used). With
+    ``not_done``, a service given back in full is taken off the account (a discount of 100%, with the reason), so
+    the patient does not owe it again. Returns the refund receipts."""
+    if not (reason or "").strip():
+        raise ValidationError(_("Write why."))
+    rows = service_receipts(patient)
+    backs = []
+    with transaction.atomic():
+        for charge_pk, amount in wanted:
+            row = rows.get(charge_pk)
+            if row is None or amount <= 0:
+                continue
+            if amount > row["paid"]:
+                raise ValidationError(_("%(service)s: at most %(amount)s can be given back.")
+                                      % {"service": row["charge"].service, "amount": f"{row['paid']:,.2f}"})
+            left = amount
+            for payment, part in row["receipts"]:
+                take = min(left, part, payment.refundable())
+                if take <= 0:
+                    continue
+                backs.append(refund(payment, user, take, method, reason, fawry_machine, charge=row["charge"]))
+                left -= take
+                if left <= 0:
+                    break
+            if left > 0:
+                raise ValidationError(_("%(service)s: its receipts were already given back.")
+                                      % {"service": row["charge"].service})
+            charge = row["charge"]
+            if not_done and amount == row["paid"]:
+                charge.discount_percent = Decimal("100")
+                charge.discount_reason = (_("Given back: %(reason)s") % {"reason": reason.strip()})[:200]
+                charge.save(update_fields=["discount_percent", "discount_reason", "updated_at"])
+    return backs
 
 
 def day_summary(branch, date_from, date_to=None):
@@ -133,7 +193,17 @@ def day_summary(branch, date_from, date_to=None):
         "payment__patient", "done_by")
     if branch is not None:
         changes = changes.filter(payment__branch=branch)
+    # The owner's money of the day (round 15): cash put in (or taken) counts in the drawer.
+    from .models import OwnerCash
+
+    owner = OwnerCash.objects.filter(moved_on__range=(date_from, date_to)).select_related("created_by")
+    if branch is not None:
+        owner = owner.filter(branch=branch)
+    owner = list(owner)
+    owner_cash = sum((move.signed for move in owner if move.method == PaymentMethod.CASH), ZERO)
     return {
+        "owner_moves": owner, "owner_cash": owner_cash,
+        "drawer": by_method.get(PaymentMethod.CASH, ZERO) + owner_cash,
         "receipts": receipts,
         "by_method": sorted(((labels.get(k, k), v, k) for k, v in by_method.items()), key=lambda row: -row[1]),
         "by_person": sorted(by_person.items(), key=lambda row: -row[1]),

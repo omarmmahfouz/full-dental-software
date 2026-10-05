@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "The owner's money" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-safe2"></i> {% trans "The owner's money" %} {% if place %}<span class="place-badge place-{{ place.code }}">{{ place.badge }}</span>{% endif %}</h1>
+  <a class="btn btn-outline-secondary" href="{% url 'billing:day' %}"><i class="bi bi-calendar-check"></i> {% trans "End of the day" %}</a></div>
+<p class="text-muted small">{% trans "When what is paid out (suppliers, salaries, doctors) is more than what came in, the owner puts money in. Write it here: cash counts in the drawer of that day, and every move shows in the balance sheet as the owner's money, apart from the income." %}</p>
+<div class="row g-3">
+  <div class="col-lg-5"><div class="card"><div class="card-body">
+    <form method="post" novalidate>{% csrf_token %}<input type="hidden" name="place" value="{{ place.code }}">
+      {% include "includes/form_fields.html" %}
+      <button class="btn btn-primary mt-3"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+    </form>
+  </div></div></div>
+  <div class="col-lg-7">
+    <div class="row g-2 mb-2">
+      <div class="col-6"><div class="card stat-card"><div class="card-body"><div class="stat-value text-success">{{ month_in|money }}</div><div class="stat-label">{% trans "Put in this month" %}</div></div></div></div>
+      <div class="col-6"><div class="card stat-card"><div class="card-body"><div class="stat-value text-danger">{{ month_out|money }}</div><div class="stat-label">{% trans "Taken this month" %}</div></div></div></div>
+    </div>
+    <div class="card"><div class="table-responsive"><table class="table table-sm align-middle mb-0">
+      <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Money" %}</th><th>{% trans "What for" %}</th><th class="text-end">{% trans "Amount" %}</th><th>{% trans "By" %}</th></tr></thead>
+      <tbody>{% for m in moves %}<tr>
+        <td class="nowrap">{{ m.moved_on|date:"d/m/Y" }}</td><td>{{ m.get_direction_display }} <span class="small text-muted">{{ m.get_method_display }}</span></td>
+        <td class="small">{{ m.reason }}</td><td class="text-end fw-semibold {% if m.direction == 'in' %}text-success{% else %}text-danger{% endif %}">{{ m.signed|money }}</td><td class="small">{{ m.created_by|default:"" }}</td>
+      </tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-3">{% trans "Nothing written yet." %}</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+  </div>
+</div>
+{% endblock %}

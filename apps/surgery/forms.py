@@ -4,13 +4,15 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.charting.teeth import TOOTH_CHOICES
-from apps.core.forms import BootstrapFormMixin, StyledModelForm, validate_upload
+from apps.core.forms import BootstrapFormMixin, StyledForm, StyledModelForm, validate_upload
 from apps.dentists.forms import DentistChoiceField
 from apps.dentists.models import Dentist
 from apps.patients.access import visible_patients
 from apps.patients.forms import PatientLookupField, lookup_value
 
-from .models import DeliveryCheck, ImplantSystem, Prosthesis, Surgery, SurgerySite
+from .models import (
+    DeliveryCheck, ImplantComplication, ImplantFollowUp, ImplantSystem, Prosthesis, Surgery, SurgerySite,
+)
 
 
 class SurgeryForm(StyledModelForm):
@@ -339,3 +341,111 @@ class DeliveryCheckForm(StyledModelForm):
         for name in ("date", "dentist", "torque_ncm", "shade", "follow_up_on"):
             self.fields[name].col = "col-6 col-md-4"
         self.fields["torque_ncm"].widget.attrs.update({"inputmode": "numeric", "placeholder": "35"})
+
+
+# ------------------------------------------------------------------ the life of an implant (round 15)
+YES_NO = [("", "—"), ("true", _("Yes")), ("false", _("No"))]
+
+
+class _YesNo(forms.NullBooleanField):
+    def __init__(self, **kwargs):
+        super().__init__(widget=forms.Select(choices=YES_NO), **kwargs)
+
+
+class ImplantFollowUpForm(StyledModelForm):
+    """One check of an implant: the findings, then the class of the tissues (found from them when left empty)."""
+
+    dentist = DentistChoiceField(label=_("dentist"), required=False)
+    bleeding = _YesNo(label=_("bleeding on probing"), required=False)
+    suppuration = _YesNo(label=_("suppuration (pus)"), required=False)
+    mobility = _YesNo(label=_("mobility of the implant"), required=False)
+    plaque = _YesNo(label=_("plaque"), required=False)
+
+    fieldsets = [
+        ("", ["checked_on", "dentist"]),
+        (_("Findings"), ["probing_depth", "bleeding", "suppuration", "mobility", "plaque", "keratinized_mm",
+                         "isq", "xray_taken", "bone_loss"]),
+        (_("Result"), ["status", "notes", "next_check"]),
+    ]
+
+    class Meta:
+        model = ImplantFollowUp
+        fields = ["checked_on", "dentist", "probing_depth", "bleeding", "suppuration", "mobility", "plaque",
+                  "keratinized_mm", "isq", "xray_taken", "bone_loss", "status", "notes", "next_check"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("checked_on", "dentist", "next_check"):
+            self.fields[name].col = "col-md-6"
+        for name in ("probing_depth", "bleeding", "suppuration", "mobility", "plaque", "keratinized_mm", "isq",
+                     "bone_loss"):
+            self.fields[name].col = "col-6 col-md-3"
+        self.fields["xray_taken"].col = "col-6 col-md-3"
+        self.fields["status"].help_text = _("Empty: found from the findings (bleeding or pus = mucositis; with bone "
+                                            "loss of 3 mm or more = peri-implantitis).")
+        self.fields["status"].col = "col-md-6"
+
+
+class ImplantComplicationForm(StyledModelForm):
+    """A complication of an implant, in detail (for the follow-up and for papers)."""
+
+    dentist = DentistChoiceField(label=_("found by"), required=False)
+
+    fieldsets = [
+        (_("The complication"), ["kind", "found_on", "timing", "severity", "dentist", "signs", "cause"]),
+        (_("Nerve injury"), ["nerve", "side", "area", "sensory_test"]),
+        (_("Treatment and outcome"), ["treatment", "treatment_notes", "outcome", "resolved_on", "next_check",
+                                      "notes"]),
+    ]
+
+    class Meta:
+        model = ImplantComplication
+        fields = ["kind", "found_on", "timing", "severity", "dentist", "signs", "cause", "nerve", "side", "area",
+                  "sensory_test", "treatment", "treatment_notes", "outcome", "resolved_on", "next_check", "notes"]
+        widgets = {"signs": forms.Textarea(attrs={"rows": 2}), "treatment_notes": forms.Textarea(attrs={"rows": 2}),
+                   "notes": forms.Textarea(attrs={"rows": 2})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The kinds in their groups (biological, surgical, nerve...), as an optgroup list.
+        groups = dict(ImplantComplication.Group.choices)
+        grouped = {}
+        for code, label, group in ImplantComplication.KINDS:
+            grouped.setdefault(groups.get(group, _("Other")), []).append((code, label))
+        self.fields["kind"].choices = [("", "---------")] + [(title, rows) for title, rows in grouped.items()]
+        for name in ("kind", "found_on", "timing", "severity", "dentist", "nerve", "side", "treatment", "outcome",
+                     "resolved_on", "next_check"):
+            self.fields[name].col = "col-md-6 col-lg-4"
+        for name in ("area", "sensory_test", "cause"):
+            self.fields[name].col = "col-md-6"
+        # The nerve's boxes show for a nerve injury only (static/js/app.js).
+        self.fields["kind"].widget.attrs["data-nerve-kinds"] = ",".join(
+            code for code, _label, group in ImplantComplication.KINDS if group == "nerve")
+
+    def clean(self):
+        data = super().clean()
+        if ImplantComplication.KIND_GROUP.get(data.get("kind")) == "nerve" and not data.get("nerve"):
+            self.add_error("nerve", _("Choose the nerve."))
+        if data.get("outcome") in (ImplantComplication.Outcome.RESOLVED, ImplantComplication.Outcome.IMPLANT_LOST) \
+                and data.get("resolved_on") and data.get("found_on") and data["resolved_on"] < data["found_on"]:
+            self.add_error("resolved_on", _("It cannot end before it was found."))
+        return data
+
+
+class ComplicationFilterForm(StyledForm):
+    """The complications finder (for papers): by group, kind, timing, outcome, implant, operator, dates."""
+
+    date_from = forms.DateField(label=_("From"), required=False)
+    date_to = forms.DateField(label=_("To"), required=False)
+    group = forms.ChoiceField(label=_("group"), required=False,
+                              choices=[("", _("All"))] + list(ImplantComplication.Group.choices))
+    kind = forms.ChoiceField(label=_("complication"), required=False,
+                             choices=[("", _("All"))] + ImplantComplication.KIND_CHOICES)
+    timing = forms.ChoiceField(label=_("when it showed"), required=False,
+                               choices=[("", _("All"))] + list(ImplantComplication.Timing.choices))
+    outcome = forms.ChoiceField(label=_("outcome"), required=False,
+                                choices=[("", _("All"))] + list(ImplantComplication.Outcome.choices))
+    system = forms.ModelChoiceField(label=_("implant type"), required=False, queryset=ImplantSystem.objects.all(),
+                                    empty_label=_("All"))
+    operator = DentistChoiceField(label=_("operator"), required=False, empty_label=_("All"))

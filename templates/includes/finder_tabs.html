@@ -6,4 +6,7 @@
   <a class="finder-tab{% if here == 'implant_cases' %} is-active{% endif %}" href="{% url 'surgery:finder' %}"><i class="bi bi-funnel"></i><span>{% trans "Cases and statistics: implants" %}</span></a>
   <a class="finder-tab{% if here == 'restorative_cases' %} is-active{% endif %}" href="{% url 'clinical:restorative_finder' %}"><i class="bi bi-bar-chart-line"></i><span>{% trans "Cases and statistics: restorative" %}</span></a>
   {% endif %}
+  {% if is_management or roles.team_head %}
+  <a class="finder-tab{% if here == 'complications' %} is-active{% endif %}" href="{% url 'surgery:complications' %}"><i class="bi bi-exclamation-octagon"></i><span>{% trans "Implant complications" %}</span></a>
+  {% endif %}
 </nav>

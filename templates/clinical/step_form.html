@@ -13,12 +13,36 @@
       <form method="post" novalidate id="step-form">{% csrf_token %}
         <input type="hidden" name="patient" value="{% firstof request.GET.patient request.POST.patient %}">
         <input type="hidden" name="appointment" value="{% firstof request.GET.appointment request.POST.appointment %}">
-        <div class="step-picker mb-3" data-step-picker data-chosen-group="{{ chosen_group }}">
-          <div class="form-label fw-semibold">{% trans "What did you do? Tap the kind of work, then the step" %}</div>
+        {% if form.non_field_errors %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+        <div class="form-sections">
+        {% for title, fields in form.bound_fieldsets %}
+        <fieldset class="mb-4">
+          {% if title %}<legend class="form-section-title">{{ title }}</legend>{% endif %}
+          <div class="row g-3">{% for field in fields %}{% include "includes/field.html" %}{% endfor %}</div>
+          {% if forloop.first %}
+          {# Round 15: how the teeth chosen are now, what was done on them and what is planned #}
+          <div class="teeth-status mt-3" data-teeth-status data-url="{% url 'clinical:teeth_status' %}" hidden>
+            <div class="teeth-status-list" data-teeth-status-list></div>
+          </div>
+          {% endif %}
+          {% if forloop.counter == 4 %}
+          <div class="small mt-2" data-bill-info data-url="{% url 'clinical:bill_info' %}"{% if patient %} data-patient="{{ patient.pk }}"{% endif %}>
+            <span data-bill-owes class="fw-semibold"></span> <span data-bill-usual class="text-muted"></span>
+            <div class="text-warning-emphasis" data-bill-changed hidden><i class="bi bi-bell"></i> {% trans "Not the usual price: the clinic manager and the owner will be told." %}</div>
+          </div>
+          {% endif %}
+        </fieldset>
+        {% if forloop.first %}
+        <fieldset class="step-picker mb-4" data-step-picker data-chosen-group="{{ chosen_group }}">
+          <legend class="form-section-title">{% trans "What did you do? Tap the kind of work, then the step" %}</legend>
           <div class="step-groups">{% for g in step_groups %}<button type="button" class="step-group" data-group="{{ g.code }}"><i class="bi {{ g.icon }}"></i> {{ g.label }}</button>{% endfor %}</div>
           {% for g in step_groups %}<div class="step-types" data-types="{{ g.code }}" hidden>{% for t in g.types %}<button type="button" class="step-type" data-type="{{ t.id }}">{{ t.name }}{% if t.shots %} <i class="bi bi-camera small" title="{% trans 'photos and X-rays to take' %}"></i>{% endif %}</button>{% endfor %}</div>{% endfor %}
+        </fieldset>
+        {% endif %}
+        {% endfor %}
         </div>
-        {% include "includes/form_fields.html" %}
+        {% include "includes/form_errors.html" %}
         <div id="chart-preview" class="alert alert-light border mt-3 d-none">
           <div class="fw-semibold mb-1"><i class="bi bi-diagram-3"></i> {% trans "The dental chart will change like this:" %}</div>
           <ul class="mb-0" id="chart-preview-list"></ul>
@@ -43,6 +67,7 @@
 </div>
 {% endblock %}
 {% block extra_js %}
+{{ step_services|json_script:"step-services" }}
 <script>
   // The picker: a kind of work shows its steps; a step chooses it in the list below (the list still works alone).
   (function () {
@@ -69,6 +94,114 @@
     var chosen = select.value && picker.querySelector('[data-type="' + select.value + '"]');
     showGroup(chosen ? chosen.closest("[data-types]").dataset.types : picker.dataset.chosenGroup);
     mark();
+  })();
+
+  // Round 15: the teeth first. Each tooth shows how it is now, what was done on it and what is planned; for an
+  // implant its stage, its last check and its open complications. The kinds of work that fit are marked.
+  (function () {
+    var form = document.getElementById("step-form"), box = form.querySelector("[data-teeth-status]");
+    var list = form.querySelector("[data-teeth-status-list]"), picker = form.querySelector("[data-step-picker]");
+    var patientId = "{% if patient %}{{ patient.pk }}{% endif %}", timer;
+    var T = { now: "{{ _('Now')|escapejs }}", done: "{{ _('Done before')|escapejs }}", plan: "{{ _('Planned')|escapejs }}",
+              implant: "{{ _('Implant')|escapejs }}", placed: "{{ _('placed')|escapejs }}", loaded: "{{ _('loaded')|escapejs }}",
+              check: "{{ _('Last check')|escapejs }}", open: "{{ _('Open complication')|escapejs }}",
+              addCheck: "{{ _('Write a check')|escapejs }}", addComplication: "{{ _('Write a complication')|escapejs }}",
+              nothing: "{{ _('nothing yet')|escapejs }}", suggested: "{{ _('fits these teeth')|escapejs }}" };
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+    function load() {
+      var teeth = form.querySelector("[name=teeth]"), lookup = form.querySelector("[name=patient_lookup]");
+      if (!teeth || !teeth.value.trim()) { box.hidden = true; mark([]); return; }
+      var params = new URLSearchParams({ patient: patientId, lookup: lookup ? lookup.value : "", teeth: teeth.value });
+      fetch(box.getAttribute("data-url") + "?" + params.toString(), { credentials: "same-origin" })
+        .then(function (r) { return r.json(); }).then(function (data) {
+          list.innerHTML = "";
+          (data.teeth || []).forEach(function (row) {
+            var card = el("div", "tooth-status");
+            var head = el("div", "tooth-status-head");
+            head.appendChild(el("b", "tooth-status-no", String(row.tooth)));
+            head.appendChild(el("span", "", T.now + ": " + row.now));
+            card.appendChild(head);
+            if (row.implant) {
+              var imp = el("div", "tooth-status-implant");
+              imp.appendChild(el("div", "", T.implant + ": " + row.implant.label + " · " + row.implant.stage + " · " + T.placed + " " + row.implant.placed + (row.implant.loaded ? " · " + T.loaded + " " + row.implant.loaded : "")));
+              if (row.implant.last_check) imp.appendChild(el("div", "small", T.check + ": " + row.implant.last_check));
+              row.implant.complications.forEach(function (c) { imp.appendChild(el("div", "small text-danger", T.open + ": " + c)); });
+              var links = el("div", "d-flex flex-wrap gap-2 mt-1");
+              [[row.implant.check_url, T.addCheck, "btn-outline-primary"], [row.implant.complication_url, T.addComplication, "btn-outline-danger"]].forEach(function (a) {
+                var link = el("a", "btn btn-sm " + a[2], a[1]); link.href = a[0]; link.target = "_blank"; links.appendChild(link);
+              });
+              imp.appendChild(links);
+              card.appendChild(imp);
+            }
+            var done = el("div", "small"); done.appendChild(el("span", "text-muted", T.done + ": "));
+            if (!row.done.length) done.appendChild(el("span", "text-muted", T.nothing));
+            row.done.forEach(function (d, i) {
+              var link = el("a", "", d.date + " " + d.what + (d.by ? " (" + d.by + ")" : "")); link.href = d.url; link.target = "_blank";
+              if (i) done.appendChild(document.createTextNode(" · "));
+              done.appendChild(link);
+            });
+            card.appendChild(done);
+            if (row.planned.length) card.appendChild(el("div", "small text-primary", T.plan + ": " + row.planned.join(" · ")));
+            list.appendChild(card);
+          });
+          box.hidden = !list.children.length;
+          mark(data.groups || []);
+        }).catch(function () {});
+    }
+    function mark(groups) {
+      if (!picker) return;
+      picker.querySelectorAll("[data-group]").forEach(function (b) {
+        var fit = groups.indexOf(b.dataset.group) >= 0;
+        b.classList.toggle("is-suggested", fit);
+        if (fit) b.title = T.suggested; else b.removeAttribute("title");
+      });
+      var select = form.querySelector("[name=step_type]");
+      if (groups.length && (!select || !select.value)) {
+        var first = picker.querySelector('[data-group="' + groups[0] + '"]');
+        if (first && !picker.querySelector(".step-group.is-active")) first.click();
+      }
+    }
+    form.addEventListener("input", function (event) { if (event.target.name === "teeth") { clearTimeout(timer); timer = setTimeout(load, 400); } });
+    form.addEventListener("change", function (event) { if (event.target.name === "teeth" || event.target.name === "patient_lookup") load(); });
+    load();
+  })();
+
+  // Round 15: the bill goes with the treatment. The step chooses its paid service and its usual price (the doctor's
+  // own price if he has one); what the patient owes shows; another price is told to the manager and the owner.
+  (function () {
+    var form = document.getElementById("step-form"), info = form.querySelector("[data-bill-info]");
+    var service = form.querySelector("[name=bill_service]"), price = form.querySelector("[name=bill_price]");
+    var stepType = form.querySelector("[name=step_type]"), operator = form.querySelector("[name=operator]");
+    if (!info) return;
+    var servicesData = document.getElementById("step-services");
+    var services = servicesData ? JSON.parse(servicesData.textContent) : {}, usual = null, autoPrice = true;
+    var USUAL = "{{ _('usual price')|escapejs }}";
+    function refresh() {
+      var params = new URLSearchParams({ service: service && service.value ? service.value : "", dentist: operator ? operator.value : "",
+        teeth: (form.querySelector("[name=teeth]") || {}).value || "", patient: info.getAttribute("data-patient") || "",
+        lookup: (form.querySelector("[name=patient_lookup]") || {}).value || "" });
+      fetch(info.getAttribute("data-url") + "?" + params.toString(), { credentials: "same-origin" })
+        .then(function (r) { return r.json(); }).then(function (data) {
+          info.querySelector("[data-bill-owes]").textContent = data.owes_text || "";
+          usual = data.price !== undefined ? data.price : null;
+          info.querySelector("[data-bill-usual]").textContent = usual !== null ? "· " + USUAL + ": " + Number(usual).toLocaleString() : "";
+          if (price && usual !== null && (autoPrice || !price.value)) { price.value = usual; autoPrice = true; }
+          changed();
+        }).catch(function () {});
+    }
+    function changed() {
+      var differs = price && usual !== null && price.value !== "" && Number(price.value) !== Number(usual);
+      info.querySelector("[data-bill-changed]").hidden = !differs;
+    }
+    if (stepType) stepType.addEventListener("change", function () {
+      var wanted = services[stepType.value];
+      if (service && wanted && (!service.value || service._auto)) { service.value = wanted; service._auto = true; }
+      refresh();
+    });
+    if (service) service.addEventListener("change", function () { service._auto = false; autoPrice = true; refresh(); });
+    if (operator) operator.addEventListener("change", refresh);
+    if (price) price.addEventListener("input", function () { autoPrice = false; changed(); });
+    refresh();
   })();
 
   // Show what the dental chart will become before saving (the dentist confirms with the checkbox).
