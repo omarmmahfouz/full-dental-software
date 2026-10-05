@@ -89,7 +89,7 @@
       data-name="{{ a.patient.full_name }}" data-info="{{ a.scheduled_at|time:'g:i A' }} · {{ a.dentist|default:'' }}{% if a.room %} · {{ a.room }}{% endif %}">
     <td class="nowrap fw-bold">{% if a.is_walk_in %}<span class="badge text-bg-light">{% trans "walk-in" %}</span>{% else %}{{ a.scheduled_at|time:"g:i A" }}{% endif %}</td>
     <td>
-      <a href="{{ a.patient.get_absolute_url }}" class="fw-semibold">{{ a.patient.full_name }}</a> <span class="small text-muted">{{ a.patient.file_number }}</span>
+      <a href="{{ a.patient.get_absolute_url }}" class="fw-semibold">{{ a.patient.full_name }}</a> <span class="small text-muted">{{ a.patient.file_number }}</span>{% if a.patient.is_expected %} <a class="badge rounded-pill text-bg-warning text-decoration-none" href="{% url 'patients:update' a.patient.pk %}"><i class="bi bi-person-check"></i> {% trans "new: complete the file" %}</a>{% endif %}
       {% if a.open_labs %}<span class="lab-flag"><i class="bi bi-lab-request"></i> {% trans "Lab work" %}</span>{% endif %}
       {% for c in a.patient.medical_conditions.all %}{% if c.is_alert %}<span class="medical-alert py-0">{{ c }}</span>{% endif %}{% endfor %}
       {% if a.what %}<div class="small text-muted">{{ a.what }}</div>{% endif %}{% if a.requested_by or a.second_dentist %}<div class="small text-muted">{% if a.requested_by %}{% trans "asked by" %} {{ a.requested_by }}{% endif %}{% if a.second_dentist %} · {% trans "with" %} {{ a.second_dentist }}{% endif %}</div>{% endif %}

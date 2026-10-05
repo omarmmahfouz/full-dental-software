@@ -1,0 +1,8 @@
+{% load i18n %}{% comment %}Some of this list is at another place this person works at (round 15). Context: elsewhere = [(place, count)].{% endcomment %}
+{% for place, n in elsewhere %}<div class="alert alert-info py-2 d-flex flex-wrap align-items-center gap-2 no-print">
+  <i class="bi bi-geo-alt"></i> <span>{% blocktrans with place=place.name count n=n %}{{ n }} more at {{ place }}.{% plural %}{{ n }} more at {{ place }}.{% endblocktrans %}</span>
+  <form method="post" action="{% url 'core:switch_place' %}" class="ms-auto" data-no-leave-warning>{% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <button class="btn btn-sm btn-primary" name="place" value="{{ place.code }}"><i class="bi bi-arrow-left-right"></i> {% blocktrans with place=place.badge %}Work at {{ place }}{% endblocktrans %}</button>
+  </form>
+</div>{% endfor %}

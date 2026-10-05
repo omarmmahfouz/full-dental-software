@@ -1,0 +1,1 @@
+<div class="input-group hours-minutes">{% for sub in widget.subwidgets %}{% include sub.template_name with widget=sub %}<span class="input-group-text">{% if forloop.first %}{{ widget.labels.0 }}{% else %}{{ widget.labels.1 }}{% endif %}</span>{% endfor %}</div>

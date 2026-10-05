@@ -262,7 +262,7 @@ class OptionsForm(StyledModelForm):
                   "complaint_follow_up_days", "stock_expiry_days", "reminder_days_before", "whatsapp_country_code",
                   "dicom_email", "fawry_fee_percent", "hba1c_limit", "glucose_limit", "systolic_limit",
                   "diastolic_limit", "follow_up_sinus_days", "follow_up_graft_days", "follow_up_days",
-                  "idle_logout_minutes", "force_strong_passwords"]
+                  "idle_logout_minutes", "force_strong_passwords", "one_device_per_login"]
         widgets = {"surgery_days": WeekdaysWidget}
 
 
@@ -520,7 +520,14 @@ def backup_home(request):
     from .backup import backup_dir, backup_now, backup_status, files_backup_dir, list_backups
     from .models import BackupRun
 
-    if request.method == "POST":
+    from . import photo_folder
+
+    checked, findings = "", None
+    if request.method == "POST" and "check_folder" in request.POST:
+        # Where the photos are kept: another folder is checked here, the photos move with move_photos (round 15).
+        checked = request.POST.get("check_folder", "").strip()
+        findings = photo_folder.check(checked)
+    elif request.method == "POST":
         running = BackupRun.objects.filter(kind=BackupRun.Kind.DATABASE, finished_at=None,
                                            started_at__gte=timezone.now() - timedelta(minutes=30)).exists()
         if running:
@@ -541,6 +548,8 @@ def backup_home(request):
     return render(request, "settings/backup.html", {
         "backups": list_backups(), "folder": backup_dir(), "files_folder": files_backup_dir(),
         "status": backup_status(), "runs": BackupRun.objects.all()[:12],
+        "photos": photo_folder.current(), "checked": checked, "findings": findings,
+        "folder_ok": findings is not None and all(ok for ok, _text in findings),
     })
 
 

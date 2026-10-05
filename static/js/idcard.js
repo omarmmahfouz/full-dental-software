@@ -315,8 +315,12 @@
   // inside the frame. Browsers allow the camera on https:// pages and on the server PC itself (localhost) only;
   // elsewhere the box opens the tablet's own camera, as before.
   var canCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && window.isSecureContext !== false;
+  // The camera used last on this PC or tablet is used again; "Switch camera" goes through every camera it has
+  // (the back and the front of a tablet, a USB document camera on a PC; round 15).
+  var CAMERA_KEY = "id-camera";
+  function savedCamera() { try { return localStorage.getItem(CAMERA_KEY) || ""; } catch (e) { return ""; } }
   function openCamera(onTaken) {
-    var box = document.createElement("div"), stream = null, facing = "environment";
+    var box = document.createElement("div"), stream = null, facing = "environment", cameraId = savedCamera(), cameras = [];
     box.className = "id-camera";
     box.setAttribute("role", "dialog");
     box.innerHTML = '<video playsinline muted autoplay></video><div class="id-camera-frame"><span></span></div>' +
@@ -339,11 +343,32 @@
     function onKey(event) { if (event.key === "Escape") close(); }
     function start() {
       stop();
-      navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: facing },
-        width: { ideal: 1920 }, height: { ideal: 1080 } } }).then(function (got) {
+      var wanted = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+      if (cameraId) wanted.deviceId = { exact: cameraId }; else wanted.facingMode = { ideal: facing };
+      navigator.mediaDevices.getUserMedia({ audio: false, video: wanted }).then(function (got) {
         stream = got; video.srcObject = got;
         var playing = video.play(); if (playing && playing.catch) playing.catch(function () {});
-      }).catch(function () { close(); window.alert(idText("camera-error")); });
+        var settings = got.getVideoTracks()[0] && got.getVideoTracks()[0].getSettings ? got.getVideoTracks()[0].getSettings() : {};
+        if (settings.deviceId) cameraId = settings.deviceId;
+        if (navigator.mediaDevices.enumerateDevices) {
+          navigator.mediaDevices.enumerateDevices().then(function (all) {
+            cameras = all.filter(function (device) { return device.kind === "videoinput" && device.deviceId; });
+          });
+        }
+      }).catch(function () {
+        if (cameraId) { cameraId = ""; start(); return; }  // the camera used last is not there any more
+        close(); window.alert(idText("camera-error"));
+      });
+    }
+    function nextCamera() {
+      if (cameras.length > 1) {
+        var at = cameras.findIndex(function (device) { return device.deviceId === cameraId; });
+        cameraId = cameras[(at + 1) % cameras.length].deviceId;
+        try { localStorage.setItem(CAMERA_KEY, cameraId); } catch (e) {}
+      } else {
+        facing = facing === "environment" ? "user" : "environment"; cameraId = "";
+      }
+      start();
     }
     function grab() {
       // The frame on the screen, in the pixels of the camera (the picture fills the screen: object-fit cover), and a
@@ -366,7 +391,7 @@
       if (!button) return;
       var what = button.getAttribute("data-cam");
       if (what === "cancel") close();
-      else if (what === "switch") { facing = facing === "environment" ? "user" : "environment"; start(); }
+      else if (what === "switch") nextCamera();
       else if (what === "take") {
         var shot = grab();
         if (!shot) return;

@@ -161,3 +161,52 @@ def shared_dentist_day(dentist, day, branch):
     if day.weekday() in branch.closed_weekdays:
         text += " " + _("The place is closed on this day.")
     return {"working": day.weekday() not in branch.closed_weekdays, "text": text, "shifts": []}
+
+
+def day_slots(dentist, day, branch, duration=30, exclude=None):
+    """The times of the doctor's shift on ``day`` in steps of 15 minutes (round 15): [{"time", "label", "busy",
+    "room", "who"}]. A time is busy when the doctor already has a patient then (or, where the rooms are shared, when
+    no room is free); the booking form shows them grey and they cannot be pressed. Without a shift that day, the
+    place's opening hours are given with ``outside`` true."""
+    from django.utils.formats import time_format
+
+    from .models import Room
+
+    duration = max(int(duration or 30), 5)
+    shifts = list(RoomShift.objects.filter(Q(dentist=dentist) | Q(second_dentist=dentist), date=day,
+                                           room__branch=branch).select_related("room").order_by("start_time"))
+    outside = not shifts
+    if shifts:
+        windows = [(_minutes(s.start_time), _minutes(s.end_time), s.room_id) for s in shifts]
+    elif day.weekday() in branch.closed_weekdays:
+        return {"slots": [], "outside": True}
+    else:
+        opens, closes = branch.hours()
+        windows = [(_minutes(opens), _minutes(closes), None)]
+    begin, end = day_bounds(day)
+    booked = list(Appointment.objects.filter(branch=branch, scheduled_at__gte=begin, scheduled_at__lt=end)
+                  .exclude(status__in=NOT_BUSY).exclude(pk=exclude).select_related("patient"))
+    rooms = list(Room.objects.filter(branch=branch, is_active=True)) if branch.rooms_shared else []
+    now = timezone.localtime()
+    slots = []
+    for first, last, room_id in windows:
+        minute = first
+        while minute + min(duration, STEP) <= last:
+            slot_start, slot_end = _at(day, minute), _at(day, minute + duration)
+            overlapping = [a for a in booked if a.scheduled_at < slot_end and a.scheduled_end > slot_start]
+            mine = [a for a in overlapping if dentist.pk in (a.dentist_id, a.second_dentist_id)]
+            busy, who = bool(mine), mine[0].patient.full_name if mine else ""
+            if not busy and branch.rooms_shared and rooms:
+                taken = {a.room_id for a in overlapping}
+                if all(r.pk in taken for r in rooms):
+                    busy, who = True, _("no free room")
+            elif not busy and room_id:
+                other = next((a for a in overlapping if a.room_id == room_id), None)
+                if other is not None:
+                    busy, who = True, other.patient.full_name
+            local = timezone.localtime(slot_start)
+            slots.append({"time": f"{local:%H:%M}", "label": time_format(local.time(), "g:i A"), "busy": busy,
+                          "past": slot_start < now, "too_long": minute + duration > last, "room": room_id or "",
+                          "who": who})
+            minute += STEP
+    return {"slots": slots, "outside": outside}

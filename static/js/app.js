@@ -34,6 +34,12 @@
   updateTrail();
   window.addEventListener("pageshow", function (event) { if (event.persisted) updateTrail(); });
 
+  // The address a form is sent to. Not form.action: a button named "action" (the reception board's Arrived, Left...)
+  // hides it, and the form went to "[object RadioNodeList]" (round 15).
+  function formAddress(form) {
+    return new URL(form.getAttribute("action") || window.location.href, window.location.href).href;
+  }
+
   // Convert Arabic-Indic digits to Western digits while typing in number-like fields.
   var arabicDigits = /[٠-٩۰-۹]/g;
   document.addEventListener("input", function (event) {
@@ -68,6 +74,15 @@
     new window.bootstrap.Modal(box).show();
   }
   window.appPopup = popup;
+  // A pop-up inside a card or a tab that moves (an animation, a hover lift) opened under its own grey backdrop, so
+  // its OK and its cross could not be pressed (round 15). A pop-up with nothing to send goes to the end of the page
+  // before it opens; one holding fields of a form stays in the form (the cards no longer keep a transform).
+  document.addEventListener("show.bs.modal", function (event) {
+    var box = event.target;
+    if (box.parentElement === document.body) return;
+    if (box.closest("form") && box.querySelector("input:not([type=hidden]), select, textarea")) return;
+    document.body.appendChild(box);
+  });
   document.querySelectorAll(".modal[data-show-on-load]").forEach(function (box) {
     if (!window.bootstrap) return;
     box.addEventListener("hidden.bs.modal", function () {
@@ -89,6 +104,29 @@
         el.classList.toggle("is-invalid", !!data.message);
         if (data.message) popup(data.title || "", [data.message]);
       });
+  });
+
+  // A form that opens WhatsApp in a new tab (the message to many, round 15): this tab shows the next one.
+  document.addEventListener("submit", function (event) {
+    if (event.target.matches && event.target.matches("form[data-reload-after-send]")) {
+      setTimeout(function () { window.location.reload(); }, 1200);
+    }
+  });
+
+  // A tick that shows its own boxes (round 15): data-reveals="name,name" names the fields shown only while it is
+  // ticked (e.g. "An old paper file" shows the file number; a GBR shows its details). A field with an error stays.
+  function revealFrom(box) {
+    var form = box.form || document;
+    box.getAttribute("data-reveals").split(",").forEach(function (name) {
+      form.querySelectorAll('[name="' + name.trim() + '"], [name^="' + name.trim() + '_"]').forEach(function (el) {
+        var wrap = el.closest("[class*='col-']") || el.parentNode;
+        wrap.hidden = !box.checked && !wrap.querySelector(".errorlist");
+      });
+    });
+  }
+  document.querySelectorAll("input[data-reveals]").forEach(function (box) {
+    revealFrom(box);
+    box.addEventListener("change", function () { revealFrom(box); });
   });
 
   // Dates are always dd/mm/yyyy: a calendar to pick from, or type the date (e.g. an old visit).
@@ -194,6 +232,20 @@
     input.addEventListener("blur", function () { setTimeout(hide, 150); });
   }
   document.querySelectorAll("input[data-autocomplete-url]").forEach(setupAutocomplete);
+  // A patient chosen in a box with data-reload-with="patient" opens the page again for him while nothing else is
+  // typed yet (e.g. a complaint: his earlier complaints show first, round 15).
+  document.addEventListener("change", function (event) {
+    var input = event.target;
+    if (!input.matches || !input.matches("input[data-reload-with]") || !input.value.trim()) return;
+    var typed = Array.prototype.some.call(input.form ? input.form.querySelectorAll("textarea") : [], function (box) {
+      return box.value.trim();
+    });
+    if (typed) return;
+    var url = new URL(window.location.href);
+    url.searchParams.set(input.getAttribute("data-reload-with"), input.value.trim());
+    if (input.form) input.form.setAttribute("data-no-leave-warning", "");
+    window.location.href = url.toString();
+  });
   document.addEventListener("focusin", function (event) {
     if (event.target.matches && event.target.matches("input[data-autocomplete-url]")) setupAutocomplete(event.target);
   });
@@ -404,7 +456,7 @@
       send.disabled = true;
       var body = new FormData(problemForm);
       if (attached) body.set(attached.field, attached.blob, attached.name);
-      fetch(problemForm.action, {
+      fetch(formAddress(problemForm), {
         method: "POST", body: body, credentials: "same-origin",
         headers: { "X-Requested-With": "XMLHttpRequest" }
       }).then(function (r) { return r.json(); }).then(function (data) {
@@ -608,6 +660,38 @@
       button.blur();
     });
   });
+  // A tap on a group of the narrow rail (a tablet held sideways, e.g. the Academy) opens the rail with that group
+  // open. It used to close the group of the page shown (open, but hidden while the rail was narrow), so the tap
+  // looked lost and a second tap was needed (round 15).
+  // The finger's first touch also widened the rail, so the entries moved under it and the tap landed on another one
+  // (Complaints instead of the Academy). Now the entry under the finger when it touched is the one opened.
+  var railNav = document.querySelector(".app-navbar"), railTap = null;
+  if (railNav) {
+    railNav.addEventListener("pointerdown", function (event) {
+      railTap = null;
+      if (event.pointerType === "mouse" || !document.body.classList.contains("rail-compact") ||
+          railNav.classList.contains("rail-open") || railNav.offsetWidth >= 120 ||
+          !window.matchMedia("(min-width: 1200px)").matches) return;
+      railTap = event.target.closest && event.target.closest("a[href], button");
+    }, true);
+    railNav.addEventListener("click", function (event) {
+      var target = railTap;
+      railTap = null;
+      if (!target || !window.bootstrap) return;
+      event.preventDefault();
+      event.stopPropagation();
+      railNav.classList.add("rail-open");
+      if (target.matches(".me-auto .dropdown-toggle")) {
+        target.focus();
+        window.bootstrap.Dropdown.getOrCreateInstance(target).show();
+      } else {
+        target.click();  // a page of its own (Reception today, Complaints...), the bell, the place switch
+      }
+    }, true);
+    document.addEventListener("pointerdown", function (event) {
+      if (!railNav.contains(event.target)) railNav.classList.remove("rail-open");
+    });
+  }
 
   // The menu entry of the page being shown is marked (the longest address that matches wins).
   (function markActive() {
@@ -746,7 +830,7 @@
       error.hidden = true;
       if (!box.value.trim()) { box.focus(); return; }
       button.disabled = true;
-      fetch(form.action, { method: "POST", body: new FormData(form), credentials: "same-origin",
+      fetch(formAddress(form), { method: "POST", body: new FormData(form), credentials: "same-origin",
                            headers: { "X-Requested-With": "fetch" } })
         .then(function (response) { return response.json(); })
         .then(function (answer) {
@@ -1670,7 +1754,7 @@
       var instead = pageInsteadOfForm(form);
       if (instead && window.history.replaceState) {
         // The addresses are fixed first: after replaceState the page's own address is another one.
-        form.setAttribute("action", form.action);
+        form.setAttribute("action", formAddress(form));
         if (button && button.hasAttribute("formaction")) button.setAttribute("formaction", button.formAction);
         window.history.replaceState(window.history.state, "", instead);
       }

@@ -13,5 +13,6 @@ urlpatterns = [
     path("<int:pk>/answer/", views.complaint_answer, name="answer"),
     path("<int:pk>/situation/", views.complaint_situation, name="situation"),
     path("<int:pk>/comment/", views.complaint_comment, name="comment"),
+    path("<int:pk>/called-again/", views.complaint_called_again, name="called_again"),
     path("<int:pk>/follow-up/<int:follow_up_pk>/edit/", views.complaint_follow_up_edit, name="follow_up_edit"),
 ]

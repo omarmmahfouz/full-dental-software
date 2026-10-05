@@ -34,6 +34,7 @@ urlpatterns = [
     path("calls/<int:pk>/", views.LeadDetailView.as_view(), name="lead_detail"),
     path("calls/<int:pk>/edit/", views.LeadUpdateView.as_view(), name="lead_update"),
     path("calls/<int:pk>/log/", views.lead_add_call, name="lead_add_call"),
+    path("calls/<int:pk>/book/", views.lead_book, name="lead_book"),
     path("to-call/", calllists.calllist_list, name="calllist_list"),
     path("to-call/new/", calllists.calllist_create, name="calllist_create"),
     path("to-call/<int:pk>/", calllists.calllist_detail, name="calllist_detail"),

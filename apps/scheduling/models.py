@@ -493,3 +493,51 @@ class WhatsAppRequest(models.Model):
 
     def __str__(self):
         return f"{self.get_kind_display()} — {self.patient}"
+
+
+class BulkMessage(TimeStampedModel):
+    """One WhatsApp message to many patients (round 15): the reception chooses who (patients by status, dentist,
+    area, last visit...; or the expected patients of the call list), writes the text once ({patient} is each one's
+    name), then sends it one after another: each press opens WhatsApp with the next person and the text ready."""
+
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), on_delete=models.PROTECT, related_name="+")
+    title = models.CharField(_("title"), max_length=120,
+                             help_text=_("For you, e.g. Eid greetings, the new implant offer."))
+    text = models.TextField(_("message"), help_text=_("{patient} is replaced by each one's name; {clinic}, {phone} "
+                                                      "and {address} by the place's."))
+    audience = models.CharField(_("sent to"), max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("WhatsApp message to many")
+        verbose_name_plural = _("WhatsApp messages to many")
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse("scheduling:bulk_detail", args=[self.pk])
+
+    def progress(self):
+        rows = list(self.recipients.values_list("sent_at", "skipped"))
+        done = sum(1 for sent, skipped in rows if sent or skipped)
+        return done, len(rows)
+
+
+class BulkRecipient(models.Model):
+    bulk = models.ForeignKey(BulkMessage, on_delete=models.CASCADE, related_name="recipients")
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), null=True, blank=True,
+                                on_delete=models.CASCADE, related_name="+")
+    lead = models.ForeignKey("patients.Lead", verbose_name=_("expected patient"), null=True, blank=True,
+                             on_delete=models.CASCADE, related_name="+")
+    name = models.CharField(_("name"), max_length=150)
+    phone = models.CharField(_("mobile"), max_length=20)
+    sent_at = models.DateTimeField(_("sent at"), null=True, blank=True)
+    sent_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                                related_name="+", verbose_name=_("sent by"))
+    skipped = models.BooleanField(_("skipped"), default=False)
+
+    class Meta:
+        ordering = ["pk"]
+        verbose_name = _("person to send to")
+        verbose_name_plural = _("people to send to")

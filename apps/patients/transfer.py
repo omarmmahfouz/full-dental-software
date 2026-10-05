@@ -34,7 +34,8 @@ def transfer(patient, place, user):
         raise ValidationError(_("The patient is already at %(place)s.") % {"place": place.code})
     today = timezone.localdate()
     with transaction.atomic():
-        new = Patient.objects.filter(branch=place, national_id=patient.national_id).first()
+        new = Patient.objects.filter(branch=place, national_id=patient.national_id).first() \
+            if patient.national_id else None
         if new is not None:  # came back: the old file of that place is opened again
             new.status, new.out_reason, new.out_notes = Patient.Status.ACTIVE, None, ""
             new.notes = "\n".join(filter(None, [new.notes, _("Came back from %(file)s on %(day)s.") % {

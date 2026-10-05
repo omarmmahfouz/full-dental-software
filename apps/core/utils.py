@@ -133,3 +133,19 @@ def minutes_between(start, end):
     if not start or not end:
         return None
     return round((end - start).total_seconds() / 60)
+
+
+def hours_minutes(minutes):
+    """A number of minutes in words: "45 min", "2 h", "1 h 30 min" (round 15)."""
+    from django.utils.translation import gettext
+
+    try:
+        minutes = int(minutes)
+    except (TypeError, ValueError):
+        return ""
+    hours, rest = divmod(minutes, 60)
+    if hours and rest:
+        return gettext("%(h)s h %(m)s min") % {"h": hours, "m": rest}
+    if hours:
+        return gettext("%(h)s h") % {"h": hours}
+    return gettext("%(m)s min") % {"m": rest}

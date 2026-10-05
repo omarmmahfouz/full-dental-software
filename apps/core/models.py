@@ -308,6 +308,9 @@ class ClinicSettings(models.Model):
         _("people with an easy password must change it"), default=False,
         help_text=_("At their next login, people whose password is short, common or like their username choose a "
                     "new one."))
+    one_device_per_login = models.BooleanField(
+        _("one device per login"), default=True,
+        help_text=_("A login opened on a second PC or tablet logs out the first one (it is told why)."))
 
     class Meta:
         verbose_name = _("clinic options")
@@ -631,6 +634,7 @@ class SecurityEvent(models.Model):
         LOGOUT = "logout", _("Logged out")
         IDLE_LOGOUT = "idle_logout", _("Logged out after no use")
         FORCED_LOGOUT = "forced_logout", _("Logged out by the owner")
+        REPLACED = "replaced", _("Logged out: the same login opened on another device")
         PASSWORD_CHANGED = "password_changed", _("Password changed")
         PASSWORD_GIVEN = "password_given", _("Password set by the owner")
         EXPORT = "export", _("Data taken out (file, export or backup)")
@@ -648,6 +652,9 @@ class SecurityEvent(models.Model):
     device = models.CharField(_("browser"), max_length=200, blank=True)
     path = models.CharField(_("page"), max_length=300, blank=True)
     details = models.CharField(_("details"), max_length=300, blank=True)
+    session = models.CharField(_("session"), max_length=64, blank=True, db_index=True, editable=False,
+                               help_text=_("A fingerprint of a session closed because the login was opened on "
+                                           "another device: that device is told why."))
 
     class Meta:
         ordering = ["-at", "-pk"]

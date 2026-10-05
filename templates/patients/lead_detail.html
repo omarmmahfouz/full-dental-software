@@ -6,8 +6,13 @@
   <h1>{{ object.full_name }} {% status_badge object %}</h1>
   <div class="d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-secondary" href="{% url 'patients:lead_update' object.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a>
+    {% if object.status != "converted" and object.status != "not_interested" %}
+      <form method="post" action="{% url 'patients:lead_book' object.pk %}" data-no-leave-warning>{% csrf_token %}
+        <button class="btn btn-success"><i class="bi bi-calendar-plus"></i> {% trans "Book an appointment" %}</button></form>
+    {% endif %}
     {% if object.converted_patient %}
-      <a class="btn btn-success" href="{{ object.converted_patient.get_absolute_url }}"><i class="bi bi-folder2-open"></i> {% trans "Open patient file" %}</a>
+      {% if object.converted_patient.is_expected %}<a class="btn btn-primary" href="{% url 'patients:update' object.converted_patient.pk %}"><i class="bi bi-person-check"></i> {% trans "Patient came: complete the file" %}</a>{% endif %}
+      <a class="btn btn-outline-success" href="{{ object.converted_patient.get_absolute_url }}"><i class="bi bi-folder2-open"></i> {% trans "Open patient file" %}</a>
     {% else %}
       <a class="btn btn-primary" href="{% url 'patients:create' %}?lead={{ object.pk }}"><i class="bi bi-person-check"></i> {% trans "Patient came: register full file" %}</a>
     {% endif %}

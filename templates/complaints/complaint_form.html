@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-chat-left-dots"></i> {{ title }}</h1></div>
+{% if same %}
+<div class="alert alert-warning">
+  <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle"></i> {% blocktrans with number=same.number category=same.get_category_display %}{{ category }}: this patient already has the open complaint {{ number }}. Is it the same reason?{% endblocktrans %}</div>
+  <div class="small mb-2">{{ same.description|truncatechars:240 }}</div>
+  <div class="d-flex flex-wrap gap-2">
+    <form method="post" action="{% url 'complaints:called_again' same.pk %}" data-no-leave-warning>{% csrf_token %}
+      <input type="hidden" name="note" value="{{ form.description.value }}">
+      <button class="btn btn-warning"><i class="bi bi-telephone-inbound"></i> {% blocktrans with number=same.number %}The same reason: he called again (write it on {{ number }}){% endblocktrans %}</button>
+    </form>
+    <button class="btn btn-outline-secondary" form="complaint-form" name="new_anyway" value="1"><i class="bi bi-plus-lg"></i> {% trans "Another reason: a new complaint" %}</button>
+  </div>
+</div>
+{% endif %}
+{% if earlier %}
+<div class="card mb-3 complaint-earlier"><div class="card-header fw-semibold"><i class="bi bi-person"></i> {% blocktrans with name=patient.full_name %}The complaints of {{ name }}{% endblocktrans %} <span class="badge rounded-pill text-bg-light">{{ earlier|length }}</span></div>
+  <ul class="list-group list-group-flush">{% for c in earlier %}
+    <li class="list-group-item">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <a class="fw-semibold" href="{{ c.get_absolute_url }}">{{ c.number }}</a> {% status_badge c %}
+        <span>{{ c.get_category_display }}</span>
+        <span class="small text-muted">{{ c.created_at|date:"d/m/Y" }}{% if c.calls > 1 %} · {% blocktrans count n=c.calls %}called {{ n }} time{% plural %}called {{ n }} times{% endblocktrans %}{% endif %}</span>
+      </div>
+      <div class="small text-muted">{{ c.description|truncatechars:160 }}</div>
+      <details class="mt-1"><summary class="small text-primary"><i class="bi bi-telephone-inbound"></i> {% trans "He called again for the same reason" %}</summary>
+        <form method="post" action="{% url 'complaints:called_again' c.pk %}" class="mt-2" data-no-leave-warning>{% csrf_token %}
+          <textarea class="form-control mb-2" name="note" rows="2" required placeholder="{% trans 'What he said this time' %}"></textarea>
+          <button class="btn btn-sm btn-warning"><i class="bi bi-check2"></i> {% blocktrans with number=c.number %}Write it on {{ number }}{% endblocktrans %}</button>
+        </form>
+      </details>
+    </li>{% endfor %}
+  </ul>
+  <div class="card-footer small text-muted">{% trans "Another reason? Write it below: it is a new complaint under his name." %}</div>
+</div>
+{% endif %}
+<div class="card"><div class="card-body">
+  <form method="post" id="complaint-form" novalidate>
+    {% csrf_token %}
+    {% include "includes/form_fields.html" %}
+    <div class="form-actions mt-4 d-flex gap-2">
+      <button class="btn btn-primary px-4"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>
+      <a class="btn btn-outline-secondary" href="{% url 'complaints:list' %}">{% trans "Cancel" %}</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

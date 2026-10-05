@@ -5047,14 +5047,14 @@ msgstr "اختر اليوم أو الطبيب أو الحالة. اضغط على
 
 #: apps/core/hints.py:62
 msgid "Your shifts: which room and which hours, and the surgery days."
-msgstr "نوباتك: أي غرفة وأي ساعات، وأيام العمليات."
+msgstr "شيفتاتك: أي غرفة وأي ساعات، وأيام العمليات."
 
 #: apps/core/hints.py:63
 msgid ""
 "Who works in which room this week. Add a shift, or fill the week from last "
 "week in one click."
 msgstr ""
-"من يعمل في أي غرفة هذا الأسبوع. أضف نوبة، أو املأ الأسبوع مثل الأسبوع الماضي"
+"من يعمل في أي غرفة هذا الأسبوع. أضف شيفت، أو املأ الأسبوع مثل الأسبوع الماضي"
 " بضغطة واحدة."
 
 #: apps/core/hints.py:65
@@ -6070,7 +6070,7 @@ msgstr "أيام العمليات المعتادة"
 
 #: apps/core/models.py:273
 msgid "A new shift on these days is a surgery day unless you change it."
-msgstr "النوبة الجديدة في هذه الأيام تكون يوم عمليات إلا إذا غيرتها."
+msgstr "الشيفت الجديد في هذه الأيام يكون يوم عمليات إلا إذا غيرته."
 
 #: apps/core/models.py:274
 msgid "follow up a complaint within (days)"
@@ -10620,7 +10620,7 @@ msgstr "سيبها فاضية: بتتختار غرفة فاضية لوحدها."
 
 #: apps/scheduling/forms.py:125
 msgid "Leave empty to use the room of the dentist's shift."
-msgstr "اتركه فارغًا لاستخدام غرفة نوبة الطبيب."
+msgstr "اتركه فارغًا لاستخدام غرفة شيفت الطبيب."
 
 #: apps/scheduling/forms.py:138
 msgid "e.g. teeth 36, 46"
@@ -10726,7 +10726,7 @@ msgid ""
 "Opened only on busy days: shown on the schedules only on the days it has a "
 "shift."
 msgstr ""
-"تُفتح في أيام الزحام فقط: تظهر في الجداول فقط في الأيام التي لها فيها نوبة."
+"تُفتح في أيام الزحام فقط: تظهر في الجداول فقط في الأيام التي لها فيها شيفت."
 
 #: apps/scheduling/models.py:29
 msgid "rooms"
@@ -10749,7 +10749,7 @@ msgstr "نوع اليوم"
 
 #: apps/scheduling/models.py:68
 msgid "room shift"
-msgstr "نوبة غرفة"
+msgstr "شيفت غرفة"
 
 #: apps/scheduling/models.py:69
 msgid "room schedule"
@@ -11353,15 +11353,15 @@ msgstr "تم حفظ جدول الغرف."
 
 #: apps/scheduling/views.py:710
 msgid "Edit shift"
-msgstr "تعديل النوبة"
+msgstr "تعديل الشيفت"
 
 #: apps/scheduling/views.py:710
 msgid "Add room shift"
-msgstr "إضافة نوبة غرفة"
+msgstr "إضافة شيفت غرفة"
 
 #: apps/scheduling/views.py:721
 msgid "Shift deleted."
-msgstr "تم حذف النوبة."
+msgstr "تم حذف الشيفت."
 
 #: apps/scheduling/views.py:748
 #, python-format
@@ -11369,7 +11369,7 @@ msgid ""
 "%(copied)s shifts copied from last week (%(skipped)s skipped because of "
 "clashes)."
 msgstr ""
-"تم نسخ %(copied)s نوبة من الأسبوع الماضي (وتم تخطي %(skipped)s بسبب "
+"تم نسخ %(copied)s شيفت من الأسبوع الماضي (وتم تخطي %(skipped)s بسبب "
 "التعارض)."
 
 #: apps/scheduling/views.py:763
@@ -18409,7 +18409,7 @@ msgstr "جديد"
 
 #: templates/core/dashboard.html:136
 msgid "no shift"
-msgstr "لا توجد نوبة"
+msgstr "لا يوجد شيفت"
 
 #: templates/core/dashboard.html:138
 msgid "Moved"
@@ -22050,7 +22050,7 @@ msgstr "مقفول"
 
 #: templates/scheduling/day_planner.html:30
 msgid "no shifts"
-msgstr "لا توجد نوبات"
+msgstr "لا توجد شيفتات"
 
 #: templates/scheduling/day_planner.html:34
 #: templates/scheduling/room_schedule.html:10
@@ -22164,7 +22164,7 @@ msgstr ""
 
 #: templates/scheduling/requests_reception.html:11
 msgid "no shifts on the schedule yet"
-msgstr "لا توجد نوبات في الجدول بعد"
+msgstr "لا توجد شيفتات في الجدول بعد"
 
 #: templates/scheduling/requests_reception.html:13
 #, python-format
@@ -22189,7 +22189,7 @@ msgstr "هذا الأسبوع"
 
 #: templates/scheduling/room_schedule.html:11
 msgid "Only my shifts"
-msgstr "نوباتي فقط"
+msgstr "شيفتاتي فقط"
 
 #: templates/scheduling/room_schedule.html:14
 msgid ""
@@ -22204,8 +22204,8 @@ msgid ""
 "Fill this week with the same dentists, rooms and hours as last week? Shifts "
 "that clash with ones already here are skipped."
 msgstr ""
-"ملء هذا الأسبوع بنفس أطباء وغرف وساعات الأسبوع الماضي؟ النوبات المتعارضة مع "
-"الموجودة سيتم تخطيها."
+"ملء هذا الأسبوع بنفس أطباء وغرف وساعات الأسبوع الماضي؟ الشيفتات المتعارضة مع"
+" الموجودة سيتم تخطيها."
 
 #: templates/scheduling/room_schedule.html:14
 msgid "Same as last week"
@@ -22213,7 +22213,7 @@ msgstr "نفس جدول الأسبوع الماضي"
 
 #: templates/scheduling/room_schedule.html:15
 msgid "Add shift"
-msgstr "إضافة نوبة"
+msgstr "إضافة شيفت"
 
 #: templates/scheduling/room_schedule.html:19
 msgid ""
@@ -22236,7 +22236,7 @@ msgid ""
 "only once. A surgery day is set per room: one room can have a surgery while "
 "the others work a regular day."
 msgstr ""
-"“نفس جدول الأسبوع الماضي” ينسخ نوبات الأسبوع الماضي (من يعمل في أي غرفة، "
+"“نفس جدول الأسبوع الماضي” ينسخ شيفتات الأسبوع الماضي (من يعمل في أي غرفة، "
 "والساعات، والمشرف) إلى هذا الأسبوع، فيُكتب الجدول الأسبوعي مرة واحدة فقط. "
 "يوم العمليات يُحدد لكل غرفة: غرفة يمكن أن يكون فيها عمليات والباقي يوم عادي."
 
@@ -22246,7 +22246,7 @@ msgstr "غرف إضافية (تُفتح في أيام الزحام):"
 
 #: templates/scheduling/room_schedule.html:39
 msgid "Delete this shift?"
-msgstr "حذف هذه النوبة؟"
+msgstr "حذف هذا الشيفت؟"
 
 #: templates/scheduling/room_schedule.html:42
 msgid "add"

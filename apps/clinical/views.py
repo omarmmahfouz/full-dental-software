@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -283,6 +283,7 @@ class LabListView(SearchMixin, ListView):
         me = Dentist.for_user(user)
         if is_only_dentist(user):
             qs = qs.filter(Q(dentist=me) | Q(patient__assigned_dentist=me)) if me else qs.none()
+        self.base_qs = qs
         if self.filter_form.is_valid():
             data = self.filter_form.cleaned_data
             q = clean_digits_value(data.get("q"))
@@ -290,6 +291,10 @@ class LabListView(SearchMixin, ListView):
                 qs = qs.filter(
                     Q(number__icontains=q) | Q(patient__full_name__icontains=q) | Q(patient__file_number__icontains=q)
                 )
+            if data.get("part") == "planned":
+                qs = qs.filter(status__in=LabRequest.OPEN_STATUSES)
+            elif data.get("part") == "done":
+                qs = qs.filter(status=LabRequest.Status.DELIVERED)
             status = data.get("status")
             if status == "open":
                 qs = qs.filter(status__in=LabRequest.OPEN_STATUSES)
@@ -306,6 +311,23 @@ class LabListView(SearchMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["filter_form"] = self.filter_form
+        # The tabs: the treatment plan (in work) and the treatment done (delivered), with how many of each.
+        base = getattr(self, "base_qs", None)
+        if base is not None:
+            counts = base.aggregate(
+                planned=Count("pk", filter=Q(status__in=LabRequest.OPEN_STATUSES)),
+                done=Count("pk", filter=Q(status=LabRequest.Status.DELIVERED)), every=Count("pk"))
+            part = self.filter_form.cleaned_data.get("part", "") if self.filter_form.is_valid() else ""
+            rest = self.request.GET.copy()
+            rest.pop("page", None)
+            tabs = []
+            for code, label, count in (("", _("All"), counts["every"]),
+                                       ("planned", _("Treatment plan: still in work"), counts["planned"]),
+                                       ("done", _("Treatment done: delivered"), counts["done"])):
+                rest["part"] = code
+                tabs.append({"code": code, "label": label, "count": count, "active": code == part,
+                             "url": "?" + rest.urlencode()})
+            context["part_tabs"] = tabs
         return context
 
 

@@ -884,3 +884,83 @@ class Round13PlanFinderPartsTests(TestCase):
         self.assertIn(crown, restorative.context["form"].fields["procedures"].queryset)
         self.assertNotIn(self.guided, restorative.context["form"].fields["procedures"].queryset)
         self.assertContains(restorative, 'href="/chart/plans/"')  # the tabs between the finders
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class Round15PatientTests(TestCase):
+    """Round 15: the old paper files typed in with their number, the travel time in hours and minutes, and the
+    expected patients booked from the call list."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.secretary = make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.facebook = ReferralSource.objects.get(name_en="Facebook")
+
+    def test_old_paper_file_keeps_its_number_and_needs_less(self):
+        response = self.client.post("/patients/new/", {
+            "old_file": "on", "typed_file_number": "1234", "full_name": "محمد أحمد علي حسن", "id_type": "nid",
+            "national_id": "29001150101234", "phone_primary": "01001234567", "preferred_phone": "primary",
+            "missing_teeth": "single", "travel_minutes_0": "1", "travel_minutes_1": "30",
+        })
+        patient = Patient.objects.get()
+        self.assertRedirects(response, f"/patients/{patient.pk}/", fetch_redirect_response=False)
+        self.assertEqual(patient.file_number, "CIA-01234")
+        self.assertEqual(patient.travel_minutes, 90)
+        # The next file skips a number already typed by hand.
+        Patient.objects.filter(pk=patient.pk).update(file_number=f"CIA-{patient.pk + 1:05d}")
+        other = make_patient(self.branch, name="مريض تجربة ثاني", nid="29001150101235", phone="01001234568")
+        self.assertEqual(other.file_number, f"CIA-{other.pk + 1:05d}")
+
+    def test_typed_number_must_be_free_and_old_file_needs_one(self):
+        make_patient(self.branch, file_number="CIA-00077")
+        response = self.client.post("/patients/new/", {
+            "old_file": "on", "typed_file_number": "77", "full_name": "محمد أحمد علي حسن", "id_type": "nid",
+            "national_id": "29001150101234", "phone_primary": "01001234567", "preferred_phone": "primary",
+            "missing_teeth": "single"})
+        self.assertContains(response, "already used")
+        response = self.client.post("/patients/new/", {
+            "old_file": "on", "full_name": "محمد أحمد علي حسن", "id_type": "nid", "national_id": "29001150101234",
+            "phone_primary": "01001234567", "preferred_phone": "primary", "missing_teeth": "single"})
+        self.assertContains(response, "Write the number of the paper file.")
+        # Without the tick, the round 13 boxes are still needed.
+        response = self.client.post("/patients/new/", {
+            "full_name": "محمد أحمد علي حسن", "id_type": "nid", "national_id": "29001150101234",
+            "phone_primary": "01001234567", "preferred_phone": "primary", "missing_teeth": "single"})
+        self.assertEqual(Patient.objects.count(), 1)
+        self.assertIn("phone_secondary", response.context["form"].errors)
+
+    def test_travel_time_shows_hours_and_minutes(self):
+        patient = make_patient(self.branch, travel_minutes=75)
+        response = self.client.get(f"/patients/{patient.pk}/")
+        self.assertContains(response, "1 س 15 د")  # the secretary reads Arabic
+
+    def test_expected_patient_booked_then_completed(self):
+        lead = Lead.objects.create(branch=self.branch, full_name="سعيد محمود علي", phone_primary="01005556667",
+                                   referral_source=self.facebook)
+        response = self.client.post(f"/patients/calls/{lead.pk}/book/")
+        patient = Patient.objects.get()
+        self.assertRedirects(response, f"/schedule/appointments/new/?patient={patient.pk}",
+                             fetch_redirect_response=False)
+        self.assertTrue(patient.is_expected)
+        self.assertEqual(patient.national_id, "")
+        lead.refresh_from_db()
+        self.assertEqual((lead.status, lead.converted_patient), (Lead.Status.BOOKED, patient))
+        # A second expected patient without an ID is allowed too.
+        other = Lead.objects.create(branch=self.branch, full_name="منى محمود علي", phone_primary="01005556668")
+        self.client.post(f"/patients/calls/{other.pk}/book/")
+        self.assertEqual(Patient.objects.filter(is_expected=True).count(), 2)
+        # "Patient came": the short file is completed, without waiting for an approval.
+        self.assertRedirects(self.client.get(f"/patients/new/?lead={lead.pk}"), f"/patients/{patient.pk}/edit/",
+                             fetch_redirect_response=False)
+        response = self.client.post(f"/patients/{patient.pk}/edit/", {
+            "full_name": "سعيد محمود علي حسن", "id_type": "nid", "national_id": "29001150101234",
+            "phone_primary": "01005556667", "phone_secondary": "01101234567", "preferred_phone": "primary",
+            "marital_status": "married", "occupation": "مهندس", "city": "مدينة نصر", "missing_teeth": "single",
+            "referral_source": self.facebook.pk, "status": "active"})
+        self.assertRedirects(response, f"/patients/{patient.pk}/", fetch_redirect_response=False)
+        patient.refresh_from_db()
+        lead.refresh_from_db()
+        self.assertFalse(patient.is_expected)
+        self.assertEqual(patient.national_id, "29001150101234")
+        self.assertEqual(lead.status, Lead.Status.CONVERTED)

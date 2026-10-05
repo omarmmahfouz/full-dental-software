@@ -4,6 +4,7 @@
 {% block content %}
 <div class="page-header"><h1><i class="bi bi-telephone-forward"></i> {% trans "Patients the dentists asked for" %}</h1></div>
 <p class="text-muted small">{% trans "Approved by the supervisor. Call the main list in order (1 first). If a patient cannot come, press “Cannot come” and call the first patient of the backup list." %}</p>
+{% include "includes/other_places.html" %}
 {% for dentist, g in groups %}
 <div class="card mb-3">
   <div class="card-header d-flex flex-wrap justify-content-between gap-2">

@@ -223,6 +223,10 @@ class StepFilterForm(StyledForm):
 
 
 class LabFilterForm(StyledForm):
+    # The treatment plan (still to make or to fit) or the treatment done (delivered), round 15: tabs on the list.
+    PARTS = [("planned", _("Treatment plan: still in work")), ("done", _("Treatment done: delivered"))]
+
+    part = forms.ChoiceField(label=_("plan or done"), required=False, choices=[("", _("All"))] + PARTS)
     q = forms.CharField(label=_("Search"), required=False)
     status = forms.ChoiceField(
         label=_("status"), required=False,

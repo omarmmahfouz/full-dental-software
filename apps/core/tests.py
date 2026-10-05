@@ -760,6 +760,13 @@ class SpeedTests(TestCase):
         ("owner", f"/time/?{PERIOD}", 30),
         ("owner", "/lab/day/", 40),
         ("owner", "/lab/day/month/", 30),
+        # Round 15
+        ("secretary", "/clinical/lab/", 40),
+        ("secretary", "/clinical/lab/?part=planned", 40),
+        ("secretary", "/schedule/whatsapp/many/", 30),
+        ("secretary", "/schedule/whatsapp/many/new/", 40),
+        ("secretary", "/complaints/new/", 40),
+        ("owner", "/settings/backup/", 40),
     ]
 
     @classmethod
@@ -1618,3 +1625,105 @@ class Round14CoreTests(TestCase):
         self.assertEqual(str(duration(3900)), "1 h 05 min")
         self.client.login(username="sec", password=PASSWORD)
         self.assertEqual(self.client.get("/time/").status_code, 403)
+
+
+class Round15CoreTests(TestCase):
+    """Round 15: one device per login, the folder of the photos, the counts of the menu at each place."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        self.owner = make_user("owner", "owner")
+        self.secretary = make_user("sec", "secretary")
+
+    def test_a_login_on_another_device_logs_out_the_first(self):
+        from django.test import Client
+
+        from apps.core.models import SecurityEvent
+
+        first, second = Client(), Client()
+        first.login(username="sec", password=PASSWORD)
+        self.assertEqual(first.get("/").status_code, 200)
+        second.post("/login/", {"username": "sec", "password": PASSWORD}, REMOTE_ADDR="127.0.0.1")
+        self.assertEqual(second.get("/").status_code, 200)
+        event = SecurityEvent.objects.get(kind=SecurityEvent.Kind.REPLACED)
+        self.assertEqual(event.user, self.secretary)
+        self.assertTrue(event.session)
+        response = first.get("/", follow=True)  # the first device is logged out, and its login page says why
+        self.assertEqual(response.redirect_chain[0][1], 302)
+        self.assertIn("login", response.redirect_chain[-1][0])
+        self.assertEqual(len([m for m in response.context["messages"]]), 1)
+        self.assertEqual(first.get("/login/").status_code, 200)  # told once
+
+    def test_one_device_per_login_can_be_switched_off(self):
+        from django.test import Client
+
+        from apps.core.models import ClinicSettings
+
+        ClinicSettings.objects.update_or_create(pk=ClinicSettings.get().pk, defaults={"one_device_per_login": False})
+        first, second = Client(), Client()
+        first.login(username="sec", password=PASSWORD)
+        second.post("/login/", {"username": "sec", "password": PASSWORD})
+        self.assertEqual(first.get("/").status_code, 200)
+
+    def test_the_photos_folder_is_shown_and_another_one_checked(self):
+        import tempfile
+
+        from django.test import override_settings
+
+        from apps.core import photo_folder
+
+        with tempfile.TemporaryDirectory() as media, tempfile.TemporaryDirectory() as other:
+            with override_settings(MEDIA_ROOT=media):
+                os.makedirs(os.path.join(media, "Patient photos", "CIA-00001"))
+                with open(os.path.join(media, "Patient photos", "CIA-00001", "a.jpg"), "wb") as handle:
+                    handle.write(b"\xff\xd8\xff" + b"x" * 100)
+                from django.core.cache import cache
+
+                cache.delete(photo_folder.CACHE_KEY)
+                self.client.login(username="owner", password=PASSWORD)
+                response = self.client.get("/settings/backup/")
+                self.assertContains(response, media)
+                target = os.path.join(other, "photos")
+                response = self.client.post("/settings/backup/", {"check_folder": target})
+                self.assertTrue(response.context["folder_ok"])
+                self.assertContains(response, "move_photos")
+                self.assertFalse(dict(photo_folder.check("relative/folder")).get(True))
+                self.assertFalse(all(ok for ok, _t in photo_folder.check(os.path.join(media, "inside"))))
+                copied, skipped, problems = photo_folder.copy_all(target, say=lambda text: None)
+                self.assertEqual((copied, skipped, problems), (1, 0, []))
+                self.assertTrue(os.path.exists(os.path.join(target, "Patient photos", "CIA-00001", "a.jpg")))
+                self.assertEqual(photo_folder.copy_all(target, say=lambda text: None)[:2], (0, 1))
+
+    def test_the_menu_counts_this_places_patients_only(self):
+        from apps.core.testing import make_dentist, make_patient
+        from apps.scheduling.models import PatientRequest
+
+        cic = Branch.objects.get(code="CIC")
+        self.secretary.profile.places.add(cic)
+        dentist = make_dentist("doc")
+        patient = make_patient(self.branch)
+        from apps.clinical.models import TreatmentStepType
+
+        PatientRequest.objects.create(dentist=dentist, patient=patient, status=PatientRequest.Status.APPROVED,
+                                      minutes=30, step_type=TreatmentStepType.objects.first())
+        self.client.login(username="sec", password=PASSWORD)
+        self.assertEqual(self.client.get("/").context["requests_to_call"], 1)
+        self.client.post("/place/", {"place": "CIC", "next": "/"})
+        self.assertEqual(self.client.get("/").context["requests_to_call"], 0)
+        response = self.client.get("/schedule/patient-lists/")
+        self.assertEqual([(place.code, n) for place, n in response.context["elsewhere"]], [("CIA", 1)])
+
+    def test_hours_and_minutes_box(self):
+        from apps.core.utils import hours_minutes
+        from apps.core.widgets import HoursMinutesWidget
+
+        widget = HoursMinutesWidget()
+        self.assertEqual(widget.value_from_datadict({"t_0": "2", "t_1": "15"}, {}, "t"), "135")
+        self.assertEqual(widget.value_from_datadict({"t_0": "", "t_1": "45"}, {}, "t"), "45")
+        self.assertEqual(widget.value_from_datadict({"t_0": "", "t_1": ""}, {}, "t"), "")
+        self.assertEqual(widget.value_from_datadict({"t": "90"}, {}, "t"), "90")
+        self.assertEqual(widget.decompress(135), [2, 15])
+        with translation.override("en"):
+            self.assertEqual(hours_minutes(90), "1 h 30 min")
+            self.assertEqual(hours_minutes(120), "2 h")
+            self.assertEqual(hours_minutes(45), "45 min")

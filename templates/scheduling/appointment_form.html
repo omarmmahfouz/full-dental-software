@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header"><h1>{{ title }}</h1></div>
 <div class="card mb-3"><div class="card-body">
-  <form method="post" novalidate id="appointment-form" data-free-url="{% url 'scheduling:free_times' %}" data-day-url="{% url 'scheduling:dentist_day' %}" data-prefs-url="{% url 'patients:prefs' %}">
+  <form method="post" novalidate id="appointment-form" data-free-url="{% url 'scheduling:free_times' %}" data-day-url="{% url 'scheduling:dentist_day' %}" data-prefs-url="{% url 'patients:prefs' %}"{% if form.instance.pk %} data-exclude="{{ form.instance.pk }}"{% endif %}>
     {% csrf_token %}
     {% if others %}
     <div class="alert alert-warning others-check" role="alert">
@@ -20,6 +20,11 @@
       <div class="alert alert-info py-2 small mb-2" data-patient-prefs hidden><i class="bi bi-person-heart"></i> <span></span>
         <div class="text-warning-emphasis fw-semibold mt-1" data-prefs-off hidden><i class="bi bi-exclamation-triangle"></i> {% trans "The time chosen is not one he prefers." %}</div></div>
       <div class="alert py-2 small mb-2" data-dentist-day hidden></div>
+      <div class="time-slots mb-2" data-time-slots hidden>
+        <div class="small fw-semibold mb-1" data-slots-title></div>
+        <div class="d-flex flex-wrap gap-1" data-slots-list></div>
+        <div class="small text-muted mt-1"><span class="slot-key slot-free"></span> {% trans "free" %} <span class="slot-key slot-busy ms-2"></span> {% trans "busy (cannot be chosen)" %}</div>
+      </div>
       <div class="d-flex flex-wrap align-items-center gap-2">
         <button type="button" class="btn btn-sm btn-outline-primary" data-find-free><i class="bi bi-search"></i> {% trans "Nearest free times" %}</button>
         <span class="small text-muted">{% trans "For the chosen dentist, or for any dentist when none is chosen." %}</span>
@@ -63,9 +68,53 @@
   var roomSelect = document.getElementById("id_room");
   var durationSelect = document.getElementById("id_duration_minutes");
   var dayBox = form.querySelector("[data-dentist-day]");
+  // The times of his shift as buttons: the busy ones grey and not pressable (round 15). The list of times keeps
+  // every time (a booking outside his hours waits for approval), the busy ones marked and not choosable.
+  var slotsBox = form.querySelector("[data-time-slots]"), slotsList = form.querySelector("[data-slots-list]");
+  var BUSY = "{{ _('busy')|escapejs }}", OUTSIDE = "{{ _('Not on the room schedule this day: the opening hours of the place.')|escapejs }}";
+  var SHIFT = "{{ _('His times this day: tap a free one.')|escapejs }}";
+  function markSelect(slots) {
+    if (!timeSelect) return;
+    var busy = {};
+    slots.forEach(function (slot) { if (slot.busy) busy[slot.time] = slot.who || BUSY; });
+    Array.prototype.forEach.call(timeSelect.options, function (option) {
+      if (option._label === undefined) option._label = option.textContent;
+      var taken = Object.prototype.hasOwnProperty.call(busy, option.value) && option.value !== timeSelect.value;
+      option.disabled = taken;
+      option.textContent = option._label + (taken ? " — " + BUSY : "");
+    });
+  }
+  function showSlots(data) {
+    slotsList.innerHTML = "";
+    var slots = data.slots || [];
+    slotsBox.hidden = !slots.length;
+    markSelect(slots);
+    if (!slots.length) return;
+    form.querySelector("[data-slots-title]").textContent = data.outside ? OUTSIDE : SHIFT;
+    slots.forEach(function (slot) {
+      var button = document.createElement("button");
+      button.type = "button";
+      var off = slot.busy || slot.past;
+      button.className = "btn btn-sm time-slot " + (off ? "is-busy" : (slot.too_long ? "btn-outline-warning" : "btn-outline-success"));
+      button.textContent = slot.label;
+      button.disabled = off;
+      if (off) button.title = slot.busy ? (slot.who || BUSY) : "";
+      if (timeSelect && timeSelect.value === slot.time) button.classList.add("active");
+      button.addEventListener("click", function () {
+        if (timeSelect) { timeSelect.value = slot.time; timeSelect.dispatchEvent(new Event("change", { bubbles: true })); }
+        if (roomSelect && slot.room) roomSelect.value = String(slot.room);
+        slotsList.querySelectorAll(".time-slot.active").forEach(function (b) { b.classList.remove("active"); });
+        button.classList.add("active");
+      });
+      slotsList.appendChild(button);
+    });
+  }
   function checkDentistDay() {
-    if (!dentistSelect || !dentistSelect.value || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateInput.value.trim())) { dayBox.hidden = true; return; }
-    fetch(form.getAttribute("data-day-url") + "?dentist=" + dentistSelect.value + "&day=" + encodeURIComponent(dateInput.value.trim()),
+    if (!dentistSelect || !dentistSelect.value || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateInput.value.trim())) {
+      dayBox.hidden = true; slotsBox.hidden = true; markSelect([]); return;
+    }
+    fetch(form.getAttribute("data-day-url") + "?dentist=" + dentistSelect.value + "&day=" + encodeURIComponent(dateInput.value.trim()) +
+          "&duration=" + (durationSelect ? durationSelect.value : 30) + "&exclude=" + (form.getAttribute("data-exclude") || ""),
           { credentials: "same-origin" })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -76,9 +125,11 @@
           var rooms = data.shifts.map(function (s) { return String(s.room_id); });
           if (rooms.indexOf(roomSelect.value) < 0) roomSelect.value = rooms[0];  // the room of his shift; it can still be changed
         }
+        showSlots(data);
       });
   }
   if (dentistSelect) dentistSelect.addEventListener("change", checkDentistDay);
+  if (durationSelect) durationSelect.addEventListener("change", checkDentistDay);
   dateInput.addEventListener("change", checkDentistDay);
   checkDentistDay();
 

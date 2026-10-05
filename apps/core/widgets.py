@@ -199,3 +199,41 @@ class KeptPhotoInput(forms.FileInput):
             context["widget"]["kept"] = self.kept_token
             context["widget"]["kept_url"] = reverse("core:kept_upload", args=[self.kept_token])
         return context
+
+
+class HoursMinutesWidget(forms.MultiWidget):
+    """How long, typed as hours and minutes (e.g. how far a patient lives, round 15). The model keeps the minutes:
+    the form posts one number of minutes."""
+
+    template_name = "core_widgets/hours_minutes.html"
+
+    def __init__(self, attrs=None, max_hours=10):
+        number = {"class": "form-control", "inputmode": "numeric", "min": 0, "data-digits": "1"}
+        widgets = [forms.NumberInput(attrs={**number, "max": max_hours}),
+                   forms.NumberInput(attrs={**number, "max": 59, "step": 5})]
+        super().__init__(widgets, attrs)
+
+    def decompress(self, value):
+        try:
+            minutes = int(value)
+        except (TypeError, ValueError):
+            return [None, None]
+        return [minutes // 60 or None, minutes % 60 or None] if minutes else [None, None]
+
+    def get_context(self, name, value, attrs):
+        from django.utils.translation import gettext
+
+        context = super().get_context(name, value, attrs)
+        context["widget"]["labels"] = [gettext("hours"), gettext("minutes")]
+        return context
+
+    def value_from_datadict(self, data, files, name):
+        if f"{name}_0" not in data and name in data:
+            return normalize_digits(data.get(name))  # one number of minutes
+        hours, minutes = (normalize_digits(part or "").strip() for part in super().value_from_datadict(data, files, name))
+        if not hours and not minutes:
+            return ""
+        try:
+            return str(int(hours or 0) * 60 + int(minutes or 0))
+        except ValueError:
+            return f"{hours}:{minutes}"  # not numbers: the field says so

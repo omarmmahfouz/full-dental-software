@@ -220,3 +220,11 @@ def duration(seconds):
     from apps.core.worktime import duration as text
 
     return text(seconds)
+
+
+@register.filter
+def hours_minutes(minutes):
+    """90 -> "1 h 30 min" (in the reader's language): how far a patient lives (round 15)."""
+    from apps.core.utils import hours_minutes as words
+
+    return words(minutes)

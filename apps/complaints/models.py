@@ -82,6 +82,10 @@ class Complaint(TimeStampedModel):
         settings.AUTH_USER_MODEL, verbose_name=_("situation updated by"), null=True, blank=True,
         on_delete=models.SET_NULL, related_name="+",
     )
+    calls = models.PositiveSmallIntegerField(
+        _("times the patient called"), default=1,
+        help_text=_("Each time the patient calls again for the same reason (round 15)."))
+    last_call_at = models.DateTimeField(_("last call"), null=True, blank=True)
 
     objects = ComplaintQuerySet.as_manager()
 
@@ -141,6 +145,7 @@ class ComplaintFollowUp(TimeStampedModel):
         RE_TREATMENT = "retreat", _("Booked a correction visit")
         REFUND = "refund", _("Refund / discount")
         DENTIST_ANSWER = "dentist", _("Dentist's answer and plan to solve it")
+        CALLED_AGAIN = "called_again", _("The patient called again (same reason)")
         NOTE = "note", _("Note")
 
     complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name="follow_ups")

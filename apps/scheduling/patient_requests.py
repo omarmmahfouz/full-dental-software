@@ -20,7 +20,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from apps.core.mixins import role_required
-from apps.core.models import Notification, branch_for_user
+from apps.core.models import Notification, branch_for_user, staff_at, working_places
 from apps.core.notify import notify_users
 from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, SUPERVISOR, TEAM_HEAD, users_with_role
 from apps.dentists.models import Dentist
@@ -108,7 +108,8 @@ def approve_requests(request):
                              item.decision_note.replace("%", "%%"), reverse("scheduling:requests_mine"),
                              params={"patient": item.patient.full_name})
         if approved:
-            _notify_once(users_with_role(*FRONT_DESK), gettext_lazy("Patients to call for the dentists"),
+            _notify_once(staff_at(branch_for_user(request.user), *FRONT_DESK),
+                         gettext_lazy("Patients to call for the dentists"),
                          reverse("scheduling:requests_reception"))
             messages.success(request, _("%(n)s patients approved and sent to the reception.") % {"n": approved})
         elif action == "reject":
@@ -120,8 +121,12 @@ def approve_requests(request):
     groups = {}
     for item in waiting:
         groups.setdefault(item.dentist, []).append(item)
+    elsewhere = [(place, PatientRequest.objects.filter(status=PatientRequest.Status.PROPOSED,
+                                                       patient__branch=place).count())
+                 for place in working_places(request.user) if place != here]
     return render(request, "scheduling/requests_approve.html", {
         "groups": groups.items(), "durations": duration_choices(60),
+        "elsewhere": [(place, n) for place, n in elsewhere if n],
         "decided": PatientRequest.objects.exclude(status=PatientRequest.Status.PROPOSED).filter(
             decided_at__isnull=False, patient__branch=here).select_related("dentist", "patient", "step_type").order_by("-decided_at")[:20],
     })
@@ -152,7 +157,12 @@ def reception_requests(request):
                 "patient": item.patient_id, "dentist": item.dentist_id, "duration": item.time_given,
                 "procedure": item.step_type_id, "purpose": item.teeth, "request": item.pk,
             })
-    return render(request, "scheduling/requests_reception.html", {"groups": groups.items()})
+    # Patients of the other places this person works at: the list here may be empty while CIA has some (round 15).
+    elsewhere = [(place, PatientRequest.objects.filter(status=PatientRequest.Status.APPROVED,
+                                                       patient__branch=place).count())
+                 for place in working_places(request.user) if place != here]
+    return render(request, "scheduling/requests_reception.html", {
+        "groups": groups.items(), "elsewhere": [(place, n) for place, n in elsewhere if n]})
 
 
 @role_required(*FRONT_DESK)

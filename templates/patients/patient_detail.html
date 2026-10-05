@@ -13,6 +13,8 @@
       {% if patient.assigned_dentist %}<span><i class="bi bi-person-badge"></i> {{ patient.assigned_dentist }}</span>{% endif %}
       <span><i class="bi bi-calendar3"></i> {{ patient.registered_on|date:"d/m/Y" }}</span>
     </div>
+    {% if patient.is_expected %}<div class="alert alert-warning py-1 px-2 small d-inline-flex flex-wrap align-items-center gap-2 mb-1"><i class="bi bi-telephone-inbound"></i> {% trans "Expected patient (booked from the call list): the file is completed when he comes." %}
+      {% if is_front_desk %}<a class="btn btn-sm btn-warning" href="{% url 'patients:update' patient.pk %}"><i class="bi bi-person-check"></i> {% trans "Complete the file" %}</a>{% endif %}</div>{% endif %}
     {% if patient.status == "out" %}<div class="alert alert-danger py-1 px-2 small d-inline-block mb-1"><i class="bi bi-box-arrow-right"></i> {% trans "Out" %}: {{ patient.out_reason|default:"" }}{% if patient.out_notes %} — {{ patient.out_notes }}{% endif %}
       {% if moved_to %}· {% if moved_to_opens %}<a href="{{ moved_to.get_absolute_url }}" class="alert-link">{% blocktrans with place=moved_to.branch.badge file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}</a>{% else %}{% blocktrans with place=moved_to.branch.badge file=moved_to.file_number %}the new file at {{ place }}: {{ file }}{% endblocktrans %}{% endif %}{% endif %}</div>{% endif %}
     <div class="mt-1">
@@ -117,7 +119,7 @@
           <dt>{% trans "Mobile 1" %}</dt><dd><span class="ltr">{{ patient.phone_primary }}</span>{% if patient.preferred_phone == "primary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
           <dt>{% trans "Mobile 2" %}</dt><dd><span class="ltr">{{ patient.phone_secondary|default:"—" }}</span>{% if patient.preferred_phone == "secondary" %} <span class="badge text-bg-success">{% trans "preferred" %}</span>{% endif %}</dd>
           <dt>{% trans "Address" %}</dt><dd>{{ patient.get_governorate_display }}{% if patient.governorate and patient.city %} — {% endif %}{{ patient.city }} {{ patient.address }}</dd>
-          <dt>{% trans "How far he lives" %}</dt><dd>{% if patient.travel_minutes %}{% blocktrans with n=patient.travel_minutes %}{{ n }} minutes{% endblocktrans %}{% else %}—{% endif %}</dd>
+          <dt>{% trans "How far he lives" %}</dt><dd>{% if patient.travel_minutes %}{{ patient.travel_minutes|hours_minutes }}{% else %}—{% endif %}</dd>
           <dt>{% trans "Visits he prefers" %}</dt><dd>{% if patient.preferred_days or patient.preferred_times %}{{ patient.preferred_day_list|join:"، " }}{% if patient.preferred_days and patient.preferred_times %} · {% endif %}{{ patient.preferred_time_list|join:", " }}{% else %}{% trans "any day, any time" %}{% endif %}</dd>
           <dt>{% trans "Responsible dentist" %}</dt><dd class="fw-bold">{{ patient.assigned_dentist|default:"—" }}</dd>
           {% if patient.brought_by %}<dt>{% trans "The doctor's own patient" %}</dt><dd><span class="badge text-bg-warning">{% blocktrans with doctor=patient.brought_by %}brought by {{ doctor }}{% endblocktrans %}</span></dd>{% endif %}

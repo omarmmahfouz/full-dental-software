@@ -758,3 +758,69 @@ class Round13PreferredTimesTests(TestCase):
         self.assertEqual(fits["time"], "18:00")  # the first time in his evening
         page = self.client.get(f"/schedule/appointments/new/?patient={self.patient.pk}")
         self.assertContains(page, "data-prefs-url")
+
+
+class Round15BookingTests(TestCase):
+    """Round 15: the times of the doctor's shift with the busy ones grey, and one WhatsApp message to many."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient = make_patient(self.branch)
+        self.room = Room.objects.filter(branch=self.branch).first()
+        self.day = timezone.localdate() + timedelta(days=2)
+        RoomShift.objects.create(room=self.room, date=self.day, start_time=time(9), end_time=time(11),
+                                 dentist=self.dentist)
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_the_shift_times_with_the_busy_ones(self):
+        booked = Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist,
+                                            room=self.room, scheduled_at=at(self.day, 9, 30), duration_minutes=30)
+        url = f"/schedule/dentist-day/?dentist={self.dentist.pk}&day={self.day:%d/%m/%Y}&duration=30"
+        slots = {s["time"]: s for s in self.client.get(url).json()["slots"]}
+        self.assertEqual(list(slots), ["09:00", "09:15", "09:30", "09:45", "10:00", "10:15", "10:30", "10:45"])
+        self.assertEqual([t for t, s in slots.items() if s["busy"]], ["09:15", "09:30", "09:45"])
+        self.assertEqual(slots["09:30"]["who"], self.patient.full_name)
+        self.assertTrue(slots["10:45"]["too_long"])  # 30 minutes do not fit before 11:00
+        # Moving that same appointment: its own time is not busy for it.
+        slots = {s["time"]: s for s in self.client.get(f"{url}&exclude={booked.pk}").json()["slots"]}
+        self.assertFalse(any(s["busy"] for s in slots.values()))
+        # A day without his shift: the opening hours, marked outside.
+        other = self.client.get(f"/schedule/dentist-day/?dentist={self.dentist.pk}"
+                                f"&day={self.day + timedelta(days=1):%d/%m/%Y}").json()
+        self.assertTrue(other["outside"])
+
+    def test_one_message_to_many(self):
+        from apps.patients.models import Patient
+        from apps.scheduling.models import BulkMessage
+
+        make_patient(self.branch, name="مريض تجربة ثاني", nid="29001011234568", phone="01001234568")
+        make_patient(self.branch, name="مريض تجربة ثالث", nid="29001011234569", phone="01001234569",
+                     status=Patient.Status.FINISHED)
+        cic = Branch.objects.get(code="CIC")
+        make_patient(cic, name="مريض في مكان آخر", nid="29001011234570", phone="01001234570")
+        data = {"title": "Eid", "text": "كل سنة وانت طيب يا {patient} من {clinic}", "who": "patients"}
+        response = self.client.post("/schedule/whatsapp/many/new/", {**data, "do": "count"})
+        self.assertEqual(response.context["preview"]["count"], 3)  # this place's patients only
+        response = self.client.post("/schedule/whatsapp/many/new/", {**data, "status": ["finished"], "do": "count"})
+        self.assertEqual(response.context["preview"]["count"], 1)
+        response = self.client.post("/schedule/whatsapp/many/new/", {**data, "do": "save"})
+        bulk = BulkMessage.objects.get()
+        self.assertRedirects(response, bulk.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual(bulk.recipients.count(), 3)
+        first = bulk.recipients.order_by("pk").first()
+        response = self.client.post(f"/schedule/whatsapp/many/{bulk.pk}/send/")
+        self.assertTrue(response["Location"].startswith("https://wa.me/20"))
+        self.assertIn("%D9%83%D9%84", response["Location"])  # the Arabic text, with the name filled in
+        first.refresh_from_db()
+        self.assertIsNotNone(first.sent_at)
+        second = bulk.recipients.filter(sent_at__isnull=True).first()
+        self.client.post(f"/schedule/whatsapp/many/{bulk.pk}/send/", {"recipient": second.pk, "skip": "1"})
+        second.refresh_from_db()
+        self.assertTrue(second.skipped)
+        self.assertEqual(bulk.progress(), (2, 3))
+        page = self.client.get(bulk.get_absolute_url())
+        self.assertEqual(page.context["done"], 2)
+        numbers = self.client.get(f"/schedule/whatsapp/many/{bulk.pk}/numbers/")
+        self.assertIn("+2010", numbers.content.decode("utf-8"))

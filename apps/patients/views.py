@@ -28,7 +28,7 @@ from apps.core.kept_uploads import carry, chosen
 from apps.core.mixins import AuditMixin, RoleRequiredMixin, SearchMixin, role_required
 from apps.core.models import Branch, ChangeRequest, branch_for_user, working_places
 from apps.core.roles import CLINICAL, FRONT_DESK, PATIENT_VIEWERS, has_role
-from apps.core.utils import name_patterns, normalize_phone, validate_phone
+from apps.core.utils import hours_minutes, name_patterns, normalize_phone, validate_phone
 
 from .access import (
     file_parts,
@@ -85,7 +85,7 @@ def patient_prefs(request):
         return JsonResponse({})
     parts = []
     if patient.travel_minutes:
-        parts.append(_("lives %(n)s minutes away") % {"n": patient.travel_minutes})
+        parts.append(_("lives %(time)s away") % {"time": hours_minutes(patient.travel_minutes)})
     if patient.preferred_days:
         parts.append(_("prefers: %(days)s") % {"days": "، ".join(patient.preferred_day_list)})
     if patient.preferred_times:
@@ -184,6 +184,37 @@ class LeadDetailView(RoleRequiredMixin, DetailView):
 
 @role_required(*FRONT_DESK)
 @require_POST
+def lead_book(request, pk):
+    """An expected patient wants an appointment (round 15): a short file is opened from the call list (the name, the
+    mobiles and what he told on the phone) and the booking page opens with the day's schedule. The reception
+    completes the file (the ID and the rest) when he comes."""
+    lead = get_object_or_404(Lead, pk=pk)
+    patient = lead.converted_patient
+    if patient is None:
+        patient = Patient.objects.filter(branch=lead.branch, phone_primary=lead.phone_primary).first()
+    if patient is None:
+        with transaction.atomic():
+            patient = Patient.objects.create(
+                branch=lead.branch, full_name=lead.full_name, national_id="", is_expected=True,
+                phone_primary=lead.phone_primary, phone_secondary=lead.phone_secondary,
+                preferred_phone=lead.preferred_phone, gender=lead.gender, city=lead.city,
+                missing_teeth=lead.missing_teeth, missing_teeth_notes=lead.missing_teeth_notes,
+                medical_notes=lead.medical_notes, referral_source=lead.referral_source,
+                referral_notes=lead.referral_notes, created_by=request.user)
+            patient.medical_conditions.set(lead.medical_conditions.all())
+    lead.converted_patient = patient
+    if lead.status in (Lead.Status.NEW, Lead.Status.FOLLOW_UP):
+        lead.status = Lead.Status.BOOKED
+    lead.save(update_fields=["converted_patient", "status", "updated_at"])
+    if patient.is_expected:
+        messages.info(request, _("A short file was opened for %(name)s (%(file)s): choose the day and the time. "
+                                 "Complete the file when he comes.") % {"name": patient.full_name,
+                                                                         "file": patient.file_number})
+    return redirect(f"{reverse('scheduling:appointment_create')}?patient={patient.pk}")
+
+
+@role_required(*FRONT_DESK)
+@require_POST
 def lead_add_call(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
     form = LeadCallForm(request.POST)
@@ -261,6 +292,14 @@ class PatientCreateView(RoleRequiredMixin, AuditMixin, CreateView):
     form_class = PatientForm
     template_name = "patients/patient_form.html"
     success_message = None
+
+    def get(self, request, *args, **kwargs):
+        lead_id = request.GET.get("lead", "")
+        expected = Lead.objects.filter(pk=lead_id, converted_patient__is_expected=True).values_list(
+            "converted_patient", flat=True).first() if lead_id.isdigit() else None
+        if expected:  # booked from the call list: its short file is completed (round 15)
+            return redirect("patients:update", expected)
+        return super().get(request, *args, **kwargs)
 
     def get_lead(self):
         lead_id = self.request.GET.get("lead") or self.request.POST.get("lead")
@@ -347,16 +386,33 @@ class PatientUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
         carry(self.request, form, PatientForm.ID_PHOTOS)
         return super().form_invalid(form)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["can_renumber"] = not needs_approval(self.request.user)
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["title"] = _("Edit patient data")
-        if needs_approval(self.request.user):
+        if self.object.is_expected:
+            context["title"] = _("Complete the file of %(name)s") % {"name": self.object.full_name}
+        elif needs_approval(self.request.user):
             context["intro"] = _("Your changes go to the head of CIA and are applied after approval.")
         return context
 
     def form_valid(self, form):
         # New ID photos are saved at once, like a document added to the file (no approval needed).
         photos = save_id_photos(self.request, form, Patient.objects.get(pk=self.object.pk))
+        if self.object.is_expected:
+            # The short file of an expected patient is completed when he comes: this is his registration (round 15).
+            form.instance.is_expected = False
+            if "registered_on" not in form.changed_data:
+                form.instance.registered_on = timezone.localdate()
+            response = super().form_valid(form)
+            Lead.objects.filter(converted_patient=self.object).update(status=Lead.Status.CONVERTED)
+            messages.success(self.request, _("Patient registered. File number: %(file)s")
+                             % {"file": self.object.file_number})
+            return response
         if not needs_approval(self.request.user):
             return super().form_valid(form)
         original = Patient.objects.get(pk=self.object.pk)  # the form already changed self.object in memory

@@ -209,7 +209,11 @@ class Patient(TimeStampedModel):
     file_number = models.CharField(_("file number"), max_length=20, unique=True, blank=True, editable=False)
     full_name = models.CharField(_("full name (as on ID)"), max_length=150, db_index=True)
     id_type = models.CharField(_("ID type"), max_length=10, choices=IdType.choices, default=IdType.NATIONAL_ID)
-    national_id = models.CharField(_("national ID / passport no."), max_length=20, db_index=True)
+    national_id = models.CharField(_("national ID / passport no."), max_length=20, db_index=True, blank=True)
+    # Booked from the call list before coming (round 15): a short file (the name and the mobiles) so the visit is on
+    # the schedule; the reception completes it (the ID and the rest) when he comes.
+    is_expected = models.BooleanField(
+        _("expected patient: the file is completed when he comes"), default=False, db_index=True)
     birth_date = models.DateField(_("date of birth"), null=True, blank=True)
     gender = models.CharField(_("gender"), max_length=1, choices=Gender.choices, blank=True)
     marital_status = models.CharField(_("marital status"), max_length=10, choices=MaritalStatus.choices, blank=True)
@@ -223,8 +227,8 @@ class Patient(TimeStampedModel):
     governorate = models.CharField(_("governorate"), max_length=60, blank=True, choices=GOVERNORATE_CHOICES)
     occupation = models.CharField(_("occupation"), max_length=100, blank=True)
     travel_minutes = models.PositiveSmallIntegerField(
-        _("how far he lives (minutes)"), null=True, blank=True,
-        help_text=_("About how many minutes the patient takes to come to the clinic."))
+        _("how far he lives"), null=True, blank=True,
+        help_text=_("About how long the patient takes to come to the clinic: hours and minutes."))
     preferred_days = models.CharField(_("days he prefers"), max_length=20, blank=True)
     preferred_times = models.CharField(_("times he prefers"), max_length=40, blank=True)
     missing_teeth = models.CharField(
@@ -273,7 +277,8 @@ class Patient(TimeStampedModel):
         verbose_name_plural = _("patients")
         constraints = [
             # One file per person in each place (a person who moves to another place gets a new file there).
-            models.UniqueConstraint(fields=["branch", "national_id"], name="patient_one_id_per_place"),
+            models.UniqueConstraint(fields=["branch", "national_id"], name="patient_one_id_per_place",
+                                    condition=~models.Q(national_id="")),
             models.UniqueConstraint(fields=["branch", "phone_primary"], name="patient_one_mobile_per_place"),
         ]
 
@@ -296,7 +301,11 @@ class Patient(TimeStampedModel):
         with transaction.atomic():
             super().save(*args, **kwargs)
             if not self.file_number:
-                self.file_number = f"{self.branch.badge}-{self.pk:05d}"
+                # The next number, after the numbers of old paper files typed in by hand (round 15).
+                number, taken = self.pk, type(self).objects.exclude(pk=self.pk)
+                while taken.filter(file_number=f"{self.branch.badge}-{number:05d}").exists():
+                    number += 1
+                self.file_number = f"{self.branch.badge}-{number:05d}"
                 type(self).objects.filter(pk=self.pk).update(file_number=self.file_number)
 
     @property

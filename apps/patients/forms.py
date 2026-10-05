@@ -18,7 +18,8 @@ from apps.core.models import current_place
 from apps.core.utils import normalize_phone, parse_egyptian_national_id
 from apps.core.egypt import cities_json
 from apps.core.widgets import (
-    AutocompleteInput, ChoiceButtons, CommaChecksWidget, DatalistInput, KeptPhotoInput, WeekdaysWidget,
+    AutocompleteInput, ChoiceButtons, CommaChecksWidget, DatalistInput, HoursMinutesWidget, KeptPhotoInput,
+    WeekdaysWidget,
 )
 
 from apps.dentists.forms import DentistChoiceField
@@ -199,6 +200,16 @@ class PatientForm(StyledModelForm):
     assigned_dentist = DentistChoiceField(label=_("responsible dentist"), required=False)
     brought_by = DentistChoiceField(label=_("the doctor's own patient (brought by)"), required=False,
                                     empty_label=_("No: a patient of the clinic"))
+    # Typing in the old paper files (round 15): the number of the paper file is kept, and only the name, the ID and
+    # the first mobile are needed (the paper file may not have the rest).
+    old_file = forms.BooleanField(
+        label=_("An old paper file (data entry)"), required=False,
+        help_text=_("Tick it when typing in a file opened on paper: write its number, and only the name, the ID and "
+                    "the first mobile are needed."))
+    typed_file_number = forms.CharField(
+        label=_("file number"), required=False, max_length=20,
+        help_text=_("The number written on the paper file, e.g. 1234 (it becomes CIA-01234). Empty: the next "
+                    "number."))
 
     # Required at registration (round 13). The date of birth, the gender and the governorate are read from the
     # national ID when left empty, so they are checked in clean() after that.
@@ -207,6 +218,7 @@ class PatientForm(StyledModelForm):
     ID_PHOTOS = ["id_front", "id_back"]
 
     fieldsets = [
+        (_("Data entry"), ["old_file", "typed_file_number"]),
         (_("ID scan"), ["id_front", "id_back"]),
         (_("Personal data"), ["full_name", "id_type", "national_id", "birth_date", "gender", "marital_status", "occupation"]),
         (_("Contact"), ["phone_primary", "phone_secondary", "preferred_phone", "governorate", "city", "address"]),
@@ -231,21 +243,37 @@ class PatientForm(StyledModelForm):
             "out_reason", "out_notes", "notes",
         ]
         widgets = {"medical_conditions": forms.CheckboxSelectMultiple, "preferred_days": WeekdaysWidget,
-                   "preferred_times": CommaChecksWidget(choices=DayPart.choices)}
+                   "preferred_times": CommaChecksWidget(choices=DayPart.choices),
+                   "travel_minutes": HoursMinutesWidget}
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, can_renumber=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["medical_conditions"].queryset = MedicalCondition.objects.filter(is_active=True)
         self.fields["referral_source"].queryset = ReferralSource.objects.filter(is_active=True)
-        self.fields["referral_source"].required = True
+        # An old paper file typed in: only the name, the ID and the first mobile are needed.
+        self.data_entry = not self.instance.pk and self.is_bound and \
+            str(self.data.get(self.add_prefix("old_file"), "")).lower() in ("on", "true", "1")
+        self.fields["referral_source"].required = not self.data_entry
         for name in self.REQUIRED:
-            self.fields[name].required = True
+            self.fields[name].required = not self.data_entry
         for name in self.FROM_ID:
             self.fields[name].required = False
             self.fields[name].marked_required = True
+        if self.instance.pk:
+            del self.fields["old_file"]
+            if can_renumber:  # the owner and the head of CIA can correct a file number
+                self.fields["typed_file_number"].initial = self.instance.file_number
+                self.fields["typed_file_number"].help_text = _("Change it only to match the paper file.")
+            else:
+                del self.fields["typed_file_number"]
+        else:
+            self.fields["old_file"].widget.attrs["data-reveals"] = "typed_file_number"
+        if "typed_file_number" in self.fields:
+            self.fields["typed_file_number"].widget.attrs.update({"dir": "ltr", "autocomplete": "off"})
         for name in ("phone_primary", "phone_secondary"):
             self.fields[name].widget.input_type = "tel"
             self.fields[name].widget.attrs["data-phone-check-url"] = _phone_check_url("patient", self.instance, name)
+        self.fields["national_id"].required = True  # blank only on an expected patient's short file
         self.fields["national_id"].widget.attrs.update({"data-digits": "1", "autocomplete": "off",
                                                         "data-nid-fills": "1"})
         self.fields["full_name"].widget.attrs.update({"lang": "ar", "dir": "rtl", "autocomplete": "off"})
@@ -259,7 +287,6 @@ class PatientForm(StyledModelForm):
             "data-city-list": cities_json(), "data-governorate": "governorate",
             "data-choose-label": _("— choose —"), "data-other-label": _("Other: write the area")})
         self.fields["occupation"].widget = DatalistInput(OCCUPATIONS, attrs=self.fields["occupation"].widget.attrs)
-        self.fields["travel_minutes"].widget.attrs.update({"min": 0, "max": 600, "step": 5, "inputmode": "numeric"})
         self.fields["travel_minutes"].help_text = Patient._meta.get_field("travel_minutes").help_text
         self.fields["preferred_days"].help_text = _("Empty = any day.")
         self.fields["preferred_times"].help_text = _("Empty = any time.")
@@ -316,6 +343,24 @@ class PatientForm(StyledModelForm):
     def clean_full_name(self):
         return clean_arabic_name(self.cleaned_data.get("full_name"))
 
+    def clean_typed_file_number(self):
+        """The paper file's number: 1234 becomes CIA-01234 (the place's letters); letters typed are kept as typed."""
+        value = clean_digits_value(self.cleaned_data.get("typed_file_number")).strip().upper().replace(" ", "")
+        if not value:
+            if self.instance.pk:
+                raise forms.ValidationError(_("A file must keep a number."))
+            return ""
+        place = self.instance.branch if self.instance.pk else current_place()
+        if value.isdigit():
+            value = f"{place.badge if place else 'CIA'}-{int(value):05d}"
+        if not re.fullmatch(r"[A-Z0-9][A-Z0-9/_.-]{0,19}", value):
+            raise forms.ValidationError(_("Use numbers and letters only, e.g. 1234 or CIA-01234."))
+        other = Patient.objects.filter(file_number__iexact=value).exclude(pk=self.instance.pk).first()
+        if other:
+            raise forms.ValidationError(_("The file number %(file)s is already used by %(name)s.")
+                                        % {"file": other.file_number, "name": other.full_name})
+        return value
+
     def clean_registered_on(self):
         return self.cleaned_data.get("registered_on") or self.instance.registered_on or timezone.localdate()
 
@@ -338,7 +383,9 @@ class PatientForm(StyledModelForm):
             data["governorate"] = data.get("governorate") or nid["governorate_code"]
             if data["birth_date"] != nid["birth_date"]:
                 self.add_error("birth_date", _("The date of birth does not match the national ID."))
-        for name in self.FROM_ID:
+        if self.data_entry and not data.get("typed_file_number"):
+            self.add_error("typed_file_number", _("Write the number of the paper file."))
+        for name in ([] if self.data_entry else self.FROM_ID):
             if not data.get(name) and name not in self.errors:
                 self.add_error(name, forms.ValidationError(self.fields[name].error_messages["required"],
                                                            code="required"))
@@ -359,6 +406,8 @@ class PatientForm(StyledModelForm):
 
     def save(self, commit=True):
         self.instance.referred_by = self.cleaned_data.get("referred_by_lookup")
+        if self.cleaned_data.get("typed_file_number"):
+            self.instance.file_number = self.cleaned_data["typed_file_number"]
         return super().save(commit=commit)
 
 

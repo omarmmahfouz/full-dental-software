@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "One message to many patients" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1><i class="bi bi-whatsapp"></i> {% trans "One message to many patients" %}</h1>
+  <a class="btn btn-success" href="{% url 'scheduling:bulk_create' %}"><i class="bi bi-plus-lg"></i> {% trans "New message to many" %}</a></div>
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+  <thead><tr><th>{% trans "Date" %}</th><th>{% trans "Title" %}</th><th>{% trans "Sent to" %}</th><th>{% trans "Sent" %}</th><th>{% trans "By" %}</th></tr></thead>
+  <tbody>{% for b in bulks %}<tr>
+    <td class="nowrap">{{ b.created_at|date:"d/m/Y" }}</td>
+    <td><a class="fw-semibold" href="{{ b.get_absolute_url }}">{{ b.title }}</a></td>
+    <td class="small">{{ b.audience }}</td>
+    <td class="nowrap"><span dir="ltr">{{ b.done }} / {{ b.total }}</span></td>
+    <td class="small">{{ b.created_by|default:"" }}</td>
+  </tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-4">{% trans "No message to many yet." %}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

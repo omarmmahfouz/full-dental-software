@@ -51,7 +51,7 @@ from apps.specialties.services import link_booking as link_referral
 
 from .patient_requests import link_booking
 from .waiting import link_waiting, place_freed
-from .free_times import dentist_day, free_times
+from .free_times import day_slots, dentist_day, free_times
 from .whatsapp import record, whatsapp_number, whatsapp_url
 
 
@@ -222,8 +222,15 @@ def dentist_day_json(request):
     dentist = Dentist.objects.filter(pk=request.GET.get("dentist")).first() if request.GET.get("dentist", "").isdigit() \
         else None
     if dentist is None:
-        return JsonResponse({"working": None, "text": "", "shifts": []})
-    return JsonResponse(dentist_day(dentist, _parse_day(request.GET.get("day")), branch_for_user(request.user)))
+        return JsonResponse({"working": None, "text": "", "shifts": [], "slots": []})
+    day, here = _parse_day(request.GET.get("day")), branch_for_user(request.user)
+    data = dentist_day(dentist, day, here)
+    # The times of his shift, the busy ones grey (round 15).
+    duration = request.GET.get("duration", "")
+    exclude = request.GET.get("exclude", "")
+    data.update(day_slots(dentist, day, here, int(duration) if duration.isdigit() else 30,
+                          int(exclude) if exclude.isdigit() else None))
+    return JsonResponse(data)
 
 
 def week_start(day):

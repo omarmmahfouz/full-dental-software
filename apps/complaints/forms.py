@@ -35,6 +35,9 @@ class ComplaintForm(StyledModelForm):
             self.fields["patient_lookup"].help_text = str(patient)
         elif self.instance.pk:
             self.fields["patient_lookup"].initial = lookup_value(self.instance.patient)
+        else:  # choosing the patient shows his earlier complaints first (round 15)
+            self.fields["patient_lookup"].widget.attrs["data-reload-with"] = "patient"
+        self.fields["description"].widget.attrs["rows"] = 4
 
 
 class FollowUpForm(StyledModelForm):
@@ -95,6 +98,7 @@ class ComplaintFilterForm(StyledForm):
     )
     category = forms.ChoiceField(label=_("category"), required=False, choices=[("", _("All"))] + list(Complaint.Category.choices))
     overdue = forms.BooleanField(label=_("follow-up overdue"), required=False)
+    by_date = forms.BooleanField(label=_("newest first, not under each patient"), required=False)
 
 
 class DentistAnswerForm(StyledForm):

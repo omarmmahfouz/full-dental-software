@@ -102,6 +102,7 @@ MIDDLEWARE = [
     "apps.core.middleware.WorkingPlaceMiddleware",
     "apps.core.middleware.UserLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "apps.core.security.ReplacedSessionMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.security.IdleLogoutMiddleware",
     "apps.core.worktime.WorkTimeMiddleware",

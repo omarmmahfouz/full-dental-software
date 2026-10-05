@@ -15,6 +15,7 @@
 - **Deleted records** are kept with what they held, who deleted them and when (``DeletedRecord``).
 """
 
+import hashlib
 import ipaddress
 import json
 import math
@@ -289,6 +290,69 @@ def _logged_in(sender, request, user, **kwargs):
         request.session["ip"] = client_ip(request) or ""
         request.session["device"] = device(request)
         request.session["since"] = int(time.time())
+        from .models import ClinicSettings
+
+        if ClinicSettings.get().one_device_per_login:
+            end_other_devices(request, user)
+
+
+def session_fingerprint(key):
+    """What the security log keeps of a closed session (not the key itself)."""
+    return hashlib.sha256(f"closed-session:{key}".encode()).hexdigest() if key else ""
+
+
+def end_other_devices(request, user):
+    """The same login opened on another PC or tablet: the earlier sessions of this person end (round 15). Each one
+    is written in the security log with a fingerprint, so its device is told why at its next click."""
+    from django.contrib.sessions.models import Session
+
+    from .models import SecurityEvent
+
+    if not hasattr(request, "session"):
+        return 0
+    here = request.session.session_key
+    where = f"{device(request)} · {client_ip(request) or ''}".strip(" ·")
+    ended = 0
+    for session in Session.objects.filter(expire_date__gt=timezone.now()).exclude(session_key=here):
+        data = session.get_decoded()
+        if str(data.get("_auth_user_id")) != str(user.pk):
+            continue
+        Session.objects.filter(session_key=session.session_key).delete()
+        SecurityEvent.objects.create(
+            kind=SecurityEvent.Kind.REPLACED, user=user, username=user.get_username(), ip=data.get("ip") or None,
+            device=(data.get("device") or "")[:200], details=_("opened on %(where)s") % {"where": where},
+            session=session_fingerprint(session.session_key))
+        ended += 1
+    return ended
+
+
+class ReplacedSessionMiddleware:
+    """The first page asked by a device whose login was opened on another device (round 15) says why it is logged
+    out: the message is shown on the login page it is sent to (the old session's cookie is then dropped)."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.COOKIES.get(settings.SESSION_COOKIE_NAME) and not request.user.is_authenticated:
+            replaced = replaced_here(request)
+            if replaced is not None:
+                messages.warning(request, _(
+                    "You were logged out here because your login (%(user)s) was opened on another device at "
+                    "%(time)s. Only one device at a time can use a login.")
+                    % {"user": replaced.username, "time": timezone.localtime(replaced.at).strftime("%I:%M %p")})
+        return self.get_response(request)
+
+
+def replaced_here(request):
+    """The security log's line when this browser's session was closed by a login on another device (or None)."""
+    from .models import SecurityEvent
+
+    key = request.COOKIES.get(settings.SESSION_COOKIE_NAME, "")
+    if not key or (request.user.is_authenticated if hasattr(request, "user") else False):
+        return None
+    return SecurityEvent.objects.filter(kind=SecurityEvent.Kind.REPLACED, session=session_fingerprint(key),
+                                        at__gte=timezone.now() - timedelta(hours=12)).first()
 
 
 @receiver(user_logged_out)

@@ -1,8 +1,9 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Count, Max, Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -13,6 +14,7 @@ from apps.core.mixins import RoleRequiredMixin, role_required
 from apps.core.models import Notification, branch_for_user
 from apps.core.notify import notify_roles, notify_users
 from apps.core.roles import FRONT_DESK, HEAD_CIA, OWNER, PATIENT_VIEWERS, SUPERVISOR, has_role, is_only_dentist
+from apps.patients.forms import find_patient
 from apps.patients.models import Patient
 
 from .forms import ComplaintFilterForm, ComplaintForm, DentistAnswerForm, FollowUpEditForm, FollowUpForm, SituationForm
@@ -41,21 +43,46 @@ class ComplaintListView(RoleRequiredMixin, ListView):
                 qs = qs.filter(category=data["category"])
             if data.get("overdue"):
                 qs = qs.filter(status__in=Complaint.OPEN_STATUSES, follow_up_due__lt=timezone.localdate())
+        # Each patient's complaints together, under his name (round 15); the patient with the latest one first.
+        self.grouped = not (self.filter_form.is_valid() and self.filter_form.cleaned_data.get("by_date"))
+        if self.grouped:
+            qs = qs.annotate(latest=Max("patient__complaints__created_at")).order_by(
+                "-latest", "patient_id", "-created_at")
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["filter_form"] = self.filter_form
         context["only_mine"] = is_only_dentist(self.request.user)
+        context["grouped"] = self.grouped
+        if self.grouped:
+            ids = {c.patient_id for c in context["page_obj"]}
+            context["per_patient"] = dict(Complaint.objects.filter(patient_id__in=ids).values_list("patient_id")
+                                          .annotate(n=Count("pk")).values_list("patient_id", "n"))
         return context
 
 
 @role_required(*FRONT_DESK)
 def complaint_create(request):
+    """A new complaint. The patient's complaints are shown first (round 15): the same reason again is written on the
+    complaint he already has ("he called again"), another reason is a new complaint under his name."""
     patient = None
-    if request.GET.get("patient", "").isdigit():
-        patient = Patient.objects.filter(pk=request.GET["patient"]).first()
+    wanted = request.GET.get("patient", "")
+    if wanted.isdigit():
+        patient = Patient.objects.here().filter(pk=wanted).first()
+    elif wanted:
+        patient = find_patient(wanted)  # chosen in the box: "CIA-00014 — name"
     form = ComplaintForm(request.POST or None, patient=patient)
+    same = None
+    if request.method == "POST" and form.is_valid():
+        patient = form.cleaned_data["patient_lookup"]
+        same = Complaint.objects.filter(patient=patient, category=form.cleaned_data["category"],
+                                        status__in=Complaint.OPEN_STATUSES).order_by("-created_at").first()
+        if same is not None and not request.POST.get("new_anyway"):
+            # The same kind of complaint is still open: ask whether he called again about it.
+            return render(request, "complaints/complaint_form.html", {
+                "form": form, "title": _("Record patient complaint"), "patient": patient, "same": same,
+                "earlier": _earlier(patient)})
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             complaint = form.save(commit=False)
@@ -71,7 +98,52 @@ def complaint_create(request):
         _tell_dentist(complaint)
         messages.success(request, _("Complaint %(number)s recorded and the supervisors were notified.") % {"number": complaint.number})
         return redirect(complaint)
-    return render(request, "includes/form_page.html", {"form": form, "title": _("Record patient complaint")})
+    if patient is None and form.is_bound:
+        patient = form.cleaned_data.get("patient_lookup")
+    return render(request, "complaints/complaint_form.html", {
+        "form": form, "title": _("Record patient complaint"), "patient": patient,
+        "earlier": _earlier(patient) if patient is not None else []})
+
+
+def _earlier(patient):
+    """The patient's complaints, the open ones first."""
+    complaints = list(Complaint.objects.filter(patient=patient).select_related("concerned_dentist")[:20])
+    complaints.sort(key=lambda c: (not c.is_open, -c.created_at.timestamp()))
+    return complaints
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def complaint_called_again(request, pk):
+    """The patient called again for the same reason: what he said is written on his complaint, the calls are counted
+    and the people of the complaint are told; a closed complaint opens again (round 15)."""
+    complaint = get_object_or_404(Complaint.objects.select_related("concerned_dentist", "patient"), pk=pk,
+                                  branch=branch_for_user(request.user))
+    note = (request.POST.get("note") or "").strip()
+    if not note:
+        messages.error(request, _("Write what the patient said this time."))
+        return redirect(f"{reverse('complaints:create')}?patient={complaint.patient_id}")
+    with transaction.atomic():
+        reopened = not complaint.is_open
+        complaint.calls += 1
+        complaint.last_call_at = timezone.now()
+        if reopened:
+            complaint.status = Complaint.Status.IN_PROGRESS
+        ComplaintFollowUp.objects.create(
+            complaint=complaint, action=ComplaintFollowUp.Action.CALLED_AGAIN, note=note[:4000],
+            new_status=complaint.status, created_by=request.user)
+        complaint.save()
+    dentist_user = complaint.concerned_dentist.user if complaint.concerned_dentist_id else None
+    params = {"number": complaint.number, "patient": complaint.patient.full_name, "n": complaint.calls,
+              "note": note[:300]}
+    notify_users([complaint.created_by, complaint.assigned_to, dentist_user],
+                 gettext_lazy("%(patient)s called again about complaint %(number)s (call %(n)s)"), "%(note)s",
+                 complaint.get_absolute_url(), _level(complaint), exclude=request.user, params=params)
+    notify_roles((HEAD_CIA, OWNER), gettext_lazy("%(patient)s called again about complaint %(number)s (call %(n)s)"),
+                 "%(note)s", complaint.get_absolute_url(), _level(complaint), exclude=request.user, params=params)
+    messages.success(request, _("Written on complaint %(number)s: the patient has called %(n)s times.")
+                     % {"number": complaint.number, "n": complaint.calls})
+    return redirect(complaint)
 
 
 def _level(complaint):

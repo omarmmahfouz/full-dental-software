@@ -23,7 +23,7 @@
   {% for p in page_obj %}
   <tr>
     <td class="nowrap"><a href="{{ p.get_absolute_url }}">{{ p.file_number }}</a></td>
-    <td><a href="{{ p.get_absolute_url }}" class="fw-semibold">{{ p.full_name }}</a>
+    <td><a href="{{ p.get_absolute_url }}" class="fw-semibold">{{ p.full_name }}</a>{% if p.is_expected %} <span class="badge rounded-pill text-bg-warning">{% trans "expected" %}</span>{% endif %}
       {% if p.open_labs %}<span class="lab-flag" title="{% trans 'Has lab work' %}"><i class="bi bi-lab-request"></i> {% trans "Lab work" %}</span>{% endif %}
       {% if p.open_complaints %}<span class="complaint-flag"><i class="bi bi-exclamation-circle"></i> {% trans "Complaint" %}</span>{% endif %}
     </td>

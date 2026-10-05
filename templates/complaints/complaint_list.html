@@ -10,7 +10,8 @@
 <form class="card card-body mb-3 no-print"><div class="row g-2 align-items-end">
   <div class="col-md-3"><label class="form-label">{{ filter_form.status.label }}</label>{{ filter_form.status }}</div>
   <div class="col-md-3"><label class="form-label">{{ filter_form.category.label }}</label>{{ filter_form.category }}</div>
-  <div class="col-md-3"><div class="form-check">{{ filter_form.overdue }} <label class="form-check-label" for="{{ filter_form.overdue.id_for_label }}">{{ filter_form.overdue.label }}</label></div></div>
+  <div class="col-md-3"><div class="form-check">{{ filter_form.overdue }} <label class="form-check-label" for="{{ filter_form.overdue.id_for_label }}">{{ filter_form.overdue.label }}</label></div>
+    <div class="form-check">{{ filter_form.by_date }} <label class="form-check-label" for="{{ filter_form.by_date.id_for_label }}">{{ filter_form.by_date.label }}</label></div></div>
   <div class="col-md-2"><button class="btn btn-outline-primary w-100"><i class="bi bi-funnel"></i> {% trans "Filter" %}</button></div>
 </div></form>
 <div class="card"><div class="table-responsive">
@@ -18,11 +19,13 @@
   <thead><tr><th>{% trans "No." %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Category" %}</th><th>{% trans "Severity" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Current situation" %}</th><th>{% trans "Followed up by" %}</th><th>{% trans "Next follow-up" %}</th><th>{% trans "Status" %}</th></tr></thead>
   <tbody>
   {% for c in page_obj %}
+  {% if grouped %}{% ifchanged c.patient_id %}<tr class="complaint-patient"><th colspan="10"><i class="bi bi-person"></i> <a href="{{ c.patient.get_absolute_url }}">{{ c.patient.full_name }}</a> <span class="small text-muted">{{ c.patient.file_number }}</span>
+    {% with n=per_patient|get_item:c.patient_id %}{% if n > 1 %}<span class="badge rounded-pill text-bg-light">{% blocktrans count n=n %}{{ n }} complaint{% plural %}{{ n }} complaints{% endblocktrans %}</span>{% endif %}{% endwith %}</th></tr>{% endifchanged %}{% endif %}
   <tr class="complaint-row" data-expand-row aria-expanded="false" tabindex="0">
     <td><i class="bi bi-chevron-down complaint-chevron" aria-hidden="true"></i> <a href="{{ c.get_absolute_url }}" class="fw-semibold">{{ c.number }}</a></td>
     <td class="nowrap">{{ c.created_at|date:"d/m/Y" }}</td>
     <td><a href="{{ c.patient.get_absolute_url }}">{{ c.patient.full_name }}</a></td>
-    <td>{{ c.get_category_display }}</td>
+    <td>{{ c.get_category_display }}{% if c.calls > 1 %} <span class="badge rounded-pill text-bg-warning" title="{% trans 'times the patient called' %}"><i class="bi bi-telephone-inbound"></i> ×{{ c.calls }}</span>{% endif %}</td>
     <td>{% status_badge c "severity" %}</td>
     <td class="small">{{ c.concerned_dentist|default:"—" }}</td>
     <td class="small">{{ c.current_situation|truncatechars:80|default:"—" }}</td>

@@ -92,19 +92,35 @@ def app_context(request):
             context["new_problems"] = ProblemReport.objects.filter(status=ProblemReport.Status.NEW).count()
         from apps.scheduling.models import PatientRequest
 
+        # The numbers beside the menu entries count this place's patients only: at CIC the secretary saw CIA's
+        # patients to call, and the list was empty (round 15).
+        here = context["current_branch"]
         if roles & {OWNER, HEAD_CIA, TEAM_HEAD, SUPERVISOR}:
-            context["requests_to_approve"] = PatientRequest.objects.filter(status=PatientRequest.Status.PROPOSED).count()
+            context["requests_to_approve"] = PatientRequest.objects.filter(
+                status=PatientRequest.Status.PROPOSED, patient__branch=here).count()
         if context["is_front_desk"] or context["is_clinical"]:
             from apps.specialties.models import Referral
 
             context["referrals_to_book"] = Referral.objects.filter(
                 branch=context["current_branch"], status=Referral.Status.SENT).exclude(to_dentist=None).count() \
                 if context["is_front_desk"] else 0
+        if context["sees_patients"] and "lab" not in context["hidden_areas"] and (
+                context["is_front_desk"] or context["is_management"]):
+            # The lab requests waiting for this person (round 15, the menu entry of its own): to review for the
+            # supervisors and the heads, to take from the dentist and send for the reception.
+            from apps.clinical.models import LabRequest
+
+            waiting = [LabRequest.Status.APPROVED, LabRequest.Status.COLLECTED] if context["is_front_desk"] else []
+            if context["is_management"]:
+                waiting.append(LabRequest.Status.PENDING_REVIEW)
+            context["lab_to_act"] = LabRequest.objects.filter(patient__branch=here, status__in=waiting).count()
         if context["is_front_desk"]:
             from apps.scheduling.models import WaitingEntry
 
-            context["requests_to_call"] = PatientRequest.objects.filter(status=PatientRequest.Status.APPROVED).count()
-            context["waiting_count"] = WaitingEntry.objects.filter(status=WaitingEntry.Status.WAITING).count()
+            context["requests_to_call"] = PatientRequest.objects.filter(
+                status=PatientRequest.Status.APPROVED, patient__branch=here).count()
+            context["waiting_count"] = WaitingEntry.objects.filter(
+                status=WaitingEntry.Status.WAITING, patient__branch=here).count()
         if roles & set(DENTISTS + (SUPERVISOR,)):
             from apps.dentists.models import Dentist
 

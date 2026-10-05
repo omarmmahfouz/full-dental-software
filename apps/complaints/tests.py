@@ -208,3 +208,48 @@ class Round13CommentTests(TestCase):
                          302)
         self.assertEqual(self.client.post(f"/complaints/{self.about_other.pk}/comment/", {"note": "x"}).status_code,
                          404)
+
+
+class Round15CalledAgainTests(TestCase):
+    """Round 15: a patient's complaints together under his name; the same reason again is a call on it."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.owner = make_user("owner", "owner")
+        self.patient = make_patient(self.branch)
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_same_reason_asks_then_counts_the_calls(self):
+        data = {"patient_lookup": self.patient.file_number, "category": "pain", "severity": "medium",
+                "description": "pain after the filling"}
+        self.client.post("/complaints/new/", data)
+        complaint = Complaint.objects.get()
+        # The page of a new complaint shows his earlier ones.
+        page = self.client.get(f"/complaints/new/?patient={self.patient.pk}")
+        self.assertEqual(page.context["earlier"], [complaint])
+        # The same kind again: asked whether it is the same reason, nothing saved yet.
+        response = self.client.post("/complaints/new/", {**data, "description": "still in pain"})
+        self.assertEqual(response.context["same"], complaint)
+        self.assertEqual(Complaint.objects.count(), 1)
+        response = self.client.post(f"/complaints/{complaint.pk}/called-again/", {"note": "still in pain"})
+        self.assertRedirects(response, complaint.get_absolute_url(), fetch_redirect_response=False)
+        complaint.refresh_from_db()
+        self.assertEqual(complaint.calls, 2)
+        self.assertEqual(complaint.follow_ups.get().action, "called_again")
+        self.assertTrue(Notification.objects.filter(recipient=self.owner, url=complaint.get_absolute_url()).count())
+        # An empty call is refused; another reason is a new complaint under his name.
+        self.client.post(f"/complaints/{complaint.pk}/called-again/", {"note": " "})
+        self.assertEqual(Complaint.objects.get().calls, 2)
+        self.client.post("/complaints/new/", {**data, "description": "another reason", "new_anyway": "1"})
+        self.assertEqual(self.patient.complaints.count(), 2)
+        listing = self.client.get("/complaints/")
+        self.assertTrue(listing.context["grouped"])
+        self.assertEqual(listing.context["per_patient"][self.patient.pk], 2)
+
+    def test_a_closed_complaint_opens_again_when_he_calls(self):
+        complaint = Complaint.objects.create(branch=self.branch, patient=self.patient, category="pain",
+                                             description="x", status=Complaint.Status.CLOSED)
+        self.client.post(f"/complaints/{complaint.pk}/called-again/", {"note": "it came back"})
+        complaint.refresh_from_db()
+        self.assertEqual((complaint.status, complaint.calls), (Complaint.Status.IN_PROGRESS, 2))

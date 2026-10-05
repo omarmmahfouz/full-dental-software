@@ -34,7 +34,7 @@ services:
       # the clinic's network only).
       TRUSTED_PROXIES: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
     volumes:
-      - ./data/media:/app/data/media
+      - ${MEDIA_HOST_DIR:-./data/media}:/app/data/media
       - ./backups:/app/backups
       - ./logs:/app/logs
     expose:
@@ -49,7 +49,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./data/media:/media:ro
+      - ${MEDIA_HOST_DIR:-./data/media}:/media:ro
     ports:
       - "80:80"
     depends_on:
@@ -84,7 +84,7 @@ services:
       FILES_BACKUP_DIR: /files-backup
       TZ: Africa/Cairo
     volumes:
-      - ./data/media:/app/data/media
+      - ${MEDIA_HOST_DIR:-./data/media}:/app/data/media
       - ./backups:/app/backups
       - ${FILES_BACKUP_HOST_DIR:-./backups/files}:/files-backup
       - ./logs:/app/logs

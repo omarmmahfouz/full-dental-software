@@ -404,3 +404,26 @@ class Round13RestorativeFinderTests(TestCase):
         self.assertEqual(self.client.get("/clinical/restorative-finder/", {"teeth": "11"}).context["overall"]["steps"], 1)
         csv = self.client.get("/clinical/restorative-finder/", {"export": "csv"}).content.decode("utf-8-sig")
         self.assertEqual(len(csv.strip().splitlines()), 4)
+
+
+class Round15LabListTests(TestCase):
+    """Round 15: the lab requests have a menu entry of their own, and tabs for the plan (in work) and the done."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.patient = make_patient(self.branch)
+        lab, work = Lab.objects.first(), LabWorkType.objects.first()
+        for status in ("approved", "sent", "delivered"):
+            LabRequest.objects.create(branch=self.branch, patient=self.patient, lab=lab, work_type=work, teeth="36",
+                                      status=status)
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_tabs_and_menu_count(self):
+        response = self.client.get("/clinical/lab/")
+        tabs = {tab["code"]: tab["count"] for tab in response.context["part_tabs"]}
+        self.assertEqual(tabs, {"": 3, "planned": 2, "done": 1})
+        self.assertEqual(response.context["lab_to_act"], 1)  # approved: to take and send
+        self.assertEqual(len(self.client.get("/clinical/lab/?part=planned").context["page_obj"]), 2)
+        done = self.client.get("/clinical/lab/?part=done").context["page_obj"]
+        self.assertEqual([lr.status for lr in done], ["delivered"])
