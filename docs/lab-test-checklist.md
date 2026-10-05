@@ -133,3 +133,8 @@ In the sample data:
 4. `owner`: *Settings* → the **lab** card: its people (with `dentist2`, who designs), the lab staff and their steps,
    work types, prices and options.
 5. The lab has its new icon: a tooth on a model base with a porcelain brush.
+
+## L. New in this version (15)
+1. `owner`: *Purchases* → the **LAB** tab: the lab's own purchases (none in the sample): *New purchase* → bought for
+   **LAB**, with the group *Lab materials* (blocks, discs).
+2. A CIA secretary: **Lab requests** is a main menu entry with the number waiting; tabs *still in work* / *delivered*.

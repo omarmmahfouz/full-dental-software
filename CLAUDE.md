@@ -126,6 +126,29 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     `stats.py` = the report; `whatsapp.py` = texts, the status answer, the WhatsApp Business webhook; `demo.py` =
     `load_lab`; `day.py` = the lab's end of the day (its `LabPayment`s, a `billing.DayClosing` of the LAB place;
     `billing:day` / `billing:month` opened at the lab redirect there)
+- **Round 15 map**:
+  - `scheduling/bulk.py` (WhatsApp to many: `BulkMessage`/`BulkRecipient`, one press per message, `text_for`);
+    `free_times.day_slots` (the doctor's times on the booking form, busy ones grey).
+  - `billing/receipts.py` `refund_services` (give back by service, from the receipts that paid it); `OwnerCash` (the
+    owner's money in / out, in the day's drawer and the balance sheet); the bill prints 80 mm by default.
+  - `patients/medical.py` `sync_recalls` / `recalls_due` / `recall_text` = `MedicalRecall` (calls for a new test,
+    `ClinicSettings.hba1c_recheck_days`); `Patient.is_expected` (a short file booked from the call list, `lead_book`);
+    the old paper file number at data entry (`PatientForm.old_file`).
+  - `surgery/implant_life.py` (`ImplantFollowUp` with `PeriImplantStatus`, `ImplantComplication` KINDS by group,
+    `mark_failed`, the complications finder + Excel); `surgery/day.py` (`DaySupervisor`: the supervisor of the surgery
+    day, the default instructor); `SurgeryOption` (the chart's lists in Settings, `choices_for` keeps old values);
+    `SurgeryForm.require_details` (GBR, sinus, suture... must be filled).
+  - `clinical/teeth_status.py` (record treatment: the teeth first, their state and what fits; `bill_info_json`);
+    `StepGroup` in dental terms; `TreatmentStepType.service` (the step's bill) and `implant_record`.
+  - `charting/rules.py` `chart_to_exam` + `exam_changes(..., chart_before)`: a new examination starts from the chart
+    and a tooth taken off a box is taken off the chart; `charting/teeth.py` `span_kind` (single / bridge / full arch).
+  - `dentists/forms.py` `DentistChoiceField` uses `DentistSelect` (groups by kind, candidates by batch; leaves out
+    `show_in_lists=False` and the candidates without an active enrollment unless chosen; `everyone=True` for
+    filters; `list_facts()` is read once a page). `Course.kind` / `batch_number`; `RoomShift.DayType.PREPARATION`.
+  - `purchasing`: `PurchaseCategory.group` (the kind follows the group, `grouped_choices`), `purchase_places(user)`,
+    the list by `?place=` (or all).
+  - `specialties.ProsthoCase` (the prosthodontic chart); `core/photo_folder.py` + `move_photos` (where the photos are);
+    `security.ReplacedSessionMiddleware` (one device per login).
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
   through `WorkingPlaceMiddleware`); `working_places(user)` = the clinic places (the owner's all, else `profile.places`
   + `profile.branch`); `switch_places(user)` adds the LAB place for the lab staff and the owner (the switch, the login).
@@ -308,5 +331,10 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     backup disks); the pages still allow inline scripts (the Content-Security-Policy blocks other sites, not a script
     already in a page); the clinic's-network rule trusts the addresses the server sees, so it depends on the router
     and, with Docker, on our nginx. Drafts stay in the browser of that PC for a day.
+  - WhatsApp to many patients still sends one message per press (no automatic sending); about 100 a day from one
+    number is the safe limit.
+  - One device per login logs out the older session at its next page; a page left open shows the message when it is
+    used again.
+  - The implant tissue class follows the findings typed (Berglundh 2018 thresholds); the dentist can override it.
   - The planned prosthesis made from a surgery's design is a best guess (a full arch from 10 units, a bridge when a
     pontic is between implants, else a crown for each implant): the dentist corrects it on the dental chart.

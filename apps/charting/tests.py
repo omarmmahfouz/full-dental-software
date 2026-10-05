@@ -736,6 +736,8 @@ class Round15LogBookByOperatorTests(TestCase):
         mine = self.client.get(url, {"operator": self.second.pk}).context["pages"][0]
         self.assertEqual(sorted(p.teeth for p in mine["photos"]), ["", "46"])
         self.assertEqual((mine["operator"], mine["supervisor"]), (self.second, self.supervisor))
+        self.assertIn("46:", mine["description"])
+        self.assertNotIn("36:", mine["description"])
 
 
 class Round15ExamAndChartTests(TestCase):

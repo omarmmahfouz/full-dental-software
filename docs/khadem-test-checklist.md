@@ -171,3 +171,10 @@ In the sample data:
 1. `owner`: home page → **Open EK**: only El Khadem shows (no CIA academy installments, no other place's visits).
 2. `owner`: *Settings* → the **El Khadem** card: its people, doctors, the 4 shared rooms and its own services.
 3. `amr`: open a visit, then **Up**: it opens the patient's file.
+
+## O. New in this version (15)
+1. `amr`: a patient → *Specialists* → the **Prosthodontic chart** (it was only the shade): open the sample case: Kennedy
+   class III upper right, abutments 14 and 17 (14 root treated), canine guidance, clenching, a zirconia bridge
+   14–17. *Specialists → Prosthodontics* lists the cases.
+2. `owner`: *Purchases* → the **EK** tab: the composite kit, files and burs (dental materials, instruments) and water.
+3. `khadem`: *New complaint* → a patient who already complained: the same reason is written as *called again*.

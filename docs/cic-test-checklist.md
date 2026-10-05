@@ -144,3 +144,11 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
 53. `owner`: *Settings* → the **CIC** card: its people (`moderator`, `cicdoctor`, the secretary), doctors, rooms and the
     services only CIC gives.
 54. `owner`: *People and logins* → the **CIC** tab shows only the people who work at CIC.
+
+## O. New in this version (15)
+55. The secretary at CIC: the number of *patients the doctors want me to call* counts only CIC's requests (it showed
+    CIA's); the page says when CIA has some.
+56. `owner`: *Purchases* → the **CIC** tab: CIC's bone graft, sutures and coffee, by group.
+57. `moderator`: a bill → *Print*: the small 80 mm bill with *what he owes in all*.
+58. `cicdoctor`: *Record treatment* → a step with its service: the usual CIC price fills in; another price is told to
+    `moderator` and `owner`.

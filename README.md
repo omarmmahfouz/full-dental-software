@@ -43,48 +43,143 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: one place at a time, the lab's day, photo pages, settings by place, time in the system (new)
+### New in this version: round 15 (new)
+The numbers follow the owner's list. The steps to try are in every checklist, in its last section (the secretary's
+**Z**, the dentists' and the owner's **Y**, the stock manager's **S**, CIC's **O**, El Khadem's **O**, the lab's **L**).
+1. **Typing in the old paper files (new)**: *New patient* → tick **An old paper file (data entry)**: write the number
+   of the paper file (1234 becomes CIA-01234) and only the name, the ID and the first mobile are needed. The national
+   ID is typed by the reception as before (the card reader only helps). The next new file skips the numbers typed.
+2. **Where the photos are kept (new)**: *Settings → Backup* has a card **Where the photos are kept**: the folder now,
+   how many files and how big, the free space; write another folder and **Check this folder** (can it be written,
+   is there room). To move them: `move_photos.bat` on the server PC (or `manage.py move_photos D:\CIA photos`) copies
+   every photo, checks each copy and sets the new folder; with Docker, `MEDIA_HOST_DIR` in `.env`.
+3. **The camera for the ID card (new)**: the camera button inside the page now goes through **every camera** of the
+   tablet (front, back, wide) and remembers the one chosen. No extra app is needed; if the tablet's own camera is
+   better, take the photo with it (or with a scanner app such as Microsoft Lens) and press *Choose a photo*.
+4. **How far the patient lives in hours and minutes (new)**: two boxes (hours, minutes); the file shows "1 h 15 min".
+5. **نوبة became شيفت (new)** on every Arabic screen and in the secretary's guide.
+6. **WhatsApp to many patients (new)**: *Schedule → WhatsApp to many patients*: choose the patients (by doctor,
+   age, area, no visit since..., or the expected patients of the call list), write the message once ({patient} is
+   each one's name), then **Send the next one**: WhatsApp opens with the next person and the text ready. The page
+   counts what is sent and warns after about 100 a day (WhatsApp blocks numbers that send too many).
+7. **The doctor's times when booking (new)**: choose the doctor and the day: his shift's times show as buttons; the
+   busy ones are grey and cannot be pressed. A day without his shift shows the place's opening hours.
+8. **An expected patient who wants an appointment (new)**: the call list's **Book an appointment** opens a short file
+   (name, mobile, what he said) and the booking page with the day's times; on the day the file says *new: complete
+   the file* and **Patient came: complete the file** asks for the rest.
+9. and 22. **Giving money back, easier (new)**: *Account → Give money back*: tap the services to give back (what was
+   paid on each fills in, lower it for part), how and why: a refund receipt is printed, the original receipts stay
+   and show beside it, and the owner is told. Tick *the service was not done* to take it off his account.
+10. **The owner's money (new)**: *Patients → The owner's money*: money the owner puts in the drawer when the day's
+   costs are more than the income (or takes out). It counts in the day's cash and shows in the balance sheet apart
+   from the income.
+11. **One login on one device (new)**: a login opened on a second PC or tablet logs out the first, which is told why
+   (Settings → Clinic options can switch it off).
+12. **Lab requests in the main menu (new)**, with the number waiting; tabs **Treatment plan: still in work** and
+   **Treatment done: delivered**.
+13. and 30. **Menus that were hidden (new)**: the *More* menu of the patient's file and every drop-down list in the
+   frame with the patient's name were cut by the frame on a PC: fixed.
+14. **A patient who already complained (new)**: *New complaint* asks for the patient first and shows his complaints;
+   the same reason again → **He called again on it** writes what he said on the old complaint and counts the calls
+   (the list shows "called 3 times"); another reason → a new complaint under his name. The list groups by patient.
+15. and 21. **Pop-up messages that would not close (new)**: an empty required box now shows a message that closes
+   with OK and goes to the box; the pop-ups that stayed behind a grey layer were fixed everywhere.
+16. **Candidates by batch (new)**: a course has a **batch number** and is **regular or private**; *Academy →
+   Candidates* lists them batch by batch with **online / in the academy** and studying or finished, with filters.
+17. **The academy's people, reorganised (new)**: *Academy → The academy's people* (also a tile in Settings) in tabs:
+   the CIA junior dentists (**full or part time**, they log in), the candidates by batch, the training dentists, the
+   supervisors. The drop lists on every form are **grouped** (juniors, candidates of each batch, supervisors...), the
+   candidates whose course ended are **left out**, and anyone can be **taken off the lists** (his work stays).
+   A **preparation day** joins the room schedule (a candidate with a junior); each candidate's page lists the days he
+   came. **Surgery day** (Surgeries menu): a junior writes **who supervised the day**; each surgery of that day takes
+   him as instructor, printed on the case report and the log book. Two candidates on one patient (36 and 46): the
+   **log book** asks **whose log book** and prints each one's own teeth and photos.
+18. **The narrow menu on a tablet (new)**: tapping an icon (Academy...) opens the right menu at once.
+19. **Purchases by group (new)**: dental or non-dental, then a group (**implants and surgery** with bone and
+   membranes, **dental materials**, **instruments and equipment**, consumables, medicines, lab; kitchen, office,
+   cleaning, maintenance) then the category. The new purchase lists the categories under their groups; the purchases
+   page totals dental / non-dental and each group.
+20. **Purchases of each place (new)**: tabs CIA / El Khadem / CIC / lab / All places; a purchase says which place it
+   was **bought for**.
+23. **The small bill (new)**: the bill prints on the 80 mm receipt printer with **what he owes in all**; A4 is still
+   a choice.
+24. **"Patients the doctors want me to call" at CIC (new)**: the number counted CIA's requests; each place now counts
+   only its own (and says when another place has some).
+25. **Calls for a new test (new)**: a high HbA1c is called after 3 months (a high sugar or pressure after 30 days;
+   Settings → Clinic options): *Medical follow-up → Calls for a new test* and a card on the reception's home, with
+   WhatsApp and the answers: he will do it (called again in two weeks), no answer (in two days), he did it (write the
+   result in the medical history), he does not want to. A new reading closes the call.
+26. and 34. **The examination and the chart as one (new)**: a new examination starts from the dental chart (the tooth
+   boxes are filled as the chart is), each box opens the **teeth diagram**, the chart above **colours the teeth as
+   they are written**, and saving writes back only the differences (a tooth taken off a box is taken off the chart).
+   The chart page shows the last examination and **Examine again**.
+27. **Single crown, bridge or full arch (new)** in the restorative finder and the plan finder (filter, column, and
+   *group by*); the case finder already had the prosthesis on each implant.
+28. **The surgery chart's parts must be filled (new)**: GBR chosen → its bone particle and material are needed; open
+   sinus → approach and fill; suture *Yes* → size, material and technique; also a block, a membrane, a soft tissue
+   graft. The parts needed are marked when chosen.
+29. **The surgery chart's lists in Settings (new)**: *Settings → Surgery chart lists*: donor sites, cutting tools, soft
+   tissue grafts, suture sizes and materials, temporaries; and the suggestions for the bone, sinus, membrane, tacks
+   and techniques. A choice taken off the list stays on old charts.
+31. **Record treatment, teeth first (new)**: choose the patient and the **teeth first**: each tooth shows how it is
+   now, what was done on it (with dates) and what is planned; for an implant its stage, last check and open
+   complications. The kinds of work are in dental terms (periodontics, operative, endodontics, fixed and removable
+   prosthodontics, oral surgery, implant surgery, implant prosthodontics, **implant follow-up and complications**,
+   orthodontics, pediatric) with 67 new steps, and the fitting ones come first. **The life of each implant**: checks
+   (probing, bleeding, pus, bone loss, ISQ → health / mucositis / peri-implantitis, Berglundh 2018) and complications
+   in detail (group, kind, during surgery / healing / after loading, severity, the nerve, side and area for a nerve
+   injury, treatment, outcome, dates); a removed or lost implant becomes failed on the chart. *Finders → Implant
+   complications* counts them by group and kind, with an Excel file for papers.
+32. **The bill of the treatment (new)**: each step names its paid service; recording it fills the usual price and
+   shows what the patient owes now; the dentist can change the price, and a different price is told to the clinic
+   manager and the owner.
+33. **The prosthodontist's chart (new)**: it was only the shade. Now a **prosthodontic chart**: Kennedy class of each
+   jaw, ridge, abutments and their findings, vertical dimension, space, occlusal scheme, parafunction, smile line,
+   lip support, midline, the old prosthesis, diagnosis and the plan (prosthesis, material, retention); its page shows
+   its shades, lab work and prosthetic steps. The shade stays one step of it.
+
+### Round 14: one place at a time, the lab's day, photo pages, settings by place, time in the system
 The steps to try are in every checklist, in its last section (the secretary's **Y**, the dentists' and the owner's
 **X**, the stock manager's **R**, CIC's **N**, El Khadem's **N**, the lab's **K**).
-1. **The owner's home page: All places, or one place (new)**: it opens on **All places**, a summary card for each
+1. **The owner's home page: All places, or one place**: it opens on **All places**, a summary card for each
    place (CIA, El Khadem, CIC, the lab) with today's visits, files, money and complaints (the lab: its cases), and
    the stock all places share. **Open** on a card (or the place's tab above, or the switch in the top bar) shows
    **only that place**: its reception, patients, doctors' shares and work; nothing of the other places. **All
    places** (the first tab, also first in the top-bar switch) brings the summary back. At the lab the menus of the
    clinics (patients, reception, academy, finders) are hidden too, and the academy shows only at CIA.
-2. **The end of the day at the lab is the lab's (new)**: it showed CIA's day. Now *End of the day* opened at the lab
+2. **The end of the day at the lab is the lab's**: it showed CIA's day. Now *End of the day* opened at the lab
    (and *Dental lab → End of the day at the lab*) shows the lab's receipts, the totals by payment method and by who
    received them, the work delivered that day and its value, and the lab closes its day with the cash counted; the
    owner (or the head of the lab) reviews it. *The month* lists the lab's days.
-3. **Photos on printed pages: 4 or 6 a page, asked first (new)**: in the **case report** and the **photo log book**,
+3. **Photos on printed pages: 4 or 6 a page, asked first**: in the **case report** and the **photo log book**,
    *Print* and *Save as PDF* first ask **how many photos on each page: 4 (large) or 6**. The PDF is now made page
    by page (it was one long picture cut into pages, which cut photos in half and failed on a tablet with a long
    report); a stage with more photos goes on to a *continued* page; the text typed in the log book is kept.
-4. **Editing a photo works on the tablet (new)**: the crop frame has a handle at **each corner** (drag a corner to
+4. **Editing a photo works on the tablet**: the crop frame has a handle at **each corner** (drag a corner to
    crop, drag inside to move); before, a 4:3 photo could not be cropped at all with a finger. The whole photo fits
    on the screen and *Save* stays in view. The **Edit** button is bigger and is also on the photos of a treatment
    step and of a surgery, and goes back there after saving.
-5. **Access by role, easier (new)**: choose a role on the side; each part of the system has three clear choices,
+5. **Access by role, easier**: choose a role on the side; each part of the system has three clear choices,
    **Normal / Read only / No access** (green, blue, red), in groups (patients and treatment, money and stock,
    reports, the lab). It was one wide table of drop-down lists that did not fit on the screen.
-6. **A dental lab icon (new)**: a tooth on a model base with a porcelain brush, on the lab's menu, pages and cards
+6. **A dental lab icon**: a tooth on a model base with a porcelain brush, on the lab's menu, pages and cards
    (it was a gem).
-7. **Settings in order, by place (new)**: the main settings as tiles, then **a card for each place** (its people,
+7. **Settings in order, by place**: the main settings as tiles, then **a card for each place** (its people,
    doctors, rooms, the services only it gives, its name, look and hours; the lab: its staff and their steps, work
    types, prices and options), then the lists in groups with **Find a list**. Lists of rooms and services can be
    shown for one place.
-8. **Dentists who work at the lab are found under the lab (new)**: *People and logins* has a tab for each place;
+8. **Dentists who work at the lab are found under the lab**: *People and logins* has a tab for each place;
    the lab's tab shows everyone with a lab role **and the dentists on the lab's staff** (a CIA doctor who designs).
    Each person's places show as badges.
-9. **Time in the system for each person (new)**: *Settings → Time in the system* (owner): for each person, how many
+9. **Time in the system for each person**: *Settings → Time in the system* (owner): for each person, how many
    times they opened the system, when first and last, **how long it was open** and **how long they worked**, with
    the part worked; tap a name for each time (when, how long, pages, place, how it ended). Work is counted from the
    pages opened and from typing or tapping on a page; a pause of more than 3 minutes is not counted; half an hour
    without any sign ends the stretch (the page was closed).
-10. **Settings on a tablet held sideways (new)**: on the Settings pages the person's own menu opened by itself and
+10. **Settings on a tablet held sideways**: on the Settings pages the person's own menu opened by itself and
    covered the page on wide screens and tablets held sideways (the side menu is used from 1200 px). Fixed; the
    settings pages were checked at 1024, 1280 and 1366 px.
-11. **Up goes to the folder above (new)**: the button at the top of each page is now **Up**, with the name of the
+11. **Up goes to the folder above**: the button at the top of each page is now **Up**, with the name of the
    page it opens (*Up: Patient file*, *Up: Lab cases*…): from a visit, an edit form or a photo it opens the
    patient's file; elsewhere the page one level up. It no longer goes back one step (the browser's own back button
    still does).
@@ -747,7 +842,7 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (round 14 adds: a week of time in the system for the
+This makes a **practice copy on your PC** with sample data (round 15 adds: an old paper file typed with its own number (CIA-00777), travel times, an expected patient booked for tomorrow from the call list, an Eid message to twelve patients (six sent), a refund of one service and the owner's money in and out, a complaint called about twice, implant checks (healthy, mucositis, peri-implantitis) and four complications (a paresthesia of the inferior alveolar nerve, a peri-implantitis, a loose screw and an early failure), a prosthodontic case at El Khadem, three calls for a new test (two HbA1c, one pressure), purchases of CIC and El Khadem by group, batch 7 and a finished batch 6, a private course with an online candidate, a preparation day, the supervisor of the last surgery day and a patient operated by two candidates (36 and 46) with the photos of each; round 14 adds: a week of time in the system for the
 staff, three of them in it now; yesterday's day closed at the lab, 20 short; ten photos of a surgery case (the first
 CIA surgery's patient) to try the photo editor and 4 or 6 photos on a page; round 13: the patients' visit preferences, how far
 they live and their city, drawn signatures for the reception and the doctors, the articaine bought dearer and the tea

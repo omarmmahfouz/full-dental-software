@@ -102,7 +102,8 @@ class PurchaseFilterForm(StyledForm):
     category = forms.ModelChoiceField(
         label=_("category"), queryset=PurchaseCategory.objects.all(), required=False, empty_label=_("All")
     )
-    kind = forms.ChoiceField(label=_("type"), required=False, choices=[("", _("All"))] + list(PurchaseCategory.Kind.choices))
+    kind = forms.ChoiceField(label=_("dental or not"), required=False,
+                             choices=[("", _("All"))] + list(PurchaseCategory.Kind.choices))
     group = forms.ChoiceField(label=_("group"), required=False,
                               choices=[("", _("All"))] + list(PurchaseCategory.Group.choices))
 

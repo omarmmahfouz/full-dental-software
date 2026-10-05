@@ -439,3 +439,36 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
 183. **Up**: at the top of every page *Up* (with the page's name) opens the page above: from a visit or an edit form
      the patient's file, from a receipt the payments, from a lab case the lab cases. The browser's back button still
      goes back one step.
+
+## Y. New in this version (15)
+184. `dentist1`: *Record treatment* → choose the patient and **the teeth first**: each tooth shows how it is now, what
+     was done on it and what is planned (an implant: its stage, last check and open complications); the kinds of work
+     that fit come first, in dental terms. Choose a step with a service: the usual price fills in and *He owes now*
+     shows; change the price: the clinic manager and the owner are told.
+185. `dentist1`: a patient's file → *Record* → **Implant check or complication** → an implant → **Write a check**
+     (probing 6, bleeding, pus, bone loss 3): it is classed *peri-implantitis*. **Write a complication**: a
+     paresthesia asks for the nerve; an implant removed becomes *failed* and the tooth missing on the chart.
+186. `owner`: *Finders → Implant complications*: by group and kind, the checks by class, filters, **Excel (for papers)**.
+187. `dentist1`: *New surgery chart* → tick **GBR** on a tooth and save without the bone: it asks for the bone particle and
+     material; suture **Yes** asks for the size, material and technique. `owner`: *Settings → Surgery chart lists*: add
+     a suture material: it is offered on the chart.
+188. `dentist1`: a patient → *Dental chart* → **Examine again**: the tooth boxes are filled as the chart is; each box opens
+     the teeth diagram; the chart above colours the teeth as you type. Take a tooth off *carious* and save: it is no
+     longer carious on the chart.
+189. `owner`: *Restorative finder* and *Plan finder*: **single crown, bridge or full arch** as a filter and *group by*.
+190. `dentist1`: *Surgeries → Surgery day* (the last Thursday): Dr. Hesham Fawzy is written as the supervisor; the
+     surgery of Dr. Ahmed Samir (36) and Dr. Karim Adel (46) shows each one's tooth. Write a supervisor for today: the
+     surgeries of today without an instructor take him.
+191. That patient → *Photos* → *Log book pages*: **Whose log book** → Dr. Karim Adel: only the photos of 46 (and the ones
+     without teeth), with his name and the supervisor.
+192. `owner`: *Academy → The academy's people*: tabs (juniors, candidates, training, supervisors); Dr. Omar Tarek
+     (training) is **taken off the lists**: he is not offered on the forms; Dr. Hany Saleh's course ended: not offered
+     either. The drop lists show groups: CIA junior dentists, Candidates · Batch 7, Supervisors.
+193. `owner`: *Academy → Candidates*: by batch (7, 6, private), online or in the academy; a course has a **batch number**
+     and **regular or private**. A candidate's page lists **the days he came** (a preparation day with Dr. Mona).
+194. `amr`: a patient → *Specialists* → **Prosthodontic chart**: Kennedy class, abutments, occlusion, esthetics and the
+     plan; the case page shows its shades and lab work.
+195. `dentist1`: *Medical follow-up* → **Calls for a new test**: the patients with a high HbA1c three months ago.
+196. `owner`: *Purchases*: tabs for each place and totals by group. *Patients → The owner's money*: put in and taken out;
+     the balance sheet shows them apart from the income. *Settings → Backup* → **Where the photos are kept**.
+197. `owner`: log in as `dentist1` in two browsers: the first is logged out and told why.

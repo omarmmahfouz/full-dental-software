@@ -72,8 +72,8 @@ HINTS = {
     "scheduling:requests_reception": _("Call the patients in order. Book fills the booking form in one step; "
                                        "if one cannot come, the page says who to call instead."),
     "clinical:step_list": _("Every treatment recorded. Filter by dentist or date, and tap a row for the details."),
-    "clinical:step_create": _("Tap the kind of work, then the step (e.g. Endodontics, then Obturation). Write the "
-                              "teeth and check how the chart will change before saving."),
+    "clinical:step_create": _("Choose the patient and the teeth first: each tooth shows how it is now, what was done "
+                              "and what is planned, and the kinds of work that fit come first. Then the step."),
     "clinical:step_detail": _("Take the photos and periapical X-rays this step needs: each box opens the tablet's "
                               "camera."),
     "clinical:lab_list": _("Each lab work from the request to the fitting. Late work is marked in red."),
@@ -97,8 +97,10 @@ HINTS = {
                         "Export to Excel for publications."),
     "complaints:list": _("Open complaints come first. Tap one: it opens here with its story, and you can write a "
                          "comment at once. The number opens the whole complaint."),
-    "complaints:create": _("Write what the patient said, in their words. The supervisors and the owner are told at once."),
-    "academy:candidate_list": _("Course candidates. Tap one for the enrollment, the installments and the implants done."),
+    "complaints:create": _("Choose the patient first: his earlier complaints show. The same problem again? Press "
+                           "He called again on it instead of writing a new one."),
+    "academy:candidate_list": _("The candidates by batch: regular or private, online or in the academy. Tap one for "
+                                "the enrollment, the installments, the implants and the days he came."),
     "academy:installments_month": _("What each candidate pays this month. Tap the WhatsApp button to remind them."),
     "academy:overdue": _("Installments past their date. Call or send a WhatsApp reminder, then record the payment."),
     "billing:bill_create": _("Tap a quick button for the usual services, or add lines yourself. Tick Pay now to "
@@ -129,7 +131,8 @@ HINTS = {
                           "categories. Add or rename a category here; the clock button shows its movements."),
     "billing:fawry": _("Card payments appear here by themselves. Add bills paid on the machine, money put on it and "
                        "Fawry's transfers to the bank."),
-    "dentists:list": _("Every dentist by type. Tap a name to see their cases, surgeries and implants."),
+    "dentists:list": _("The people in groups (the tabs). Take off the lists someone who comes rarely: his work stays. "
+                       "Candidates leave the lists when their course ends."),
     "stock:item_list": _("Red rows are below their reorder level. Tap an item to receive, take out or count it."),
     "stock:use": _("Choose who takes the items, then add one line per item. The stock goes down when you save."),
     "stock:movement_list": _("Every stock movement, with who and for whom. Filter by item or date."),
@@ -140,7 +143,8 @@ HINTS = {
     "purchasing:return_create": _("Write how many of each item go back and why. They go out of the stock when you "
                                   "save."),
     "core:my_signature": _("Sign once in the box: your signature is printed on the receipts and the prescriptions."),
-    "purchasing:purchase_list": _("Every purchase with what is still owed. Tap one for its lines and invoice photo."),
+    "purchasing:purchase_list": _("The purchases of the place chosen in the tabs, dental or not, then by group. Tap "
+                                  "one for its lines and invoice photo."),
     "purchasing:purchase_create": _("Add one line per item with its category. Link a line to a stock item to fill the stock."),
     "reports:index": _("Choose a report. Each one can be filtered by dates, and most can be exported."),
     "settings:home": _("The main settings first, then each place (its people, rooms, services and look), then the "
@@ -225,6 +229,33 @@ HINTS = {
     "lab:whatsapp": _("Type the case number or the doctor's mobile: the answer with the real status is written for "
                       "you. Press Send, then send it in WhatsApp."),
     "lab:staff": _("Tick the steps each person does: a case goes by itself to the only person who does a step."),
+    # Round 15
+    "scheduling:bulk_list": _("Messages to many patients. Make a new one, then send it one patient at a time: "
+                              "WhatsApp opens with the message ready."),
+    "scheduling:bulk_create": _("Choose who receives it (by filters or by hand), then write the message. {patient} is "
+                                "replaced by each patient's name."),
+    "scheduling:bulk_detail": _("Press Send next to each patient: WhatsApp opens; send, then come back for the next. "
+                                "Do not send more than about a hundred a day from one number."),
+    "billing:refund": _("Tick the services to give back: the amount is filled for you, and the original receipt shows. "
+                        "Write why, then save."),
+    "billing:owner_cash": _("Money the owner put in the drawer (when the day's costs are more than the income), or "
+                            "took out. It shows in the day's closing and the balance sheet."),
+    "surgery:day": _("A CIA junior writes who supervised today's surgeries. Each surgery of the day takes him as its "
+                     "instructor; he is printed on the case report and the log book."),
+    "surgery:implant": _("The life of this implant: each check (its class) and each complication in detail. Add a check "
+                         "or a complication with the buttons."),
+    "surgery:implant_check": _("Write the findings: the class of the tissues around the implant is worked out for you."),
+    "surgery:implant_complication": _("Choose the group and the kind, when it showed, the treatment and how it ended. A "
+                                      "removed or lost implant becomes failed on the chart."),
+    "surgery:patient_implants": _("Choose the implant that was checked or has a complication."),
+    "surgery:complications": _("Every implant complication of this place, by group and kind, for the follow-up and "
+                               "for papers. Excel gives one line for each."),
+    "specialties:prostho": _("The prosthodontic case: the missing teeth, the abutments, the occlusion, the esthetics "
+                             "and the plan, with its shades and lab work."),
+    "specialties:prostho_create": _("Write the prosthodontic examination; the plan at the end is what the patient "
+                                    "agreed to. The shade is taken from the case page."),
+    "charting:exam_create": _("The tooth boxes start as the dental chart is now: change only what you find different. "
+                              "The chart above colours the teeth as you write them."),
 }
 
 

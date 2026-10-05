@@ -265,8 +265,9 @@ class OptionsForm(StyledModelForm):
         fields = ["day_start", "day_end", "default_appointment_minutes", "surgery_days", "late_threshold_minutes",
                   "complaint_follow_up_days", "stock_expiry_days", "reminder_days_before", "whatsapp_country_code",
                   "dicom_email", "fawry_fee_percent", "hba1c_limit", "glucose_limit", "systolic_limit",
-                  "diastolic_limit", "hba1c_recheck_days", "readings_recheck_days", "follow_up_sinus_days", "follow_up_graft_days", "follow_up_days",
-                  "idle_logout_minutes", "force_strong_passwords", "one_device_per_login"]
+                  "diastolic_limit", "hba1c_recheck_days", "readings_recheck_days", "follow_up_sinus_days",
+                  "follow_up_graft_days", "follow_up_days", "idle_logout_minutes", "force_strong_passwords",
+                  "one_device_per_login"]
         widgets = {"surgery_days": WeekdaysWidget}
 
 

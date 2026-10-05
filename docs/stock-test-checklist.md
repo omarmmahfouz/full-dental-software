@@ -118,3 +118,10 @@ The steps are in **[cic-test-checklist.md](cic-test-checklist.md)**, section E. 
 53. `owner`'s home on *All places*: the low stock and the items expiring soon show there, as the stock is shared by
     every place.
 54. The lab's materials group in the stock has the new dental lab icon.
+
+## S. New in this version (15)
+55. **المشتريات حسب المجموعة**: «مشتريات جديدة»: الفئات تحت مجموعاتها: أسنان (الزرعات والجراحة، الخامات، الأدوات
+    والأجهزة، المستهلكات، الأدوية والبنج، المعمل) وغير أسنان (المطبخ والضيوف، المكتب، النظافة، الصيانة).
+56. **لكل مكان مشترياته**: «اتشرى لـ (المكان)» في المشتريات الجديدة؛ صفحة المشتريات فيها تبويب لكل مكان و«كل الأماكن»،
+    والمجموع أسنان وغير أسنان وكل مجموعة (افتح CIC: البون والخيوط والقهوة).
+57. فلتر **«أسنان أو غير أسنان»** و**«المجموعة»** في صفحة المشتريات.

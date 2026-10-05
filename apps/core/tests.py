@@ -204,7 +204,7 @@ class AccessAndSettingsTests(TestCase):
             "o-stock_expiry_days": 30, "o-reminder_days_before": 2, "o-whatsapp_country_code": "20",
             "o-fawry_fee_percent": "1.5", "o-hba1c_limit": "7.5", "o-glucose_limit": 200, "o-systolic_limit": 160,
             "o-diastolic_limit": 100, "o-follow_up_sinus_days": 3, "o-follow_up_graft_days": 7, "o-follow_up_days": 7,
-            "o-idle_logout_minutes": 60,
+            "o-idle_logout_minutes": 60, "o-hba1c_recheck_days": 90, "o-readings_recheck_days": 30,
             "b-name_ar": "أكاديمية القاهرة لزراعة الأسنان", "b-name_en": "Cairo Implant Academy", "b-phone": "0223456789",
             "b-address": "Cairo",
         })
@@ -706,7 +706,7 @@ class SpeedTests(TestCase):
 
     PERIOD = "date_from=01/01/2020&date_to=31/12/2030"
     PAGES = [
-        ("secretary", "/", 60),
+        ("secretary", "/", 64),  # round 15: + the calls for a new test
         ("secretary", "/patients/", 40),
         ("secretary", "/patients/?q=محمد", 40),
         ("secretary", "/schedule/today/", 60),
@@ -742,7 +742,7 @@ class SpeedTests(TestCase):
         ("owner", "/lab/clients/", 40),
         ("owner", "/lab/whatsapp/", 40),
         ("owner", "/lab/blocks/", 40),
-        ("dentist", "/patients/medical-follow-up/?mine=0", 40),
+        ("dentist", "/patients/medical-follow-up/?mine=0", 55),  # the first opening writes the calls for a new test
         ("secretary", "/patients/medical-follow-up/", 40),
         ("owner", "/settings/security/", 40),
         ("owner", "/settings/security/deleted/", 30),
@@ -767,6 +767,12 @@ class SpeedTests(TestCase):
         ("secretary", "/schedule/whatsapp/many/new/", 40),
         ("secretary", "/complaints/new/", 40),
         ("owner", "/settings/backup/", 40),
+        ("owner", "/purchases/?place=all", 40),
+        ("owner", "/academy/candidates/", 40),
+        ("owner", "/dentists/", 40),
+        ("dentist", "/surgery/day/", 40),
+        ("owner", "/surgery/complications/", 40),
+        ("dentist", "/surgery/new/", 60),
     ]
 
     @classmethod
@@ -794,6 +800,10 @@ class SpeedTests(TestCase):
         from django.core.cache import cache
 
         cache.set("dashboard-alerts", True, 600)  # the visit-notes alerts have their own tests
+        from apps.core.models import Branch
+
+        for place in Branch.objects.all():
+            cache.set(f"recalls-{place.pk}", True, 600)  # the calls for a new test are made every few minutes
 
     def test_pages_stay_quick_with_many_patients(self):
         import time

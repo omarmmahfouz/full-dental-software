@@ -221,14 +221,14 @@ def recalls_due(patients, until=None):
 
     until = until or timezone.localdate()
     return MedicalRecall.objects.filter(patient__in=patients, status=MedicalRecall.Status.OPEN,
-                                        due_on__lte=until).select_related("patient", "last_call_by")
+                                        due_on__lte=until).select_related("patient__branch", "last_call_by")
 
 
 def recall_text(recall):
     """The WhatsApp message to the patient (Arabic, as every message to the patients)."""
     from apps.core.models import Branch
 
-    place = recall.patient.branch or Branch.default()
+    place = recall.patient.branch if recall.patient.branch_id else Branch.default()
     tests = {MedicalConsult.Reason.HBA1C: "تحليل السكر التراكمي (HbA1c)",
              MedicalConsult.Reason.GLUCOSE: "تحليل السكر", MedicalConsult.Reason.PRESSURE: "قياس الضغط"}
     return (f"أهلًا {recall.patient.full_name}، نتمنى تكون بخير. مر وقت على آخر {tests.get(recall.reason, 'تحليل')} "

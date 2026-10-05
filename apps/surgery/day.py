@@ -33,8 +33,8 @@ class DaySupervisorForm(StyledModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name in ("from_time", "to_time"):
-            self.fields[name].help_text = _("Only when two supervisors share the day.")
             self.fields[name].col = "col-6 col-md-3"
+        self.fields["from_time"].help_text = _("Only when two supervisors share the day.")
         self.fields["supervisor"].col = "col-md-6"
         self.fields["notes"].col = "col-12"
 

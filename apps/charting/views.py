@@ -524,21 +524,24 @@ def _site_text(site):
     return f"{text} — {site.implant_label}" if site.has_implant else text
 
 
-def _stage_description(stage, photos, surgeries, steps, plan_items):
-    """What was done at this stage, written from the surgery chart, the treatment log and the plan.
-    The dentist can still change the text on the page before printing."""
+def _stage_description(stage, photos, surgeries, steps, plan_items, operator=None):
+    """What was done at this stage, written from the surgery chart, the treatment log and the plan (only what
+    ``operator`` did, for his own log book). The dentist can still change the text on the page before printing."""
     dates = {photo.taken_on for photo in photos}
     lines = []
     if stage in SURGICAL_STAGES:
         linked = {photo.surgery_id for photo in photos if photo.surgery_id}
         for surgery in surgeries:
             if surgery.pk in linked or (not linked and surgery.date in dates):
-                sites = "; ".join(_site_text(site) for site in surgery.sites.all())
+                sites = "; ".join(_site_text(site) for site in surgery.sites.all()
+                                  if operator is None or site.done_by == operator)
                 lines.append(f"{surgery.date:%d/%m/%Y} — {surgery.number}: {sites}")
     if stage == PhotoStage.DIAGNOSTIC and plan_items:
         planned = "; ".join(f"{item.step_type} {item.teeth}".strip() for item in plan_items)
         lines.append(f"{_('Treatment plan')}: {planned}")
     for step in steps:
+        if operator is not None and step.operator_id != operator.pk:
+            continue
         if timezone.localtime(step.performed_at).date() in dates:
             lines.append(f"{timezone.localtime(step.performed_at):%d/%m/%Y} — {step.step_type} {step.teeth}".strip())
     return "\n".join(dict.fromkeys(lines))
@@ -601,7 +604,7 @@ def logbook(request, patient_pk):
             "operator": chosen_operator or (surgery.operator_1 if surgery else None) or patient.assigned_dentist,
             "supervisor": surgery.instructor if surgery else None,
             "description": typed if typed is not None else _stage_description(code, photos, surgeries, steps,
-                                                                              plan_items),
+                                                                              plan_items, chosen_operator),
         }
         for number, part in enumerate(in_pages(photos, per_page)):
             pages.append({**stage, "photos": part, "continued": number > 0})
