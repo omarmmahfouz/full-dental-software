@@ -31,7 +31,7 @@
       <div class="col-6 col-md-3"><div class="card stat-card h-100 border-primary"><div class="card-body p-2"><div class="stat-value text-primary">{{ overall.steps }}</div><div class="stat-label">{% trans "Steps done" %}</div></div></div></div>
       <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.teeth }}</div><div class="stat-label">{% trans "Teeth" %}</div></div></div></div>
       <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ overall.patients }}</div><div class="stat-label">{% trans "Patients" %}</div></div></div></div>
-      <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{% if overall.checked is not None %}{{ overall.checked }}%{% else %}—{% endif %}</div><div class="stat-label">{% trans "Checked by a supervisor" %}</div><div class="small text-muted">{% trans "mean grade" %}: {{ overall.grade|default:"—" }}</div></div></div></div>
+      <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{% if overall.checked is not None %}{{ overall.checked }}%{% else %}—{% endif %}</div><div class="stat-label">{% trans "Checked by a supervisor" %}</div>{% if sees_grades %}<div class="small text-muted">{% trans "mean grade" %}: {{ overall.grade|default:"—" }}</div>{% endif %}</div></div></div>
     </div>
     <div class="card mb-3"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span class="fw-semibold"><i class="bi bi-ui-checks-grid"></i> {% trans "By kind of work" %}</span><span class="small text-muted">{% trans "Click a kind of work to show only its steps; click again to remove it." %}</span></div>
       <div class="table-responsive"><table class="table table-sm table-hover mb-0 align-middle">
@@ -55,12 +55,12 @@
     {% if groups %}
     <div class="card mb-3"><div class="card-header">{% trans "Statistics by" %} {{ group_label }}{% if group_label_2 and groups.0.key2 %} / {{ group_label_2 }}{% endif %}</div>
       <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
-        <thead><tr><th>{{ group_label }}</th>{% if groups.0.key2 %}<th>{{ group_label_2 }}</th>{% endif %}<th>{% trans "Steps" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Patients" %}</th><th>{% trans "Operators" %}</th><th style="min-width:150px">{% trans "Checked" %}</th><th>{% trans "Mean grade" %}</th></tr></thead>
+        <thead><tr><th>{{ group_label }}</th>{% if groups.0.key2 %}<th>{{ group_label_2 }}</th>{% endif %}<th>{% trans "Steps" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Patients" %}</th><th>{% trans "Operators" %}</th><th style="min-width:150px">{% trans "Checked" %}</th>{% if sees_grades %}<th>{% trans "Mean grade" %}</th>{% endif %}</tr></thead>
         <tbody>{% for g in groups %}<tr>
           <td class="fw-semibold">{{ g.key }}</td>{% if g.key2 %}<td>{{ g.key2 }}</td>{% endif %}
           <td>{{ g.steps }}</td><td>{{ g.teeth }}</td><td>{{ g.patients }}</td><td>{{ g.operators }}</td>
           <td>{% if g.checked is not None %}<div class="d-flex align-items-center gap-2"><div class="bar" style="width:{{ g.checked }}%;max-width:100px"></div><span>{{ g.checked }}%</span></div>{% else %}—{% endif %}</td>
-          <td>{{ g.grade|default:"—" }}</td>
+          {% if sees_grades %}<td>{{ g.grade|default:"—" }}</td>{% endif %}
         </tr>{% endfor %}</tbody>
       </table></div>
     </div>
@@ -76,7 +76,7 @@
           <td class="small">{% if step.span_label %}<span class="badge text-bg-light">{{ step.span_label }}</span>{% else %}—{% endif %}</td>
           <td class="small">{{ step.material|default:"—" }}</td>
           <td class="small">{{ step.operator|default:"—" }}</td>
-          <td class="small">{% if step.verified_at %}<i class="bi bi-check2-circle text-success"></i>{% if step.grade %} {{ step.grade }}{% endif %}{% else %}—{% endif %}</td>
+          <td class="small">{% if step.verified_at %}<i class="bi bi-check2-circle text-success"></i>{% if step.grade and sees_grades %} {{ step.grade }}{% endif %}{% else %}—{% endif %}</td>
         </tr>{% empty %}<tr><td colspan="8" class="text-center text-muted py-4">{% trans "No steps match these filters." %}</td></tr>{% endfor %}</tbody>
       </table></div>
     </div>

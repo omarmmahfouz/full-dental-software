@@ -23,6 +23,21 @@ class PaymentMethod(models.TextChoices):
     FAWRY = "fawry", _("Fawry POS machine")
 
 
+class Target(models.TextChoices):
+    """What a course asks each candidate to do (round 16): e.g. batch 10 = 40 implants, 2 sinus lifts, 1 GBR. Counted
+    from the teeth he operated on the surgery charts."""
+
+    IMPLANTS = "implants", _("Implants")
+    IMMEDIATE = "immediate_implant", _("Immediate implants")
+    GUIDED = "guided", _("Guided implants")
+    OPEN_SINUS = "open_sinus", _("Sinus lifting (open)")
+    CLOSED_SINUS = "closed_sinus", _("Sinus lifting (closed)")
+    GBR = "gbr", _("GBR")
+    SPLITTING = "splitting", _("Ridge splitting")
+    EXPANSION = "expansion", _("Ridge expansion")
+    EXTRACTION = "extraction", _("Extractions")
+
+
 class Course(TimeStampedModel):
     class Kind(models.TextChoices):
         REGULAR = "regular", _("Regular course (a batch)")
@@ -171,9 +186,12 @@ class Enrollment(TimeStampedModel):
 
     @property
     def implants_required(self):
+        """The implants he must place: the course's (or his own number), with the extra implants he asked for."""
         if self.implants_required_override is not None:
-            return self.implants_required_override
-        return self.course.implants_required
+            base = self.implants_required_override
+        else:
+            base = self.course.implants_required
+        return base + sum(extra.count for extra in self.extras.all() if extra.kind == Target.IMPLANTS)
 
     @property
     def net_fee(self):
@@ -272,3 +290,43 @@ class Payment(TimeStampedModel):
             if not self.receipt_number:
                 self.receipt_number = f"RC-{self.pk:06d}"
                 type(self).objects.filter(pk=self.pk).update(receipt_number=self.receipt_number)
+
+
+class CourseTarget(models.Model):
+    """The content of a course (round 16): how many of each procedure every candidate does (40 implants, 2 sinus
+    lifts, 1 GBR...). The implants of the course are also kept on the course (implants required)."""
+
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="targets", verbose_name=_("course"))
+    kind = models.CharField(_("procedure"), max_length=20, choices=Target.choices)
+    count = models.PositiveSmallIntegerField(_("how many"))
+
+    class Meta:
+        ordering = ["pk"]
+        verbose_name = _("course target")
+        verbose_name_plural = _("course targets")
+        constraints = [models.UniqueConstraint(fields=["course", "kind"], name="one_target_per_kind")]
+
+    def __str__(self):
+        return f"{self.count} × {self.get_kind_display()}"
+
+
+class EnrollmentExtra(TimeStampedModel):
+    """More cases a candidate asked for on top of his course (round 16), e.g. "added 5 extra implants"."""
+
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name="extras",
+                                   verbose_name=_("enrollment"))
+    kind = models.CharField(_("procedure"), max_length=20, choices=Target.choices, default=Target.IMPLANTS)
+    count = models.PositiveSmallIntegerField(_("how many more"), validators=[MinValueValidator(1)])
+    added_on = models.DateField(_("added on"), default=timezone.localdate)
+    fee = models.DecimalField(_("their fee"), max_digits=10, decimal_places=2, null=True, blank=True,
+                              validators=[MinValueValidator(0)],
+                              help_text=_("Optional: what he pays for them (add it to his fee if needed)."))
+    notes = models.CharField(_("notes"), max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["added_on", "pk"]
+        verbose_name = _("extra cases")
+        verbose_name_plural = _("extra cases")
+
+    def __str__(self):
+        return f"+{self.count} {self.get_kind_display()}"

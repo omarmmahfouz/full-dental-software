@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Surgery days: draft list" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-clipboard2-check"></i> {% trans "Surgery days: draft list" %} <span class="badge text-bg-light">{{ open_count }}</span></h1>
+</div>
+<p class="small text-muted">{% trans "The patients called for the coming surgery days, before any time is given: what each one said. Nothing here is on the calendar until you press Book." %}</p>
+<div class="d-flex flex-wrap gap-2 mb-3 no-print">
+  <a class="btn btn-sm {% if not chosen %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?">{% trans "All days" %}</a>
+  {% for d, n in days %}<a class="btn btn-sm {% if chosen == d|date:'Y-m-d' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?day={{ d|date:'Y-m-d' }}">{{ d|date:"D d/m" }} <span class="badge text-bg-light">{{ n }}</span></a>{% endfor %}
+</div>
+<div class="row g-3">
+  <div class="col-xl-8">
+    {% for code, label, rows in groups %}
+    <div class="card mb-3 draft-group draft-{{ code }}"><div class="card-header d-flex justify-content-between"><span>{{ label }}</span><span class="badge text-bg-light">{{ rows|length }}</span></div>
+      <div class="list-group list-group-flush">
+      {% for r in rows %}
+        <div class="list-group-item" id="draft{{ r.pk }}">
+          <div class="d-flex flex-wrap justify-content-between gap-2">
+            <span><a href="{{ r.patient.get_absolute_url }}" class="fw-semibold">{{ r.patient.full_name }}</a> <span class="small text-muted">{{ r.patient.file_number }}</span> <a class="ltr small" href="tel:{{ r.patient.preferred_number }}">{{ r.patient.preferred_number }}</a>
+              <div class="small text-muted">{% if r.day %}{{ r.day|date:"l d/m/Y" }}{% else %}{% trans "any coming surgery day" %}{% endif %}{% if r.candidate %} · {{ r.candidate }}{% endif %}{% if r.what %} · {{ r.what }}{% endif %}</div>
+              {% if r.notes %}<div class="small">{{ r.notes }}</div>{% endif %}
+              {% if r.calls %}<div class="small text-muted">{% blocktrans count n=r.calls %}{{ n }} call{% plural %}{{ n }} calls{% endblocktrans %} · {{ r.last_call_at|date:"d/m g:i A" }}</div>{% endif %}</span>
+            {% if is_front_desk %}<a class="btn btn-sm btn-success align-self-start" href="{{ r.book_url }}"><i class="bi bi-calendar-plus"></i> {% trans "Book" %}</a>{% endif %}
+          </div>
+          <form method="post" action="{% url 'scheduling:draft_update' r.pk %}" class="d-flex flex-wrap gap-1 mt-2 no-print" data-no-leave-warning>{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}#draft{{ r.pk }}">
+            <select name="status" class="form-select form-select-sm w-auto" aria-label="{% trans 'status' %}">{% for value, text in statuses %}{% if value != "booked" %}<option value="{{ value }}" {% if value == r.status %}selected{% endif %}>{{ text }}</option>{% endif %}{% endfor %}</select>
+            <select name="day" class="form-select form-select-sm w-auto" aria-label="{% trans 'surgery day' %}"><option value="">{% trans "any day" %}</option>{% for d, n in days %}<option value="{{ d|date:'Y-m-d' }}" {% if d == r.day %}selected{% endif %}>{{ d|date:"D d/m" }}</option>{% endfor %}</select>
+            <input class="form-control form-control-sm flex-fill" name="notes" maxlength="255" placeholder="{% trans 'What he said' %}" aria-label="{% trans 'What he said' %}" style="min-width:10rem">
+            <button class="btn btn-sm btn-primary"><i class="bi bi-check2"></i></button>
+          </form>
+        </div>
+      {% empty %}<div class="list-group-item text-muted small">—</div>{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    {% if closed %}<div class="card"><div class="card-header">{% trans "Booked or not now (30 days)" %}</div>
+      <div class="list-group list-group-flush small">{% for r in closed %}<div class="list-group-item d-flex flex-wrap justify-content-between gap-2"><span>{{ r.patient.full_name }} · {{ r.get_status_display }}</span>
+        <span class="text-muted">{% if r.appointment %}<a href="{{ r.appointment.get_absolute_url }}">{{ r.appointment.scheduled_at|date:"d/m/Y g:i A" }}</a>{% else %}{{ r.updated_at|date:"d/m/Y" }}{% endif %}</span></div>{% endfor %}</div></div>{% endif %}
+  </div>
+  <div class="col-xl-4">
+    <div class="card"><div class="card-header"><i class="bi bi-plus-lg"></i> {% trans "Add a patient to the draft" %}</div><div class="card-body">
+      <form method="post" novalidate>{% csrf_token %}{% include "includes/form_fields.html" %}
+        <button class="btn btn-primary mt-2"><i class="bi bi-check2"></i> {% trans "Add" %}</button></form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

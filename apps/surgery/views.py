@@ -157,8 +157,12 @@ def _operator_changes(surgery, form, formset, user):
     if surgery is None or not needs_approval(user):
         return []
     original = Surgery.objects.get(pk=surgery.pk)  # the form has already put the new values on the instance
+    from apps.core.models import ClinicSettings
+
+    if not ClinicSettings.get().is_live(original.date):
+        return []  # an old case typed in from paper: its team is corrected freely (round 16)
     changes = []
-    values = {name: form.cleaned_data.get(name) for name in ("operator_1", "operator_2")
+    values = {name: form.cleaned_data.get(name) for name in ("operator_1", "operator_2", "assistant")
               if form.cleaned_data.get(name) != getattr(original, name)}
     for name in values:
         setattr(form.instance, name, getattr(original, name))
@@ -246,6 +250,8 @@ def surgery_edit(request, pk=None):
             if obj.instructor_id is None:  # the supervisor of the surgery day, written by the juniors (round 15)
                 at = timezone.localtime(obj.appointment.scheduled_at).time() if obj.appointment_id else None
                 obj.instructor = DaySupervisor.on(obj.branch, obj.date, at)
+            if obj.main_supervisor_id is None:  # the professor the day is under (round 16)
+                obj.main_supervisor = DaySupervisor.main_on(obj.branch, obj.date)
             obj.save()
             formset.instance = obj
             formset.save()
@@ -257,6 +263,9 @@ def surgery_edit(request, pk=None):
             changed = update_chart_for_surgery(obj, request.user) if form.cleaned_data.get("update_chart") else 0
             done = complete_plan_for_surgery(obj)
             planned = plan_from_surgery(obj, request.user)
+        from apps.clinical.grading import tell_instructor_of_surgery
+
+        tell_instructor_of_surgery(obj)  # the instructor with a login grades it (round 16)
         message = _("Surgery %(number)s saved.") % {"number": obj.number}
         if changed:
             message += " " + _("Dental chart updated for %(n)s teeth.") % {"n": changed}

@@ -24,13 +24,16 @@ from .forms import (
     CandidateFilterForm,
     CandidateForm,
     CourseForm,
+    CourseTargetFormSet,
     EnrollmentForm,
+    ExtraForm,
     InstallmentFormSet,
     PaymentFilterForm,
     PaymentForm,
 )
-from .models import Candidate, Course, Enrollment, Installment, Payment, PaymentMethod
+from .models import Candidate, Course, Enrollment, EnrollmentExtra, Installment, Payment, PaymentMethod, Target
 from .reminders import installment_rows
+from .targets import content_text, done_counts, progress
 
 ACADEMY_ROLES = (OWNER, HEAD_CIA, SUPERVISOR, SECRETARY)
 MONEY_DESK = (OWNER, HEAD_CIA, SECRETARY)
@@ -48,43 +51,67 @@ class CourseListView(RoleRequiredMixin, ListView):
         )
 
 
-class CourseCreateView(RoleRequiredMixin, AuditMixin, CreateView):
-    allowed_roles = COURSE_MANAGERS
-    model = Course
-    form_class = CourseForm
-    template_name = "includes/form_page.html"
-    extra_context = {"title": gettext_lazy("New course")}
+class CourseFormMixin:
+    """The course and its content (round 16): how many implants, sinus lifts, GBR... each candidate does."""
+
+    template_name = "academy/course_form.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if "targets" not in context:
+            context["targets"] = CourseTargetFormSet(
+                self.request.POST or None, instance=getattr(self, "object", None) or Course(), prefix="targets")
+        return context
 
     def form_valid(self, form):
-        form.instance.branch = branch_for_user(self.request.user)
-        return super().form_valid(form)
+        if not form.instance.pk:
+            form.instance.branch = branch_for_user(self.request.user)
+        targets = CourseTargetFormSet(self.request.POST, instance=form.instance, prefix="targets")
+        if not targets.is_valid():
+            return self.render_to_response(self.get_context_data(form=form, targets=targets))
+        with transaction.atomic():
+            response = super().form_valid(form)
+            targets.instance = self.object
+            targets.save()
+            implants = self.object.targets.filter(kind=Target.IMPLANTS).first()
+            Course.objects.filter(pk=self.object.pk).update(implants_required=implants.count if implants else 0)
+        return response
 
 
-class CourseUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
+class CourseCreateView(RoleRequiredMixin, AuditMixin, CourseFormMixin, CreateView):
     allowed_roles = COURSE_MANAGERS
     model = Course
     form_class = CourseForm
-    template_name = "includes/form_page.html"
+    extra_context = {"title": gettext_lazy("New course")}
+
+
+class CourseUpdateView(RoleRequiredMixin, AuditMixin, CourseFormMixin, UpdateView):
+    allowed_roles = COURSE_MANAGERS
+    model = Course
+    form_class = CourseForm
     extra_context = {"title": gettext_lazy("Edit course")}
 
 
 @role_required(*ACADEMY_ROLES)
 def course_detail(request, pk):
-    course = get_object_or_404(Course, pk=pk)
+    course = get_object_or_404(Course.objects.prefetch_related("targets"), pk=pk)
     today = timezone.localdate()
     rows, totals = [], {"net": Decimal("0"), "paid": Decimal("0"), "balance": Decimal("0"), "overdue": Decimal("0")}
-    for enrollment in course.enrollments.select_related("candidate").order_by("candidate__full_name"):
+    for enrollment in course.enrollments.select_related("candidate__dentist", "course").prefetch_related(
+            "extras", "course__targets").order_by("candidate__full_name"):
         row = {
             "enrollment": enrollment,
             "net": enrollment.net_fee,
             "paid": enrollment.total_paid,
             "overdue": enrollment.overdue_amount(today),
+            "progress": progress(enrollment),  # what he did of the course's content (round 16)
         }
         row["balance"] = row["net"] - row["paid"]
         for key in totals:
             totals[key] += row[key]
         rows.append(row)
-    return render(request, "academy/course_detail.html", {"course": course, "rows": rows, "totals": totals})
+    return render(request, "academy/course_detail.html", {
+        "course": course, "rows": rows, "totals": totals, "content": content_text(course)})
 
 
 # ------------------------------------------------------------ candidates
@@ -160,21 +187,52 @@ class CandidateUpdateView(RoleRequiredMixin, AuditMixin, UpdateView):
 @role_required(*ACADEMY_ROLES)
 def candidate_detail(request, pk):
     candidate = get_object_or_404(Candidate.objects.select_related("dentist", "referral_source"), pk=pk)
-    enrollments = candidate.enrollments.select_related("course")
+    enrollments = list(candidate.enrollments.select_related("course").prefetch_related("extras", "course__targets"))
     dentist = getattr(candidate, "dentist", None)
-    placed, days = 0, []
+    placed, days, done = 0, [], {}
     if dentist is not None:
         from apps.scheduling.models import RoomShift
         from apps.surgery.models import SurgerySite
 
         placed = SurgerySite.objects.done_by(dentist).exclude(implant_status="").count()
+        done = done_counts(dentist)
         # Round 15: the days he came (a surgery day, or a preparation day with a CIA junior), from the room schedule.
         days = list(RoomShift.objects.filter(Q(dentist=dentist) | Q(second_dentist=dentist)).select_related(
             "room", "dentist", "second_dentist", "supervisor").order_by("-date", "-start_time")[:40])
+    for enrollment in enrollments:
+        enrollment.progress = progress(enrollment, done)
     return render(request, "academy/candidate_detail.html", {
         "candidate": candidate, "enrollments": enrollments, "dentist": dentist, "implants_placed": placed,
         "days": days, "day_counts": Counter(day.get_day_type_display() for day in days).most_common(),
+        "extra_form": ExtraForm(prefix="extra") if enrollments else None,
     })
+
+
+@role_required(*ACADEMY_ROLES)
+@require_POST
+def extra_add(request, pk):
+    """The candidate asked for more cases than his course (round 16): "added 5 extra implants"."""
+    enrollment = get_object_or_404(Enrollment.objects.select_related("candidate"), pk=pk)
+    form = ExtraForm(request.POST, prefix="extra")
+    if form.is_valid():
+        extra = form.save(commit=False)
+        extra.enrollment, extra.created_by = enrollment, request.user
+        extra.save()
+        messages.success(request, _("Added: %(extra)s for %(name)s.") % {"extra": extra,
+                                                                         "name": enrollment.candidate})
+    else:
+        messages.error(request, " ".join(e for errors in form.errors.values() for e in errors))
+    return redirect(enrollment.candidate)
+
+
+@role_required(*ACADEMY_ROLES)
+@require_POST
+def extra_delete(request, pk):
+    extra = get_object_or_404(EnrollmentExtra.objects.select_related("enrollment__candidate"), pk=pk)
+    candidate = extra.enrollment.candidate
+    extra.delete()
+    messages.success(request, _("Removed."))
+    return redirect(candidate)
 
 
 @role_required(*ACADEMY_ROLES)

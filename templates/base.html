@@ -87,6 +87,7 @@
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-calendar3"></i> {% trans "Schedule" %}</a>
           <ul class="dropdown-menu">
             {% if is_front_desk or roles.moderator %}<li><a class="dropdown-item" href="{% url 'scheduling:day_planner' %}"><i class="bi bi-calendar3-week"></i> {% trans "Day planner" %}</a></li>{% endif %}
+            {% if academy_here and is_front_desk or academy_here and is_clinical %}<li><a class="dropdown-item" href="{% url 'scheduling:drafts' %}"><i class="bi bi-clipboard2-check"></i> {% trans "Surgery days: draft list" %}</a></li>{% endif %}
             <li><a class="dropdown-item" href="{% url 'scheduling:room_schedule' %}"><i class="bi bi-grid-3x3"></i> {% if only_dentist %}{% trans "My schedule" %}{% else %}{% trans "Room schedule" %}{% endif %}</a></li>
             <li><a class="dropdown-item" href="{% url 'scheduling:appointment_list' %}"><i class="bi bi-calendar-check"></i> {% if only_dentist %}{% trans "My appointments" %}{% else %}{% trans "Appointments" %}{% endif %}</a></li>
             {% if is_front_desk %}<li><a class="dropdown-item" href="{% url 'scheduling:appointment_create' %}"><i class="bi bi-calendar-plus"></i> {% trans "Book appointment" %}</a></li>
@@ -109,6 +110,7 @@
             <li><a class="dropdown-item" href="{% url 'surgery:create' %}"><i class="bi bi-plus-circle"></i> {% trans "New surgery chart" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'surgery:day' %}"><i class="bi bi-calendar2-check"></i> {% trans "Surgery day (the supervisor)" %}</a></li>
             {% endif %}
+            {% if academy_here %}<li><a class="dropdown-item" href="{% url 'clinical:supervise' %}"><i class="bi bi-patch-check"></i> {% trans "Approve and grade" %}</a></li>{% endif %}
             {% endif %}
             {% if "specialists" not in hidden_areas %}{% if is_clinical %}<li><a class="dropdown-item" href="{% url 'specialties:cases' %}"><i class="bi bi-person-lines-fill"></i> {% trans "Specialist cases" %}</a></li>{% endif %}
             <li><a class="dropdown-item" href="{% url 'specialties:referrals' %}"><i class="bi bi-send"></i> {% trans "Referrals" %}{% if referrals_to_book %} <span class="badge rounded-pill text-bg-warning">{{ referrals_to_book }}</span>{% endif %}</a></li>{% endif %}
@@ -121,6 +123,9 @@
         </li>
         {% if "lab" not in hidden_areas %}<li class="nav-item sec-clinical"><a class="nav-link" href="{% url 'clinical:lab_list' %}"><i class="bi bi-lab-request"></i> {% trans "Lab requests" %}{% if lab_to_act %} <span class="badge rounded-pill text-bg-warning">{{ lab_to_act }}</span>{% endif %}</a></li>{% endif %}
         {% if "complaints" not in hidden_areas %}<li class="nav-item sec-complaints"><a class="nav-link" href="{% url 'complaints:list' %}"><i class="bi bi-chat-left-dots"></i> {% trans "Complaints" %}</a></li>{% endif %}
+        {% endif %}
+        {% if is_grader and not is_clinical %}
+        <li class="nav-item sec-clinical"><a class="nav-link" href="{% url 'clinical:supervise' %}"><i class="bi bi-patch-check"></i> {% trans "Approve and grade" %}</a></li>
         {% endif %}
         {% if is_front_desk and academy_here and "academy" not in hidden_areas %}
         <li class="nav-item dropdown sec-academy">

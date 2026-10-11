@@ -2168,3 +2168,29 @@ details.card.is-needed { border-color: var(--bs-warning); box-shadow: 0 0 0 2px 
 .expected-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem;
   background: var(--bs-body-bg); border: 1px solid var(--bs-warning-border-subtle); border-radius: .5rem; padding: .5rem .75rem; }
 .expected-chosen label { cursor: pointer; }
+.target-rows { display: grid; gap: .45rem; }
+.target-row .progress-bar { background: var(--brand-green-dark); }
+.target-row .progress-bar.bg-success { background: var(--bs-success) !important; }
+/* Round 16: approve and grade */
+.grade-form { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-top: .5rem; }
+.grade-form .form-control { flex: 1 1 14rem; }
+.grade-stars { display: inline-flex; gap: .2rem; }
+.grade-stars label { cursor: pointer; }
+.grade-stars input { position: absolute; opacity: 0; pointer-events: none; }
+.grade-stars span { display: inline-grid; place-items: center; min-width: 2.1rem; height: 2.1rem; border-radius: .5rem;
+  border: 1px solid var(--bs-border-color); font-weight: 600; }
+.grade-stars input:checked + span { background: var(--bs-success); color: #fff; border-color: var(--bs-success); }
+.grade-stars input:focus-visible + span { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.grade-thumb { width: 56px; height: 42px; object-fit: cover; border-radius: .35rem; }
+.draft-group.draft-agreed { border-color: var(--bs-success); }
+.draft-group.draft-ready { border-color: var(--bs-info); }
+/* Round 16: the teeth of the lab request drawn as natural teeth */
+.lab-arch { width: 100%; height: auto; display: block; direction: ltr; }
+.lab-arch .arch-root { fill: url(#odg-root); stroke: #A89A7C; stroke-width: 1; }
+.lab-arch .arch-crown { fill: url(#odg-enamel); stroke: #8C8577; stroke-width: 1.2; }
+.lab-arch text { fill: var(--ink-3, #6c757d); }
+.lab-arch .is-on .arch-crown, .lab-arch .is-on .arch-root { fill: var(--place, #0d6efd); stroke: var(--place, #0d6efd);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.lab-arch .is-on .arch-root { opacity: .55; }
+.lab-arch .is-on text { fill: var(--place, #0d6efd); }
+.case-arch .lab-arch, .universal-arch .lab-arch { max-width: 520px; margin-inline: auto; }

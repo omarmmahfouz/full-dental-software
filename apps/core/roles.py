@@ -15,8 +15,9 @@ Who logs in at the Cairo Implant Academy:
 - stock: the stock manager - stock of materials, instruments, food and beverage, and purchases.
 - moderator: the clinic manager - sets how each doctor of a clinic (e.g. CIC) is paid, follows the
   doctors' shares and payouts and the clinic report.
-- supervisor: kept for later. Supervisors and course candidates do not log in for now;
-  they are chosen by name on the clinical forms.
+- supervisor: the head's access (kept from the start).
+- grader (round 16): a supervisor or an instructor who logs in only to approve and grade the work of his days
+  (Approve and grade); the grades are seen by the owner and the head of CIA only. Course candidates do not log in.
 The dental lab (apps/lab):
 - lab_head: the head of the lab - every case, the prices, the receipts, the costs and the lab report.
 - lab_manager: gives out the work (who designs, who mills...), moves the cases and follows them.
@@ -39,12 +40,15 @@ LAB_HEAD = "lab_head"
 LAB_MANAGER = "lab_manager"
 LAB_DESIGNER = "lab_designer"
 LAB_SECRETARY = "lab_secretary"
+# Round 16: a supervisor (or an instructor) who logs in only to approve and grade the work of his days.
+GRADER = "grader"
 
 ROLE_CHOICES = [
     (OWNER, _("Owner / CEO")),
     (HEAD_CIA, _("Head of CIA")),
     (TEAM_HEAD, _("Head of CIA dentists team")),
-    (SUPERVISOR, _("Supervisor")),
+    (SUPERVISOR, _("Supervisor (the head's access)")),
+    (GRADER, _("Supervisor / instructor: approves and grades")),
     (SECRETARY, _("Secretary")),
     (DENTIST, _("CIA dentist")),
     (STOCK, _("Stock manager")),
@@ -65,6 +69,7 @@ PATIENT_VIEWERS = FRONT_DESK + DENTISTS
 STOCK_ROLES = (OWNER, HEAD_CIA, STOCK)
 PURCHASE_ROLES = (OWNER, HEAD_CIA, SECRETARY, STOCK)
 CLINIC_MANAGERS = (OWNER, MODERATOR)
+GRADE_VIEWERS = (OWNER, HEAD_CIA)  # the grades of the dentists' work are seen by these only (round 16)
 # The dental lab
 LAB_STAFF = (OWNER, LAB_HEAD, LAB_MANAGER, LAB_DESIGNER, LAB_SECRETARY)
 LAB_DESK = (OWNER, LAB_HEAD, LAB_MANAGER, LAB_SECRETARY)  # receive, deliver, WhatsApp, receipts

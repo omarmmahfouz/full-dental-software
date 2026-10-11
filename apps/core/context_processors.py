@@ -20,6 +20,7 @@ from .roles import (
     ROLE_CHOICES,
     STOCK_ROLES,
     SUPERVISOR,
+    GRADER,
     TEAM_HEAD,
     is_only_dentist,
     user_roles,
@@ -54,6 +55,8 @@ def app_context(request):
                 "is_lab_desk": bool(roles & set(LAB_DESK)),
                 "is_lab_manager": bool(roles & set(LAB_MANAGERS)),
                 "is_lab_money": bool(roles & set(LAB_MONEY)),
+                "sees_grades": bool(roles & {OWNER, HEAD_CIA}),
+                "is_grader": GRADER in roles,
             }
         )
         current = context["current_branch"]

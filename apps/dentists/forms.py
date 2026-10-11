@@ -145,9 +145,9 @@ class DentistForm(StyledModelForm):
 
     def clean(self):
         data = super().clean()
-        if data.get("user") and data.get("kind") not in Dentist.LOGIN_KINDS:
-            self.add_error("user", _("Only CIA dentists log in. Candidates, training dentists and supervisors are "
-                                     "chosen by name on the forms."))
+        if data.get("user") and data.get("kind") not in Dentist.CAN_LOG_IN:
+            self.add_error("user", _("Only CIA dentists, the doctors of the clinics and the supervisors log in. "
+                                     "Candidates and training dentists are chosen by name on the forms."))
         return data
 
 

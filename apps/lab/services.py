@@ -16,7 +16,7 @@ from apps.core.roles import LAB_HEAD, LAB_MANAGER, LAB_SECRETARY, SECRETARY
 
 from .models import (
     CLOSED_STEPS, ROUTES, WORK_STEPS, LabBlock, LabBlockUse, LabCase, LabCaseItem, LabCaseStep,
-    LabClient, LabOutsource, LabPayment, LabPrice, LabWorker, Step,
+    LabClient, LabOutsource, LabPayment, LabSettings, LabWorker, Step,
 )
 
 
@@ -25,8 +25,7 @@ def price_for(client, work_type):
     """The client's price for this work (its price list), or None when the list has no price for it."""
     if client is None or not client.price_list_id:
         return None
-    return (LabPrice.objects.filter(price_list_id=client.price_list_id, work_type=work_type)
-            .values_list("price", flat=True).first())
+    return client.price_list.price(work_type)  # a special list takes the rest from its base list, less its % (round 16)
 
 
 def fill_prices(case):
@@ -133,6 +132,16 @@ def move(case, to_step, user, worker=None, notes="", now=None, tell_clinic=True)
     if to_step == Step.DELIVERED and tell_clinic and clinic_request(case) is not None:
         _tell_the_clinic(case, user)
     return case
+
+
+def tell_design_finished(case, user):
+    """The designer finished: the lab (its managers and desk) is told where the design is (round 16)."""
+    place = case.get_design_output_display() if case.design_output else ""
+    where = " — ".join(part for part in (str(place), case.design_location) if part)
+    notify_roles((LAB_HEAD, LAB_MANAGER, LAB_SECRETARY), _("Design of %(number)s finished: %(where)s"),
+                 _("%(work)s · %(patient)s"), case.get_absolute_url(), Notification.Level.SUCCESS, exclude=user,
+                 params={"number": case.number, "where": where, "work": case.work_summary(),
+                         "patient": case.patient_name})
 
 
 def assign(case, worker, user):
@@ -257,10 +266,16 @@ def case_from_request(lab_request, user, remake_of=None, reason="", notes=""):
                     else LabCase.Impression.CONVENTIONAL),
         enclosures=list(lab_request.enclosures or []), stage=lab_request.stage, shade=shade_text(lab_request),
         instructions="\n".join(filter(None, [lab_request.instructions, notes])), due_date=lab_request.due_date,
+        # A digital scan of our clinics is put in the scans folder of the server (round 16).
+        scan_source=LabCase.Source.FOLDER if lab_request.work_form == LabRequest.WorkForm.DIGITAL else
+        LabCase.Source.PHYSICAL,
         remake_of=remake_of, remake_reason=reason if remake_of else "",
         remake_fault=LabCase.Fault.UNKNOWN if remake_of else "", created_by=user,
     )
     case.save()
+    folder = LabSettings.get().scans_folder
+    if case.scan_source == LabCase.Source.FOLDER and folder:
+        LabCase.objects.filter(pk=case.pk).update(scan_location=f"{folder.rstrip(chr(92))}\\{case.number}")
     LabCaseItem.objects.create(case=case, work_type=lab_request.work_type, teeth=lab_request.teeth,
                                units=lab_request.units or 1, material=lab_request.material)
     start_case(case, user, received=False)
@@ -327,7 +342,7 @@ def outsource_back(sent, user, cost=None):
 
 
 @transaction.atomic
-def open_block(item, user, code="", lot="", shade="", notes=""):
+def open_block(item, user, code="", lot="", shade="", notes="", height=None):
     """A new block or disc is taken out of the lab's stock and opened for milling."""
     from apps.stock.models import StockMovement
     from apps.stock.services import record_movement
@@ -335,7 +350,7 @@ def open_block(item, user, code="", lot="", shade="", notes=""):
     from .models import lab_branch
 
     block = LabBlock.objects.create(item=item, code=code, lot=lot, shade=shade, notes=notes, opened_by=user,
-                                    unit_cost=item.unit_cost)
+                                    unit_cost=item.unit_cost, height=height)
     record_movement(item, StockMovement.Kind.OUT, 1, user, branch=lab_branch(), lot=lot,
                     destination=str(_("Block %(code)s opened") % {"code": block.code}))
     return block

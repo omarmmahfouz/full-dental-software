@@ -456,3 +456,94 @@ class Round15SpanTests(TestCase):
         self.assertEqual([step.teeth for step in page.context["page_obj"]], ["44-46"])
         grouped = self.client.get("/clinical/restorative-finder/", {"group_by": "span"})
         self.assertIn("Bridge", [str(row["key"]) for row in grouped.context["groups"]])
+
+
+class Round16GradingTests(TestCase):
+    """Round 16: the supervisor named on a treatment is told and approves it with a grade from his own login (or a
+    CIA junior writes for an instructor without a login); the grades are seen by the owner and the head only. From
+    the data entry date each dentist writes with his own login."""
+
+    def setUp(self):
+        from django.utils import timezone
+
+        from apps.dentists.models import Dentist
+
+        self.branch = setup_clinic()
+        self.junior = make_dentist("junior", kind="fulltime")
+        self.supervisor_user = make_user("heba", "grader")
+        self.supervisor = Dentist.objects.create(full_name="Dr. Heba", kind="supervisor", user=self.supervisor_user)
+        self.instructor = Dentist.objects.create(full_name="Dr. Visitor", kind="supervisor")
+        make_user("owner", "owner")
+        self.patient = make_patient(self.branch)
+        self.bite = TreatmentStepType.objects.first()
+        self.step = TreatmentStep.objects.create(patient=self.patient, step_type=self.bite, operator=self.junior,
+                                                 supervisor=self.supervisor, teeth="36", created_by=self.junior.user,
+                                                 performed_at=timezone.now())
+
+    def test_the_supervisor_is_told_and_approves_with_a_grade(self):
+        self.assertTrue(Notification.objects.filter(recipient=self.supervisor_user, url="/clinical/approve/").exists())
+        self.client.login(username="heba", password=PASSWORD)
+        self.assertRedirects(self.client.get("/"), "/clinical/approve/", fetch_redirect_response=False)
+        page = self.client.get("/clinical/approve/")
+        self.assertEqual(page.context["steps"], [self.step])
+        self.assertEqual([person for person, _last in page.context["juniors"]], [self.junior])
+        self.client.post(f"/clinical/approve/step/{self.step.pk}/", {"grade": "4", "notes": "good bite",
+                                                                     "action": "approve"})
+        self.step.refresh_from_db()
+        self.assertEqual((self.step.grade, self.step.verified_by), (4, self.supervisor_user))
+        self.assertTrue(Notification.objects.filter(recipient=self.junior.user, title__contains="Approved").exists())
+        self.client.post("/clinical/approve/overall/", {"dentist": self.junior.pk, "grade": "3",
+                                                        "readiness": "almost", "notes": "needs speed"})
+        # The supervisor cannot open the patients' files: he sees only his page.
+        self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/").status_code, 403)
+        # The grades: the owner sees them on the junior's page, the junior does not.
+        self.client.login(username="owner", password=PASSWORD)
+        grades = self.client.get(self.junior.get_absolute_url()).context["grades"]
+        self.assertEqual(sorted(g.kind for g in grades), ["overall", "step"])
+        self.client.login(username="junior", password=PASSWORD)
+        mine = self.client.get(self.junior.get_absolute_url())
+        self.assertIsNone(mine.context["grades"])
+        self.assertNotContains(self.client.get(self.step.get_absolute_url()), "4/5")
+
+    def test_a_junior_writes_for_an_instructor_without_a_login(self):
+        from apps.clinical.models import WorkGrade
+
+        self.step.supervisor = self.instructor
+        self.step.save()
+        self.client.login(username="junior", password=PASSWORD)
+        page = self.client.get(f"/clinical/approve/?for={self.instructor.pk}")
+        self.assertTrue(page.context["writes_for"])
+        self.client.post(f"/clinical/approve/step/{self.step.pk}/", {
+            "for": self.instructor.pk, "action": "correct", "notes": "redo the bite registration"})
+        grade = WorkGrade.objects.get()
+        self.assertEqual((grade.approved, grade.graded_by, grade.for_instructor), (False, self.instructor, True))
+        self.step.refresh_from_db()
+        self.assertIsNone(self.step.verified_at)
+
+    def test_from_the_data_entry_date_each_one_writes_with_his_login(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.clinical.forms import TreatmentStepForm
+        from apps.core.models import ClinicSettings
+        from apps.dentists.models import Dentist
+
+        candidate = Dentist.objects.create(full_name="Dr. Candidate", kind="candidate")
+        other = make_dentist("other", kind="fulltime")
+        options = ClinicSettings.get()
+        options.data_entry_until = timezone.localdate() - timedelta(days=30)
+        options.save()
+
+        def form(when, assistant):
+            return TreatmentStepForm({
+                "patient_lookup": self.patient.file_number, "step_type": self.bite.pk, "teeth": "36",
+                "performed_at_0": when.strftime("%d/%m/%Y"), "performed_at_1": "10:00", "operator": candidate.pk,
+                "assistant": assistant.pk if assistant else ""}, user=self.junior.user)
+
+        live = form(timezone.localdate(), None)
+        self.assertTrue(live.is_valid(), live.errors)
+        self.assertEqual(live.cleaned_data["assistant"], self.junior)  # written as the assistant by himself
+        self.assertIn("assistant", form(timezone.localdate(), other).errors)
+        old = form(timezone.localdate() - timedelta(days=60), other)  # an old case typed in: any names
+        self.assertTrue(old.is_valid(), old.errors)

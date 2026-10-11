@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 from django.utils.text import capfirst
 from django.utils.translation import gettext_lazy as _
 
@@ -106,6 +107,11 @@ class TreatmentStepForm(_PatientScopedForm):
             self.add_error("teeth", _("Write the tooth numbers for this treatment."))
         if step_type and not data.get("material") and step_type.default_material:
             data["material"] = step_type.default_material
+        from apps.surgery.forms import live_writer_check
+
+        performed = data.get("performed_at")
+        live_writer_check(self, data, timezone.localtime(performed).date() if performed else None,
+                          ("operator", "assistant"), "assistant")  # each dentist writes with his login (round 16)
         return data
 
 

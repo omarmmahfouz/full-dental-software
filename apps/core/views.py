@@ -38,6 +38,7 @@ from .models import (
     AreaAccess, Branch, ClinicSettings, Notification, UserProfile, branch_for_user, switch_places, working_places,
 )
 from .roles import (
+    GRADER,
     CLINIC_MANAGERS,
     CLINICAL,
     FRONT_DESK,
@@ -78,6 +79,10 @@ def dashboard(request):
         send_answer_alerts(today)  # complaints a dentist has not answered in time
         send_notes_alerts()  # visits left without notes in the patient's file
     at_lab = branch is not None and branch.kind == Branch.Kind.LAB
+    from .roles import user_roles
+
+    if user_roles(user) == {GRADER}:  # a supervisor who logs in only to approve and grade (round 16)
+        return redirect("clinical:supervise")
     if has_role(user, OWNER):
         from .backup import backup_status
         from .overview import ordered_places, places_now, sees_all_places
@@ -450,7 +455,7 @@ def notification_mark_all_read(request):
 # Which roles may download files stored under each media folder.
 MEDIA_FOLDER_ROLES = {
     "patients": PATIENT_VIEWERS,
-    "Patient photos": CLINICAL,  # clinical photos, in readable folders (apps.charting.photo_files)
+    "Patient photos": CLINICAL + (GRADER,),  # clinical photos, in readable folders (apps.charting.photo_files)
     "candidates": (OWNER, HEAD_CIA, SUPERVISOR, SECRETARY),
     "purchases": PURCHASE_ROLES,
     "problems": (OWNER, HEAD_CIA),
@@ -469,6 +474,10 @@ def check_media_access(user, path):
         from apps.patients.access import visible_patients
 
         patients = visible_patients(user)
+        if not has_role(user, *CLINICAL):  # a supervisor who only grades: the patients of the work naming him
+            from apps.clinical.grading import graded_patients
+
+            patients = graded_patients(user)
         if folder == "patients":
             patients = patients.filter(pk=part if part.isdigit() else 0)
         else:

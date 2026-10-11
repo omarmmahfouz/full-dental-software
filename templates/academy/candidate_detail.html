@@ -41,17 +41,24 @@
         </tbody>
       </table></div>
     </div>
+    {% for e in enrollments %}{% if e.status != "withdrawn" %}
+    <div class="card mb-3"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-bullseye"></i> {% blocktrans with course=e.course.batch_label %}Cases done of {{ course }}{% endblocktrans %}</span>
+      {% if dentist %}<a class="small" href="{{ dentist.get_absolute_url }}">{% trans "Open all cases, surgeries and treatments" %} <i class="bi bi-arrow-right-short"></i></a>{% endif %}</div>
+      <div class="card-body">
+        {% include "academy/_progress.html" with rows=e.progress %}
+        {% if e.extras.all %}<div class="small mt-2"><b>{% trans "Extra cases asked for" %}:</b>
+          {% for x in e.extras.all %}<span class="badge text-bg-light border">{{ x }} · {{ x.added_on|date:"d/m/Y" }}{% if x.fee %} · {{ x.fee }}{% endif %}</span>
+          <form method="post" action="{% url 'academy:extra_delete' x.pk %}" class="d-inline" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-link text-danger p-0" data-confirm="{% trans 'Remove these extra cases?' %}" aria-label="{% trans 'Remove' %}"><i class="bi bi-x"></i></button></form>{% endfor %}</div>{% endif %}
+        {% if extra_form and e.status == "active" %}
+        <details class="mt-2"><summary class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-lg"></i> {% trans "He asked for extra cases" %}</summary>
+          <form method="post" action="{% url 'academy:extra_add' e.pk %}" class="mt-2" novalidate>{% csrf_token %}
+            {% include "includes/form_fields.html" with form=extra_form %}
+            <button class="btn btn-primary btn-sm mt-2"><i class="bi bi-check2"></i> {% trans "Add" %}</button>
+          </form></details>
+        {% endif %}
+      </div></div>
+    {% endif %}{% endfor %}
     {% if dentist %}
-    {% with e=candidate.current_enrollment %}
-    <div class="card stat-card"><div class="card-body">
-      <div class="stat-label">{% trans "Implants placed as operator 1" %}</div>
-      <div class="stat-value">{{ implants_placed }}{% if e.implants_required %} <span class="fs-5 text-muted">/ {{ e.implants_required }}</span>{% endif %}</div>
-      {% if e.implants_required %}
-      <div class="progress my-2" style="height:10px"><div class="progress-bar" style="width:{% widthratio implants_placed e.implants_required 100 %}%;background:var(--brand-green-dark)"></div></div>
-      {% endif %}
-      <a href="{{ dentist.get_absolute_url }}">{% trans "Open all cases, surgeries and treatments" %} <i class="bi bi-arrow-right-short"></i></a>
-    </div></div>
-    {% endwith %}
     <div class="card mt-3"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-calendar2-week"></i> {% trans "Days at CIA (from the room schedule)" %}</span>
       <span class="small">{% for label, n in day_counts %}<span class="badge text-bg-light">{{ label }}: {{ n }}</span> {% endfor %}</span></div>
       <div class="list-group list-group-flush small">{% for s in days %}

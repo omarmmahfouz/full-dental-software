@@ -17,9 +17,33 @@ from .models import (
 )
 
 
+def live_writer_check(form, data, day, team_fields, assistant_field):
+    """From the data entry date (Settings → Clinic options, round 16) a CIA dentist writes with his own login: he is
+    in the team (the assistant, unless he operated). Old cases typed in before that day take any names."""
+    from apps.core.models import ClinicSettings
+    from apps.core.roles import is_only_dentist
+
+    user = getattr(form, "user", None)
+    if user is None or not is_only_dentist(user) or not ClinicSettings.get().is_live(day):
+        return
+    me = Dentist.for_user(user)
+    if me is None or me in [data.get(name) for name in team_fields]:
+        return
+    if not data.get(assistant_field):
+        data[assistant_field] = me  # written as the assistant by himself
+        return
+    form.add_error(assistant_field, _("From %(day)s each dentist writes with his own login: you are the assistant "
+                                      "here (or choose yourself as the operator). Someone else writes his own work "
+                                      "with his login.") % {
+        "day": ClinicSettings.get().data_entry_until.strftime("%d/%m/%Y")})
+
+
 class SurgeryForm(StyledModelForm):
     patient_lookup = PatientLookupField(label=_("patient"))
     instructor = DentistChoiceField(kinds=(Dentist.Kind.SUPERVISOR,), label=_("instructor"), required=False)
+    main_supervisor = DentistChoiceField(
+        kinds=(Dentist.Kind.SUPERVISOR,), label=_("main supervisor"), required=False,
+        help_text=_("The professor the day is under (a title only); the instructor stands with the candidates."))
     operator_1 = DentistChoiceField(label=_("operator 1"))
     operator_2 = DentistChoiceField(
         label=_("operator 2 (other teeth)"), required=False,
@@ -38,7 +62,8 @@ class SurgeryForm(StyledModelForm):
     )
 
     fieldsets = [
-        (_("Surgery team"), ["patient_lookup", "date", "difficulty", "instructor", "operator_1", "operator_2", "assistant"]),
+        (_("Surgery team"), ["patient_lookup", "date", "difficulty", "main_supervisor", "instructor", "operator_1",
+                             "operator_2", "assistant"]),
         (_("Guided bone regeneration"), [
             "block_graft", "block_donor", "block_donor_other", "cut_by", "screws_count", "bone_particle",
             "autogenous_percent", "bone_material", "acm_bur_area", "gbr_notes",
@@ -110,6 +135,7 @@ class SurgeryForm(StyledModelForm):
         chosen = [d for d in team if d]
         if len(chosen) != len({d.pk for d in chosen}):
             raise forms.ValidationError(_("The same dentist is chosen twice in the surgery team."))
+        live_writer_check(self, data, data.get("date"), ("operator_1", "operator_2", "assistant"), "assistant")
         if data.get("bone_particle") == Surgery.Particle.MIX and data.get("autogenous_percent") is None:
             self.add_error("autogenous_percent", _("Write the autogenous percentage of the mix."))
         if data.get("block_graft") and not data.get("block_donor"):

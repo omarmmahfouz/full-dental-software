@@ -1,11 +1,15 @@
 from django.urls import path
 
-from . import finder, teeth_status, views
+from . import finder, grading, teeth_status, views
 
 app_name = "clinical"
 
 urlpatterns = [
     path("steps/", views.StepListView.as_view(), name="step_list"),
+    path("approve/", grading.supervise, name="supervise"),
+    path("approve/step/<int:pk>/", grading.grade_step, name="grade_step"),
+    path("approve/surgery/<int:pk>/", grading.grade_surgery, name="grade_surgery"),
+    path("approve/overall/", grading.grade_overall, name="grade_overall"),
     path("restorative-finder/", finder.restorative_finder, name="restorative_finder"),
     path("steps/new/", views.step_create, name="step_create"),
     path("steps/teeth-status/", teeth_status.teeth_status_json, name="teeth_status"),

@@ -17,7 +17,7 @@
       <div class="card-header"><i class="bi bi-person-check"></i> {% trans "Who supervised the surgery day" %}</div>
       <div class="list-group list-group-flush">{% for row in supervisors %}
         <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <span><b>{{ row.supervisor }}</b>{% if row.from_time %} <span class="text-muted small">{{ row.from_time|time:"g:i A" }} – {{ row.to_time|time:"g:i A" }}</span>{% endif %}
+          <span><b>{{ row.supervisor }}</b> <span class="badge {% if row.role == 'main' %}text-bg-primary{% else %}text-bg-light{% endif %}">{% if row.role == 'main' %}{% trans "Main supervisor" %}{% else %}{% trans "Instructor" %}{% endif %}</span>{% if row.from_time %} <span class="text-muted small">{{ row.from_time|time:"g:i A" }} – {{ row.to_time|time:"g:i A" }}</span>{% endif %}
             {% if row.notes %}<span class="small text-muted"> · {{ row.notes }}</span>{% endif %}
             <span class="d-block small text-muted">{% blocktrans with name=row.written_by.get_full_name|default:row.written_by.username %}written by {{ name }}{% endblocktrans %}</span></span>
           {% if can_remove or row.written_by_id == request.user.pk %}<form method="post" action="{% url 'surgery:day_supervisor_remove' row.pk %}" class="no-print" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-outline-danger" data-confirm="{% trans 'Remove this supervisor from the day?' %}" aria-label="{% trans 'Remove' %}"><i class="bi bi-x-lg"></i></button></form>{% endif %}
@@ -29,7 +29,7 @@
           <button class="btn btn-primary"><i class="bi bi-check-lg"></i> {% trans "Save the supervisor of the day" %}</button>
         </form>
       </div>
-      <div class="card-footer small text-muted">{% trans "Each surgery of the day without an instructor takes him (by the hours when two share the day). He is printed on the case report and the log book." %}</div>
+      <div class="card-footer small text-muted">{% trans "Each surgery of the day without an instructor takes him (by the hours when two share the day). He is printed on the case report and the log book." %} {% trans "The main supervisor (a professor the day is under) is a title only: he is printed beside the instructor." %}</div>
     </div>
     <div class="card mb-3">
       <div class="card-header"><i class="bi bi-door-open"></i> {% trans "In the rooms" %}</div>

@@ -549,3 +549,45 @@ class BulkRecipient(models.Model):
         ordering = ["pk"]
         verbose_name = _("person to send to")
         verbose_name_plural = _("people to send to")
+
+
+class DraftBooking(TimeStampedModel):
+    """The draft list of a surgery day (round 16): the patients called for the coming Thursdays and Fridays before
+    any time is given or anything goes on the calendar: who answered, who did not, who is ready for the surgery,
+    who agreed, who is still thinking. "Book" opens the booking page and the patient leaves the draft as booked."""
+
+    class Status(models.TextChoices):
+        TO_CALL = "to_call", _("Not called yet")
+        NO_ANSWER = "no_answer", _("No answer")
+        THINKING = "thinking", _("Still thinking")
+        NOT_READY = "not_ready", _("Not ready yet (tests, consultation...)")
+        READY = "ready", _("Ready for the surgery")
+        AGREED = "agreed", _("Agreed: give him a time")
+        BOOKED = "booked", _("Booked")
+        NOT_NOW = "not_now", _("Not now")
+
+    OPEN = (Status.TO_CALL, Status.NO_ANSWER, Status.THINKING, Status.NOT_READY, Status.READY, Status.AGREED)
+
+    branch = models.ForeignKey(Branch, verbose_name=_("place"), on_delete=models.CASCADE, related_name="+")
+    patient = models.ForeignKey("patients.Patient", verbose_name=_("patient"), on_delete=models.CASCADE,
+                                related_name="draft_bookings")
+    day = models.DateField(_("surgery day"), null=True, blank=True, db_index=True,
+                           help_text=_("Empty: any coming surgery day."))
+    candidate = models.ForeignKey("dentists.Dentist", verbose_name=_("operator (candidate)"), null=True, blank=True,
+                                  on_delete=models.SET_NULL, related_name="+")
+    what = models.CharField(_("what (teeth, procedure)"), max_length=200, blank=True)
+    status = models.CharField(_("status"), max_length=12, choices=Status.choices, default=Status.TO_CALL,
+                              db_index=True)
+    notes = models.CharField(_("notes"), max_length=255, blank=True)
+    calls = models.PositiveSmallIntegerField(_("calls"), default=0)
+    last_call_at = models.DateTimeField(_("last call"), null=True, blank=True)
+    appointment = models.ForeignKey(Appointment, verbose_name=_("appointment"), null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = ["day", "pk"]
+        verbose_name = _("draft booking of a surgery day")
+        verbose_name_plural = _("draft list of the surgery days")
+
+    def __str__(self):
+        return f"{self.patient} — {self.day or ''}"

@@ -1,0 +1,12 @@
+{% load i18n %}
+{% comment %}What a candidate did of his course's content (round 16). Context: rows (academy.targets.progress).{% endcomment %}
+<div class="target-rows">
+{% for r in rows %}
+  <div class="target-row">
+    <div class="d-flex justify-content-between gap-2 small"><span class="fw-semibold">{{ r.label }}</span>
+      <span><b>{{ r.done }}</b>{% if r.target %} / {{ r.target }}{% if r.extra %} <span class="text-muted">({{ r.course }} + {% blocktrans with n=r.extra %}{{ n }} extra{% endblocktrans %})</span>{% endif %}{% if r.left %} · <span class="text-danger">{% blocktrans with n=r.left %}{{ n }} left{% endblocktrans %}</span>{% else %} · <span class="text-success"><i class="bi bi-check2"></i> {% trans "done" %}</span>{% endif %}{% else %} <span class="text-muted">({% trans "not in the course" %})</span>{% endif %}</span></div>
+    {% if r.target %}<div class="progress" style="height:8px"><div class="progress-bar {% if not r.left %}bg-success{% endif %}" style="width:{{ r.percent }}%"></div></div>{% endif %}
+  </div>
+{% empty %}<div class="small text-muted">{% trans "The course has no content written yet (Academy → Courses → Edit)." %}</div>
+{% endfor %}
+</div>

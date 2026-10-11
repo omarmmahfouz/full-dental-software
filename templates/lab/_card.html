@@ -7,6 +7,8 @@
   </div>
   <div class="who">{{ case.client }}{% if case.doctor %} · {{ case.doctor }}{% endif %}{% if case.patient_name %} · {{ case.patient_name }}{% endif %}</div>
   <div class="work">{{ case.work_summary }}</div>
+  {% if case.scan_source and case.step == "design" or case.scan_source and case.step == "models" %}<div class="small scan-where"><i class="bi bi-folder2-open"></i> {{ case.get_scan_source_display }}{% if case.scan_location %}: <span class="ltr">{{ case.scan_location }}</span>{% endif %}</div>{% endif %}
+  {% if case.design_output and case.step == "cam" or case.design_output and case.step == "design_check" %}<div class="small scan-where"><i class="bi bi-send-check"></i> {{ case.get_design_output_display }}{% if case.design_location %}: <span class="ltr">{{ case.design_location }}</span>{% endif %}</div>{% endif %}
   <div class="meta">
     <span><i class="bi bi-clock"></i> {{ case.get_step_display }} · {{ case.step_since|timesince }}</span>
     {% if case.worker %}<span><i class="bi bi-person"></i> {{ case.worker }}</span>{% elif case.step in work_steps %}<span class="text-warning-emphasis"><i class="bi bi-person-dash"></i> {% trans "nobody yet" %}</span>{% endif %}
@@ -15,5 +17,9 @@
   {% if case.step == "incoming" %}{% if is_lab_desk %}<a class="btn btn-sm btn-outline-primary w-100 mt-2" href="{{ case.get_absolute_url }}"><i class="bi bi-inbox"></i> {% trans "Check it in" %}</a>{% endif %}
   {% elif case.can_next %}<form method="post" action="{% url 'lab:case_move' case.pk %}" data-no-leave-warning>{% csrf_token %}
     <input type="hidden" name="to_step" value="{{ case.next }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
-    <button class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-arrow-{% if LANGUAGE_BIDI %}left{% else %}right{% endif %}-circle"></i> {{ case.next_label }}</button></form>{% endif %}
+    {% if case.step == "design" %}<div class="design-out mt-2">
+      <select name="design_output" class="form-select form-select-sm" required aria-label="{% trans 'The finished design was put' %}"><option value="">{% trans "Where did you put the design?" %}</option>{% for code, label in design_outputs %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select>
+      <input name="design_location" class="form-control form-control-sm mt-1" dir="ltr" value="{{ designs_folder }}" aria-label="{% trans 'Where exactly (the design)' %}">
+    </div>{% elif case.step in machine_steps and machines %}<input name="machine" class="form-control form-control-sm mt-2" list="lab-machines" placeholder="{% trans 'Machine' %}" aria-label="{% trans 'Machine' %}">{% endif %}
+    <button class="btn btn-sm btn-outline-primary w-100 mt-1"><i class="bi bi-arrow-{% if LANGUAGE_BIDI %}left{% else %}right{% endif %}-circle"></i> {{ case.next_label }}</button></form>{% endif %}
 </div>

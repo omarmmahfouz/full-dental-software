@@ -1162,7 +1162,6 @@ class Round16ExpectedPatientTests(TestCase):
                                         referral_source=self.facebook)
         self.client.post(f"/patients/calls/{self.lead.pk}/book/")
         self.expected = Patient.objects.get()
-        day = timezone.localdate() + timedelta(days=1)
         self.visit = Appointment.objects.create(branch=self.branch, patient=self.expected,
                                                 scheduled_at=timezone.now() + timedelta(days=1))
 

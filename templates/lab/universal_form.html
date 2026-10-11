@@ -19,10 +19,7 @@
   {% for label, types in groups %}<div class="mb-1"><b class="small">{{ label }}</b><div class="form-grid">{% for wt in types %}<span><span class="form-tick"></span>{{ wt }}</span>{% endfor %}</div></div>{% endfor %}
   <div class="small mt-1">{% trans "Other" %}: <span class="form-line" style="min-width: 60%"></span></div>
   <div class="doc-subtitle mt-3">{% trans "Teeth" %}</div>
-  <div class="lab-teeth mb-2">
-    <div class="lab-teeth-row">{% for t in upper %}<span>{{ t }}</span>{% endfor %}</div>
-    <div class="lab-teeth-row">{% for t in lower %}<span>{{ t }}</span>{% endfor %}</div>
-  </div>
+  <div class="mb-2 universal-arch">{{ arch }}</div>
   <div class="row g-3">
     <div class="col-6">
       <div class="doc-subtitle">{% trans "Send for" %}</div>

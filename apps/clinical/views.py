@@ -286,7 +286,10 @@ def step_operator(request, pk):
     form = StepOperatorForm(request.POST, instance=TreatmentStep.objects.get(pk=pk))
     if form.is_valid():
         values = {name: form.cleaned_data.get(name) for name in form.fields}
-        if needs_approval(request.user):
+        from apps.core.models import ClinicSettings
+
+        live = ClinicSettings.get().is_live(timezone.localtime(step.performed_at).date())
+        if live and needs_approval(request.user):  # old cases typed in are corrected freely (round 16)
             if request_change(ChangeRequest.Kind.OPERATOR, step, values, request.user, form.cleaned_data.get("why", "")):
                 messages.success(request, _("Sent to the head of CIA for approval."))
         else:
@@ -502,7 +505,8 @@ def lab_action(request, pk):
 def lab_print(request, pk):
     """The lab prescription printed with the place's letterhead: the teeth on a chart, the shade tabs in colour, the
     design, what is sent with the work, and the signatures."""
-    from apps.charting.teeth import LOWER, UPPER, parse_teeth
+    from apps.charting.odontogram import arch_picture
+    from apps.charting.teeth import parse_teeth
     from apps.specialties import shades
 
     lab_request = get_object_or_404(LabRequest.objects.select_related(
@@ -515,7 +519,7 @@ def lab_print(request, pk):
                if getattr(lab_request, name)]
     return render(request, "clinical/lab_print.html", {
         "lab_request": lab_request, "place": lab_request.branch, "shade_colours": colours,
-        "upper": [(tooth, tooth in chosen) for tooth in UPPER], "lower": [(tooth, tooth in chosen) for tooth in LOWER],
+        "arch": arch_picture(chosen),  # natural teeth, the chosen ones in colour (round 16)
     })
 
 

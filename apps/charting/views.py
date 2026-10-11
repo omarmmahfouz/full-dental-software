@@ -563,7 +563,7 @@ def logbook(request, patient_pk):
     available = [(code, label) for code, label in PhotoStage.choices if any(p.stage == code for p in all_photos)]
     chosen = [code for code in request.GET.getlist("stage") if code in dict(available)] or [c for c, _l in available]
     per_page, action, keep = per_page_of(request)
-    surgeries = list(patient.surgeries.select_related("instructor", "operator_1").prefetch_related(
+    surgeries = list(patient.surgeries.select_related("instructor", "main_supervisor", "operator_1").prefetch_related(
         "sites__implant_system", "sites__operator"))
     steps = list(TreatmentStep.objects.filter(patient=patient).select_related("step_type", "operator"))
     # Round 15: two candidates on one patient (one did 36, the other 46): each prints his own log book, with the
@@ -603,6 +603,7 @@ def logbook(request, patient_pk):
             "teeth": format_teeth({t for p in photos for t in parse_teeth(p.teeth)}),
             "operator": chosen_operator or (surgery.operator_1 if surgery else None) or patient.assigned_dentist,
             "supervisor": surgery.instructor if surgery else None,
+            "main_supervisor": surgery.main_supervisor if surgery else None,
             "description": typed if typed is not None else _stage_description(code, photos, surgeries, steps,
                                                                               plan_items, chosen_operator),
         }
@@ -633,7 +634,8 @@ def case_report(request, patient_pk):
     """Everything documented for one patient, printable (optionally without identity)."""
     patient = get_clinical_patient_or_403(request.user, patient_pk)
     anonymous = request.GET.get("anonymous") == "1"
-    surgeries = patient.surgeries.select_related("instructor", "operator_1", "operator_2", "assistant").prefetch_related(
+    surgeries = patient.surgeries.select_related("instructor", "main_supervisor", "operator_1", "operator_2",
+                                                 "assistant").prefetch_related(
         "sites__implant_system", "photos"
     )
     per_page, action, keep = per_page_of(request)

@@ -40,7 +40,7 @@
     <tr><th>{% trans "Patient" %}</th><td>{% if anonymous %}{{ initials }} — {{ patient.get_gender_display|default:"" }}{% if patient.age %}, {{ patient.age }} {% trans "years" %}{% endif %}{% else %}{{ patient.full_name }} ({{ patient.file_number }}){% endif %}</td>
         <th>{% trans "Date" %}</th><td>{% for day in page.dates %}{{ day|date:"d/m/Y" }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
     <tr><th>{% trans "Operator" %}</th><td>{{ page.operator|default:"" }}</td>
-        <th>{% trans "Supervisor" %}</th><td>{{ page.supervisor|default:"" }}</td></tr>
+        <th>{% trans "Supervisor" %}</th><td>{{ page.supervisor|default:"" }}{% if page.main_supervisor %}<div class="small">{% blocktrans with name=page.main_supervisor %}under the supervision of {{ name }}{% endblocktrans %}</div>{% endif %}</td></tr>
     <tr><th>{% trans "Teeth" %}</th><td colspan="3">{{ page.teeth|default:"—" }}</td></tr>
   </table>
   <div class="logbook-description-label">{% trans "Description of the procedure" %}</div>

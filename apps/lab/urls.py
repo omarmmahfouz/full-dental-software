@@ -28,6 +28,7 @@ urlpatterns = [
     path("blocks/<int:pk>/", views.block_detail, name="block_detail"),
     path("blocks/<int:pk>/finish/", views.block_finish, name="block_finish"),
     path("stock/move/", views.stock_move, name="stock_move"),
+    path("stock/new-item/", views.stock_item_add, name="stock_item_add"),
     path("clients/", views.client_list, name="clients"),
     path("clients/new/", views.client_edit, name="client_create"),
     path("clients/<int:pk>/", views.client_detail, name="client_detail"),

@@ -354,3 +354,33 @@ def render(states, planned=None, link=None, title=""):
             out.append(_tooth(tooth, index, upper, snap, site, planned.get(tooth), link))
     out.append("</svg>")
     return mark_safe("".join(out))
+
+
+def arch_picture(chosen=(), title=""):
+    """The two arches drawn as natural teeth (crowns and roots, as on the dental chart), without the surfaces: for the
+    lab request (round 16, it was a row of squares). ``chosen`` teeth are filled in the place's colour; an empty
+    ``chosen`` gives the blank arches of the printed request, to tick by hand."""
+    chosen = {int(tooth) for tooth in chosen}
+    upper_cej, lower_cej, mid, height = 62, 134, 98, 196
+    out = [
+        f'<svg class="lab-arch" viewBox="0 0 {WIDTH} {height}" xmlns="http://www.w3.org/2000/svg" role="img" '
+        f'aria-label="{escape(title or _("The teeth"))}" font-family="Cairo, Segoe UI, sans-serif">', DEFS,
+        f'<line x1="{PAD}" y1="{mid}" x2="{WIDTH - PAD}" y2="{mid}" stroke="#CED4DA" stroke-dasharray="4,4"/>',
+        f'<line x1="{WIDTH / 2}" y1="4" x2="{WIDTH / 2}" y2="{height - 4}" stroke="#CED4DA" stroke-dasharray="4,4"/>',
+    ]
+    for arch, upper in ((UPPER, True), (LOWER, False)):
+        for index, tooth in enumerate(arch):
+            shape = (UPPER_SHAPES if upper else LOWER_SHAPES)[tooth % 10]
+            cx = _x(index) + W / 2
+            cej = upper_cej if upper else lower_cej
+            mirror = -1 if tooth // 10 in (2, 3) else 1
+            on = tooth in chosen
+            roots = "".join(f'<path class="arch-root" d="{path}"/>' for path, _behind in _root_paths(shape))
+            out.append(
+                f'<g class="arch-tooth{" is-on" if on else ""}" data-tooth="{tooth}">'
+                f'<g transform="translate({_n(cx)},{cej}) scale({mirror},{1 if upper else -1}) scale(.86)">'
+                f'{roots}<path class="arch-crown" d="{_crown_path(shape)}"/></g>'
+                f'<text x="{_n(cx)}" y="{12 if upper else height - 4}" text-anchor="middle" font-size="12" '
+                f'font-weight="{700 if on else 400}">{tooth}</text></g>')
+    out.append("</svg>")
+    return mark_safe("".join(out))

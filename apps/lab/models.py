@@ -25,9 +25,13 @@ class Step(models.TextChoices):
     MODELS = "models", _("Models and scanning")
     DESIGN = "design", _("CAD design")
     DESIGN_CHECK = "design_check", _("Design check")
+    CAM = "cam", _("CAM: nesting in the block, milling paths")
     MILLING = "milling", _("Milling")
+    TI_MILLING = "ti_milling", _("Titanium milling")
     PRINTING = "printing", _("3D printing")
-    METAL_PRINTING = "metal_printing", _("Metal printing (laser)")
+    METAL_PRINTING = "metal_printing", _("Metal printing (laser sintering)")
+    POST_PRINT = "post_print", _("After printing: washing, curing, supports off")
+    LASER = "laser", _("Laser cutting / welding")
     CASTING = "casting", _("Wax-up and casting")
     SINTERING = "sintering", _("Sintering / crystallization")
     CERAMIC = "ceramic", _("Ceramic build-up")
@@ -45,9 +49,11 @@ class Step(models.TextChoices):
 
 
 # Steps where someone of the lab works on the case (they can be given to a person).
-WORK_STEPS = (Step.MODELS, Step.DESIGN, Step.DESIGN_CHECK, Step.MILLING, Step.PRINTING, Step.METAL_PRINTING,
-              Step.CASTING, Step.SINTERING, Step.CERAMIC, Step.STAIN_GLAZE, Step.SETUP, Step.PROCESSING,
-              Step.FINISHING, Step.QC)
+WORK_STEPS = (Step.MODELS, Step.DESIGN, Step.DESIGN_CHECK, Step.CAM, Step.MILLING, Step.TI_MILLING, Step.PRINTING,
+              Step.METAL_PRINTING, Step.POST_PRINT, Step.LASER, Step.CASTING, Step.SINTERING, Step.CERAMIC,
+              Step.STAIN_GLAZE, Step.SETUP, Step.PROCESSING, Step.FINISHING, Step.QC)
+# Steps done on a machine (a mill, a printer, a furnace, the laser): the machine used is written when it is done.
+MACHINE_STEPS = (Step.MILLING, Step.TI_MILLING, Step.PRINTING, Step.METAL_PRINTING, Step.SINTERING, Step.LASER)
 # Off the usual road: the case waits outside the lab's hands.
 AWAY_STEPS = (Step.TRY_IN, Step.OUTSOURCED, Step.ON_HOLD)
 CLOSED_STEPS = (Step.DELIVERED, Step.CANCELLED)
@@ -56,23 +62,31 @@ OPEN_STEPS = tuple(code for code in Step.values if code not in CLOSED_STEPS)
 # The usual road of each kind of work (the case keeps its own copy, which the manager can change).
 C = LabCategory
 ROUTES = {
-    C.ZIRCONIA: [Step.RECEIVED, Step.DESIGN, Step.MILLING, Step.SINTERING, Step.STAIN_GLAZE, Step.QC, Step.READY],
-    C.EMAX: [Step.RECEIVED, Step.DESIGN, Step.MILLING, Step.SINTERING, Step.STAIN_GLAZE, Step.QC, Step.READY],
+    # Round 16: the processing in detail: the CAM before milling, titanium milling, washing and curing after printing,
+    # metal printed then milled, laser cutting.
+    C.ZIRCONIA: [Step.RECEIVED, Step.DESIGN, Step.CAM, Step.MILLING, Step.SINTERING, Step.STAIN_GLAZE, Step.QC,
+                 Step.READY],
+    C.EMAX: [Step.RECEIVED, Step.DESIGN, Step.CAM, Step.MILLING, Step.SINTERING, Step.STAIN_GLAZE, Step.QC, Step.READY],
     C.PFM: [Step.RECEIVED, Step.DESIGN, Step.CASTING, Step.CERAMIC, Step.STAIN_GLAZE, Step.QC, Step.READY],
-    C.RESIN_PRINT: [Step.RECEIVED, Step.DESIGN, Step.PRINTING, Step.FINISHING, Step.QC, Step.READY],
-    C.PMMA: [Step.RECEIVED, Step.DESIGN, Step.MILLING, Step.FINISHING, Step.QC, Step.READY],
-    C.METAL_PRINT: [Step.RECEIVED, Step.DESIGN, Step.METAL_PRINTING, Step.FINISHING, Step.QC, Step.READY],
-    C.TI_MILL: [Step.RECEIVED, Step.DESIGN, Step.MILLING, Step.FINISHING, Step.QC, Step.READY],
-    C.PRINT_MILL: [Step.RECEIVED, Step.DESIGN, Step.METAL_PRINTING, Step.MILLING, Step.FINISHING, Step.QC, Step.READY],
+    C.RESIN_PRINT: [Step.RECEIVED, Step.DESIGN, Step.PRINTING, Step.POST_PRINT, Step.FINISHING, Step.QC, Step.READY],
+    C.PMMA: [Step.RECEIVED, Step.DESIGN, Step.CAM, Step.MILLING, Step.FINISHING, Step.QC, Step.READY],
+    C.METAL_PRINT: [Step.RECEIVED, Step.DESIGN, Step.METAL_PRINTING, Step.POST_PRINT, Step.FINISHING, Step.QC,
+                    Step.READY],
+    C.TI_MILL: [Step.RECEIVED, Step.DESIGN, Step.CAM, Step.TI_MILLING, Step.FINISHING, Step.QC, Step.READY],
+    C.PRINT_MILL: [Step.RECEIVED, Step.DESIGN, Step.CAM, Step.METAL_PRINTING, Step.POST_PRINT, Step.MILLING,
+                   Step.FINISHING, Step.QC, Step.READY],
+    C.LASER_CUT: [Step.RECEIVED, Step.DESIGN, Step.CAM, Step.LASER, Step.FINISHING, Step.QC, Step.READY],
     C.REMOVABLE: [Step.RECEIVED, Step.MODELS, Step.SETUP, Step.PROCESSING, Step.FINISHING, Step.QC, Step.READY],
-    C.SPLINT: [Step.RECEIVED, Step.DESIGN, Step.PRINTING, Step.FINISHING, Step.QC, Step.READY],
+    C.SPLINT: [Step.RECEIVED, Step.DESIGN, Step.PRINTING, Step.POST_PRINT, Step.FINISHING, Step.QC, Step.READY],
     C.OTHER: [Step.RECEIVED, Step.DESIGN, Step.FINISHING, Step.QC, Step.READY],
 }
 
 # The icon of each step on the board and the case page.
 STEP_ICONS = {
     Step.INCOMING: "bi-truck", Step.RECEIVED: "bi-inbox", Step.MODELS: "bi-boxes", Step.DESIGN: "bi-vector-pen",
-    Step.DESIGN_CHECK: "bi-eye", Step.MILLING: "bi-gear-wide-connected", Step.PRINTING: "bi-printer",
+    Step.DESIGN_CHECK: "bi-eye", Step.CAM: "bi-bounding-box", Step.MILLING: "bi-gear-wide-connected",
+    Step.TI_MILLING: "bi-nut", Step.PRINTING: "bi-printer", Step.POST_PRINT: "bi-droplet-half",
+    Step.LASER: "bi-bullseye",
     Step.METAL_PRINTING: "bi-lightning-charge", Step.CASTING: "bi-fire", Step.SINTERING: "bi-thermometer-high",
     Step.CERAMIC: "bi-brush", Step.STAIN_GLAZE: "bi-palette", Step.SETUP: "bi-grid-3x2-gap",
     Step.PROCESSING: "bi-droplet", Step.FINISHING: "bi-stars", Step.QC: "bi-patch-check", Step.READY: "bi-bag-check",
@@ -87,6 +101,14 @@ class LabPriceList(models.Model):
     name = models.CharField(_("name"), max_length=100, unique=True)
     notes = models.CharField(_("notes"), max_length=255, blank=True)
     is_active = models.BooleanField(_("active"), default=True)
+    # A special list for one doctor or clinic (round 16): its own price for some work, and for the rest the prices of
+    # another list less a percentage (e.g. the outside prices less 10%).
+    based_on = models.ForeignKey("self", verbose_name=_("the rest from the list"), null=True, blank=True,
+                                 on_delete=models.SET_NULL, related_name="special_lists",
+                                 help_text=_("For a special list: the work without its own price here takes the "
+                                             "price of this list, less the percentage below."))
+    percent_off = models.DecimalField(_("less (%)"), max_digits=5, decimal_places=2, default=0,
+                                      help_text=_("e.g. 10 = 10% less than the list above."))
 
     class Meta:
         ordering = ["name"]
@@ -95,6 +117,23 @@ class LabPriceList(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_special(self):
+        return self.based_on_id is not None
+
+    def price(self, work_type, seen=None):
+        """This list's price for the work: its own price, else the base list's less the percentage (None: none)."""
+        own = LabPrice.objects.filter(price_list=self, work_type=work_type).values_list("price", flat=True).first()
+        if own is not None:
+            return own
+        seen = (seen or set()) | {self.pk}
+        if self.based_on_id is None or self.based_on_id in seen:
+            return None
+        base = self.based_on.price(work_type, seen)
+        if base is None:
+            return None
+        return (base * (Decimal("100") - (self.percent_off or 0)) / Decimal("100")).quantize(Decimal("0.01"))
 
 
 class LabPrice(models.Model):
@@ -194,6 +233,20 @@ class LabCase(TimeStampedModel):
         CONVENTIONAL = "conventional", _("Conventional impression")
         MODELS = "models", _("Models (poured)")
 
+    class Source(models.TextChoices):
+        FOLDER = "folder", _("In the scans folder on the server")
+        EMAIL = "email", _("By e-mail")
+        CLOUD = "cloud", _("On the scanner's cloud (3Shape, Medit...)")
+        WHATSAPP = "whatsapp", _("On WhatsApp")
+        USB = "usb", _("On a USB / disk")
+        PHYSICAL = "physical", _("An impression or models (scanned at the lab)")
+
+    class Output(models.TextChoices):
+        FOLDER = "folder", _("In the designs folder (for milling / printing)")
+        EMAIL = "email", _("Sent by e-mail (the mailing)")
+        CAM = "cam", _("Sent to the CAM PC")
+        USB = "usb", _("On a USB / disk")
+
     class RemakeReason(models.TextChoices):
         FIT = "fit", _("Does not fit / open margin")
         CONTACTS = "contacts", _("Contacts (tight / open)")
@@ -226,6 +279,14 @@ class LabCase(TimeStampedModel):
     patient_name = models.CharField(_("patient"), max_length=150, blank=True)
     impression = models.CharField(_("impression"), max_length=12, choices=Impression.choices,
                                   default=Impression.DIGITAL)
+    # Round 16: where the scan is (for the designer), and where the designer put the finished design (for the lab).
+    scan_source = models.CharField(_("the scan is"), max_length=10, choices=Source.choices, blank=True)
+    scan_location = models.CharField(_("where exactly"), max_length=255, blank=True,
+                                     help_text=_("The folder on the server, the e-mail's subject or sender, the "
+                                                 "scanner's cloud case..."))
+    design_output = models.CharField(_("the finished design was put"), max_length=10, choices=Output.choices,
+                                     blank=True)
+    design_location = models.CharField(_("where exactly (the design)"), max_length=255, blank=True)
     enclosures = models.JSONField(_("came with the work"), default=list, blank=True)
     stage = models.CharField(_("send for"), max_length=12, choices=LabRequest.Stage.choices,
                              default=LabRequest.Stage.FINAL)
@@ -342,6 +403,8 @@ class LabCaseStep(models.Model):
     done_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("moved on by"), null=True, blank=True,
                                 on_delete=models.SET_NULL, related_name="+")
     notes = models.CharField(_("notes"), max_length=255, blank=True)
+    machine = models.CharField(_("machine"), max_length=80, blank=True,
+                               help_text=_("The mill, printer, furnace or laser used (round 16)."))
 
     class Meta:
         ordering = ["started_at", "pk"]
@@ -426,6 +489,7 @@ class LabBlock(models.Model):
                             help_text=_("Written on the block. Empty = given by itself (B-0001...)."))
     lot = models.CharField(_("lot"), max_length=60, blank=True)
     shade = models.CharField(_("shade"), max_length=20, blank=True)
+    height = models.DecimalField(_("height / thickness (mm)"), max_digits=5, decimal_places=1, null=True, blank=True)
     status = models.CharField(_("status"), max_length=10, choices=Status.choices, default=Status.IN_USE,
                               db_index=True)
     opened_at = models.DateTimeField(_("opened at"), default=timezone.now)
@@ -442,6 +506,13 @@ class LabBlock(models.Model):
 
     def __str__(self):
         return f"{self.code} · {self.item.name}"
+
+    @property
+    def label(self):
+        """The block as chosen on a case: its number, the material, the shade, the height and the lot."""
+        parts = [self.code, self.item.name, self.shade, f"{self.height.normalize():f} mm" if self.height else "",
+                 f"lot {self.lot}" if self.lot else ""]
+        return " · ".join(part for part in parts if part)
 
     def get_absolute_url(self):
         return reverse("lab:block_detail", args=[self.pk])
@@ -561,6 +632,18 @@ class LabSettings(models.Model):
                                        help_text=_("Any word you choose, written the same in Meta's page."))
     wa_app_secret = models.CharField(_("app secret"), max_length=100, blank=True,
                                      help_text=_("Checks that each message really comes from WhatsApp."))
+    # Round 16: where the work comes and goes on the server, and the lab's machines.
+    scans_folder = models.CharField(
+        _("the scans folder on the server"), max_length=255, blank=True,
+        help_text=_("Where the clinics put the scans of their lab requests, e.g. \\\\LAB-SERVER\\Scans. A case from our "
+                    "clinics is shown there with its number."))
+    designs_folder = models.CharField(
+        _("the folder of the finished designs"), max_length=255, blank=True,
+        help_text=_("Where the designers put the finished designs for milling and printing."))
+    machines = models.TextField(
+        _("the lab's machines"), blank=True,
+        help_text=_("One per line, e.g. the zirconia mill, the titanium mill, the resin printer, the metal printer, the "
+                    "furnace, the laser. Chosen when a step on a machine is done."))
 
     class Meta:
         verbose_name = _("lab options")
@@ -568,6 +651,9 @@ class LabSettings(models.Model):
 
     def __str__(self):
         return str(_("Lab options"))
+
+    def machine_list(self):
+        return [line.strip() for line in self.machines.splitlines() if line.strip()]
 
     @classmethod
     def get(cls):

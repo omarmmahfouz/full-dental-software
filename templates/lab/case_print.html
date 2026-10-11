@@ -25,6 +25,7 @@
     <tbody>{% for item in items %}<tr><td class="fw-semibold">{{ item.work_type }}</td><td class="ltr">{{ item.teeth|default:"—" }}</td><td>{{ item.material|default:"—" }}</td><td class="text-end">{{ item.units }}</td>{% if money %}<td class="text-end">{{ item.unit_price|money }}</td><td class="text-end">{{ item.amount|money }}</td>{% endif %}</tr>{% endfor %}</tbody>
     {% if money %}<tfoot class="paper-total">{% if case.discount %}<tr><td colspan="5">{% trans "Discount" %}</td><td class="text-end">−{{ case.discount|money }}</td></tr>{% endif %}<tr><th colspan="5">{% trans "Price of the case" %}</th><th class="text-end">{{ case.total|money }} {{ CLINIC.CURRENCY }}</th></tr></tfoot>{% endif %}
   </table>
+  {% if arch %}<div class="mb-3 case-arch">{{ arch }}</div>{% endif %}
   {% if case.shade or case.instructions %}<div class="row g-3 mb-3">
     {% if case.shade %}<div class="col-sm-4"><div class="doc-subtitle">{% trans "Shade" %}</div>{{ case.shade }}</div>{% endif %}
     {% if case.instructions %}<div class="col-sm-8"><div class="doc-subtitle">{% trans "Instructions" %}</div><div class="letter-box">{{ case.instructions|linebreaksbr }}</div></div>{% endif %}

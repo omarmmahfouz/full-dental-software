@@ -8,7 +8,7 @@
     <div class="card mb-3"><div class="card-header"><i class="bi bi-layers"></i> {% trans "Blocks and discs in use" %}</div>
       <div class="table-responsive"><table class="table table-hover mb-0">
         <thead><tr><th>{% trans "Block" %}</th><th>{% trans "Item" %}</th><th>{% trans "Lot" %}</th><th>{% trans "Opened" %}</th><th class="text-end">{% trans "Units made" %}</th></tr></thead>
-        <tbody>{% for b in in_use %}<tr><td><a href="{{ b.get_absolute_url }}" class="fw-semibold">{{ b.code }}</a>{% if b.shade %} · {{ b.shade }}{% endif %}</td><td>{{ b.item.name }}</td><td>{{ b.lot|default:"—" }}</td><td>{{ b.opened_at|date:"d/m/Y" }}</td><td class="text-end fw-bold">{{ b.units }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">{% trans "No block open." %}</td></tr>{% endfor %}</tbody>
+        <tbody>{% for b in in_use %}<tr><td><a href="{{ b.get_absolute_url }}" class="fw-semibold">{{ b.code }}</a>{% if b.shade %} · {{ b.shade }}{% endif %}{% if b.height %} · {{ b.height|floatformat:"-1" }} mm{% endif %}</td><td>{{ b.item.name }}</td><td>{{ b.lot|default:"—" }}</td><td>{{ b.opened_at|date:"d/m/Y" }}</td><td class="text-end fw-bold">{{ b.units }}</td></tr>{% empty %}<tr><td colspan="5" class="text-muted">{% trans "No block open." %}</td></tr>{% endfor %}</tbody>
       </table></div>
     </div>
     {% if can_desk %}
@@ -33,14 +33,28 @@
         <tbody>{% for item in items %}<tr><td>{{ item.name }}<div class="small text-muted">{{ item.category }}</div></td><td class="text-end{% if item.is_low %} text-danger fw-bold{% endif %}">{{ item.quantity|floatformat:"-2" }} {{ item.unit }}</td></tr>{% empty %}<tr><td colspan="2" class="text-muted">{% trans "No item belongs to the lab yet: the stock manager adds them with Belongs to = the lab." %}</td></tr>{% endfor %}</tbody>
       </table></div>
     </div>
+    {% if item_form %}
+    <div class="card mb-3 no-print"><div class="card-header"><i class="bi bi-plus-circle"></i> {% trans "Add an item to the lab's stock" %}</div><div class="card-body">
+      <form method="post" action="{% url 'lab:stock_item_add' %}" data-no-leave-warning>{% csrf_token %}
+        {% with form=item_form %}{% include "includes/form_fields.html" %}{% endwith %}
+        <button class="btn btn-outline-primary mt-3"><i class="bi bi-plus-lg"></i> {% trans "Add" %}</button>
+      </form>
+    </div></div>
+    {% endif %}
     {% if can_desk and items %}
-    <div class="card no-print"><div class="card-header"><i class="bi bi-arrow-left-right"></i> {% trans "Take out or receive (liquids, stains, bond...)" %}</div><div class="card-body">
+    <div class="card mb-3 no-print"><div class="card-header"><i class="bi bi-arrow-left-right"></i> {% trans "Take out or receive (liquids, stains, bond...)" %}</div><div class="card-body">
       <form method="post" action="{% url 'lab:stock_move' %}" data-no-leave-warning>{% csrf_token %}
         {% with form=move_form %}{% include "includes/form_fields.html" %}{% endwith %}
         <button class="btn btn-primary mt-3"><i class="bi bi-check2"></i> {% trans "Save" %}</button>
       </form>
     </div></div>
     {% endif %}
+    <div class="card"><div class="card-header"><i class="bi bi-clock-history"></i> {% trans "In and out lately" %}</div>
+      <div class="list-group list-group-flush small">{% for m in moves %}
+        <div class="list-group-item d-flex justify-content-between gap-2"><span>{{ m.item.name }} · {{ m.get_kind_display }}{% if m.destination %} · <span class="text-muted">{{ m.destination }}</span>{% endif %}</span>
+          <span class="text-nowrap"><b class="{% if m.change < 0 %}text-danger{% else %}text-success{% endif %} ltr">{% if m.change > 0 %}+{% endif %}{{ m.change|floatformat:"-2" }}</b> · {{ m.moved_at|date:"d/m" }}</span></div>
+      {% empty %}<div class="list-group-item text-muted">{% trans "Nothing yet." %}</div>{% endfor %}</div>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -66,7 +66,8 @@ class CaseTests(LabMixin, TestCase):
         case = self.new_case()
         self.assertTrue(case.number.startswith("LAB-"))
         self.assertEqual(case.step, Step.RECEIVED)
-        self.assertEqual(case.route, ["received", "design", "milling", "sintering", "stain_glaze", "qc", "ready"])
+        self.assertEqual(case.route, ["received", "design", "cam", "milling", "sintering", "stain_glaze", "qc",
+                                      "ready"])  # the CAM before the milling (round 16)
         self.assertEqual(case.total, Decimal("3600"))  # 2 × 1,800 of the client's list
         self.assertEqual(case.due_date, timezone.localdate() + timedelta(days=7))  # the usual days of the work
         # The managers are told there is a case to give out.
@@ -87,8 +88,9 @@ class CaseTests(LabMixin, TestCase):
         services.move(case, Step.DESIGN, self.manager, worker=self.designers[0], now=start + timedelta(hours=1))
         # The designer (a CIA doctor with a login) is told.
         self.assertTrue(Notification.objects.filter(recipient=self.designer_user).exists())
-        self.assertEqual(services.next_step(case), Step.MILLING)
-        services.move(case, Step.MILLING, self.designer_user, now=start + timedelta(hours=9))
+        self.assertEqual(services.next_step(case), Step.CAM)  # the CAM before the milling (round 16)
+        services.move(case, Step.CAM, self.designer_user, now=start + timedelta(hours=9))
+        services.move(case, Step.MILLING, self.manager, now=start + timedelta(hours=9))
         self.assertEqual(case.worker, self.miller)  # the only person who mills: given to him by itself
         services.move(case, Step.SINTERING, self.manager, now=start + timedelta(hours=12))
         design = case.steps.get(step=Step.DESIGN)
@@ -115,12 +117,12 @@ class CaseTests(LabMixin, TestCase):
         services.move(case, Step.DESIGN, self.manager, worker=self.designers[1])
         self.client.login(username="designer", password=PASSWORD)
         # Not his case: refused.
-        self.assertEqual(self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": "milling"}).status_code, 403)
+        self.assertEqual(self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": "cam"}).status_code, 403)
         services.assign(case, self.designers[0], self.manager)
-        response = self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": "milling"})
+        response = self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": "cam", "design_output": "email"})
         self.assertEqual(response.status_code, 302)
         case.refresh_from_db()
-        self.assertEqual(case.step, Step.MILLING)
+        self.assertEqual(case.step, Step.CAM)
         # He cannot jump to another step, nor open the money pages.
         self.assertEqual(self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": "ready"}).status_code, 403)
         for url in ("/lab/clients/", "/lab/prices/", "/lab/receipts/", "/lab/report/", "/lab/cases/new/"):
@@ -508,3 +510,78 @@ class Round14LabDayTests(LabMixin, TestCase):
         month = self.client.get("/lab/day/month/")
         self.assertEqual(month.context["rows"][0]["total"], Decimal("1200"))
         self.assertContains(month, "/lab/day/?day=")
+
+
+class Round16LabTests(LabMixin, TestCase):
+    """Round 16: a special price list (its own prices, the rest from another list less a percentage), where the scan
+    is and where the designer put the design (the lab is told), the CAM and the machines, the block's height, the
+    lab's own stock items, and the natural teeth on the lab request."""
+
+    def test_a_special_list_takes_the_rest_less_a_percentage(self):
+        special = LabPriceList.objects.create(name="Dr. Heba (special)", based_on=self.outside_list,
+                                              percent_off=Decimal("10"))
+        self.clinic.price_list = special
+        self.clinic.save()
+        self.assertEqual(services.price_for(self.clinic, self.zirconia), Decimal("1620.00"))
+        LabPrice.objects.create(price_list=special, work_type=self.zirconia, price=Decimal("1500"))
+        self.assertEqual(services.price_for(self.clinic, self.zirconia), Decimal("1500"))
+        self.assertIsNone(services.price_for(self.clinic, self.denture))
+        self.client.login(username="head", password=PASSWORD)
+        page = self.client.get("/lab/prices/")
+        self.assertContains(page, "Dr. Heba (special)")
+
+    def test_the_designer_says_where_the_design_is(self):
+        options = LabSettings.get()
+        options.machines = "Zirconia mill\nFurnace"
+        options.designs_folder = r"\\LAB\Designs"
+        options.save()
+        case = self.new_case(scan_source=LabCase.Source.EMAIL, scan_location="from Dr. Heba")
+        services.start_case(case, self.secretary)
+        services.move(case, Step.DESIGN, self.manager, worker=self.designers[0])
+        self.client.login(username="designer", password=PASSWORD)
+        page = self.client.get("/lab/mine/")
+        self.assertContains(page, "from Dr. Heba")
+        self.assertContains(page, "Zirconia mill")
+        self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": Step.CAM})
+        case.refresh_from_db()
+        self.assertEqual(case.step, Step.DESIGN)  # where the design was put is needed
+        self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": Step.CAM, "design_output": "folder",
+                                                         "design_location": r"\\LAB\Designs\case"})
+        case.refresh_from_db()
+        self.assertEqual((case.step, case.design_output), (Step.CAM, "folder"))
+        self.assertTrue(Notification.objects.filter(recipient=self.manager, title__contains=case.number).exists())
+        # The CAM, then the milling written with its machine.
+        self.client.login(username="manager", password=PASSWORD)
+        self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": Step.MILLING})
+        self.client.post(f"/lab/cases/{case.pk}/move/", {"to_step": Step.SINTERING, "machine": "Zirconia mill"})
+        self.assertEqual(case.steps.get(step=Step.MILLING).machine, "Zirconia mill")
+
+    def test_the_lab_adds_its_items_and_opens_a_block_with_its_height(self):
+        from apps.stock.models import StockGroup
+
+        category = StockCategory.objects.filter(group=StockGroup.LAB, lab_blocks=True).first()
+        self.client.login(username="manager", password=PASSWORD)
+        self.client.post("/lab/stock/new-item/", {"name": "Zirconia disc A2 98x14", "category": category.pk,
+                                                  "unit": "disc", "quantity": "3", "unit_cost": "2500"})
+        item = StockItem.objects.get(name="Zirconia disc A2 98x14")
+        self.assertEqual((item.branch, item.quantity), (self.lab_place, Decimal("3")))
+        self.client.login(username="labsec", password=PASSWORD)
+        self.client.post("/lab/blocks/open/", {"item": item.pk, "lot": "L-77", "shade": "A2", "height": "14"})
+        block = LabBlock.objects.get()
+        self.assertEqual((block.height, block.lot), (Decimal("14.0"), "L-77"))
+        self.assertIn("14 mm", block.label)
+        page = self.client.get("/lab/blocks/")
+        self.assertEqual(page.context["moves"][0].item, item)
+
+    def test_a_doctor_who_designs_opens_his_lab_work(self):
+        doctor = make_user("cicdoc", "dentist")
+        self.client.login(username="head", password=PASSWORD)
+        self.client.post("/lab/staff/new/", {"name": "Dr. Ahmed Moharram", "user": doctor.pk, "jobs": [Step.DESIGN],
+                                             "is_active": "on", "sort_order": "0"})
+        self.assertTrue(doctor.groups.filter(name="lab_designer").exists())
+
+    def test_the_lab_request_shows_natural_teeth(self):
+        self.client.login(username="labsec", password=PASSWORD)
+        page = self.client.get("/lab/request-form/")
+        self.assertContains(page, 'class="lab-arch"')
+        self.assertContains(page, 'data-tooth="36"')

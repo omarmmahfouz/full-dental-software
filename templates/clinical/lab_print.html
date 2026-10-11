@@ -48,10 +48,7 @@
     </div>
     <div class="col-5">
       <div class="doc-subtitle">{% trans "The teeth" %}</div>
-      <div class="lab-teeth" aria-hidden="true">
-        <div class="lab-teeth-row">{% for tooth, on in upper %}<span class="{% if on %}is-on{% endif %}">{{ tooth }}</span>{% endfor %}</div>
-        <div class="lab-teeth-row">{% for tooth, on in lower %}<span class="{% if on %}is-on{% endif %}">{{ tooth }}</span>{% endfor %}</div>
-      </div>
+      {{ arch }}
     </div>
   </div>
 

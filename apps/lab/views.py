@@ -16,10 +16,11 @@ from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from apps.charting.odontogram import arch_picture
 from apps.clinical.models import LabRequest, LabWorkType
 from apps.core.mixins import role_required
 from apps.core.roles import (
-    LAB_DESK, LAB_MANAGERS, LAB_MONEY, LAB_SECRETARY, LAB_STAFF, has_role,
+    LAB_DESIGNER, LAB_DESK, LAB_MANAGERS, LAB_MONEY, LAB_SECRETARY, LAB_STAFF, has_role,
 )
 from apps.stock.models import StockMovement
 from apps.stock.services import record_movement
@@ -27,12 +28,13 @@ from apps.stock.services import record_movement
 from . import services, stats
 from . import whatsapp as wa
 from .forms import (
+    LabItemForm,
     AssignForm, BlockOpenForm, BlockUseForm, CancelForm, CaseFilterForm, CaseForm, ClientForm, FileForm,
     ItemFormSet, MoveForm, OutsourceForm, PaymentForm, PriceListForm, ReceiveForm, RemakeForm, SettingsForm,
     StockMoveForm, WorkerForm, lab_stock_items,
 )
 from .models import (
-    AWAY_STEPS, CLOSED_STEPS, STEP_ICONS, WORK_STEPS, LabBlock, LabCase, LabCaseItem, LabCaseStep, LabClient,
+    AWAY_STEPS, CLOSED_STEPS, MACHINE_STEPS, STEP_ICONS, WORK_STEPS, LabBlock, LabCase, LabCaseItem, LabCaseStep, LabClient,
     LabMessage, LabOutsource, LabPayment, LabPrice, LabPriceList, LabSettings, LabWorker, Step, lab_branch,
 )
 
@@ -63,6 +65,13 @@ def my_worker(user):
     if not hasattr(user, "_lab_worker"):
         user._lab_worker = LabWorker.objects.filter(user=user, is_active=True).first()
     return user._lab_worker
+
+
+def _finish_context():
+    """What the cards need to finish a design (where it was put) or a step on a machine (round 16)."""
+    options = LabSettings.get()
+    return {"design_outputs": LabCase.Output.choices, "designs_folder": options.designs_folder,
+            "machine_steps": [str(code) for code in MACHINE_STEPS], "machines": options.machine_list()}
 
 
 def open_cases():
@@ -120,6 +129,7 @@ def board(request):
         "columns": columns, "work_steps": [str(code) for code in WORK_STEPS], "numbers": stats.home_numbers(me), "workers": LabWorker.objects.filter(is_active=True),
         "clients": LabClient.objects.filter(is_active=True).select_related("branch"), "me": me,
         "filters": {"worker": worker_id, "client": client_id, "late": request.GET.get("late", "")},
+        **_finish_context(),
     })
 
 
@@ -180,6 +190,7 @@ def my_work(request):
     designed = LabCaseItem.objects.filter(case_id__in=designed_cases).aggregate(n=Sum("units"))["n"] or 0
     return render(request, "lab/my_work.html", {"worker": worker, "cases": cases, "done": done,
                                                 "work_steps": [str(code) for code in WORK_STEPS],
+                                                **_finish_context(),
                                                 "designed": designed,
                                                 "fee": (worker.fee_per_unit or 0) * designed})
 
@@ -285,11 +296,27 @@ def case_move(request, pk):
     worker_id = request.POST.get("worker", "")
     if worker_id.isdigit():
         worker = LabWorker.objects.filter(pk=worker_id, is_active=True).first()
+    finished_design = case.step == Step.DESIGN and to_step != Step.ON_HOLD
+    if finished_design:
+        # The designer says where he put the design (round 16): the folder for milling, the mailing...
+        output = request.POST.get("design_output", "")
+        if output not in LabCase.Output.values:
+            messages.error(request, _("Write where you put the finished design (the folder, the e-mail...)."))
+            return redirect(case)
+        case.design_output = output
+        case.design_location = request.POST.get("design_location", "").strip()[:255]
+        case.save(update_fields=["design_output", "design_location", "updated_at"])
+    machine = request.POST.get("machine", "").strip()[:80]
     try:
+        before = case.steps.filter(done_at__isnull=True).order_by("-pk").first()
         services.move(case, to_step, request.user, worker=worker, notes=request.POST.get("notes", ""))
+        if machine and before is not None:
+            LabCaseStep.objects.filter(pk=before.pk).update(machine=machine)
     except ValidationError as error:
         messages.error(request, " ".join(error.messages))
     else:
+        if finished_design:
+            services.tell_design_finished(case, request.user)
         messages.success(request, _("Case %(number)s: %(step)s.") % {"number": case.number,
                                                                      "step": case.get_step_display()})
     target = request.POST.get("next", "")
@@ -409,8 +436,12 @@ def case_block(request, pk):
 def case_print(request, pk):
     case = get_object_or_404(LabCase.objects.select_related("client__branch", "remake_of", "worker"), pk=pk)
     route = case.route or services.route_for(case)
+    from apps.charting.teeth import parse_teeth
+
+    items = list(case.items.select_related("work_type"))
+    teeth = {tooth for item in items for tooth in parse_teeth(item.teeth or "")}
     return render(request, "lab/case_print.html", {
-        "case": case, "items": case.items.select_related("work_type"), "place": lab_branch(),
+        "case": case, "items": items, "place": lab_branch(), "arch": arch_picture(teeth) if teeth else "",
         "route": [(code, dict(Step.choices)[code]) for code in route if code not in (Step.RECEIVED, Step.READY)],
         "money": has_role(request.user, *LAB_DESK) and request.GET.get("prices") != "0",
         "steps": {s.step: s for s in case.steps.select_related("worker") if s.done_at},
@@ -450,7 +481,33 @@ def blocks(request):
         "in_use": in_use, "finished": finished, "items": items, "open_form": BlockOpenForm(),
         "move_form": StockMoveForm(), "can_desk": has_role(request.user, *LAB_DESK),
         "place": lab_branch(),
+        # Round 16: the lab adds its own items, and sees what came in and went out.
+        "item_form": LabItemForm() if has_role(request.user, *LAB_MANAGERS) else None,
+        "moves": StockMovement.objects.filter(item__branch=lab_branch()).select_related(
+            "item", "created_by").order_by("-moved_at", "-pk")[:30],
     })
+
+
+@role_required(*LAB_MANAGERS)
+@require_POST
+def stock_item_add(request):
+    """A new item of the lab's stock, added by the head or the manager of the lab (round 16)."""
+    from apps.stock.models import StockItem
+
+    form = LabItemForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, " ".join(e for errors in form.errors.values() for e in errors))
+        return redirect("lab:blocks")
+    data = form.cleaned_data
+    with transaction.atomic():
+        item = StockItem.objects.create(name=data["name"], category=data["category"], unit=data.get("unit") or "",
+                                        min_quantity=data.get("min_quantity") or 0, branch=lab_branch(),
+                                        unit_cost=data.get("unit_cost"), created_by=request.user)
+        if data.get("quantity"):
+            record_movement(item, StockMovement.Kind.IN, data["quantity"], request.user, branch=lab_branch(),
+                            unit_cost=data.get("unit_cost"), destination=_("Added by the lab"))
+    messages.success(request, _("%(item)s added to the lab's stock.") % {"item": item.name})
+    return redirect("lab:blocks")
 
 
 @role_required(*LAB_DESK)
@@ -464,7 +521,7 @@ def block_open(request):
                            % {"item": data["item"].name})
             return redirect("lab:blocks")
         block = services.open_block(data["item"], request.user, data["code"], data["lot"], data["shade"],
-                                    data["notes"])
+                                    data["notes"], height=data.get("height"))
         messages.success(request, _("Block %(code)s opened.") % {"code": block.code})
     else:
         messages.error(request, _("Choose the block to open."))
@@ -633,7 +690,22 @@ def prices(request):
                             changed += 1
             messages.success(request, _("%(n)s prices saved.") % {"n": changed})
             return redirect("lab:prices")
-    rows = [{"work_type": wt, "cells": [(pl, current.get((pl.pk, wt.pk))) for pl in lists]} for wt in work_types]
+    by_pk = {pl.pk: pl for pl in lists}
+
+    def worked_out(price_list, work_type, seen=()):
+        """A special list's price where it has none of its own: the base list's, less its percentage (round 16)."""
+        own = current.get((price_list.pk, work_type.pk))
+        if own is not None:
+            return own.price
+        base = by_pk.get(price_list.based_on_id)
+        if base is None or base.pk in seen:
+            return None
+        value = worked_out(base, work_type, (*seen, price_list.pk))
+        return None if value is None else (value * (100 - price_list.percent_off) / 100).quantize(Decimal("0.01"))
+
+    rows = [{"work_type": wt, "cells": [(pl, current.get((pl.pk, wt.pk)),
+                                         worked_out(pl, wt) if pl.based_on_id else None) for pl in lists]}
+            for wt in work_types]
     clients = LabClient.objects.select_related("branch").order_by("price_list__name")
     return render(request, "lab/prices.html", {"lists": lists, "rows": rows, "list_form": list_form,
                                                "clients": clients})
@@ -818,7 +890,13 @@ def worker_edit(request, pk=None):
     if not has_role(request.user, *LAB_MONEY):
         form.fields.pop("fee_per_unit")
     if request.method == "POST" and form.is_valid():
-        form.save()
+        worker = form.save()
+        if worker.user_id and not has_role(worker.user, *LAB_STAFF):
+            # A doctor of CIA, CIC or El Khadem who designs for the lab: he opens My lab work from his login (round 16).
+            from django.contrib.auth.models import Group
+
+            worker.user.groups.add(Group.objects.get_or_create(name=LAB_DESIGNER)[0])
+            messages.info(request, _("%(name)s can now open My lab work with his own login.") % {"name": worker.user})
         messages.success(request, _("Saved."))
         return redirect("lab:staff")
     return render(request, "includes/form_page.html", {
@@ -851,8 +929,7 @@ def universal_form(request):
     return render(request, "lab/universal_form.html", {
         "place": lab_branch(), "groups": groups, "enclosures": LabRequest.ENCLOSURES,
         "stages": LabRequest.Stage.choices, "impressions": LabCase.Impression.choices,
-        "upper": [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28],
-        "lower": [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38],
+        "arch": arch_picture(),  # blank natural teeth to tick by hand (round 16)
         "margins": LabRequest.Margin.choices, "pontics": LabRequest.Pontic.choices})
 
 

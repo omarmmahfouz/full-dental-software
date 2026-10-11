@@ -61,6 +61,9 @@
       <form method="post" action="{% url 'lab:case_move' case.pk %}" class="mt-3" data-no-leave-warning>{% csrf_token %}
         <input type="hidden" name="to_step" value="{{ next }}">
         {% if is_manager and next != "delivered" %}<div class="mb-2"><label class="form-label small mb-1">{% blocktrans %}Who does {{ next_label }}?{% endblocktrans %}</label>{{ move_form.worker }}</div>{% endif %}
+        {% if move_form.design_output %}<div class="mb-2"><label class="form-label small mb-1">{{ move_form.design_output.label }}</label>{{ move_form.design_output }}
+          <label class="form-label small mb-1 mt-1">{{ move_form.design_location.label }}</label>{{ move_form.design_location }}</div>{% endif %}
+        {% if move_form.machine %}<div class="mb-2"><label class="form-label small mb-1">{{ move_form.machine.label }}</label>{{ move_form.machine }}</div>{% endif %}
         <button class="btn btn-primary w-100 lab-next-btn"><i class="bi bi-arrow-{% if RTL %}left{% else %}right{% endif %}-circle"></i> {% if next == "delivered" %}{% trans "Delivered: it left the lab" %}{% else %}{% blocktrans %}Done: go on to {{ next_label }}{% endblocktrans %}{% endif %}</button>
       </form>
       {% endif %}
@@ -88,6 +91,8 @@
         <dt>{% trans "Doctor" %}</dt><dd>{{ case.doctor|default:"—" }}{% if case.doctor_phone %} · <span class="ltr">{{ case.doctor_phone }}</span>{% endif %}</dd>
         <dt>{% trans "Patient" %}</dt><dd>{{ case.patient_name|default:"—" }}</dd>
         <dt>{% trans "Impression" %}</dt><dd>{{ case.get_impression_display }}</dd>
+        {% if case.scan_source %}<dt>{% trans "The scan is" %}</dt><dd>{{ case.get_scan_source_display }}{% if case.scan_location %}<div class="small ltr">{{ case.scan_location }}</div>{% endif %}</dd>{% endif %}
+        {% if case.design_output %}<dt>{% trans "The finished design" %}</dt><dd>{{ case.get_design_output_display }}{% if case.design_location %}<div class="small ltr">{{ case.design_location }}</div>{% endif %}</dd>{% endif %}
         <dt>{% trans "Send for" %}</dt><dd>{{ case.get_stage_display }}</dd>
         {% if case.shade %}<dt>{% trans "Shade" %}</dt><dd>{{ case.shade }}</dd>{% endif %}
         {% if case.enclosures %}<dt>{% trans "Came with the work" %}</dt><dd>{% for code, label in enclosure_choices %}{% if code in case.enclosures %}{{ label }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}</dd>{% endif %}
@@ -129,7 +134,7 @@
         {% for s in steps %}
         <div class="lab-time-row step-{{ s.step }}{% if not s.done_at %} is-open{% endif %}">
           <div><i class="bi {{ s.icon }}"></i> <b>{{ s.get_step_display }}</b>{% if s.worker %} · {{ s.worker }}{% endif %}
-            <div class="small text-muted">{{ s.started_at|date:"d/m g:i A" }}{% if s.done_at and s.step != "delivered" and s.step != "cancelled" %} → {{ s.done_at|date:"d/m g:i A" }}{% endif %}{% if not s.completed %} · {% trans "paused" %}{% endif %}{% if s.notes %} · {{ s.notes }}{% endif %}</div></div>
+            <div class="small text-muted">{{ s.started_at|date:"d/m g:i A" }}{% if s.done_at and s.step != "delivered" and s.step != "cancelled" %} → {{ s.done_at|date:"d/m g:i A" }}{% endif %}{% if not s.completed %} · {% trans "paused" %}{% endif %}{% if s.machine %} · <i class="bi bi-cpu"></i> {{ s.machine }}{% endif %}{% if s.notes %} · {{ s.notes }}{% endif %}</div></div>
           {% if s.width %}<div class="bar-track"><div class="bar-fill" style="width: {{ s.width }}%"></div></div>
           <div class="small text-nowrap">{% if s.hours < 1 %}{% trans "under 1 h" %}{% elif s.hours < 48 %}{{ s.hours|floatformat:"1" }} {% trans "h" %}{% else %}{% widthratio s.hours 24 1 %} {% trans "days" %}{% endif %}{% if not s.done_at %} …{% endif %}</div>{% else %}<div></div><div></div>{% endif %}
         </div>
@@ -140,7 +145,7 @@
     <div class="row g-3">
       <div class="col-md-6">
         <div class="card mb-3 h-100"><div class="card-header"><i class="bi bi-layers"></i> {% trans "Blocks used" %}</div><div class="card-body">
-          {% for u in blocks %}<div class="small"><a href="{{ u.block.get_absolute_url }}">{{ u.block.code }}</a> · {{ u.block.item.name }} · <b>{{ u.units }}</b> {% trans "unit(s)" %}</div>{% empty %}<div class="small text-muted">{% trans "None recorded." %}</div>{% endfor %}
+          {% for u in blocks %}<div class="small"><a href="{{ u.block.get_absolute_url }}">{{ u.block.code }}</a> · {{ u.block.item.name }}{% if u.block.shade %} · {{ u.block.shade }}{% endif %}{% if u.block.height %} · {{ u.block.height|floatformat:"-1" }} mm{% endif %}{% if u.block.lot %} · lot {{ u.block.lot }}{% endif %} · <b>{{ u.units }}</b> {% trans "unit(s)" %}</div>{% empty %}<div class="small text-muted">{% trans "None recorded." %}</div>{% endfor %}
           <form method="post" action="{% url 'lab:case_block' case.pk %}" class="d-flex flex-wrap gap-2 mt-2 no-print" data-no-leave-warning>{% csrf_token %}
             <div class="flex-grow-1">{{ block_form.block }}</div><div style="width: 5rem">{{ block_form.units }}</div>
             <button class="btn btn-sm btn-outline-primary"><i class="bi bi-plus"></i> {% trans "Add" %}</button>

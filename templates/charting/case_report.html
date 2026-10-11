@@ -56,7 +56,7 @@
   {% for s in surgeries %}
   <section class="report-section mb-4 pdf-block">
     <h2 class="h6 fw-bold text-uppercase" style="color:var(--brand-green-darker)">{% trans "Surgery" %} {{ s.number }} — {{ s.date|date:"d/m/Y" }} ({{ s.get_difficulty_display }})</h2>
-    <div class="small mb-2"><b>{% trans "Instructor" %}:</b> {{ s.instructor|default:"—" }} · <b>{% trans "Operator 1" %}:</b> {{ s.operator_1 }} · <b>{% trans "Operator 2" %}:</b> {{ s.operator_2|default:"—" }} · <b>{% trans "Assistant" %}:</b> {{ s.assistant|default:"—" }}</div>
+    <div class="small mb-2">{% if s.main_supervisor %}<b>{% trans "Main supervisor" %}:</b> {{ s.main_supervisor }} · {% endif %}<b>{% trans "Instructor" %}:</b> {{ s.instructor|default:"—" }} · <b>{% trans "Operator 1" %}:</b> {{ s.operator_1 }} · <b>{% trans "Operator 2" %}:</b> {{ s.operator_2|default:"—" }} · <b>{% trans "Assistant" %}:</b> {{ s.assistant|default:"—" }}</div>
     <table class="table table-sm table-bordered small">
       <thead><tr><th>{% trans "Tooth" %}</th><th>{% trans "Procedures" %}</th><th>{% trans "Implant" %}</th><th>{% trans "Torque / ISQ" %}</th><th>{% trans "Status" %}</th></tr></thead>
       <tbody>{% for site in s.sites.all %}<tr>

@@ -52,6 +52,7 @@ from apps.specialties.services import link_booking as link_referral
 
 from .patient_requests import link_booking
 from apps.patients.calllists import link_call_entry
+from .drafts import link_draft
 from .waiting import link_waiting, place_freed
 from .free_times import day_slots, dentist_day, free_times
 from .whatsapp import record, whatsapp_number, whatsapp_url
@@ -517,6 +518,7 @@ def appointment_create(request):
                 place_freed(old, request)
             link_booking(request, appointment)
             link_call_entry(request, appointment)
+            link_draft(request, appointment)
             link_waiting(request, appointment)
             link_referral(request, appointment)
             tell_dentists(appointment, gettext_lazy("New appointment with you"), request)

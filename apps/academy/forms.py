@@ -16,7 +16,9 @@ from apps.core.forms import (
     validate_upload,
 )
 
-from .models import Candidate, Course, Enrollment, Installment, Payment, PaymentMethod
+from .models import (
+    Candidate, Course, CourseTarget, Enrollment, EnrollmentExtra, Installment, Payment, PaymentMethod,
+)
 
 
 def add_months(day, months):
@@ -39,7 +41,41 @@ class CourseForm(StyledModelForm):
     class Meta:
         model = Course
         fields = ["name", "code", "kind", "batch_number", "start_date", "end_date", "fee", "capacity",
-                  "implants_required", "is_active", "description"]
+                  "is_active", "description"]
+
+
+class CourseTargetForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = CourseTarget
+        fields = ["kind", "count"]
+
+
+class BaseTargetFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        kinds = [f.cleaned_data.get("kind") for f in self.forms
+                 if getattr(f, "cleaned_data", None) and not f.cleaned_data.get("DELETE") and f.cleaned_data.get("kind")]
+        if len(kinds) != len(set(kinds)):
+            raise forms.ValidationError(_("Each procedure once: change its number instead."))
+
+
+# The content of a course (round 16): how many of each procedure every candidate does.
+CourseTargetFormSet = inlineformset_factory(Course, CourseTarget, form=CourseTargetForm, formset=BaseTargetFormSet,
+                                            extra=3, can_delete=True)
+
+
+class ExtraForm(StyledModelForm):
+    """Extra cases a candidate asked for, e.g. 5 more implants (round 16)."""
+
+    class Meta:
+        model = EnrollmentExtra
+        fields = ["kind", "count", "added_on", "fee", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("kind", "count", "added_on", "fee"):
+            self.fields[name].col = "col-6 col-md-3"
+        self.fields["notes"].col = "col-12"
 
 
 class CandidateForm(StyledModelForm):

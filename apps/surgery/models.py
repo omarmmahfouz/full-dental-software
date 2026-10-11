@@ -94,6 +94,10 @@ class Surgery(TimeStampedModel):
         "dentists.Dentist", verbose_name=_("instructor"), null=True, blank=True, on_delete=models.SET_NULL,
         related_name="surgeries_instructed",
     )
+    main_supervisor = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("main supervisor"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="surgeries_main_supervised",
+        help_text=_("The professor the day is under (a title only); the instructor stands with the candidates."))
     operator_1 = models.ForeignKey(
         "dentists.Dentist", verbose_name=_("operator 1"), on_delete=models.PROTECT, related_name="surgeries_as_op1"
     )
@@ -906,8 +910,15 @@ class DaySupervisor(models.Model):
 
     branch = models.ForeignKey(Branch, verbose_name=_("place"), on_delete=models.CASCADE, related_name="+")
     date = models.DateField(_("date"), default=timezone.localdate, db_index=True)
+    class Role(models.TextChoices):
+        INSTRUCTOR = "instructor", _("Instructor (stands with the candidates)")
+        MAIN = "main", _("Main supervisor (the day is under his name)")
+
     supervisor = models.ForeignKey("dentists.Dentist", verbose_name=_("supervisor"), on_delete=models.PROTECT,
                                    related_name="days_supervised")
+    # Round 16: the instructor stands with the candidates; the main supervisor (a professor) only gives his name to
+    # the day ("under the supervision of Prof. Amr El Khadem, instructor Dr. Heba").
+    role = models.CharField(_("as"), max_length=12, choices=Role.choices, default=Role.INSTRUCTOR)
     from_time = models.TimeField(_("from"), null=True, blank=True)
     to_time = models.TimeField(_("to"), null=True, blank=True)
     notes = models.CharField(_("notes"), max_length=255, blank=True)
@@ -928,9 +939,16 @@ class DaySupervisor(models.Model):
     @classmethod
     def on(cls, branch, day, at=None):
         """The supervisor of that day at that place: the one whose hours hold ``at`` (a time), else the only one."""
-        rows = list(cls.objects.filter(branch=branch, date=day).select_related("supervisor"))
+        rows = list(cls.objects.filter(branch=branch, date=day, role=cls.Role.INSTRUCTOR).select_related(
+            "supervisor"))
         if at is not None:
             for row in rows:
                 if row.from_time and row.to_time and row.from_time <= at < row.to_time:
                     return row.supervisor
         return rows[0].supervisor if len(rows) == 1 else None
+
+    @classmethod
+    def main_on(cls, branch, day):
+        """The main supervisor of the day (a title only), or None."""
+        row = cls.objects.filter(branch=branch, date=day, role=cls.Role.MAIN).select_related("supervisor").first()
+        return row.supervisor if row else None

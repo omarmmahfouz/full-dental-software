@@ -13,7 +13,7 @@
 <div class="card mb-3"><div class="table-responsive"><table class="table table-hover mb-0 align-middle">
   <thead><tr>
     <th>{% trans "Dentist" %}</th><th>{% trans "Surgeries" %}</th><th>{% trans "Implants" %}</th><th>{% trans "Remaining (course)" %}</th><th>{% trans "Failed" %}</th>
-    <th>{% trans "Treatments" %}</th><th>{% trans "Checked" %}</th><th>{% trans "Average grade" %}</th><th>{% trans "Lab requests" %}</th>
+    <th>{% trans "Treatments" %}</th><th>{% trans "Checked" %}</th>{% if sees_grades %}<th>{% trans "Average grade" %}</th>{% endif %}<th>{% trans "Lab requests" %}</th>
     <th>{% trans "Active patients" %}</th><th>{% trans "Complaints" %}</th><th>{% trans "Scheduled hours" %}</th><th>{% trans "Chair hours" %}</th><th>{% trans "Patient no-shows" %}</th>
   </tr></thead>
   <tbody>
@@ -26,7 +26,7 @@
     <td>{% if r.failed %}<span class="text-danger">{{ r.failed }}</span>{% else %}0{% endif %}</td>
     <td>{{ r.steps }}</td>
     <td>{{ r.checked }}{% if r.steps %} <span class="text-muted small">({% widthratio r.checked r.steps 100 %}%)</span>{% endif %}</td>
-    <td>{% if r.grade %}{{ r.grade }}/5{% else %}—{% endif %}</td>
+    {% if sees_grades %}<td>{% if r.grade %}{{ r.grade }}/5{% else %}—{% endif %}</td>{% endif %}
     <td>{{ r.labs }}{% if r.remakes %} <span class="text-danger small">({{ r.remakes }} {% trans "remake" %})</span>{% endif %}</td>
     <td>{{ r.patients }}</td><td>{% if r.complaints %}<span class="text-danger fw-bold">{{ r.complaints }}</span>{% else %}0{% endif %}</td>
     <td>{{ r.shift_hours }}</td><td>{{ r.chair_hours }}</td><td>{{ r.no_shows }}</td>

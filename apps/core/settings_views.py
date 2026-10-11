@@ -267,7 +267,7 @@ class OptionsForm(StyledModelForm):
                   "dicom_email", "fawry_fee_percent", "hba1c_limit", "glucose_limit", "systolic_limit",
                   "diastolic_limit", "hba1c_recheck_days", "readings_recheck_days", "follow_up_sinus_days",
                   "follow_up_graft_days", "follow_up_days", "idle_logout_minutes", "force_strong_passwords",
-                  "one_device_per_login"]
+                  "one_device_per_login", "data_entry_until"]
         widgets = {"surgery_days": WeekdaysWidget}
 
 
@@ -299,7 +299,7 @@ class UserForm(StyledForm):
         help_text=gettext_lazy("E.g. the secretary at CIA and CIC; the lab's staff at the lab. With more than one place, "
                                "a switch in the top bar chooses where they work now. The owner works everywhere."))
     dentist = forms.ModelChoiceField(label=gettext_lazy("dentist record"), required=False,
-                                     queryset=Dentist.objects.filter(kind__in=Dentist.LOGIN_KINDS),
+                                     queryset=Dentist.objects.filter(kind__in=Dentist.CAN_LOG_IN),
                                      help_text=gettext_lazy("For CIA dentists: the dentist this login belongs to."))
     read_only = forms.BooleanField(label=gettext_lazy("read only everywhere"), required=False)
     access_from = forms.DateField(label=gettext_lazy("access starts on"), required=False)

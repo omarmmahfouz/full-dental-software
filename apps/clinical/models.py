@@ -221,6 +221,7 @@ class LabCategory(models.TextChoices):
     METAL_PRINT = "metal_print", _("Metal printing (CoCr / titanium)")
     TI_MILL = "ti_mill", _("Titanium milling")
     PRINT_MILL = "print_mill", _("Metal printed, then finished by milling")
+    LASER_CUT = "laser_cut", _("Laser cutting / welding")
     REMOVABLE = "removable", _("Removable dentures")
     SPLINT = "splint", _("Splints, night guards and orthodontic appliances")
     OTHER = "other", _("Other")
@@ -530,3 +531,49 @@ class OutsideRequest(TimeStampedModel):
     def purpose_labels(self):
         labels = dict(self.PURPOSES)
         return [labels[code] for code in self.purposes if code in labels]
+
+
+class WorkGrade(TimeStampedModel):
+    """A supervisor's (or an instructor's) approval and grade of a dentist's work (round 16): one treatment step,
+    one surgery, or the dentist's overall level from time to time (is he ready for the next level?), with his notes.
+    Seen by the owner and the head of CIA only. An instructor without a login has his grades written by the CIA
+    junior who opens the page for him (``for_instructor``)."""
+
+    class Kind(models.TextChoices):
+        STEP = "step", _("Treatment step")
+        SURGERY = "surgery", _("Surgery")
+        OVERALL = "overall", _("Overall level")
+
+    class Readiness(models.TextChoices):
+        NOT_YET = "not_yet", _("Not ready yet")
+        ALMOST = "almost", _("Getting there")
+        READY = "ready", _("Ready for the next level")
+
+    GRADES = [(i, str(i)) for i in range(1, 6)]
+
+    dentist = models.ForeignKey("dentists.Dentist", verbose_name=_("dentist graded"), on_delete=models.CASCADE,
+                                related_name="grades")
+    kind = models.CharField(_("what"), max_length=10, choices=Kind.choices)
+    step = models.ForeignKey(TreatmentStep, verbose_name=_("treatment step"), null=True, blank=True,
+                             on_delete=models.CASCADE, related_name="grades")
+    surgery = models.ForeignKey("surgery.Surgery", verbose_name=_("surgery"), null=True, blank=True,
+                                on_delete=models.CASCADE, related_name="grades")
+    role = models.CharField(_("as"), max_length=20, blank=True)
+    approved = models.BooleanField(_("approved"), default=True)
+    grade = models.PositiveSmallIntegerField(_("grade"), null=True, blank=True, choices=GRADES,
+                                             help_text=_("From 1 (poor) to 5 (excellent)."))
+    readiness = models.CharField(_("ready for the next level?"), max_length=10, choices=Readiness.choices,
+                                 blank=True)
+    level = models.CharField(_("level now"), max_length=60, blank=True)
+    notes = models.TextField(_("notes"), blank=True)
+    graded_by = models.ForeignKey("dentists.Dentist", verbose_name=_("supervisor / instructor"), null=True,
+                                  blank=True, on_delete=models.SET_NULL, related_name="grades_given")
+    for_instructor = models.BooleanField(_("written for the instructor"), default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("grade")
+        verbose_name_plural = _("grades")
+
+    def __str__(self):
+        return f"{self.dentist} — {self.get_kind_display()} {self.grade or ''}"

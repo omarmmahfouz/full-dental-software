@@ -28,7 +28,7 @@ class DaySupervisorForm(StyledModelForm):
 
     class Meta:
         model = DaySupervisor
-        fields = ["supervisor", "from_time", "to_time", "notes"]
+        fields = ["supervisor", "role", "from_time", "to_time", "notes"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,6 +36,11 @@ class DaySupervisorForm(StyledModelForm):
             self.fields[name].col = "col-6 col-md-3"
         self.fields["from_time"].help_text = _("Only when two supervisors share the day.")
         self.fields["supervisor"].col = "col-md-6"
+        self.fields["role"].col = "col-md-6"
+        self.fields["role"].required = False
+
+    def clean_role(self):
+        return self.cleaned_data.get("role") or DaySupervisor.Role.INSTRUCTOR
         self.fields["notes"].col = "col-12"
 
 
@@ -62,13 +67,18 @@ def surgery_day(request):
             messages.warning(request, _("%(name)s is already written for this day.") % {"name": row.supervisor})
         else:
             filled = fill_instructor(place, day)
+            if row.role == DaySupervisor.Role.MAIN:
+                messages.success(request, _("Saved: the day is under the supervision of %(name)s.") % {
+                    "name": row.supervisor})
+                return redirect(f"{reverse('surgery:day')}?date={day.isoformat()}")
             messages.success(request, _("Saved: %(name)s supervised the surgery day.") % {"name": row.supervisor}
                              + (" " + _("Written on %(n)s surgeries of the day.") % {"n": filled} if filled else ""))
         return redirect(f"{reverse('surgery:day')}?date={day.isoformat()}")
     from apps.scheduling.models import RoomShift
 
     surgeries = list(Surgery.objects.filter(branch=place, date=day).select_related(
-        "patient", "instructor", "operator_1", "operator_2", "assistant").prefetch_related("sites__operator"))
+        "patient", "instructor", "main_supervisor", "operator_1", "operator_2", "assistant").prefetch_related(
+        "sites__operator"))
     for surgery in surgeries:
         surgery.teeth_by = {}
         for site in surgery.sites.all():
@@ -85,7 +95,11 @@ def surgery_day(request):
 
 
 def fill_instructor(place, day):
-    """The day's surgeries without an instructor take the supervisor of the day (or of their hours)."""
+    """The day's surgeries without an instructor take the supervisor of the day (or of their hours), and the main
+    supervisor of the day (round 16)."""
+    main = DaySupervisor.main_on(place, day)
+    if main is not None:
+        Surgery.objects.filter(branch=place, date=day, main_supervisor__isnull=True).update(main_supervisor=main)
     filled = 0
     for surgery in Surgery.objects.filter(branch=place, date=day, instructor__isnull=True).select_related(
             "appointment"):

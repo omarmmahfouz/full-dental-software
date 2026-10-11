@@ -316,6 +316,15 @@ class ClinicSettings(models.Model):
     one_device_per_login = models.BooleanField(
         _("one device per login"), default=True,
         help_text=_("A login opened on a second PC or tablet logs out the first one (it is told why)."))
+    # Round 16: the old cases typed in from paper: work dated before this day takes the team's names freely; from
+    # this day each dentist writes with his own login (he is the assistant unless he operated) and a change of the
+    # team after saving waits for the head of CIA.
+    data_entry_until = models.DateField(
+        _("old cases typed in: work before"), null=True, blank=True,
+        help_text=_("Work dated before this day (typed in from the paper charts) takes any names for the team. From "
+                    "this day each dentist writes with his own login: he is written as the assistant unless he "
+                    "operated, and changing the team after saving needs the head of CIA's approval. Empty: every "
+                    "record is written live."))
 
     class Meta:
         verbose_name = _("clinic options")
@@ -327,6 +336,10 @@ class ClinicSettings(models.Model):
     @property
     def surgery_weekdays(self):
         return {int(day) for day in self.surgery_days.split(",") if day.strip().isdigit()}
+
+    def is_live(self, day):
+        """True for work written live (on or after the data entry date), False for old cases typed in."""
+        return self.data_entry_until is None or day is None or day >= self.data_entry_until
 
     @classmethod
     def get(cls):

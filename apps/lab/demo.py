@@ -74,7 +74,7 @@ def load_lab(today, at, make_user, owner):
     rng = random.Random(53)
     now = timezone.now()
     lab_place = Branch.objects.get(kind=Branch.Kind.LAB)
-    Branch.objects.filter(pk=lab_place.pk).update(phone="01099998888", address="Nasr City, Cairo",
+    Branch.objects.filter(pk=lab_place.pk).update(phone="01099998888", address="Zahraa El Maadi, Cairo",
                                                   tagline="The art of dentistry")
     lab_place.refresh_from_db()
 

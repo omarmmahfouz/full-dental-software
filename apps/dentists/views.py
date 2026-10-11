@@ -111,6 +111,17 @@ def _opens(user):
     }
 
 
+def _grades(user, dentist):
+    """The supervisors' grades and notes (round 16): for the owner and the head of CIA only."""
+    if not has_role(user, OWNER, HEAD_CIA):
+        return {"grades": None}
+    from apps.clinical.grading import grades_of, grades_summary
+    from apps.clinical.models import WorkGrade
+
+    return {"grades": list(grades_of(dentist)[:60]), "grade_summary": grades_summary(dentist),
+            "grade_kinds": WorkGrade.Kind.choices}
+
+
 def dentist_detail(request, pk):
     dentist = get_object_or_404(Dentist.objects.select_related("candidate", "user"), pk=pk)
     if not can_open_dentist_file(request.user, dentist):
@@ -123,11 +134,15 @@ def dentist_detail(request, pk):
     failed = status_counts.get(SurgerySite.ImplantStatus.FAILED, 0)
 
     enrollment = required = remaining = None
+    target_rows = []
     if dentist.candidate_id:
         enrollment = dentist.candidate.current_enrollment
         if enrollment is not None:
+            from apps.academy.targets import progress
+
             required = enrollment.implants_required
             remaining = max(required - placed, 0) if required else None
+            target_rows = progress(enrollment)  # the course's content: implants, sinus lifts, GBR... (round 16)
 
     surgeries = Surgery.objects.filter(
         Q(operator_1=dentist) | Q(operator_2=dentist) | Q(assistant=dentist) | Q(instructor=dentist)
@@ -157,6 +172,7 @@ def dentist_detail(request, pk):
 
     return render(request, "dentists/dentist_detail.html", {
         "dentist": dentist, "enrollment": enrollment, "required": required, "remaining": remaining,
+        "target_rows": target_rows, **_grades(request.user, dentist),
         "placed": placed, "failed": failed, "survival": round(100 * (placed - failed) / placed, 1) if placed else None,
         "status_counts": [(label, status_counts.get(code, 0)) for code, label in SurgerySite.ImplantStatus.choices],
         "implants_op2": implants_op2.count(),

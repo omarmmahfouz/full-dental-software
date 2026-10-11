@@ -191,3 +191,73 @@ class Round15AcademyTests(TestCase):
         self.assertEqual(surgery.instructor, self.supervisor)  # the surgery of the day takes him
         form = self.client.get("/surgery/new/").context["form"]
         self.assertEqual(form.initial["instructor"], self.supervisor)
+        # Round 16: the main supervisor of the day (a title only) is written apart from the instructor.
+        professor = type(self.supervisor).objects.create(full_name="Prof. Amr", kind="supervisor")
+        self.client.post("/surgery/day/", {"supervisor": professor.pk, "role": "main"})
+        surgery.refresh_from_db()
+        self.assertEqual((surgery.instructor, surgery.main_supervisor), (self.supervisor, professor))
+        self.assertContains(self.client.get(f"/chart/patient/{patient.pk}/case-report/"), "Prof. Amr")
+
+
+class Round16CourseContentTests(TestCase):
+    """Round 16: a course says what each candidate does (40 implants, 2 sinus lifts, 1 GBR); a candidate may add
+    extra cases; his page counts what he did from the teeth he operated."""
+
+    def setUp(self):
+        from apps.academy.models import CourseTarget
+
+        self.branch = setup_clinic()
+        make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+        self.course = Course.objects.create(branch=self.branch, name="Implant diploma", code="IMP-10",
+                                            batch_number=10, fee=Decimal("40000"), implants_required=4)
+        CourseTarget.objects.create(course=self.course, kind="implants", count=4)
+        CourseTarget.objects.create(course=self.course, kind="open_sinus", count=2)
+        self.person = Candidate.objects.create(full_name="Dr. Mona", phone_primary="01001234561")
+        self.enrollment = Enrollment.objects.create(candidate=self.person, course=self.course,
+                                                    agreed_fee=self.course.fee)
+
+    def operate(self, *teeth, **procedures):
+        from apps.core.testing import make_patient
+        from apps.surgery.models import Surgery, SurgerySite
+
+        self.patients = getattr(self, "patients", 0) + 1
+        patient = make_patient(self.branch, nid=f"2850101010{self.patients:04d}", phone=f"0111222{self.patients:04d}")
+        surgery = Surgery.objects.create(branch=self.branch, patient=patient, operator_1=self.person.dentist)
+        for tooth in teeth:
+            SurgerySite.objects.create(surgery=surgery, tooth=tooth, simple_implant=True, implant_status="placed",
+                                       **procedures)
+
+    def test_the_course_form_keeps_its_content(self):
+        response = self.client.post(f"/academy/courses/{self.course.pk}/edit/", {
+            "name": "Implant diploma", "code": "IMP-10", "kind": "regular", "batch_number": "10",
+            "fee": "40000", "is_active": "on",
+            "targets-TOTAL_FORMS": "3", "targets-INITIAL_FORMS": "2", "targets-MIN_NUM_FORMS": "0",
+            "targets-MAX_NUM_FORMS": "1000",
+            "targets-0-id": self.course.targets.get(kind="implants").pk, "targets-0-kind": "implants",
+            "targets-0-count": "40",
+            "targets-1-id": self.course.targets.get(kind="open_sinus").pk, "targets-1-kind": "open_sinus",
+            "targets-1-count": "2",
+            "targets-2-kind": "gbr", "targets-2-count": "1"})
+        self.assertRedirects(response, self.course.get_absolute_url(), fetch_redirect_response=False)
+        self.course.refresh_from_db()
+        self.assertEqual(self.course.implants_required, 40)
+        self.assertEqual(sorted(self.course.targets.values_list("kind", "count")),
+                         [("gbr", 1), ("implants", 40), ("open_sinus", 2)])
+        self.assertContains(self.client.get(self.course.get_absolute_url()), "1 GBR")
+
+    def test_what_he_did_and_the_extras(self):
+        from apps.academy.targets import progress
+
+        self.operate(36, 46)
+        self.operate(16, open_sinus=True)
+        self.client.post(f"/academy/enrollments/{self.enrollment.pk}/extra/", {
+            "extra-kind": "implants", "extra-count": "5", "extra-added_on": "01/10/2026"})
+        self.assertEqual(self.enrollment.extras.get().count, 5)
+        self.assertEqual(self.enrollment.implants_required, 9)
+        rows = {row["kind"]: row for row in progress(self.enrollment)}
+        self.assertEqual((rows["implants"]["done"], rows["implants"]["target"], rows["implants"]["left"]), (3, 9, 6))
+        self.assertEqual((rows["open_sinus"]["done"], rows["open_sinus"]["left"]), (1, 1))
+        page = self.client.get(self.person.get_absolute_url())
+        self.assertContains(page, "6 left")
+        self.assertContains(self.client.get(self.person.dentist.get_absolute_url()), "Sinus lifting (open)")

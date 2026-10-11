@@ -5,8 +5,8 @@ from django.urls import Resolver404, resolve, reverse
 from django.utils.translation import gettext_lazy as _
 
 from .roles import (
-    DENTISTS, FRONT_DESK, HEAD_CIA, LAB_DESK, LAB_STAFF, MODERATOR, OWNER, SECRETARY, STOCK, is_only_dentist,
-    user_roles,
+    DENTISTS, FRONT_DESK, GRADER, HEAD_CIA, LAB_DESK, LAB_STAFF, MODERATOR, OWNER, SECRETARY, STOCK,
+    is_only_dentist, user_roles,
 )
 
 
@@ -51,6 +51,8 @@ def bottom_nav(user, path, hidden_areas, at_lab=False):
             items.append(_item("patients:list", "bi-people", _("My patients"), match="/patients/", query="?mine=on"))
         if "treatments" not in hidden_areas:
             items.append(_item("clinical:step_list", "bi-list-check", _("Treatments"), match="/clinical/"))
+    elif roles == {GRADER}:
+        items.append(_item("clinical:supervise", "bi-patch-check", _("Approve"), match="/clinical/approve/"))
     elif MODERATOR in roles:
         if "clinics" not in hidden_areas:
             items.append(_item("clinics:doctors", "bi-people", _("Doctors"), match="/clinics/"))

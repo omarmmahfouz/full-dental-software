@@ -199,7 +199,7 @@
         <td>{{ s.teeth|default:"—" }}{% for tooth, name in s.teeth|teeth_explained %}<div class="small text-muted">{{ tooth }} = {{ name }}</div>{% endfor %}</td>
         <td>{{ s.operator|default:"—" }}{% if s.supervisor %}<div class="small text-muted">{{ s.supervisor }}</div>{% endif %}</td>
         <td class="small">{% if s.surfaces %}{{ s.surfaces }} {% endif %}{% if s.material %}{{ s.material }} — {% endif %}{{ s.notes|truncatechars:80 }}{% if s.next_visit %}<div class="text-muted">{% trans "Next" %}: {{ s.next_visit }}</div>{% endif %}</td>
-        <td>{% if s.is_verified %}<span class="badge text-bg-success"><i class="bi bi-check2"></i> {{ s.verified_by }}{% if s.grade %} · {{ s.grade }}/5{% endif %}</span>{% else %}<span class="badge text-bg-warning">{% trans "Not checked" %}</span>{% endif %}</td>
+        <td>{% if s.is_verified %}<span class="badge text-bg-success"><i class="bi bi-check2"></i> {{ s.verified_by }}{% if s.grade and sees_grades %} · {{ s.grade }}/5{% endif %}</span>{% else %}<span class="badge text-bg-warning">{% trans "Not checked" %}</span>{% endif %}</td>
       </tr>
       {% empty %}<tr><td colspan="6" class="text-muted text-center py-3">{% trans "No treatment steps yet." %}</td></tr>{% endfor %}
       </tbody>

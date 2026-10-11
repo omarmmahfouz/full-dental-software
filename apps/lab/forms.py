@@ -9,8 +9,8 @@ from apps.core.roles import DENTIST, LAB_DESIGNER, LAB_HEAD, LAB_MANAGER, LAB_SE
 from apps.stock.models import StockItem, StockMovement
 
 from .models import (
-    WORK_STEPS, LabBlock, LabCase, LabCaseItem, LabClient, LabFile, LabPayment, LabPriceList, LabSettings, LabWorker,
-    Step, lab_branch,
+    MACHINE_STEPS, WORK_STEPS, LabBlock, LabCase, LabCaseItem, LabClient, LabFile, LabPayment, LabPriceList,
+    LabSettings, LabWorker, Step, lab_branch,
 )
 
 
@@ -20,15 +20,15 @@ class CaseForm(StyledModelForm):
 
     fieldsets = [
         (_("Who sent it"), ["client", "doctor", "doctor_phone", "patient_name"]),
-        (_("How it came"), ["impression", "stage", "shade", "enclosures"]),
+        (_("How it came"), ["impression", "scan_source", "scan_location", "stage", "shade", "enclosures"]),
         (_("When"), ["due_date", "urgent"]),
         (_("Instructions"), ["instructions", "discount", "notes"]),
     ]
 
     class Meta:
         model = LabCase
-        fields = ["client", "doctor", "doctor_phone", "patient_name", "impression", "stage", "shade", "enclosures",
-                  "due_date", "urgent", "instructions", "discount", "notes"]
+        fields = ["client", "doctor", "doctor_phone", "patient_name", "impression", "scan_source", "scan_location",
+                  "stage", "shade", "enclosures", "due_date", "urgent", "instructions", "discount", "notes"]
         widgets = {"instructions": forms.Textarea(attrs={"rows": 3}), "notes": forms.Textarea(attrs={"rows": 2})}
 
     def __init__(self, *args, money=True, **kwargs):
@@ -73,6 +73,29 @@ class MoveForm(StyledForm):
         self.fields["to_step"].choices = [(code, label) for code, label in Step.choices
                                           if code not in (Step.INCOMING, case.step if case else "")]
         self.fields["worker"].queryset = LabWorker.objects.filter(is_active=True)
+        add_finish_fields(self, case)
+
+
+def add_finish_fields(form, case):
+    """The boxes of finishing the step the case is in (round 16): where the designer put the design, or the machine
+    used."""
+    if case is None:
+        return
+    if case.step == Step.DESIGN:
+        form.fields["design_output"] = forms.ChoiceField(
+            label=_("The finished design was put"), required=False,
+            choices=[("", "—")] + list(LabCase.Output.choices), initial=case.design_output)
+        form.fields["design_location"] = forms.CharField(
+            label=_("Where exactly (the design)"), required=False, max_length=255, initial=case.design_location
+            or LabSettings.get().designs_folder)
+        form.fields["design_location"].widget.attrs["dir"] = "ltr"
+    if case.step in MACHINE_STEPS:
+        machines = LabSettings.get().machine_list()
+        form.fields["machine"] = forms.CharField(label=_("Machine"), required=False, max_length=80)
+        if machines:
+            from apps.core.widgets import DatalistInput
+
+            form.fields["machine"].widget = DatalistInput(machines, attrs={"class": "form-control"})
 
 
 class AssignForm(StyledForm):
@@ -136,7 +159,7 @@ def lab_stock_items():
 class BlockOpenForm(StyledModelForm):
     class Meta:
         model = LabBlock
-        fields = ["item", "code", "lot", "shade", "notes"]
+        fields = ["item", "code", "lot", "shade", "height", "notes"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -152,6 +175,30 @@ class BlockUseForm(StyledForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["block"].queryset = LabBlock.objects.filter(status=LabBlock.Status.IN_USE).select_related("item")
+        self.fields["block"].label_from_instance = lambda block: block.label  # shade, height, lot (round 16)
+
+
+class LabItemForm(StyledForm):
+    """A new item of the lab's stock, added by the lab itself (round 16): a block, a liquid, a stain..."""
+
+    name = forms.CharField(label=_("Item"), max_length=150)
+    category = forms.ModelChoiceField(label=_("Category"), queryset=None)
+    unit = forms.CharField(label=_("Unit"), max_length=30, required=False)
+    quantity = forms.DecimalField(label=_("How many now"), max_digits=10, decimal_places=2, min_value=0,
+                                  required=False)
+    unit_cost = forms.DecimalField(label=_("Unit price"), max_digits=12, decimal_places=2, min_value=0,
+                                   required=False)
+    min_quantity = forms.DecimalField(label=_("Reorder when below"), max_digits=10, decimal_places=2, min_value=0,
+                                      required=False)
+
+    def __init__(self, *args, **kwargs):
+        from apps.stock.models import StockCategory, StockGroup
+
+        super().__init__(*args, **kwargs)
+        self.fields["category"].queryset = StockCategory.objects.filter(is_active=True, group=StockGroup.LAB) or \
+            StockCategory.objects.filter(is_active=True)
+        for name in ("quantity", "unit_cost", "min_quantity", "unit"):
+            self.fields[name].col = "col-6"
 
 
 class StockMoveForm(StyledForm):
@@ -226,11 +273,27 @@ class WorkerForm(StyledModelForm):
 class PriceListForm(StyledModelForm):
     class Meta:
         model = LabPriceList
-        fields = ["name", "notes", "is_active"]
+        fields = ["name", "based_on", "percent_off", "notes", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["based_on"].queryset = LabPriceList.objects.filter(is_active=True).exclude(pk=self.instance.pk)
+        self.fields["based_on"].empty_label = _("None: a list of its own")
+        self.fields["percent_off"].widget.attrs.update({"min": "0", "max": "100", "step": "0.5"})
+
+    def clean(self):
+        data = super().clean()
+        percent = data.get("percent_off") or 0
+        if percent and not data.get("based_on"):
+            self.add_error("based_on", _("Choose the list the percentage is taken from."))
+        if not 0 <= percent <= 100:
+            self.add_error("percent_off", _("Between 0 and 100."))
+        return data
 
 
 class SettingsForm(StyledModelForm):
     fieldsets = [
+        (_("Where the work comes and goes, and the machines"), ["scans_folder", "designs_folder", "machines"]),
         (_("WhatsApp messages"), ["received_text", "ready_text", "delivered_text"]),
         (_("The automatic answer (WhatsApp Business platform)"),
          ["auto_reply", "wa_phone_number_id", "wa_token", "wa_verify_token", "wa_app_secret"]),
@@ -238,8 +301,8 @@ class SettingsForm(StyledModelForm):
 
     class Meta:
         model = LabSettings
-        fields = ["received_text", "ready_text", "delivered_text", "auto_reply", "wa_phone_number_id", "wa_token",
-                  "wa_verify_token", "wa_app_secret"]
+        fields = ["scans_folder", "designs_folder", "machines", "received_text", "ready_text", "delivered_text",
+                  "auto_reply", "wa_phone_number_id", "wa_token", "wa_verify_token", "wa_app_secret"]
         widgets = {"wa_token": forms.PasswordInput(render_value=True),
                    "wa_app_secret": forms.PasswordInput(render_value=True)}
 

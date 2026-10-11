@@ -36,6 +36,7 @@
       <div class="fw-bold {% if remaining %}text-primary{% else %}text-success{% endif %}">{% if remaining %}{% blocktrans with n=remaining %}{{ n }} implants remaining{% endblocktrans %}{% else %}{% trans "Implant requirement completed" %}{% endif %}</div>
     {% else %}<div class="small text-muted">{% trans "No implant requirement set for the course." %}</div>{% endif %}
     <div class="small text-muted mt-1">{% blocktrans with n=implants_op2 %}Also {{ n }} implants as operator 2.{% endblocktrans %}</div>
+    {% if target_rows %}<hr class="my-2"><div class="stat-label mb-1">{% trans "The course's content" %}</div>{% include "academy/_progress.html" with rows=target_rows %}{% endif %}
   </div></div></div>
   {% endif %}
   <div class="col-lg-4"><div class="card h-100"><div class="card-header">{% trans "Work summary" %}</div><div class="card-body">
@@ -43,13 +44,34 @@
       <dt>{% trans "Surgeries" %}</dt><dd>{% blocktrans with a=counts.op1 b=counts.op2 c=counts.assistant %}{{ a }} as operator 1 · {{ b }} as operator 2 · {{ c }} as assistant{% endblocktrans %}{% if counts.instructor %} · {% blocktrans with d=counts.instructor %}{{ d }} as instructor{% endblocktrans %}{% endif %}</dd>
       <dt>{% trans "Implants" %}</dt><dd>{{ placed }}{% if survival is not None %} — {% trans "survival" %} {{ survival }}% ({{ failed }} {% trans "failed" %}){% endif %}</dd>
       <dt>{% trans "Treatments" %}</dt><dd>{% blocktrans with a=counts.treatments b=counts.assisted %}{{ a }} as operator · {{ b }} as assistant{% endblocktrans %}{% if counts.supervised %} · {% blocktrans with c=counts.supervised %}{{ c }} supervised{% endblocktrans %}{% endif %}</dd>
-      <dt>{% trans "Average grade" %}</dt><dd>{% if grade %}{{ grade }}/5{% else %}—{% endif %}</dd>
+      {% if sees_grades %}<dt>{% trans "Average grade" %}</dt><dd>{% if grade %}{{ grade }}/5{% else %}—{% endif %}</dd>{% endif %}
       <dt>{% trans "Login" %}</dt><dd>{{ dentist.user.username|default:"—" }}</dd>
       <dt>{% trans "Signature" %}</dt><dd>{% if dentist.signature_image %}<img class="signature-saved signature-small" src="{{ dentist.signature_image }}" alt="">{% else %}<span class="text-muted">{% if dentist.user %}{% trans "not drawn yet (he draws it from his user menu → My signature)" %}{% else %}{% trans "not drawn yet" %}{% endif %}</span>{% endif %}</dd>
       <dt>{% trans "Mobile" %}</dt><dd><span class="ltr">{{ dentist.phone|default:"—" }}</span></dd>
     </dl>
   </div></div></div>
 </div>
+
+{% if grades is not None %}
+<div class="card mb-3 border-primary"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-patch-check"></i> {% trans "Grades and notes of the supervisors" %}</span>
+  <span class="small text-muted">{% trans "Seen by the owner and the head of CIA only." %}</span></div>
+  <div class="card-body pb-1">
+    <div class="d-flex flex-wrap gap-2 small mb-2">
+      {% for kind, label in grade_kinds %}{% for k, avg in grade_summary.averages.items %}{% if k == kind %}<span class="badge text-bg-light border">{{ label }}: <b>{{ avg }}/5</b></span>{% endif %}{% endfor %}{% endfor %}
+      {% if grade_summary.last_overall %}<span class="badge text-bg-primary">{{ grade_summary.last_overall.get_readiness_display|default:_("Overall level") }}{% if grade_summary.last_overall.level %} · {{ grade_summary.last_overall.level }}{% endif %} ({{ grade_summary.last_overall.created_at|date:"d/m/Y" }})</span>{% endif %}
+      {% if grade_summary.corrections %}<span class="badge text-bg-warning">{% blocktrans with n=grade_summary.corrections %}Sent back to correct: {{ n }}{% endblocktrans %}</span>{% endif %}
+    </div>
+  </div>
+  <div class="list-group list-group-flush small" style="max-height:320px;overflow:auto">
+    {% for g in grades %}<div class="list-group-item">
+      <div class="d-flex flex-wrap justify-content-between gap-2"><span><b>{{ g.get_kind_display }}</b>{% if g.step %} · {{ g.step.step_type }} <span class="ltr">{{ g.step.teeth }}</span> · {{ g.step.patient.file_number }}{% elif g.surgery %} · {{ g.surgery.number }} · {{ g.surgery.patient.file_number }}{% endif %}{% if g.role %} <span class="text-muted">({{ g.role }})</span>{% endif %}</span>
+        <span>{% if not g.approved %}<span class="badge text-bg-warning">{% trans "To correct" %}</span>{% elif g.grade %}<b>{{ g.grade }}/5</b>{% endif %} {% if g.readiness %}<span class="badge text-bg-light border">{{ g.get_readiness_display }}</span>{% endif %}</span></div>
+      {% if g.notes %}<div>{{ g.notes|linebreaksbr }}</div>{% endif %}
+      <div class="text-muted">{{ g.created_at|date:"d/m/Y" }} · {{ g.graded_by|default:"—" }}{% if g.for_instructor %} · {% blocktrans with by=g.created_by %}written by {{ by }}{% endblocktrans %}{% endif %}</div>
+    </div>{% empty %}<div class="list-group-item text-muted">{% trans "No grades yet." %}</div>{% endfor %}
+  </div>
+</div>
+{% endif %}
 
 <div class="row g-3">
   <div class="col-xl-6">

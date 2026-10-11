@@ -102,6 +102,8 @@ class Dentist(TimeStampedModel):
         verbose_name_plural = _("dentists")
 
     LOGIN_KINDS = (Kind.FULLTIME, Kind.SPECIALIST, Kind.FREELANCER)
+    # A supervisor may log in too (round 16), only to approve and grade the work of his days.
+    CAN_LOG_IN = LOGIN_KINDS + (Kind.SUPERVISOR,)
 
     def __str__(self):
         if self.name_ar and (get_language() or "").startswith("ar"):
@@ -116,7 +118,7 @@ class Dentist(TimeStampedModel):
 
     @property
     def can_have_login(self):
-        return self.kind in self.LOGIN_KINDS
+        return self.kind in self.CAN_LOG_IN
 
     def get_absolute_url(self):
         return reverse("dentists:detail", args=[self.pk])

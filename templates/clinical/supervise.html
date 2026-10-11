@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Approve and grade" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-patch-check"></i> {% trans "Approve and grade" %}{% if supervisor %} · {{ supervisor }}{% endif %}</h1>
+  {% if supervisors %}
+  <form method="get" class="d-flex gap-2 align-items-center no-print">
+    <label class="small text-muted text-nowrap" for="for-supervisor">{% trans "Supervisor / instructor" %}</label>
+    <select class="form-select form-select-sm" id="for-supervisor" name="for" onchange="this.form.submit()">
+      <option value="">—</option>
+      {% for s in supervisors %}<option value="{{ s.pk }}" {% if s == supervisor %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  </form>
+  {% endif %}
+</div>
+{% if writes_for %}<div class="alert alert-info small"><i class="bi bi-pencil-square"></i> {% blocktrans with name=supervisor %}You write for {{ name }} (an instructor without a login): write what he says. Each grade keeps who wrote it, and only the owner and the head of CIA see the grades.{% endblocktrans %}</div>{% endif %}
+{% if not supervisor %}<div class="alert alert-light border">{% trans "Choose the supervisor or the instructor above to open the work that names him." %}</div>{% else %}
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-list-check"></i> {% trans "Treatments to approve" %} <span class="badge text-bg-warning">{{ steps|length }}</span></div>
+  <div class="list-group list-group-flush">
+  {% for s in steps %}
+    <div class="list-group-item grade-item" id="step{{ s.pk }}">
+      <div class="d-flex flex-wrap justify-content-between gap-2">
+        <div><b>{{ s.step_type }}</b>{% if s.teeth %} · <span class="ltr">{{ s.teeth }}</span>{% endif %}{% if s.surfaces %} {{ s.surfaces }}{% endif %}
+          <div class="small">{{ s.patient.full_name }} <span class="text-muted">{{ s.patient.file_number }}</span> · {{ s.performed_at|date:"d/m/Y g:i A" }}</div>
+          <div class="small text-muted">{% trans "Operator" %}: {{ s.operator }}{% if s.assistant %} · {% trans "assistant" %}: {{ s.assistant }}{% endif %}</div></div>
+        {% if s.photos.all %}<div class="d-flex gap-1">{% for p in s.photos.all|slice:":4" %}<img class="grade-thumb" src="{{ p.file|preview }}" alt="" loading="lazy">{% endfor %}</div>{% endif %}
+      </div>
+      {% if s.notes %}<div class="small mt-1">{{ s.notes|linebreaksbr }}</div>{% endif %}
+      {% if s.before %}<div class="small text-muted mt-1"><i class="bi bi-clock-history"></i> {% trans "Before" %}: {% for b in s.before %}{{ b.performed_at|date:"d/m" }} {{ b.step_type }}{% if b.teeth %} <span class="ltr">{{ b.teeth }}</span>{% endif %} ({{ b.operator }}){% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+      <form method="post" action="{% url 'clinical:grade_step' s.pk %}" class="grade-form no-print" data-no-leave-warning>{% csrf_token %}
+        <input type="hidden" name="for" value="{{ supervisor.pk }}">
+        <div class="grade-stars" role="radiogroup" aria-label="{% trans 'grade' %}">{% for value, label in grades %}<label><input type="radio" name="grade" value="{{ value }}"><span>{{ label }}</span></label>{% endfor %}</div>
+        <input class="form-control form-control-sm" name="notes" maxlength="1000" placeholder="{% trans 'Notes (what was good, what to improve)' %}" aria-label="{% trans 'Notes' %}">
+        <button class="btn btn-sm btn-success" name="action" value="approve"><i class="bi bi-check2"></i> {% trans "Approve" %}</button>
+        <button class="btn btn-sm btn-outline-danger" name="action" value="correct"><i class="bi bi-arrow-return-left"></i> {% trans "To correct" %}</button>
+      </form>
+    </div>
+  {% empty %}<div class="list-group-item text-muted text-center py-3">{% trans "Nothing to approve." %}</div>{% endfor %}
+  </div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-scissors"></i> {% trans "Surgeries to grade" %} <span class="badge text-bg-warning">{{ surgeries|length }}</span></div>
+  <div class="list-group list-group-flush">
+  {% for s in surgeries %}
+    <div class="list-group-item grade-item">
+      <div><b>{{ s.number }}</b> · {{ s.date|date:"d/m/Y" }} · {{ s.patient.full_name }} · <span class="small ltr">{% for site in s.sites.all %}{{ site.tooth }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></div>
+      <form method="post" action="{% url 'clinical:grade_surgery' s.pk %}" class="grade-form no-print" data-no-leave-warning>{% csrf_token %}
+        <input type="hidden" name="for" value="{{ supervisor.pk }}">
+        {% if s.operator_1 %}<div class="small">{% trans "operator 1" %}: <b>{{ s.operator_1 }}</b> <div class="grade-stars d-inline-flex">{% for value, label in grades %}<label><input type="radio" name="grade_operator_1" value="{{ value }}"><span>{{ label }}</span></label>{% endfor %}</div></div>{% endif %}
+        {% if s.operator_2 %}<div class="small">{% trans "operator 2" %}: <b>{{ s.operator_2 }}</b> <div class="grade-stars d-inline-flex">{% for value, label in grades %}<label><input type="radio" name="grade_operator_2" value="{{ value }}"><span>{{ label }}</span></label>{% endfor %}</div></div>{% endif %}
+        {% if s.assistant %}<div class="small">{% trans "assistant" %}: <b>{{ s.assistant }}</b> <div class="grade-stars d-inline-flex">{% for value, label in grades %}<label><input type="radio" name="grade_assistant" value="{{ value }}"><span>{{ label }}</span></label>{% endfor %}</div></div>{% endif %}
+        <input class="form-control form-control-sm" name="notes" maxlength="1000" placeholder="{% trans 'Notes' %}" aria-label="{% trans 'Notes' %}">
+        <button class="btn btn-sm btn-success"><i class="bi bi-check2"></i> {% trans "Save the grades" %}</button>
+      </form>
+    </div>
+  {% empty %}<div class="list-group-item text-muted text-center py-3">{% trans "No surgery to grade." %}</div>{% endfor %}
+  </div>
+</div>
+
+<div class="card mb-3"><div class="card-header"><i class="bi bi-graph-up-arrow"></i> {% trans "The CIA juniors who worked with him: their level" %}</div>
+  <div class="list-group list-group-flush">
+  {% for person, last in juniors %}
+    <div class="list-group-item">
+      <div class="d-flex flex-wrap justify-content-between gap-2"><b>{{ person }}</b>
+        <span class="small text-muted">{% if last %}{% blocktrans with d=last.created_at|date:"d/m/Y" %}last graded on {{ d }}{% endblocktrans %}{% if sees_grades %}: {{ last.grade|default:"—" }}/5 · {{ last.get_readiness_display|default:"" }}{% endif %}{% else %}{% trans "not graded yet" %}{% endif %}</span></div>
+      <form method="post" action="{% url 'clinical:grade_overall' %}" class="grade-form no-print" data-no-leave-warning>{% csrf_token %}
+        <input type="hidden" name="for" value="{{ supervisor.pk }}"><input type="hidden" name="dentist" value="{{ person.pk }}">
+        <div class="grade-stars" role="radiogroup" aria-label="{% trans 'grade' %}">{% for value, label in grades %}<label><input type="radio" name="grade" value="{{ value }}"><span>{{ label }}</span></label>{% endfor %}</div>
+        <select class="form-select form-select-sm w-auto" name="readiness" aria-label="{% trans 'ready for the next level?' %}"><option value="">{% trans "ready for the next level?" %}</option>{% for code, label in readiness %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select>
+        <input class="form-control form-control-sm" name="level" maxlength="60" placeholder="{% trans 'level now (optional)' %}" aria-label="{% trans 'level now' %}" style="max-width:12rem">
+        <input class="form-control form-control-sm" name="notes" maxlength="2000" placeholder="{% trans 'Notes' %}" aria-label="{% trans 'Notes' %}">
+        <button class="btn btn-sm btn-primary"><i class="bi bi-check2"></i> {% trans "Save" %}</button>
+      </form>
+    </div>
+  {% empty %}<div class="list-group-item text-muted text-center py-3">{% trans "No CIA junior worked with him in the last two months." %}</div>{% endfor %}
+  </div>
+</div>
+<p class="small text-muted">{% trans "The grades and the notes are seen by the owner and the head of CIA only, on each dentist's page." %}</p>
+{% endif %}
+{% endblock %}

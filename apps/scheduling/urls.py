@@ -1,11 +1,13 @@
 from django.urls import path
 
-from . import bulk, patient_requests, views, waiting, whatsapp_requests
+from . import bulk, drafts, patient_requests, views, waiting, whatsapp_requests
 
 app_name = "scheduling"
 
 urlpatterns = [
     path("today/", views.today_board, name="today"),
+    path("surgery-drafts/", drafts.draft_list, name="drafts"),
+    path("surgery-drafts/<int:pk>/", drafts.draft_update, name="draft_update"),
     path("walk-in/", views.walk_in, name="walk_in"),
     path("day/", views.day_planner, name="day_planner"),
     path("free-times/", views.free_times_json, name="free_times"),

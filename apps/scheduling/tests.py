@@ -869,3 +869,41 @@ class Round16BoardTests(TestCase):
         self.assertEqual((self.visit.dentist, self.visit.booked_dentist), (self.first, self.first))
         response = self.client.post(url, {"dentist": self.first.pk, "reason": "late"})
         self.assertIn("dentist", response.context["form"].errors)  # the same doctor
+
+
+class Round16DraftListTests(TestCase):
+    """Round 16: the draft list of the surgery days: the patients called before any time is given."""
+
+    def setUp(self):
+        from apps.dentists.models import Dentist
+
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.patient = make_patient(self.branch)
+        self.candidate = Dentist.objects.create(full_name="Dr. Candidate", kind="candidate")
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_from_the_draft_to_the_booking(self):
+        from apps.scheduling.drafts import coming_surgery_days
+        from apps.scheduling.models import DraftBooking
+
+        thursday = coming_surgery_days(1)[0]
+        self.assertIn(thursday.weekday(), {3, 4})
+        self.client.post("/schedule/surgery-drafts/", {
+            "patient_lookup": self.patient.file_number, "day": thursday.isoformat(), "status": "to_call",
+            "what": "implants 36 46"})
+        draft = DraftBooking.objects.get()
+        self.assertEqual((draft.day, draft.status), (thursday, "to_call"))
+        self.client.post(f"/schedule/surgery-drafts/{draft.pk}/", {"status": "no_answer"})
+        self.client.post(f"/schedule/surgery-drafts/{draft.pk}/", {"status": "agreed", "notes": "free all day"})
+        draft.refresh_from_db()
+        self.assertEqual((draft.status, draft.calls, draft.notes), ("agreed", 2, "free all day"))
+        page = self.client.get("/schedule/surgery-drafts/")
+        agreed = [rows for code, label, rows in page.context["groups"] if code == "agreed"][0]
+        self.assertEqual(agreed, [draft])
+        self.assertIn(f"draft={draft.pk}", agreed[0].book_url)
+        self.client.post(f"/schedule/appointments/new/?patient={self.patient.pk}&draft={draft.pk}", {
+            "patient_lookup": self.patient.file_number, "scheduled_at_0": thursday.strftime("%d/%m/%Y"),
+            "scheduled_at_1": "10:00", "duration_minutes": "60"})
+        draft.refresh_from_db()
+        self.assertEqual((draft.status, draft.appointment), ("booked", Appointment.objects.get()))
