@@ -4,7 +4,9 @@ They are only a starting point: the head of CIA reviews and edits them in
 Settings → Prescriptions and instructions. Re-running setup never overwrites edits.
 """
 
-from .models import Drug, DrugGroup, InstructionSheet, PrescriptionTemplate, PrescriptionTemplateLine
+from .models import (
+    ConsentTemplate, Drug, DrugGroup, InstructionSheet, PrescriptionTemplate, PrescriptionTemplateLine,
+)
 
 # (Arabic name, English name, kind, dose printed for the patient, [brands])
 DRUG_GROUPS = [
@@ -39,9 +41,16 @@ DRUG_GROUPS = [
      "حقنة عضل عميق عند اللزوم، بحد أقصى حقنتين في اليوم", ["Voltaren 75 mg ampoule", "Declophen 75 mg ampoule"]),
     ("كيتورولاك ٣٠ مجم حقن (عضل / وريد)", "Ketorolac 30 mg injection (IM / IV)", "injection",
      "حقنة عضل أو وريد عند اللزوم كل ٨ ساعات، لمدة لا تزيد عن يومين", ["Ketolac 30 mg ampoule"]),
+    # Round 16: the specialties of El Khadem (TMJ muscles, orthodontics). The doctor reviews them in Settings.
+    ("أورفينادرين ٣٥ مجم + باراسيتامول ٤٥٠ مجم (مرخي عضلات)", "Orphenadrine 35 mg + paracetamol 450 mg (muscle relaxant)",
+     "painkiller", "قرص كل ٨ ساعات بعد الأكل لمدة ٥ أيام", ["Norgesic", "Myofen"]),
+    ("تيزانيدين ٢ مجم (مرخي عضلات)", "Tizanidine 2 mg (muscle relaxant)", "other",
+     "قرص قبل النوم لمدة ١٠ أيام", ["Sirdalud 2 mg"]),
+    ("شمع التقويم", "Orthodontic wax", "other",
+     "قطعة صغيرة على السلك أو الحلقة اللي بتجرح الخد أو الشفايف", ["Orthodontic relief wax"]),
 ]
 
-# (Arabic name, English name, procedures it fits, for penicillin allergy, [English names of drug groups])
+# (Arabic name, English name, procedures it fits, for penicillin allergy, [English names of drug groups], specialty)
 TEMPLATES = [
     ("بعد زراعة الأسنان", "After implant surgery", "simple_implant,immediate_implant,guided,gbr,expansion,splitting",
      False, ["Amoxicillin + clavulanic acid 1 g", "Ibuprofen 400 mg", "Chlorhexidine 0.12% mouthwash"]),
@@ -56,7 +65,17 @@ TEMPLATES = [
      "open_sinus,closed_sinus,simple_implant,immediate_implant,guided,gbr,expansion,splitting", True,
      ["Clindamycin 300 mg (penicillin allergy)", "Ibuprofen 400 mg", "Chlorhexidine 0.12% mouthwash",
       "Xylometazoline 0.1% nasal drops"]),
-    ("بعد الخلع", "After extraction", "extraction", False, ["Ibuprofen 400 mg", "Chlorhexidine 0.12% mouthwash"]),
+    ("بعد الخلع", "After extraction", "extraction", False, ["Ibuprofen 400 mg", "Chlorhexidine 0.12% mouthwash"],
+     "oral_surgeon"),
+    # Round 16: a ready prescription for each specialty of El Khadem.
+    ("بعد علاج العصب", "After root canal treatment", "", False, ["Ibuprofen 400 mg", "Paracetamol 500 mg"],
+     "endodontist"),
+    ("بعد علاج العصب مع تورم", "After root canal treatment, with swelling", "", False,
+     ["Amoxicillin + clavulanic acid 1 g", "Ibuprofen 400 mg"], "endodontist"),
+    ("ألم المفصل والعضلات (TMJ)", "TMJ and muscle pain", "", False,
+     ["Diclofenac potassium 50 mg", "Orphenadrine 35 mg + paracetamol 450 mg (muscle relaxant)"], "tmj"),
+    ("بعد تركيب أو شد التقويم", "After placing or adjusting braces", "", False,
+     ["Paracetamol 500 mg", "Orthodontic wax", "Chlorhexidine 0.12% mouthwash"], "orthodontist"),
 ]
 
 # (Arabic name, English name, procedures, Arabic lines, English lines)
@@ -125,6 +144,84 @@ If the graft was taken from the palate, wear the palatal stent as instructed."""
 ]
 
 
+# Round 16: the consent forms (Arabic name, English name, words of the treatments they fit, Arabic, English). A
+# starting point only: the owner has them checked (by a lawyer too) and edits them in Settings → Consent forms.
+CONSENTS = [
+    ("موافقة على العلاج والتخدير الموضعي", "Consent to dental treatment and local anaesthesia", "",
+     """شرح لي الطبيب حالتي والعلاج المقترح والبدائل الممكنة، ومنها عدم العلاج وما قد يترتب عليه.
+أعلم أن التخدير الموضعي قد يسبب تنميلًا مؤقتًا أو تورمًا أو كدمة بسيطة مكان الحقن، ونادرًا تنميلًا أطول.
+أخبرت الطبيب بكل أمراضي والأدوية التي أتناولها والحساسية التي عندي، وسأخبره بأي تغيير.
+أعلم أن نتيجة العلاج تعتمد أيضًا على التزامي بالتعليمات والمواعيد والنظافة.
+أوافق على أخذ الصور والأشعة اللازمة لعلاجي، وتبقى سرية في ملفي.
+قرأت هذه الموافقة (أو قُرئت لي) وفهمتها، وسألت ما أردت، وأوافق على بدء العلاج.""",
+     """The dentist explained my condition, the treatment proposed and the other options, including no treatment and its results.
+I know local anaesthesia may cause temporary numbness, swelling or a small bruise, and rarely a longer numbness.
+I told the dentist all my diseases, medicines and allergies, and I will tell any change.
+I know the result also depends on my following the instructions, the appointments and my oral hygiene.
+I agree to the photos and X-rays needed for my treatment; they stay confidential in my file.
+I read this consent (or it was read to me), understood it, asked my questions, and I agree to start."""),
+    ("موافقة على زراعة الأسنان", "Consent to dental implant surgery", "implant,sinus,graft,gbr,bone",
+     """شرح لي الطبيب خطة الزراعة وعدد الزرعات وأماكنها، وإن كان هناك ترقيع عظم أو رفع للجيب الأنفي.
+أعلم أن بعد العملية قد يحدث ألم وتورم وكدمات ونزيف بسيط لأيام، وأن هذا طبيعي.
+أعلم أن من المخاطر القليلة: العدوى، أو عدم التحام الزرعة وفشلها، أو تنميل الشفة أو اللسان مؤقتًا أو نادرًا لمدة أطول، أو مشكلة في الجيب الأنفي.
+أعلم أن التدخين والسكر غير المنضبط يزيدان خطر فشل الزرعة، وألتزم بالتوقف عن التدخين وضبط السكر.
+أعلم أن الزرعة قد تحتاج وقتًا للالتحام قبل تركيب الأسنان، وقد يتغير جزء من الخطة أثناء العملية لمصلحتي.
+ألتزم بتعليمات ما بعد العملية والأدوية ومواعيد المتابعة والتنظيف كل ٦ أشهر.""",
+     """The dentist explained the implant plan: how many implants, where, and any bone graft or sinus lift.
+I know that after surgery there may be pain, swelling, bruising and some bleeding for a few days; this is normal.
+I know the less common risks: infection, the implant not integrating (failure), numbness of the lip or tongue (usually temporary, rarely longer), or a sinus problem.
+I know smoking and uncontrolled diabetes raise the risk of failure; I will stop smoking and keep my sugar controlled.
+I know the implant may need time to heal before the teeth are fitted, and part of the plan may change during surgery for my benefit.
+I will follow the after-surgery instructions, the medicines, the follow-up visits and a cleaning every 6 months."""),
+    ("موافقة على خلع الأسنان", "Consent to tooth extraction", "extraction,surgical,wisdom",
+     """شرح لي الطبيب سبب خلع السن والبدائل الممكنة.
+أعلم أن الخلع قد يحتاج جراحة بسيطة (فتح لثة أو تقسيم السن)، وقد يتبقى جزء صغير من الجذر إذا كان إخراجه أخطر من تركه.
+أعلم أن من المخاطر: النزيف، الالتهاب أو التجويف الجاف، تورم، تنميل الشفة أو اللسان (خاصة في ضرس العقل السفلي)، أو اتصال بالجيب الأنفي في الأسنان العلوية.
+ألتزم بتعليمات ما بعد الخلع والأدوية، وأتصل بالعيادة إذا استمر النزيف أو زاد الألم بعد اليوم الثالث.""",
+     """The dentist explained why the tooth is removed and the other options.
+I know the extraction may need minor surgery (opening the gum or dividing the tooth), and a small root piece may be left when removing it is riskier.
+I know the risks: bleeding, infection or dry socket, swelling, numbness of the lip or tongue (mainly lower wisdom teeth), or an opening to the sinus for upper teeth.
+I will follow the instructions and the medicines, and call the clinic if bleeding continues or pain increases after the third day."""),
+    ("موافقة على علاج العصب", "Consent to root canal treatment", "root canal,endodontic,endo,pulp",
+     """شرح لي الطبيب أن السن يحتاج علاج عصب لإنقاذه، والبديل هو الخلع.
+أعلم أن العلاج قد يحتاج أكثر من زيارة، وأن ألمًا بسيطًا بعده لأيام أمر طبيعي.
+أعلم أن من المخاطر: كسر آلة داخل القناة، أو ثقب في الجذر، أو قناة لا يمكن تنظيفها كاملًا، أو كسر السن، وقد يحتاج الأمر إعادة العلاج أو جراحة أو خلع.
+أعلم أن السن بعد علاج العصب يحتاج حشوًا نهائيًا وغالبًا تاجًا (طربوش) لحمايته من الكسر في أقرب وقت.""",
+     """The dentist explained the tooth needs a root canal treatment to be saved; the other option is extraction.
+I know the treatment may need more than one visit, and mild pain for a few days after it is normal.
+I know the risks: an instrument breaking in the canal, a perforation, a canal that cannot be fully cleaned, or a fractured tooth; it may then need retreatment, surgery or extraction.
+I know the tooth needs a final filling and usually a crown soon, to protect it from fracture."""),
+    ("موافقة على علاج التقويم", "Consent to orthodontic treatment", "orthodontic,braces,aligner,ortho",
+     """شرح لي الطبيب خطة التقويم ومدتها المتوقعة ونوع الجهاز.
+أعلم أن المدة قد تطول عن المتوقع حسب استجابة الأسنان والتزامي بالمواعيد والأستك.
+أعلم أن من المخاطر: تسوس أو بقع بيضاء حول الأقواس إذا ضعفت النظافة، التهاب اللثة، قِصر بسيط في الجذور، أو ألم في المفصل.
+أعلم أن الأسنان قد ترجع بعد التقويم إذا لم ألبس المثبت كما قال الطبيب.""",
+     """The dentist explained the orthodontic plan, its expected time and the appliance.
+I know the time may be longer than expected, depending on how the teeth respond and on my keeping the appointments and elastics.
+I know the risks: decay or white spots around the brackets with poor cleaning, gum inflammation, slight root shortening, or joint pain.
+I know the teeth may move back after treatment if I do not wear the retainer as instructed."""),
+    ("موافقة على التيجان والجسور والقشور", "Consent to crowns, bridges and veneers", "crown,bridge,veneer,fixed",
+     """شرح لي الطبيب أن تحضير السن يزيل جزءًا منه بشكل دائم.
+أعلم أن السن قد يصبح حساسًا لفترة، ونادرًا يحتاج علاج عصب بعد التحضير.
+اتفقت مع الطبيب على اللون والشكل، وأعلم أن اللون النهائي قد يختلف قليلًا تحت الإضاءات المختلفة.
+أعلم أن التاج أو الجسر قد ينكسر أو يحتاج تغييرًا بعد سنوات، وألتزم بالنظافة والمتابعة.""",
+     """The dentist explained that preparing the tooth removes part of it for good.
+I know the tooth may be sensitive for a while, and rarely needs a root canal after preparation.
+I agreed with the dentist on the shade and shape; the final shade may look slightly different under different lights.
+I know a crown or bridge may break or need replacing after years; I will keep it clean and come for checks."""),
+    ("موافقة على العلاج في الأكاديمية والتصوير للتعليم", "Consent to treatment at the academy and photos for teaching",
+     "academy,teaching,photo",
+     """أعلم أن علاجي في أكاديمية تعليمية، وقد يقوم به طبيب أسنان متدرب في دورة تحت إشراف ومتابعة طبيب مدرب.
+أوافق على تصوير حالتي (صور وأشعة وفيديو) لملف العلاج وسجل التدريب والتعليم.
+أعلم أن الصور المستخدمة في التعليم أو النشر العلمي لا تُظهر اسمي ولا وجهي إلا بموافقة أخرى مني.
+أعلم أن من حقي أن أسأل عن الطبيب المعالج والمشرف في أي وقت.""",
+     """I know I am treated at a teaching academy, possibly by a dentist on a course, under the supervision of an instructor.
+I agree to photos, X-rays and videos of my case for my file, the training log book and teaching.
+I know the photos used for teaching or scientific publication do not show my name or face unless I agree again.
+I know I may ask at any time who treats me and who supervises."""),
+]
+
+
 def load_defaults():
     """Create the starting lists when they are missing. Returns the number of rows added."""
     added = 0
@@ -138,15 +235,21 @@ def load_defaults():
         if created:
             for index, brand in enumerate(brands):
                 Drug.objects.create(group=group, name=brand, preferred=index == 0)
-    for order, (name_ar, name_en, procedures, allergy, lines) in enumerate(TEMPLATES, start=1):
+    for order, (name_ar, name_en, procedures, allergy, lines, *rest) in enumerate(TEMPLATES, start=1):
         template, created = PrescriptionTemplate.objects.get_or_create(
             name_en=name_en,
-            defaults={"name_ar": name_ar, "procedures": procedures, "for_penicillin_allergy": allergy, "sort_order": order},
+            defaults={"name_ar": name_ar, "procedures": procedures, "for_penicillin_allergy": allergy, "sort_order": order,
+                      "specialty": rest[0] if rest else ""},
         )
         added += created
         if created:
             for index, group_name in enumerate(lines):
                 PrescriptionTemplateLine.objects.create(template=template, group=groups[group_name], sort_order=index)
+    for order, (name_ar, name_en, procedures, body_ar, body_en) in enumerate(CONSENTS, start=1):
+        _consent, created = ConsentTemplate.objects.get_or_create(
+            name_en=name_en, defaults={"name_ar": name_ar, "procedures": procedures, "body_ar": body_ar,
+                                       "body_en": body_en, "sort_order": order})
+        added += created
     for order, (name_ar, name_en, procedures, body_ar, body_en) in enumerate(SHEETS, start=1):
         _sheet, created = InstructionSheet.objects.get_or_create(
             name_en=name_en,

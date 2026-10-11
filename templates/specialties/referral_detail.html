@@ -43,6 +43,15 @@
   {% endif %}
 </div></div>
 
+{% if r.follows or r.next_referrals.all %}
+<div class="card mb-3 no-print"><div class="card-header"><i class="bi bi-signpost-split"></i> {% trans "The road of the patient" %}</div>
+  <div class="list-group list-group-flush small">
+    {% if r.follows %}<a class="list-group-item list-group-item-action" href="{{ r.follows.get_absolute_url }}"><i class="bi bi-arrow-up"></i> {% trans "Came after" %} {{ r.follows.number }}: {{ r.follows.from_dentist|default:"" }} → {{ r.follows.to_name }} · {{ r.follows.get_status_display }}</a>{% endif %}
+    {% for n in r.next_referrals.all %}<a class="list-group-item list-group-item-action" href="{{ n.get_absolute_url }}"><i class="bi bi-arrow-down"></i> {% trans "Sent on" %} {{ n.number }}: {{ n.to_name }} · {{ n.reason|truncatechars:80 }} · {{ n.get_status_display }}</a>{% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {% if can_reply %}
 <div class="card no-print"><div class="card-header"><i class="bi bi-reply"></i> {% if r.reply %}{% trans "Change the answer" %}{% else %}{% trans "Write the answer to the referring doctor" %}{% endif %}</div><div class="card-body">
   <form method="post" novalidate>{% csrf_token %}{% include "includes/form_fields.html" %}

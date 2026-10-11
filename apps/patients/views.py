@@ -1,5 +1,6 @@
 import io
 import os
+import re
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -46,11 +47,39 @@ from .models import DayPart, Lead, LeadCall, Patient, PatientDocument, PatientRe
 from .sequence import file_steps, next_step
 
 
-def _text_search(qs, q, name_field="full_name", extra=()):
-    """Every word of the name (in any spelling of أ/ا, ة/ه, ى/ي), or the mobile, file number or ID."""
+FILE_CODE = re.compile(r"^([A-Za-z]{2,4})[-\s]?0*(\d{1,6})$")
+
+
+def _number_search(qs, q, files=True):
+    """A number typed (round 16): starting with 0 (or +20) it is the beginning of a mobile (0122 → every mobile
+    starting with 0122); otherwise the file number of this place exactly (12 → CIA-00012 here, CIC-00012 at CIC),
+    or a whole national ID. None when ``q`` is not a number."""
+    text = q.replace(" ", "").replace("-", "")
+    if text.startswith("+"):
+        text = normalize_phone(text) or text
+    code = FILE_CODE.match(q.replace(" ", ""))
+    if files and code:  # "CIA-12", "cic12": that place's file number
+        return qs.filter(file_number__iregex=rf"^{code.group(1)}-0*{int(code.group(2))}$")
+    if not text.isdigit():
+        return None
+    if text.startswith("0"):
+        return qs.filter(Q(phone_primary__startswith=text) | Q(phone_secondary__startswith=text))
+    if not files:
+        return qs.filter(Q(phone_primary__contains=text) | Q(phone_secondary__contains=text))
+    if len(text) >= 10:
+        return qs.filter(national_id=text)
+    return qs.filter(file_number__iregex=rf"^[A-Za-z]+-0*{int(text)}$")
+
+
+def _text_search(qs, q, name_field="full_name", extra=(), files=True):
+    """Every word of the name (in any spelling of أ/ا, ة/ه, ى/ي); a number is a mobile's beginning (0…) or the exact
+    file number of this place (round 16: the search was too wide)."""
     q = clean_digits_value(q)
     if not q:
         return qs
+    numbers = _number_search(qs, q.strip(), files=files)
+    if numbers is not None:
+        return numbers
     query = Q()
     for pattern in name_patterns(q):
         query &= Q(**{f"{name_field}__iregex": pattern})
@@ -218,7 +247,7 @@ class LeadListView(RoleRequiredMixin, SearchMixin, ListView):
             qs = qs.filter(status__in=(Lead.Status.NEW, Lead.Status.FOLLOW_UP))
         if self.request.GET.get("teeth"):
             qs = qs.filter(missing_teeth=self.request.GET["teeth"])
-        qs = _text_search(qs, self.get_search_query())
+        qs = _text_search(qs, self.get_search_query(), files=False)
         return qs.order_by("first_call_on", "created_at")  # who called first comes first
 
     def get_context_data(self, **kwargs):
@@ -581,8 +610,20 @@ def patient_detail(request, pk):
         "chart_missing": patient.tooth_states.filter(status="missing").exists(),
         "parts": file_parts(request.user),
         "open_referrals": patient.referrals.filter(status__in=("sent", "booked")).count(),
+        "consents": patient.consents.select_related("template"),  # round 16
+        "sick_leaves": patient.sick_leaves.all(),
     }
-    if has_role(request.user, *CLINICAL):
+    if has_role(request.user, *CLINICAL) and patient.branch.specialist_clinic:
+        # El Khadem (round 16): the file by specialty, not the steps of an implant case.
+        from apps.specialties.strip import specialty_strip
+
+        context["specialty_strip"] = specialty_strip(patient)
+        histories = patient.examinations.order_by("-exam_date")
+        medical = histories.filter(medical_taken=True).values_list("exam_date", flat=True).first()
+        dental = histories.filter(dental_taken=True).values_list("exam_date", flat=True).first()
+        exam = histories.filter(history_only=False).values_list("exam_date", flat=True).first()
+        context["strip_history"] = {"medical": medical, "dental": dental, "exam": exam}
+    elif has_role(request.user, *CLINICAL):
         context["file_steps"] = file_steps(patient)
         context["next_step"] = next_step(context["file_steps"])
     context["clearance"] = clearance(patient)

@@ -30,7 +30,7 @@ EXTRA_ROOM_COUNT = 4
 CIC_ROOM_COUNT = 3  # a start: the owner renames, adds or stops rooms in Settings → Rooms
 KHADEM_ROOM_COUNT = 4  # shared: any doctor in any free room
 # El Khadem's own look: the first time only (the owner changes it in Settings → Places).
-KHADEM = {"file_prefix": "EK", "theme": Branch.Theme.ELITE, "rooms_shared": True,
+KHADEM = {"file_prefix": "EK", "theme": Branch.Theme.ELITE, "rooms_shared": True, "specialist_clinic": True,
           "tagline": "Specialist dental care · Dr. Amr El Khadem"}
 
 REFERRAL_SOURCES = [

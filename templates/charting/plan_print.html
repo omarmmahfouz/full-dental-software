@@ -45,8 +45,8 @@
           <td class="text-muted">{{ forloop.counter }}</td>
           <td><b>{{ item.step_type }}</b>{% if item.details %}<div class="small text-muted">{{ item.details }}</div>{% endif %}{% if item.status == "done" %}<div class="small text-success"><i class="bi bi-check2-circle"></i> {% trans "Done" %} {{ item.done_at|date:"d/m/Y" }}</div>{% endif %}</td>
           <td class="ltr-cell">{{ item.teeth|default:"—" }}</td>
-          <td>{{ item.dentist|default:plan.dentist|default:"—" }}</td>
-          {% if total is not None %}<td class="text-end nowrap">{% if item.fee is not None %}{{ item.fee|money }}{% endif %}</td>{% endif %}
+          <td>{{ item.dentist|default:plan.dentist|default:"—" }}{% if item.dentist and item.dentist != plan.dentist and item.dentist.role_line %}<div class="small text-muted">{{ item.dentist.role_line }}</div>{% endif %}</td>
+          {% if total is not None %}<td class="text-end nowrap">{% if item.price is not None %}{{ item.price|money }}{% if item.usual %}<div class="small text-muted">{% trans "usual price" %}</div>{% endif %}{% endif %}</td>{% endif %}
         </tr>{% endfor %}
       </tbody>{% empty %}<tbody><tr><td colspan="5" class="text-muted">{% trans "No items." %}</td></tr></tbody>{% endfor %}
       {% if total is not None %}<tfoot><tr class="paper-total"><th colspan="4">{% trans "Expected fees in total" %}</th><th class="text-end nowrap">{{ total|money }} {{ CLINIC.CURRENCY }}</th></tr></tfoot>{% endif %}
@@ -62,6 +62,17 @@
       {% if member.doctor.role_line %}<div class="team-role">{{ member.doctor.role_line }}</div>{% endif %}
       {% if member.parts %}<div class="small mt-1">{{ member.parts|join:" · " }}</div>{% elif member.doctor.pk == plan.dentist_id %}<div class="small mt-1">{% trans "Plans and follows the whole treatment" %}</div>{% endif %}
     </div>{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  {% if referrals %}
+  <div class="paper-section">
+    <div class="doc-subtitle">{% trans "Referred to a specialist" %}</div>
+    <table class="table table-sm paper-table align-middle mb-0">
+      <tbody>{% for r in referrals %}<tr><td><b>{{ r.to_name }}</b>{% if r.to_dentist.role_line %}<div class="small text-muted">{{ r.to_dentist.role_line }}</div>{% elif r.specialty %}<div class="small text-muted">{{ r.get_specialty_display }}</div>{% endif %}</td>
+        <td>{{ r.reason|linebreaksbr }}{% if r.teeth %} <span class="ltr-cell">({{ r.teeth }})</span>{% endif %}</td>
+        <td class="small nowrap">{{ r.get_status_display }}{% if r.appointment %}<div>{{ r.appointment.scheduled_at|date:"d/m/Y" }}</div>{% endif %}</td></tr>{% endfor %}</tbody>
+    </table>
   </div>
   {% endif %}
 

@@ -81,6 +81,26 @@ class ReferralForm(StyledModelForm):
 class ReplyForm(StyledForm):
     reply = forms.CharField(label=_("the specialist's answer"), widget=forms.Textarea(attrs={"rows": 4}),
                             help_text=Referral._meta.get_field("reply").help_text)
+    # Round 16: finished, the patient goes on to the doctor of the next step (e.g. the root canal is done: back to
+    # the prosthodontist for the crown).
+    send_on = forms.BooleanField(label=_("Finished: send him on to the next doctor"), required=False)
+    next_dentist = DentistChoiceField(label=_("the next doctor"), required=False)
+    next_what = forms.CharField(label=_("what he does next"), required=False, max_length=500,
+                                help_text=_("e.g. the crown on 36, the root canal is finished."))
+
+    def __init__(self, *args, place=None, referral=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if place is not None:
+            self.fields["next_dentist"].queryset = self.fields["next_dentist"].queryset.working_at(place)
+        if referral is not None:
+            self.fields["next_dentist"].initial = referral.from_dentist_id
+        self.fields["send_on"].widget.attrs["data-reveals"] = "next_dentist,next_what"
+
+    def clean(self):
+        data = super().clean()
+        if data.get("send_on") and not data.get("next_dentist"):
+            self.add_error("next_dentist", _("Choose the doctor he goes to."))
+        return data
 
 
 # ------------------------------------------------------------------ endodontics

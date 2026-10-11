@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Consent" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header no-print">
+  <h1><i class="bi bi-file-earmark-check"></i> {% trans "Patient consent" %} {% if consent.is_signed %}<span class="badge text-bg-success fs-6">{% trans "Signed" %}</span>{% else %}<span class="badge text-bg-warning fs-6">{% trans "Not signed yet" %}</span>{% endif %}</h1>
+  <button class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer"></i> {% trans "Print" %}</button>
+</div>
+<div class="card consent-paper mx-auto mb-3" dir="{% if paper_rtl %}rtl{% else %}ltr{% endif %}" lang="{{ consent.language }}"><div class="card-body p-4">
+  {% language consent.language %}
+  {% include "includes/place_letterhead.html" with place=place %}
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mt-3 mb-3">
+    <div class="doc-title">{% if consent.language == "en" %}{{ consent.template.name_en|default:consent.template }}{% else %}{{ consent.template.name_ar }}{% endif %}</div>
+    <div class="small"><b>{{ patient.file_number }}</b> · {{ consent.created_at|date:"d/m/Y" }}</div>
+  </div>
+  <dl class="dl-grid mb-3">
+    <dt>{% trans "Patient" %}</dt><dd>{{ patient.full_name }}</dd>
+    <dt>{% trans "The procedure" %}</dt><dd>{{ consent.procedure }}{% if consent.teeth %} <span class="ltr">({{ consent.teeth }})</span>{% endif %}</dd>
+    {% if consent.dentist %}<dt>{% trans "Doctor" %}</dt><dd>{{ consent.dentist }}</dd>{% endif %}
+  </dl>
+  <ol class="consent-lines">{% for line in lines %}<li>{{ line }}</li>{% endfor %}</ol>
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-4 mt-4">
+    <div class="signature-block"><div class="fw-bold">{{ consent.signed_by|default:patient.full_name }}</div>
+      {% if consent.signature %}<img class="signature-print" src="{{ consent.signature }}" alt="">{% endif %}
+      <div class="signature-line">{% trans "Patient's signature" %}{% if consent.signed_at %} · {{ consent.signed_at|date:"d/m/Y g:i A" }}{% endif %}</div></div>
+    <div class="signature-block"><div class="fw-bold">{{ consent.dentist|default:"" }}</div>
+      {% if doctor_signature %}<img class="signature-print" src="{{ doctor_signature }}" alt="">{% endif %}<div class="signature-line">{% trans "Doctor's signature" %}</div></div>
+    {% if consent.witness %}<div class="signature-block"><div class="fw-bold">{{ consent.witness }}</div><div class="signature-line">{% trans "Witness" %}</div></div>{% endif %}
+  </div>
+  {% endlanguage %}
+</div></div>
+{% if consent.paper %}<div class="alert alert-light border no-print"><i class="bi bi-paperclip"></i> <a href="{{ consent.paper.url }}" target="_blank" rel="noopener">{% trans "The photo of the signed paper" %}</a></div>{% endif %}
+{% if not consent.signature %}
+<div class="card no-print"><div class="card-header"><i class="bi bi-pen"></i> {% trans "The patient signs here" %}</div><div class="card-body">
+  {% if error %}<div class="alert alert-danger py-2">{{ error }}</div>{% endif %}
+  <form method="post" data-signature-form data-no-leave-warning>{% csrf_token %}
+    <input type="hidden" name="signature" data-signature-value>
+    <div class="signature-pad-wrap"><canvas class="signature-pad" data-signature-pad width="900" height="320" aria-label="{% trans 'Signature box' %}"></canvas>
+      <span class="signature-pad-line" aria-hidden="true"></span></div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <button class="btn btn-primary btn-lg px-4"><i class="bi bi-check2-circle"></i> {% trans "Save the signature" %}</button>
+      <button type="button" class="btn btn-outline-secondary btn-lg" data-signature-clear><i class="bi bi-eraser"></i> {% trans "Clear and sign again" %}</button>
+    </div>
+    <div class="text-danger small mt-2" data-signature-empty hidden>{% trans "Sign in the box first." %}</div>
+  </form>
+  <hr>
+  <form method="post" enctype="multipart/form-data" class="d-flex flex-wrap gap-2 align-items-center" data-no-leave-warning>{% csrf_token %}
+    <label class="small text-muted" for="consent-paper">{% trans "Or signed on paper: a photo of it" %}</label>
+    <input class="form-control w-auto" type="file" id="consent-paper" name="paper" accept="image/*,application/pdf">
+    <button class="btn btn-outline-primary"><i class="bi bi-upload"></i> {% trans "Keep the photo" %}</button>
+  </form>
+</div></div>
+{% endif %}
+{% endblock %}

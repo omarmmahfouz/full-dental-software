@@ -85,14 +85,19 @@ def cases(request):
     me = _me(request)
     mine = request.GET.get("mine") == "1" or (is_only_dentist(request.user) and me is not None
                                               and request.GET.get("mine") != "0")
+    from apps.patients.access import own_patients_only, visible_patients
+
+    if own_patients_only(request.user, place):  # a specialist of El Khadem: his own patients only (round 16)
+        mine = True
+    patients = visible_patients(request.user)
     models = {"endo": EndoCase, "tmj": TMJExam, "ortho": OrthoCase, "prostho": ProsthoCase, "shade": ShadeRecord}
     counts = {}
     for code, model in models.items():
-        rows = model.objects.filter(branch=place)
+        rows = model.objects.filter(branch=place, patient__in=patients)
         if mine and me is not None:
             rows = rows.filter(dentist=me)
         counts[code] = rows.count()
-    rows = models[kind].objects.filter(branch=place).select_related("patient", "dentist")
+    rows = models[kind].objects.filter(branch=place, patient__in=patients).select_related("patient", "dentist")
     if mine and me is not None:
         rows = rows.filter(dentist=me)
     status = request.GET.get("status", "")
@@ -139,6 +144,10 @@ def referral_list(request):
     me = _me(request)
     show = request.GET.get("show") or ("to_me" if is_only_dentist(request.user) else "open")
     rows = Referral.objects.filter(branch=place).select_related("patient", "from_dentist", "to_dentist", "appointment")
+    from apps.patients.access import own_patients_only
+
+    if own_patients_only(request.user, place) and me is not None:  # El Khadem: his own referrals (round 16)
+        rows = rows.filter(Q(to_dentist=me) | Q(from_dentist=me))
     if show == "to_me":
         rows = rows.filter(to_dentist=me) if me is not None else rows.none()
     elif show == "from_me":
@@ -159,7 +168,8 @@ def referral_create(request):
         raise PermissionDenied
     patient = _patient_from_request(request)
     place = _place(request)
-    initial = {"from_dentist": _me(request), "teeth": request.GET.get("teeth", "")[:100]}
+    initial = {"from_dentist": _me(request), "teeth": request.GET.get("teeth", "")[:100],
+               "reason": request.GET.get("reason", "")[:500]}  # from an item of the treatment plan (round 16)
     if request.GET.get("to", "").isdigit():
         initial["to_dentist"] = int(request.GET["to"])
     form = ReferralForm(request.POST or None, place=place, initial=initial)
@@ -188,7 +198,8 @@ def referral_detail(request, pk):
     me = _me(request)
     can_reply = has_role(request.user, *CLINICAL) and (
         (me is not None and me.pk == referral.to_dentist_id) or has_role(request.user, *MANAGEMENT))
-    form = ReplyForm(request.POST or None, initial={"reply": referral.reply})
+    form = ReplyForm(request.POST or None, initial={"reply": referral.reply}, place=referral.branch,
+                     referral=referral)
     if request.method == "POST":
         if not can_reply:
             raise PermissionDenied
@@ -199,6 +210,17 @@ def referral_detail(request, pk):
             referral.save()
             tell_reply(referral, request.user)
             messages.success(request, _("Answer saved and sent to %(doctor)s.") % {"doctor": referral.from_dentist})
+            if form.cleaned_data.get("send_on"):
+                # The next step goes to the next doctor: the reception books it (round 16).
+                nxt = form.cleaned_data["next_dentist"]
+                onward = Referral.objects.create(
+                    branch=referral.branch, patient=referral.patient, from_dentist=referral.to_dentist or me,
+                    to_dentist=nxt, specialty=nxt.specialty, teeth=referral.teeth, follows=referral,
+                    reason=form.cleaned_data.get("next_what") or referral.reply, created_by=request.user)
+                tell_about_referral(onward, request.user)
+                messages.success(request, _("%(patient)s goes on to %(doctor)s (%(number)s): the reception books "
+                                            "him.") % {"patient": referral.patient.full_name, "doctor": nxt,
+                                                       "number": onward.number})
             return redirect(referral)
     from apps.charting.models import Examination
 

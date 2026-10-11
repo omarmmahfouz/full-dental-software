@@ -10,7 +10,7 @@
     <div class="col-md-6"><label class="form-label">{% trans "Start from a ready prescription" %}</label>
       <select name="template" class="form-select" onchange="this.form.submit()">
         <option value="">—</option>
-        {% for t in templates %}<option value="{{ t.pk }}" {% if template and t.pk == template.pk %}selected{% endif %}>{{ t }}{% if t.for_penicillin_allergy %} ({% trans "penicillin allergy" %}){% endif %}</option>{% endfor %}
+        {% for t in templates %}<option value="{{ t.pk }}" {% if template and t.pk == template.pk %}selected{% endif %}>{{ t }}{% if t.specialty %} · {{ t.get_specialty_display }}{% endif %}{% if t.for_penicillin_allergy %} ({% trans "penicillin allergy" %}){% endif %}</option>{% endfor %}
       </select>
     </div>
   </form>

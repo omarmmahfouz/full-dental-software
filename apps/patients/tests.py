@@ -1223,3 +1223,44 @@ class Round16ExpectedPatientTests(TestCase):
         response = self.client.post("/patients/new/", self.registration(phone_primary="01005556667"))
         self.assertEqual(Patient.objects.count(), 1)
         self.assertIn("phone_primary", response.context["form"].errors)
+
+
+class Round16NumberSearchTests(TestCase):
+    """Round 16: a number starting with 0 is the beginning of a mobile; another number is this place's exact file
+    number (12 → CIA-00012), never every file that holds a 12."""
+
+    def setUp(self):
+        from apps.core.models import Branch
+
+        self.branch = setup_clinic()
+        self.cic = Branch.objects.get(code="CIC")
+        self.twelve = make_patient(self.branch, name="أحمد فاطمة مصطفى", nid="29001011234567", phone="01221234567",
+                                   file_number="CIA-00012")
+        self.other = make_patient(self.branch, name="سارة علي حسن", nid="29002021234568", phone="01101234512",
+                                  file_number="CIA-00112")
+        self.cic_twelve = make_patient(self.cic, name="منى سامي فؤاد", nid="29003031234569", phone="01001234599",
+                                       file_number="CIC-00012")
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+
+    def found(self, typed):
+        return [r["value"] for r in self.client.get("/patients/lookup/", {"q": typed}).json()["results"]]
+
+    def test_a_number_is_a_file_number_or_the_start_of_a_mobile(self):
+        self.assertEqual(self.found("12"), ["CIA-00012"])  # not CIA-00112, not the mobile ending in 12
+        self.assertEqual(self.found("١٢"), ["CIA-00012"])  # Arabic digits
+        self.assertEqual(self.found("0122"), ["CIA-00012"])
+        self.assertEqual(self.found("011"), ["CIA-00112"])
+        self.assertEqual(self.found("cia-112"), ["CIA-00112"])
+        self.assertEqual(self.found("29002021234568"), ["CIA-00112"])  # the whole national ID
+        # At CIC the same 12 is CIC's file.
+        from apps.core.models import UserProfile
+
+        sec = UserProfile.objects.get(user__username="sec")
+        sec.places.add(self.cic)
+        session = self.client.session
+        session["place"] = self.cic.pk
+        session.save()
+        self.assertEqual(self.found("12"), ["CIC-00012"])
+        # The list jumps to the file when one is found.
+        self.assertEqual(self.client.get("/patients/", {"q": "12"}).status_code, 302)

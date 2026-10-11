@@ -1,0 +1,14 @@
+{% load i18n %}{% comment %}The file at a clinic of specialists (El Khadem, round 16): the histories, then one tile per specialty with what was done, when and by whom (apps/specialties/strip.py).{% endcomment %}
+<nav class="specialty-strip no-print" aria-label="{% trans 'The file by specialty' %}">
+  <span class="file-steps-title">{% trans "The file by specialty" %}</span>
+  <div class="strip-row">
+    <a class="strip-tile {% if strip_history.medical %}is-done{% else %}is-todo{% endif %}" href="{% url 'patients:medical_history' patient.pk %}?part=medical"><i class="bi bi-heart-pulse"></i><span>{% trans "Medical history" %}<small>{% if strip_history.medical %}{{ strip_history.medical|date:"d/m/Y" }}{% else %}{% trans "to take" %}{% endif %}</small></span></a>
+    <a class="strip-tile {% if strip_history.dental %}is-done{% else %}is-todo{% endif %}" href="{% url 'patients:medical_history' patient.pk %}?part=dental"><i class="bi bi-chat-square-text"></i><span>{% trans "Dental history" %}<small>{% if strip_history.dental %}{{ strip_history.dental|date:"d/m/Y" }}{% else %}{% trans "to take" %}{% endif %}</small></span></a>
+    <a class="strip-tile {% if strip_history.exam %}is-done{% endif %}" href="{% url 'charting:chart' patient.pk %}"><i class="bi bi-diagram-3"></i><span>{% trans "Examination and chart" %}<small>{% if strip_history.exam %}{{ strip_history.exam|date:"d/m/Y" }}{% else %}—{% endif %}</small></span></a>
+    <a class="strip-tile {% if plans %}is-done{% endif %}" href="{% if plans %}{{ plans.0.get_absolute_url }}{% else %}{% url 'charting:plan_create' patient.pk %}{% endif %}"><i class="bi bi-list-check"></i><span>{% trans "Treatment plan" %}<small>{% if plans %}{% blocktrans count n=plans|length %}{{ n }} plan{% plural %}{{ n }} plans{% endblocktrans %}{% else %}{% trans "none yet" %}{% endif %}</small></span></a>
+    {% for t in specialty_strip %}
+    <a class="strip-tile {% if t.open %}is-open{% elif t.count %}is-done{% else %}is-empty{% endif %}" href="{% if t.url %}{{ t.url }}{% else %}{{ t.start }}{% endif %}" title="{% if t.count %}{% blocktrans count n=t.count %}{{ n }} record{% plural %}{{ n }} records{% endblocktrans %}{% else %}{% trans 'Start' %}{% endif %}">
+      <i class="bi {{ t.icon }}"></i><span>{{ t.label }}<small>{% if t.count %}{{ t.last|date:"d/m/Y" }}{% if t.by %} · {{ t.by }}{% endif %}{% if t.open %} · {% trans "open" %}{% endif %}{% else %}—{% endif %}</small></span></a>
+    {% endfor %}
+  </div>
+</nav>

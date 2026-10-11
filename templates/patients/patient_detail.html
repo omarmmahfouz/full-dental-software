@@ -42,6 +42,8 @@
         <li><hr class="dropdown-divider"></li>
         <li><a class="dropdown-item" href="{% url 'prescriptions:create' patient.pk %}"><i class="bi bi-capsule"></i> {% trans "Prescription" %}</a></li>
         <li><a class="dropdown-item" href="{% url 'prescriptions:instructions' patient.pk %}"><i class="bi bi-card-checklist"></i> {% trans "Post-op instructions" %}</a></li>
+        <li><a class="dropdown-item" href="{% url 'prescriptions:sick_leave_create' patient.pk %}"><i class="bi bi-file-earmark-medical"></i> {% trans "Sick leave" %}</a></li>
+        <li><a class="dropdown-item" href="{% url 'prescriptions:consent_create' patient.pk %}"><i class="bi bi-file-earmark-check"></i> {% trans "Patient consent" %}</a></li>
         {% if not can_edit %}<li><a class="dropdown-item" href="{% url 'billing:bill_create' %}?patient={{ patient.pk }}"><i class="bi bi-receipt"></i> {% trans "Write a bill" %}</a></li>{% endif %}
       </ul>
     </div>
@@ -68,6 +70,7 @@
         <li><a class="dropdown-item" href="{% url 'patients:update' patient.pk %}"><i class="bi bi-pencil"></i> {% trans "Edit" %}</a></li>
         {% if "billing" not in hidden_areas %}<li><a class="dropdown-item" href="{% url 'billing:account' patient.pk %}"><i class="bi bi-wallet2"></i> {% trans "Account & payments" %}</a></li>{% endif %}
         <li><a class="dropdown-item" href="{% url 'complaints:create' %}?patient={{ patient.pk }}"><i class="bi bi-chat-left-dots"></i> {% trans "Record complaint" %}</a></li>
+        {% if not is_clinical %}<li><a class="dropdown-item" href="{% url 'prescriptions:consent_create' patient.pk %}"><i class="bi bi-file-earmark-check"></i> {% trans "Patient consent" %}</a></li>{% endif %}
         {% if not is_clinical and "instructions" in parts %}<li><a class="dropdown-item" href="{% url 'prescriptions:instructions' patient.pk %}"><i class="bi bi-printer"></i> {% trans "Post-op instructions" %}</a></li>{% endif %}
         {% if move_places %}<li><hr class="dropdown-divider"></li><li><h6 class="dropdown-header"><i class="bi bi-arrow-left-right"></i> {% trans "Move to another place" %}</h6></li>
         {% for place in move_places %}<li>
@@ -81,6 +84,7 @@
 </div>
 
 {% if file_steps %}{% include "patients/_file_steps.html" %}{% endif %}
+{% if specialty_strip %}{% include "patients/_specialty_strip.html" %}{% endif %}
 {% if clearance %}{% include "patients/_clearance.html" %}{% endif %}
 {% include "includes/pending_changes.html" %}
 {% if medical_conditions %}
@@ -173,6 +177,8 @@
       <b>{{ plan.title }}</b> {% status_badge plan %}
       {% if plan.difficulty %}<span class="badge text-bg-light">{{ plan.get_difficulty_display }}</span>{% endif %}
       <span class="small text-muted">{{ plan.dentist|default:"" }} — {{ plan.created_at|date:"d/m/Y" }}</span>
+      <span class="ms-auto d-flex gap-1 no-print"><a class="btn btn-sm btn-outline-primary" href="{% url 'charting:plan_print' plan.pk %}?lang=ar"><i class="bi bi-printer"></i> {% trans "Print for the patient" %}</a>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'charting:plan_print' plan.pk %}?lang=en">EN</a></span>
     </div>
     <div class="table-responsive"><table class="table table-sm mb-0 align-middle">
       <thead><tr><th>{% trans "Procedure" %}</th><th>{% trans "Teeth" %}</th><th>{% trans "Status" %}</th></tr></thead>
@@ -255,6 +261,13 @@
       </div></div></div>
       {% empty %}<div class="col-12"><div class="alert alert-warning">{% trans "No ID scan uploaded yet." %}</div></div>{% endfor %}
     </div>
+    {% if consents or sick_leaves %}
+    <div class="card mb-3"><div class="card-header"><i class="bi bi-file-earmark-check"></i> {% trans "Consents and sick leaves" %}</div>
+      <div class="list-group list-group-flush small">
+        {% for c in consents %}<a class="list-group-item list-group-item-action d-flex justify-content-between gap-2" href="{{ c.get_absolute_url }}"><span>{{ c.template }} · {{ c.procedure }}</span><span>{% if c.is_signed %}<span class="badge text-bg-success">{% trans "Signed" %}</span>{% else %}<span class="badge text-bg-warning">{% trans "Not signed yet" %}</span>{% endif %} {{ c.created_at|date:"d/m/Y" }}</span></a>{% endfor %}
+        {% for l in sick_leaves %}<a class="list-group-item list-group-item-action d-flex justify-content-between gap-2" href="{{ l.get_absolute_url }}"><span>{% trans "Sick leave" %} {{ l.number }} · {{ l.diagnosis }}</span><span>{% blocktrans count n=l.days %}{{ n }} day{% plural %}{{ n }} days{% endblocktrans %} · {{ l.starts_on|date:"d/m/Y" }}</span></a>{% endfor %}
+      </div></div>
+    {% endif %}
     <div class="card"><div class="card-header">{% trans "Upload a document / ID scan" %}</div><div class="card-body">
       <form method="post" enctype="multipart/form-data" action="{% url 'patients:document_upload' patient.pk %}">{% csrf_token %}
         {% with form=document_form %}{% include "includes/form_fields.html" %}{% endwith %}

@@ -31,19 +31,28 @@ def prescription_create(request, patient_pk):
     surgery = _surgery_for(request, patient)
     allergic = penicillin_allergy(patient)
     templates = PrescriptionTemplate.objects.filter(is_active=True).prefetch_related("lines__group__drugs")
+    me = Dentist.for_user(request.user)
+    specialty = (me.specialty if me is not None else "") or ""
+    if specialty:  # each specialty's own prescriptions come first (round 16)
+        from django.db.models import Case, IntegerField, Value, When
+
+        templates = templates.annotate(mine=Case(When(specialty=specialty, then=Value(0)), default=Value(1),
+                                                 output_field=IntegerField())).order_by("mine", "sort_order")
     template = None
     if request.GET.get("template", "").isdigit():
         template = templates.filter(pk=request.GET["template"]).first()
     elif surgery is not None:
         template = best_template(surgery_procedures(surgery), allergic)
+    elif specialty:
+        template = templates.filter(specialty=specialty, for_penicillin_allergy=allergic).first()
     lines = []
     if template is not None:
         for line in template.lines.all():
             drug = next((d for d in line.group.drugs.all() if d.is_active), None)
             if drug is not None:
                 lines.append({"drug": drug.pk, "dose": line.dose or line.group.dose})
-    me = Dentist.for_user(request.user)
-    dentist = (surgery.operator_1 if surgery else None) or patient.assigned_dentist or me
+    clinic_doctor = me if patient.branch.specialist_clinic else None  # El Khadem: the doctor who writes it
+    dentist = (surgery.operator_1 if surgery else None) or clinic_doctor or patient.assigned_dentist or me
     form = PrescriptionForm(request.POST or None, initial={"prescribed_on": timezone.localdate(), "dentist": dentist})
     formset = LineFormSet(request.POST or None, initial=lines, prefix="lines")
     if request.method == "POST" and form.is_valid() and formset.is_valid():

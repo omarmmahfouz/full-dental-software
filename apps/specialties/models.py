@@ -64,6 +64,10 @@ class Referral(TimeStampedModel):
     replied_at = models.DateTimeField(_("answered at"), null=True, blank=True)
     replied_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("answered by"), null=True, blank=True,
                                    on_delete=models.SET_NULL, related_name="+")
+    # Round 16: the specialist finished and sends the patient on (back to the doctor who referred him, or to the doctor
+    # of the next step): the new referral follows this one.
+    follows = models.ForeignKey("self", verbose_name=_("after the referral"), null=True, blank=True,
+                                on_delete=models.SET_NULL, related_name="next_referrals")
 
     class Meta:
         ordering = ["-created_at"]

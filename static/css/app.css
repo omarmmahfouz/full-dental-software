@@ -2194,3 +2194,26 @@ details.card.is-needed { border-color: var(--bs-warning); box-shadow: 0 0 0 2px 
 .lab-arch .is-on .arch-root { opacity: .55; }
 .lab-arch .is-on text { fill: var(--place, #0d6efd); }
 .case-arch .lab-arch, .universal-arch .lab-arch { max-width: 520px; margin-inline: auto; }
+/* Round 16: the file by specialty (El Khadem) */
+.specialty-strip { margin-bottom: 1rem; }
+.strip-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: .4rem; margin-top: .35rem; }
+.strip-tile { display: flex; gap: .5rem; align-items: center; padding: .5rem .65rem; border-radius: .6rem;
+  border: 1px solid var(--line, #dee2e6); background: var(--bs-body-bg); color: inherit; text-decoration: none;
+  min-height: 3.2rem; }
+.strip-tile > i { font-size: 1.25rem; color: var(--ink-3, #6c757d); }
+.strip-tile span { display: flex; flex-direction: column; line-height: 1.2; font-weight: 600; font-size: .9rem; }
+.strip-tile small { font-weight: 400; color: var(--ink-3, #6c757d); font-size: .75rem; }
+.strip-tile.is-done { border-color: var(--bs-success-border-subtle); background: var(--bs-success-bg-subtle); }
+.strip-tile.is-done > i { color: var(--bs-success); }
+.strip-tile.is-open { border-color: var(--bs-warning); background: var(--bs-warning-bg-subtle); }
+.strip-tile.is-open > i { color: var(--bs-warning-text-emphasis); }
+.strip-tile.is-todo { border-style: dashed; border-color: var(--bs-danger-border-subtle); }
+.strip-tile.is-empty { opacity: .65; }
+.strip-tile:hover { border-color: var(--place, var(--bs-primary)); }
+/* Round 16: the sick leave and the consents */
+.consent-paper { max-width: 210mm; }
+.consent-lines li { margin-bottom: .45rem; line-height: 1.6; }
+.signature-print { display: block; max-height: 56px; max-width: 200px; margin: .25rem 0; }
+.stamp-box { width: 7rem; height: 7rem; border: 1px dashed var(--ink-3, #adb5bd); border-radius: 50%; display: grid;
+  place-items: center; font-size: .7rem; color: var(--ink-3, #6c757d); text-align: center; }
+@media print { .consent-paper { border: 0; box-shadow: none; } }

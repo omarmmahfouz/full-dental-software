@@ -391,6 +391,9 @@ class ReferralTests(KhademMixin, TestCase):
 
 class EndoTests(KhademMixin, TestCase):
     def test_an_endodontic_case_with_canals_visits_and_the_chart(self):
+        # The patient is booked with the endodontist: at El Khadem he opens only his own patients (round 16).
+        Appointment.objects.create(branch=self.place, patient=self.patient, dentist=self.endo,
+                                   scheduled_at=at(self.today, 10))
         self.login("endo")
         data = {"patient": self.patient.pk, "tooth": "36", "dentist": self.endo.pk, "started_on": "01/09/2026",
                 "treatment": "initial", "pain": "moderate", "pain_kinds": ["lingering", "night"],
@@ -560,7 +563,10 @@ class PrintTests(KhademMixin, TestCase):
         page = self.client.get(f"/clinical/lab/{request.pk}/print/")
         self.assertContains(page, "Bisque try-in")
         self.assertContains(page, "bi-check-square-fill", count=2)
-        self.assertEqual([tooth for tooth, on in page.context["upper"] if on], [11, 21])
+        # The teeth drawn as natural teeth, 11 and 21 in colour (round 16).
+        self.assertContains(page, 'class="arch-tooth is-on" data-tooth="11"')
+        self.assertContains(page, 'class="arch-tooth is-on" data-tooth="21"')
+        self.assertNotContains(page, 'class="arch-tooth is-on" data-tooth="12"')
         self.assertContains(page, "letterhead-elite")
 
 
@@ -580,3 +586,59 @@ class DemoDataTests(TestCase):
         data = totals(surgeon, place, timezone.localdate() - timedelta(days=60), timezone.localdate())
         self.assertGreater(data["share"], 0)
         self.assertGreater(data["costs"], 0)
+
+
+class Round16KhademTests(KhademMixin, TestCase):
+    """Round 16: at El Khadem a specialist opens only his own patients and not their money; the file is by
+    specialty; a finished referral sends the patient on to the next doctor; each specialty has its prescriptions."""
+
+    def test_a_specialist_opens_only_his_patients(self):
+        self.login("endo")
+        self.assertEqual(self.client.get(f"/patients/{self.patient.pk}/").status_code, 403)
+        self.assertNotContains(self.client.get("/patients/"), self.patient.full_name)
+        Referral.objects.create(branch=self.place, patient=self.patient, from_dentist=self.amr, to_dentist=self.endo,
+                                reason="Root canal 36", teeth="36")
+        page = self.client.get(f"/patients/{self.patient.pk}/")
+        self.assertEqual(page.status_code, 200)
+        self.assertIsNone(page.context.get("file_steps"))  # not CIA's steps
+        codes = [tile["code"] for tile in page.context["specialty_strip"]]
+        self.assertEqual(codes[:3], ["endo", "restorative", "prostho"])
+        self.assertEqual(self.client.get(f"/billing/patient/{self.patient.pk}/").status_code, 403)
+        # Dr. Amr, the manager, and the reception see every patient of El Khadem.
+        self.login("amr")
+        self.assertEqual(self.client.get(f"/patients/{self.own_patient.pk}/").status_code, 200)
+        self.login("khadem")
+        self.assertEqual(self.client.get(f"/patients/{self.own_patient.pk}/").status_code, 200)
+
+    def test_the_specialty_strip_shows_what_was_done_and_by_whom(self):
+        from apps.specialties.strip import specialty_strip
+
+        EndoCase.objects.create(patient=self.patient, branch=self.place, dentist=self.endo, tooth=36)
+        tiles = {tile["code"]: tile for tile in specialty_strip(self.patient)}
+        self.assertEqual((tiles["endo"]["count"], tiles["endo"]["by"], tiles["endo"]["open"]), (1, self.endo, True))
+        self.assertEqual(tiles["tmj"]["count"], 0)
+
+    def test_finished_the_patient_goes_on_to_the_next_doctor(self):
+        referral = Referral.objects.create(branch=self.place, patient=self.patient, from_dentist=self.amr,
+                                           to_dentist=self.endo, reason="Root canal 36", teeth="36")
+        self.login("endo")
+        self.client.post(referral.get_absolute_url(), {
+            "reply": "Obturated, temporary filling.", "send_on": "on", "next_dentist": self.amr.pk,
+            "next_what": "Crown on 36"})
+        referral.refresh_from_db()
+        self.assertEqual(referral.status, "done")
+        onward = Referral.objects.get(follows=referral)
+        self.assertEqual((onward.from_dentist, onward.to_dentist, onward.reason, onward.status),
+                         (self.endo, self.amr, "Crown on 36", "sent"))
+        self.assertTrue(Notification.objects.filter(recipient=self.reception, url=onward.get_absolute_url()).exists())
+
+    def test_each_specialty_has_its_prescription(self):
+        from apps.prescriptions.defaults import load_defaults
+
+        load_defaults()
+        Appointment.objects.create(branch=self.place, patient=self.patient, dentist=self.endo,
+                                   scheduled_at=at(self.today, 11))
+        self.login("endo")
+        page = self.client.get(f"/prescriptions/patient/{self.patient.pk}/new/")
+        self.assertEqual(page.context["template"].name_en, "After root canal treatment")
+        self.assertEqual(page.context["form"].initial["dentist"], self.endo)

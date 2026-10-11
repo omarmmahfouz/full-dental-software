@@ -17,10 +17,10 @@ from django.views.decorators.http import require_POST
 
 from apps.clinical.models import ChartEffect, TreatmentStep, TreatmentStepType
 from apps.core import previews
-from apps.core.roles import CLINICAL, MANAGEMENT, has_role
+from apps.core.roles import CLINICAL, FRONT_DESK, MANAGEMENT, has_role
 from apps.dentists.models import Dentist
 from apps.patients.sequence import after_step, file_steps
-from apps.patients.access import get_clinical_patient_or_403
+from apps.patients.access import get_clinical_patient_or_403, get_visible_patient_or_403
 
 from . import odontogram, photo_files
 from apps.core.uploads import looks_right
@@ -308,9 +308,14 @@ def plan_print(request, pk):
 
     plan = get_object_or_404(TreatmentPlan.objects.select_related("patient", "patient__branch", "dentist",
                                                                   "approved_by"), pk=pk)
-    patient = get_clinical_patient_or_403(request.user, plan.patient_id)
+    from apps.patients.access import file_parts
+
+    if has_role(request.user, *FRONT_DESK) and "plan" in file_parts(request.user):  # the reception prints it too
+        patient = get_visible_patient_or_403(request.user, plan.patient_id)
+    else:
+        patient = get_clinical_patient_or_403(request.user, plan.patient_id)
     language = request.GET.get("lang") if request.GET.get("lang") in ("ar", "en") else translation.get_language()
-    items = [item for item in plan.items.select_related("step_type", "dentist").order_by("phase", "pk")
+    items = [item for item in plan.items.select_related("step_type__service", "dentist").order_by("phase", "pk")
              if item.status != PlanItem.Status.CANCELLED]
     phases = []
     for item in items:
@@ -324,13 +329,30 @@ def plan_print(request, pk):
     for item in items:
         if item.dentist_id and str(item.step_type) not in team[item.dentist_id]["parts"]:
             team[item.dentist_id]["parts"].append(str(item.step_type))
-    fees = [item.fee for item in items if item.fee is not None]
+    # Round 16: the price of each step (the fee written, else the usual price of its service, the doctor's own price
+    # at a clinic), and the specialists the patient is referred to.
+    from apps.clinics.prices import price_and_cost
+    from apps.clinics.shares import teeth_count
+
+    for item in items:
+        item.price, item.usual = item.fee, False
+        if item.fee is None and item.step_type.service_id and item.step_type.service.price:
+            price, _cost = price_and_cost(item.step_type.service, item.dentist or plan.dentist, patient.branch,
+                                          item.teeth)
+            item.price, item.usual = price * teeth_count(item.teeth), True
+    show_prices = request.GET.get("prices") != "0"
+    fees = [item.price for item in items if item.price is not None] if show_prices else []
+    from apps.specialties.models import Referral
+
+    referrals = list(Referral.objects.filter(patient=patient).exclude(
+        status__in=(Referral.Status.CANCELLED, Referral.Status.DECLINED)).select_related("to_dentist", "from_dentist"))
     with translation.override(language):
         for phase in phases:
             phase["label"] = str(PlanItem.Phase(phase["phase"]).label).split(" - ", 1)[-1]
         response = render(request, "charting/plan_print.html", {
             "plan": plan, "patient": patient, "phases": phases, "team": list(team.values()),
             "show_team": plan.comprehensive or len(team) > 1, "total": sum(fees) if fees else None,
+            "referrals": referrals, "show_prices": show_prices,
             "place": patient.branch, "svg": chart_svg(patient, clickable=False), "print_language": language,
             "LANGUAGE_BIDI": language == "ar",
         })

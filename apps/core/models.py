@@ -99,6 +99,12 @@ class Branch(LookupModel):
         _("rooms are shared"), default=False,
         help_text=_("Any doctor works in any free room: bookings need no room schedule, the room is chosen by "
                     "itself and can be changed in one click."))
+    # Round 16 (El Khadem): the patients come to a doctor; every specialty counts the same.
+    specialist_clinic = models.BooleanField(
+        _("a clinic of specialists"), default=False,
+        help_text=_("Each doctor opens only the patients he treated, is booked with or was referred (not the money); "
+                    "the patient's file is by specialty (endodontics, restorative, TMJ...), not the steps of an "
+                    "implant case."))
 
     class Meta(LookupModel.Meta):
         verbose_name = _("branch")

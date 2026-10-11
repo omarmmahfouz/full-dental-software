@@ -15,6 +15,7 @@ def dentist_patients_q(dentist):
     return (
         Q(assigned_dentist=dentist)
         | Q(appointments__dentist=dentist)
+        | Q(appointments__second_dentist=dentist)
         | Q(treatment_steps__operator=dentist)
         | Q(treatment_steps__assistant=dentist)
         | Q(surgeries__operator_1=dentist)
@@ -22,17 +23,40 @@ def dentist_patients_q(dentist):
         | Q(surgeries__assistant=dentist)
         | Q(surgeries__instructor=dentist)
         | Q(treatment_steps__supervisor=dentist)
+        | Q(brought_by=dentist)
+        | Q(referrals__to_dentist=dentist)
+        | Q(referrals__from_dentist=dentist)
     )
+
+
+def own_patients_only(user, place=None):
+    """At a clinic of specialists (El Khadem, round 16) a doctor opens only his own patients: not the reception, the
+    managers (Dr. Amr) or the owner."""
+    from apps.core.models import branch_for_user
+    from apps.core.roles import is_only_dentist
+
+    place = place or branch_for_user(user)
+    return place is not None and place.specialist_clinic and is_only_dentist(user)
 
 
 def visible_patients(user):
     """The front desk, management and the dentists see the patients of the place they work in now (the
     switch in the top bar); a place never sees another place's patients. The CIA dentists see every CIA
-    patient: they record the work of the course candidates, who do not log in. Others see none."""
+    patient: they record the work of the course candidates, who do not log in. At a clinic of specialists
+    (El Khadem) a doctor sees only the patients he treated, is booked with or was referred. Others see none."""
     if has_role(user, *PATIENT_VIEWERS):
         from apps.core.models import branch_for_user
 
-        return Patient.objects.filter(branch=branch_for_user(user))
+        place = branch_for_user(user)
+        patients = Patient.objects.filter(branch=place)
+        if own_patients_only(user, place):
+            from apps.dentists.models import Dentist
+
+            dentist = Dentist.for_user(user)
+            if dentist is None:
+                return Patient.objects.none()
+            return patients.filter(pk__in=Patient.objects.filter(dentist_patients_q(dentist)).values("pk"))
+        return patients
     return Patient.objects.none()
 
 
