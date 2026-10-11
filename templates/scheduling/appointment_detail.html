@@ -28,7 +28,9 @@
     <dl class="dl-grid">
       <dt>{% trans "Appointment time" %}</dt><dd>{{ a.scheduled_at|date:"l d/m/Y g:i A" }}{% if a.is_walk_in %} <span class="badge text-bg-light">{% trans "walk-in" %}</span>{% endif %}</dd>
       <dt>{% trans "Expected duration" %}</dt><dd>{{ a.duration_minutes|minutes }}</dd>
-      <dt>{% trans "Dentist" %}</dt><dd>{{ a.dentist|default:"—" }}</dd>
+      <dt>{% trans "Dentist" %}</dt><dd>{{ a.dentist|default:"—" }}
+        {% if times_form and a.status != "cancelled" and a.status != "no_show" %}<a class="btn btn-sm btn-outline-secondary ms-1 no-print" href="{% url 'scheduling:appointment_change_dentist' a.pk %}"><i class="bi bi-person-gear"></i> {% trans "Another doctor" %}</a>{% endif %}
+        {% if a.booked_dentist_id and a.booked_dentist_id != a.dentist_id %}<div class="small text-muted">{% blocktrans with doctor=a.booked_dentist %}Booked with {{ doctor }}{% endblocktrans %}{% if a.dentist_change_reason %}: {{ a.dentist_change_reason }}{% endif %} ({{ a.dentist_changed_at|date:"g:i A" }})</div>{% endif %}</dd>
       <dt>{% trans "Room" %}</dt><dd>{{ a.room|default:"—" }}</dd>
       <dt>{% trans "Procedure" %}</dt><dd>{{ a.what|default:"—" }}</dd>
       {% if a.requested_by %}<dt>{% trans "Asked by" %}</dt><dd>{{ a.requested_by }}</dd>{% endif %}

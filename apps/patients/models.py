@@ -300,13 +300,27 @@ class Patient(TimeStampedModel):
                 self.governorate = self.governorate or data["governorate_code"]
         with transaction.atomic():
             super().save(*args, **kwargs)
-            if not self.file_number:
-                # The next number, after the numbers of old paper files typed in by hand (round 15).
-                number, taken = self.pk, type(self).objects.exclude(pk=self.pk)
-                while taken.filter(file_number=f"{self.branch.badge}-{number:05d}").exists():
-                    number += 1
-                self.file_number = f"{self.branch.badge}-{number:05d}"
+            # An expected patient (booked from the call list) has a temporary number, e.g. CIA-TMP-12; he takes his
+            # final number when his file is completed (round 16).
+            if not self.file_number or (self.has_temporary_number and not self.is_expected):
+                self.file_number = self.temporary_number() if self.is_expected else self.final_number()
                 type(self).objects.filter(pk=self.pk).update(file_number=self.file_number)
+
+    def final_number(self):
+        """The next number, after the numbers of old paper files typed in by hand (round 15)."""
+        number, taken = self.pk, type(self).objects.exclude(pk=self.pk)
+        while taken.filter(file_number=f"{self.branch.badge}-{number:05d}").exists():
+            number += 1
+        return f"{self.branch.badge}-{number:05d}"
+
+    def temporary_number(self):
+        return f"{self.branch.badge}-{self.TEMPORARY}-{self.pk}"
+
+    TEMPORARY = "TMP"
+
+    @property
+    def has_temporary_number(self):
+        return f"-{self.TEMPORARY}-" in (self.file_number or "")
 
     @property
     def age(self):
@@ -371,6 +385,7 @@ class PatientDocument(TimeStampedModel):
         PASSPORT = "passport", _("Passport")
         CONSENT = "consent", _("Signed consent")
         XRAY = "xray", _("X-ray / CBCT")
+        LAB_TEST = "lab_test", _("Medical test result")
         OTHER = "other", _("Other")
 
     CARD_KINDS = (Kind.ID_FRONT, Kind.ID_BACK, Kind.PASSPORT)
@@ -467,8 +482,17 @@ class CallList(TimeStampedModel):
 
     @property
     def progress(self):
+        """(finished, all): a patient is finished when booked, or with a final answer (not interested, a wrong
+        number). "No answer" and "call again later" stay on the list to call again (round 16)."""
         entries = list(self.entries.all())
-        return sum(1 for e in entries if e.outcome != CallListEntry.Outcome.PENDING), len(entries)
+        return sum(1 for e in entries if e.outcome in CallListEntry.CLOSED), len(entries)
+
+    def counts(self):
+        """How many are booked, closed without a booking, and still to call."""
+        entries = list(self.entries.all())
+        booked = sum(1 for e in entries if e.outcome == CallListEntry.Outcome.BOOKED)
+        closed = sum(1 for e in entries if e.outcome in CallListEntry.CLOSED)
+        return {"booked": booked, "closed": closed - booked, "open": len(entries) - closed, "all": len(entries)}
 
 
 class CallListEntry(models.Model):
@@ -480,6 +504,10 @@ class CallListEntry(models.Model):
         NO_ANSWER = "no_answer", _("No answer")
         WRONG_NUMBER = "wrong_number", _("Wrong / closed number")
 
+    # Finished: booked, or a final answer. The others are called again (round 16).
+    CLOSED = (Outcome.BOOKED, Outcome.NOT_INTERESTED, Outcome.WRONG_NUMBER)
+    OPEN = (Outcome.PENDING, Outcome.CALL_BACK, Outcome.NO_ANSWER)
+
     call_list = models.ForeignKey(CallList, on_delete=models.CASCADE, related_name="entries")
     patient = models.ForeignKey(Patient, verbose_name=_("patient"), on_delete=models.CASCADE, related_name="call_entries")
     reason = models.CharField(_("why"), max_length=255, blank=True)
@@ -490,12 +518,24 @@ class CallListEntry(models.Model):
     called_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name=_("called by"), null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
+    next_call_on = models.DateField(_("call again on"), null=True, blank=True)
+    appointment = models.ForeignKey("scheduling.Appointment", verbose_name=_("appointment"), null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="+")
 
     class Meta:
         ordering = ["pk"]
         verbose_name = _("patient to call")
         verbose_name_plural = _("patients to call")
         constraints = [models.UniqueConstraint(fields=["call_list", "patient"], name="unique_patient_per_call_list")]
+
+    @property
+    def is_closed(self):
+        return self.outcome in self.CLOSED
+
+    @property
+    def is_due(self):
+        """Still to call today (not called yet, or its call-again day has come)."""
+        return not self.is_closed and (self.next_call_on is None or self.next_call_on <= timezone.localdate())
 
 
 def consult_answer_path(instance, filename):
@@ -664,6 +704,9 @@ class MedicalRecall(models.Model):
     last_call_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
                                      related_name="+", verbose_name=_("called by"))
     notes = models.CharField(_("notes"), max_length=255, blank=True)
+    # The new test written from the calls page (round 16): the reading and its day; it goes into the medical history.
+    result = models.CharField(_("the new result"), max_length=40, blank=True)
+    result_on = models.DateField(_("test of"), null=True, blank=True)
 
     class Meta:
         ordering = ["due_on", "pk"]
@@ -678,3 +721,7 @@ class MedicalRecall(models.Model):
     @property
     def is_late(self):
         return self.status == self.Status.OPEN and self.due_on < timezone.localdate()
+
+    @property
+    def is_due(self):
+        return self.status == self.Status.OPEN and self.due_on <= timezone.localdate()

@@ -96,6 +96,10 @@ def duplicate_phone_error(phone, exclude_patient=None, exclude_lead=None):
     if exclude_patient is not None and exclude_patient.pk:
         patients = patients.exclude(pk=exclude_patient.pk)
     patient = patients.first()
+    if patient and patient.is_expected:
+        return _("This mobile belongs to the expected patient %(name)s (booked, temporary file %(file)s). If he is "
+                 "the one who came, press “Yes, it is him” above: his file is completed.") % {
+            "name": patient.full_name, "file": patient.file_number}
     if patient:
         return _("This mobile belongs to the registered patient %(name)s (file %(file)s).") % {
             "name": patient.full_name, "file": patient.file_number,
@@ -246,23 +250,32 @@ class PatientForm(StyledModelForm):
                    "preferred_times": CommaChecksWidget(choices=DayPart.choices),
                    "travel_minutes": HoursMinutesWidget}
 
-    def __init__(self, *args, can_renumber=False, **kwargs):
+    def __init__(self, *args, can_renumber=False, as_new=False, spare_phone="", **kwargs):
         super().__init__(*args, **kwargs)
+        # as_new: the registration of a patient who came and is the expected patient booked before (round 16): the
+        # form is the new patient's form, saved on his short file.
+        editing = bool(self.instance.pk) and not as_new
+        self.editing = editing
         self.fields["medical_conditions"].queryset = MedicalCondition.objects.filter(is_active=True)
         self.fields["referral_source"].queryset = ReferralSource.objects.filter(is_active=True)
         # An old paper file typed in: only the name, the ID and the first mobile are needed.
-        self.data_entry = not self.instance.pk and self.is_bound and \
+        self.data_entry = not editing and self.is_bound and \
             str(self.data.get(self.add_prefix("old_file"), "")).lower() in ("on", "true", "1")
         self.fields["referral_source"].required = not self.data_entry
         for name in self.REQUIRED:
             self.fields[name].required = not self.data_entry
+        # The expected patient came with another mobile: the booked one becomes his mobile 2 (round 16).
+        self.spare_phone = spare_phone
+        if spare_phone:
+            self.fields["phone_secondary"].required = False
         for name in self.FROM_ID:
             self.fields[name].required = False
             self.fields[name].marked_required = True
-        if self.instance.pk:
+        if editing:
             del self.fields["old_file"]
             if can_renumber:  # the owner and the head of CIA can correct a file number
-                self.fields["typed_file_number"].initial = self.instance.file_number
+                self.fields["typed_file_number"].initial = "" if self.instance.has_temporary_number \
+                    else self.instance.file_number
                 self.fields["typed_file_number"].help_text = _("Change it only to match the paper file.")
             else:
                 del self.fields["typed_file_number"]
@@ -305,7 +318,7 @@ class PatientForm(StyledModelForm):
             # data-id-card: the camera or the photo is checked, the card cut out and read (static/js/idcard.js).
             self.fields[name].widget.attrs.update({"accept": "image/*,application/pdf", "data-id-card": side})
             self.fields[name].col = "col-md-6"
-        if self.instance.pk:
+        if editing:
             # Relations are managed from the patient file after registration; new ID photos can be added here.
             for name in ("relative_lookup", "relative_relation"):
                 del self.fields[name]
@@ -331,7 +344,7 @@ class PatientForm(StyledModelForm):
                 % {"name": existing.full_name, "file": existing.file_number}
             )
         elsewhere = others.exclude(status=Patient.Status.OUT).first()
-        if elsewhere and not self.instance.pk:
+        if elsewhere and not self.editing:
             # Another place's patient: their name stays with that place.
             raise forms.ValidationError(
                 _("This ID has an open file at %(place)s (file %(file)s). To move the patient here, open that file "
@@ -389,6 +402,10 @@ class PatientForm(StyledModelForm):
                                                            code="required"))
         if data.get("phone_primary") and data.get("phone_primary") == data.get("phone_secondary"):
             self.add_error("phone_secondary", _("The second mobile is the same as the first one."))
+        if self.spare_phone and not data.get("phone_secondary") and data.get("phone_primary") == self.spare_phone \
+                and not self.data_entry and "phone_secondary" not in self.errors:
+            self.add_error("phone_secondary", forms.ValidationError(
+                self.fields["phone_secondary"].error_messages["required"], code="required"))
         # "Referred by one of our patients": choosing the patient is optional (round 13).
         referred_by = data.get("referred_by_lookup")
         if referred_by and self.instance.pk and referred_by.pk == self.instance.pk:

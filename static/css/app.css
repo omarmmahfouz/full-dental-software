@@ -2129,6 +2129,12 @@ details.card.is-needed { border-color: var(--bs-warning); box-shadow: 0 0 0 2px 
 /* Calls for a new test (round 15): the answer buttons wrap under the patient on a tablet. */
 .recall-answer { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .45rem; }
 .recall-answer .form-control { flex: 1 1 12rem; max-width: 22rem; }
+.recall-answer .recall-next { flex: 0 1 11rem; }
+.recall-result > summary { list-style: none; display: inline-flex; gap: .3rem; align-items: center; }
+.recall-result > summary::-webkit-details-marker { display: none; }
+.recall-result-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: flex-end; margin-top: .5rem;
+  padding: .6rem; border: 1px dashed var(--bs-success); border-radius: .5rem; }
+.recall-result-form label { display: flex; flex-direction: column; gap: .15rem; flex: 1 1 9rem; max-width: 16rem; }
 
 /* Purchases by place, dental or not, then the group (round 15). */
 .place-tabs { display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -2157,3 +2163,8 @@ details.card.is-needed { border-color: var(--bs-warning); box-shadow: 0 0 0 2px 
 .exam-chart-key { display: flex; flex-wrap: wrap; gap: .4rem 1rem; justify-content: center; margin-top: .5rem; }
 .key-dot { display: inline-block; width: .8rem; height: .8rem; border-radius: .2rem; background: var(--key); vertical-align: -.1rem; }
 @media (prefers-reduced-motion: reduce) { .exam-chart g.tooth > rect:first-of-type { transition: none; } }
+
+/* Round 16: an expected patient found while registering a new one */
+.expected-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem;
+  background: var(--bs-body-bg); border: 1px solid var(--bs-warning-border-subtle); border-radius: .5rem; padding: .5rem .75rem; }
+.expected-chosen label { cursor: pointer; }

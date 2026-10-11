@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "Calls for a new test" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-telephone-forward"></i> {% trans "Calls for a new test" %}</h1>
+  <a class="btn btn-outline-secondary no-print" href="{% url 'patients:medical_followup' %}"><i class="bi bi-heart-pulse"></i> {% trans "Medical follow-up" %}</a>
+</div>
+<ul class="nav nav-tabs mb-3 flex-nowrap overflow-auto no-print">
+  {% for code, label in tabs %}
+  <li class="nav-item"><a class="nav-link nowrap {% if tab == code %}active{% endif %}" href="?tab={{ code }}">{{ label }} <span class="badge {% if code == 'today' and counts.today %}text-bg-danger{% else %}text-bg-light{% endif %}">{% if code == "today" %}{{ counts.today }}{% elif code == "will_do" %}{{ counts.will_do }}{% elif code == "no_answer" %}{{ counts.no_answer }}{% elif code == "coming" %}{{ counts.coming }}{% else %}{{ counts.done }}{% endif %}</span></a></li>
+  {% endfor %}
+</ul>
+<div class="card" id="recalls">
+  <div class="list-group list-group-flush">
+    {% for r in page_obj %}{% include "patients/_recall_row.html" %}
+    {% empty %}<div class="list-group-item text-muted text-center py-4">{% trans "Nobody here now." %}</div>{% endfor %}
+  </div>
+  {% if page_obj.has_other_pages %}<div class="px-3 pt-2">{% include "includes/pagination.html" %}</div>{% endif %}
+  <div class="card-footer small text-muted">{% blocktrans with hba1c=options.hba1c_recheck_days other=options.readings_recheck_days %}A high HbA1c is asked again after {{ hba1c }} days, a high sugar or pressure after {{ other }} days (Settings → Clinic options). "He will do the test" stays in its tab and is called again in two weeks, "No answer" in two days (or on the day written). When he did it, write the result here: it goes into the medical history and closes the call; a result still high opens the next call by itself.{% endblocktrans %}</div>
+</div>
+{% endblock %}

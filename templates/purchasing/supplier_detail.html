@@ -11,6 +11,7 @@
     <dt>{% trans "Phone" %}</dt><dd><span class="ltr">{{ supplier.phone|default:"—" }}</span></dd>
     <dt>{% trans "Contact person" %}</dt><dd>{{ supplier.contact_person|default:"—" }}</dd>
     <dt>{% trans "Address" %}</dt><dd>{{ supplier.address|default:"—" }}</dd>
+    <dt>{% trans "What he supplies" %}</dt><dd>{% for label in supplier.group_labels %}<span class="badge text-bg-light border">{{ label }}</span> {% empty %}{% trans "Anything" %}{% endfor %}</dd>
     <dt>{% trans "Notes" %}</dt><dd>{{ supplier.notes|default:"—" }}</dd>
   </dl></div></div></div>
   <div class="col-md-4"><div class="card stat-card h-100"><div class="card-body"><div class="stat-value">{{ total|money }}</div><div class="stat-label">{% trans "Total purchases" %}</div></div></div></div>

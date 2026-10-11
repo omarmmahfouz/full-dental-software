@@ -33,6 +33,30 @@ def name_patterns(text):
     return ["".join(_ARABIC_VARIANTS.get(ch, re.escape(ch)) for ch in word) for word in str(text).split()]
 
 
+_SIMPLE_LETTERS = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ة": "ه", "ى": "ي", "ؤ": "و", "ئ": "ي", "ـ": ""})
+_ARABIC_MARKS = re.compile(r"[\u064B-\u0652\u0670]")
+
+
+def simple_arabic(text):
+    """A name in one spelling, to compare names typed differently (أحمد / احمد, فاطمة / فاطمه, marks removed)."""
+    return " ".join(_ARABIC_MARKS.sub("", str(text or "")).translate(_SIMPLE_LETTERS).split())
+
+
+def names_alike(first, second):
+    """How alike two Arabic names are, 0 to 1 (a wrong letter or a missing name still gives a high number)."""
+    from difflib import SequenceMatcher
+
+    a, b = simple_arabic(first), simple_arabic(second)
+    if not a or not b:
+        return 0
+    words_a, words_b = a.split(), b.split()
+    # The same first two names (the person and his father) is a strong sign, whatever follows.
+    if len(words_a) >= 2 and len(words_b) >= 2 and words_a[:2] == words_b[:2]:
+        return max(0.9, SequenceMatcher(None, a, b).ratio())
+    shorter = min(len(a), len(b))
+    return max(SequenceMatcher(None, a, b).ratio(), SequenceMatcher(None, a[:shorter], b[:shorter]).ratio() - 0.05)
+
+
 def normalize_phone(value):
     """Return a canonical phone string so duplicates can be detected.
 

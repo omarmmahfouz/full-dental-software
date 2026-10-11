@@ -1,0 +1,31 @@
+{% load i18n %}
+<div class="list-group-item recall-row" id="recall{{ r.pk }}">
+  <div class="d-flex flex-wrap justify-content-between gap-2">
+    <span><a href="{{ r.patient.get_absolute_url }}"><b>{{ r.patient.full_name }}</b></a> <span class="small text-muted">{{ r.patient.file_number }}</span> <a class="ltr small" href="tel:{{ r.patient.preferred_number }}">{{ r.patient.preferred_number }}</a></span>
+    <span class="small">{% if r.status == "open" %}{% if r.is_late %}<span class="badge text-bg-danger">{% trans "late" %}</span>{% endif %} {% trans "call on" %} <b>{{ r.due_on|date:"d/m/Y" }}</b>{% elif r.result %}<span class="badge text-bg-success">{% trans "the new result" %}: <span class="ltr">{{ r.result }}</span></span> {{ r.result_on|date:"d/m/Y" }}{% else %}<span class="badge text-bg-secondary">{{ r.get_status_display }}</span>{% endif %}</span>
+  </div>
+  <div class="small mt-1"><span class="medical-alert py-0">{{ r.get_reason_display }}: <span class="ltr">{{ r.reading }}</span></span> {% trans "reading of" %} {{ r.reading_on|date:"d/m/Y" }}
+    {% if r.calls %}· {% blocktrans count n=r.calls %}{{ n }} call{% plural %}{{ n }} calls{% endblocktrans %}: <b>{{ r.get_last_outcome_display }}</b> ({{ r.last_call_at|date:"d/m/Y" }}{% if r.last_call_by %}, {{ r.last_call_by.get_full_name|default:r.last_call_by.username }}{% endif %}){% endif %}
+    {% if r.notes %}· <span class="text-muted">{{ r.notes }}</span>{% endif %}</div>
+  {% if r.status == "open" %}
+  <form method="post" action="{% url 'patients:recall_call' r.pk %}" class="recall-answer no-print" data-no-leave-warning>{% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    {% if r.whatsapp %}<a class="btn btn-sm btn-success" target="_blank" rel="noopener" href="{{ r.whatsapp }}"><i class="bi bi-whatsapp"></i> {% trans "WhatsApp" %}</a>{% endif %}
+    <input class="form-control form-control-sm" name="notes" maxlength="255" placeholder="{% trans 'What he said (optional)' %}" aria-label="{% trans 'What he said (optional)' %}">
+    <input class="form-control form-control-sm js-date recall-next" name="next_on" placeholder="{% trans 'call again on (optional)' %}" aria-label="{% trans 'call again on (optional)' %}" autocomplete="off" dir="ltr">
+    {% for code, label in outcomes %}<button class="btn btn-sm {% if code == 'refused' %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}" name="outcome" value="{{ code }}">{{ label }}</button>{% endfor %}
+  </form>
+  {% if can_write_result %}
+  <details class="recall-result no-print mt-2"{% if r.last_outcome == "will_do" %} open{% endif %}>
+    <summary class="btn btn-sm btn-success"><i class="bi bi-clipboard2-pulse"></i> {% trans "He did it: write the result" %}</summary>
+    <form method="post" action="{% url 'patients:recall_result' r.pk %}" enctype="multipart/form-data" class="recall-result-form" data-no-leave-warning>{% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <label class="small">{{ r.result_form.value.label }} ({{ r.get_reason_display }}){{ r.result_form.value }}</label>
+      <label class="small">{{ r.result_form.on.label }}{{ r.result_form.on }}</label>
+      <label class="small">{{ r.result_form.photo.label }}{{ r.result_form.photo }}</label>
+      <button class="btn btn-sm btn-success"><i class="bi bi-check2"></i> {% trans "Save the result" %}</button>
+    </form>
+  </details>
+  {% endif %}
+  {% endif %}
+</div>

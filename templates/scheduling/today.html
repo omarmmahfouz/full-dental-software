@@ -94,7 +94,8 @@
       {% for c in a.patient.medical_conditions.all %}{% if c.is_alert %}<span class="medical-alert py-0">{{ c }}</span>{% endif %}{% endfor %}
       {% if a.what %}<div class="small text-muted">{{ a.what }}</div>{% endif %}{% if a.requested_by or a.second_dentist %}<div class="small text-muted">{% if a.requested_by %}{% trans "asked by" %} {{ a.requested_by }}{% endif %}{% if a.second_dentist %} · {% trans "with" %} {{ a.second_dentist }}{% endif %}</div>{% endif %}
     </td>
-    <td class="nowrap">{{ a.dentist|default:"—" }}</td>
+    <td class="nowrap">{{ a.dentist|default:"—" }}{% if a.booked_dentist_id and a.booked_dentist_id != a.dentist_id %}<div class="small text-muted"><s>{{ a.booked_dentist }}</s></div>{% endif %}
+      {% if a.status != "cancelled" and a.status != "no_show" %}<a class="btn btn-sm btn-link p-0 no-print" href="{% url 'scheduling:appointment_change_dentist' a.pk %}?next={{ request.get_full_path|urlencode }}" title="{% trans 'He goes in with another doctor' %}" aria-label="{% trans 'He goes in with another doctor' %}"><i class="bi bi-person-gear"></i></a>{% endif %}</td>
     <td class="nowrap">{{ a.room|default:"—" }}</td>
     <td>{% status_badge a %}</td>
     <td class="nowrap board-time">{{ a.arrived_at|time:"g:i A"|default:"—" }}</td>
@@ -174,13 +175,20 @@
 {% block extra_js %}
 <script>
   (function () {
-    var minLabel = "{% trans 'min' %}";
+    var minLabel = "{% trans 'min' %}", hourLabel = "{% trans 'h' %}";
+    // 494 minutes reads "8 h 14 min" (round 16).
+    function span(minutes) {
+      minutes = Math.max(0, Math.round(minutes));
+      if (minutes < 60) return minutes + " " + minLabel;
+      var hours = Math.floor(minutes / 60), rest = minutes % 60;
+      return hours + " " + hourLabel + (rest ? " " + rest + " " + minLabel : "");
+    }
     var rows = Array.prototype.slice.call(document.querySelectorAll(".board-row"));
     // Live "waiting for / in chair for" counters.
     function tick() {
       document.querySelectorAll("td [data-since]").forEach(function (el) {
         var since = Date.parse(el.getAttribute("data-since"));
-        if (!isNaN(since)) el.textContent = Math.max(0, Math.round((Date.now() - since) / 60000)) + " " + minLabel;
+        if (!isNaN(since)) el.textContent = span((Date.now() - since) / 60000);
       });
     }
     // The "Now" panel: each patient in a box by the time on this computer.
@@ -214,8 +222,8 @@
         chip.className = "now-chip";
         var extra = "";
         var since = Date.parse(row.getAttribute("data-since"));
-        if (!isNaN(since)) extra = " · " + Math.max(0, Math.round((now - since) / 60000)) + " " + minLabel;
-        if (bucket === "late") extra = " · " + Math.round((now - Date.parse(row.getAttribute("data-at"))) / 60000) + " " + minLabel;
+        if (!isNaN(since)) extra = " · " + span((now - since) / 60000);
+        if (bucket === "late") extra = " · " + span((now - Date.parse(row.getAttribute("data-at"))) / 60000);
         chip.innerHTML = "<b></b><span></span>";
         chip.querySelector("b").textContent = row.getAttribute("data-name");
         chip.querySelector("span").textContent = row.getAttribute("data-info") + extra;

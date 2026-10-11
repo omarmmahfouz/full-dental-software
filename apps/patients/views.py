@@ -115,8 +115,88 @@ def phone_check(request):
         message = duplicate_phone_error(phone, exclude_lead=lead or Lead())
     else:
         patient = Patient.objects.filter(pk=pk).first() if pk.isdigit() else None
+        if patient is None and Patient.objects.here().filter(phone_primary=phone, is_expected=True).exists():
+            return JsonResponse({})  # the new patient's page asks "Did this patient come?" instead (round 16)
         message = duplicate_phone_error(phone, exclude_patient=patient or Patient(), exclude_lead=False)
     return JsonResponse({"title": _("This mobile is already registered"), "message": str(message)} if message else {})
+
+
+def expected_candidates(place, phones=(), name="", limit=4):
+    """The expected patients of a place who may be the person registering now (round 16): the short files booked
+    from the call list and the open calls, with the same mobile or a name alike (typed with a mistake too)."""
+    from apps.core.utils import names_alike
+
+    phones = {p for p in (normalize_phone(phone) for phone in phones) if p}
+    found = []
+    expected = Patient.objects.filter(branch=place, is_expected=True)
+    leads = Lead.objects.filter(branch=place, status__in=Lead.OPEN_STATUSES, converted_patient__isnull=True)
+    for kind, rows in (("patient", expected), ("lead", leads)):
+        for row in rows.only("pk", "full_name", "phone_primary", "phone_secondary")[:2000]:
+            same_phone = bool(phones & {row.phone_primary, row.phone_secondary})
+            alike = names_alike(name, row.full_name) if name else 0
+            if same_phone or alike >= 0.8:
+                found.append((kind, row, same_phone, alike))
+    found.sort(key=lambda item: (not item[2], -item[3]))
+    return found[:limit]
+
+
+def expected_match(request):
+    """While the reception types a new patient's name or mobile: is he an expected patient (booked from the call list,
+    or still on it)? The page asks "Did this patient come?" (round 16)."""
+    from apps.scheduling.models import Appointment
+
+    if not has_role(request.user, *FRONT_DESK):
+        return JsonResponse({"matches": []})
+    place = branch_for_user(request.user)
+    rows = expected_candidates(place, [request.GET.get("phone", ""), request.GET.get("phone2", "")],
+                               request.GET.get("name", "").strip())
+    matches = []
+    for kind, row, same_phone, alike in rows:
+        booked = ""
+        if kind == "patient":
+            visit = Appointment.objects.filter(patient=row, status__in=Appointment.BOOKED_STATUSES).order_by(
+                "scheduled_at").first()
+            if visit is not None:
+                booked = timezone.localtime(visit.scheduled_at).strftime("%d/%m/%Y %I:%M %p")
+        matches.append({
+            "key": f"{kind}:{row.pk}", "name": row.full_name, "phone": row.phone_primary,
+            "phone2": row.phone_secondary, "file": row.file_number if kind == "patient" else "",
+            "booked": booked,
+            "why": str(_("the same mobile") if same_phone else _("a name alike")),
+        })
+    return JsonResponse({"matches": matches})
+
+
+def chosen_expected(request):
+    """The expected patient the reception said is the one who came (``expected`` = "patient:12" or "lead:5")."""
+    kind, _sep, pk = (request.POST.get("expected") or "").partition(":")
+    if not pk.isdigit():
+        return None, None
+    place = branch_for_user(request.user)
+    if kind == "patient":
+        return Patient.objects.filter(pk=pk, branch=place, is_expected=True).first(), None
+    if kind == "lead":
+        return None, Lead.objects.filter(pk=pk, branch=place, converted_patient__isnull=True).first()
+    return None, None
+
+
+def keep_both_mobiles(patient, old_numbers, main):
+    """The patient came with another mobile than the one booked (someone else may have booked for him): the new
+    mobile is the main one (or the old one, ``main == "old"``), and the other is kept as mobile 2 or in the notes."""
+    typed = [patient.phone_primary, patient.phone_secondary]
+    old = [number for number in old_numbers if number and number not in typed]
+    if not old:
+        return
+    if main == "old":
+        patient.phone_primary, patient.phone_secondary = old[0], typed[0]
+        extra = [number for number in typed[1:] + old[1:] if number and number not in (old[0], typed[0])]
+    else:
+        if not patient.phone_secondary:
+            patient.phone_secondary = old.pop(0)
+        extra = old
+    if extra:
+        line = _("Other mobile (from the booking): %(phones)s") % {"phones": ", ".join(extra)}
+        patient.notes = f"{patient.notes}\n{line}".strip()
 
 
 # ---------------------------------------------------------------- call list
@@ -302,10 +382,27 @@ class PatientCreateView(RoleRequiredMixin, AuditMixin, CreateView):
         return super().get(request, *args, **kwargs)
 
     def get_lead(self):
+        if self.request.method == "POST":
+            _patient, lead = chosen_expected(self.request)
+            if lead is not None:  # "Yes, it is him" on an open call of the call list (round 16)
+                return lead
         lead_id = self.request.GET.get("lead") or self.request.POST.get("lead")
         if lead_id and lead_id.isdigit():
             return Lead.objects.filter(pk=lead_id, converted_patient__isnull=True).first()
         return None
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        self.expected = None
+        if self.request.method == "POST":
+            self.expected, lead = chosen_expected(self.request)
+            if self.expected is not None or lead is not None:
+                kwargs["spare_phone"] = (self.expected or lead).phone_primary
+            if self.expected is not None:
+                # The expected patient came: the new patient's form is saved on his short file (his bookings stay).
+                kwargs["instance"], kwargs["as_new"] = self.expected, True
+                self.expected_numbers = [self.expected.phone_primary, self.expected.phone_secondary]
+        return kwargs
 
     def get_initial(self):
         initial = super().get_initial()
@@ -331,8 +428,12 @@ class PatientCreateView(RoleRequiredMixin, AuditMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["lead"] = self.get_lead()
+        context["lead"] = None if self.request.POST.get("expected") else self.get_lead()
         context["title"] = _("Register new patient")
+        context["expected_check"] = reverse("patients:expected_match")
+        if self.request.POST.get("expected"):
+            patient, lead = chosen_expected(self.request)
+            context["expected_name"] = (patient or lead).full_name if (patient or lead) else ""
         return context
 
     def form_invalid(self, form):
@@ -341,9 +442,19 @@ class PatientCreateView(RoleRequiredMixin, AuditMixin, CreateView):
 
     @transaction.atomic
     def form_valid(self, form):
-        form.instance.branch = branch_for_user(self.request.user)
+        form.instance.branch = form.instance.branch if self.expected is not None else branch_for_user(self.request.user)
+        lead = self.get_lead()
+        main = self.request.POST.get("main_phone", "new")
+        if self.expected is not None:
+            form.instance.is_expected = False  # completed: he takes his final number (round 16)
+            form.instance.registered_on = form.cleaned_data.get("registered_on") or timezone.localdate()
+            keep_both_mobiles(form.instance, self.expected_numbers, main)
+        elif lead is not None and self.request.POST.get("expected"):
+            keep_both_mobiles(form.instance, [lead.phone_primary, lead.phone_secondary], main)
         response = super().form_valid(form)
         patient = self.object
+        if self.expected is not None:
+            Lead.objects.filter(converted_patient=patient).update(status=Lead.Status.CONVERTED)
         save_id_photos(self.request, form, patient)
         relative = form.cleaned_data.get("relative_lookup")
         if relative:
@@ -351,15 +462,19 @@ class PatientCreateView(RoleRequiredMixin, AuditMixin, CreateView):
                 patient=patient, related_patient=relative,
                 relation=form.cleaned_data["relative_relation"], created_by=self.request.user,
             )
-        lead = self.get_lead()
         if lead:
             lead.status = Lead.Status.CONVERTED
             lead.converted_patient = patient
             lead.save(update_fields=["status", "converted_patient", "updated_at"])
-        messages.success(
-            self.request,
-            _("Patient registered. File number: %(file)s") % {"file": patient.file_number},
-        )
+        if self.expected is not None:
+            messages.success(self.request, _("The expected file of %(name)s is completed: file number %(file)s. "
+                                             "His bookings stay.") % {"name": patient.full_name,
+                                                                      "file": patient.file_number})
+        else:
+            messages.success(
+                self.request,
+                _("Patient registered. File number: %(file)s") % {"file": patient.file_number},
+            )
         return response
 
 

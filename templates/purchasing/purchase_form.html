@@ -52,6 +52,9 @@
 {% endblock %}
 {% block extra_js %}
 {{ last_prices|json_script:"last-prices" }}
+{{ supplier_groups|json_script:"supplier-groups" }}
+{{ category_groups|json_script:"category-groups" }}
+<div hidden data-supplier-texts data-only="{% trans 'This supplier sells only:' %}"></div>
 <div hidden data-price-texts data-last="{% trans 'last time' %}" data-up="{% trans 'dearer' %}" data-down="{% trans 'cheaper' %}"></div>
 <script>
   (function () {
@@ -83,6 +86,30 @@
     document.addEventListener("input", function (event) { var row = event.target.closest(".item-row"); if (row) hint(row); });
     document.addEventListener("formset:added", hints);
     hints();
+  })();
+  (function () {
+    // The categories follow the supplier chosen: a supermarket never offers implants (round 16).
+    var sells = JSON.parse(document.getElementById("supplier-groups").textContent || "{}");
+    var groupOf = JSON.parse(document.getElementById("category-groups").textContent || "{}");
+    var supplier = document.querySelector("[name='supplier']");
+    if (!supplier) return;
+    function follow() {
+      var allowed = sells[supplier.value];
+      document.querySelectorAll("select[name$='-category']").forEach(function (select) {
+        select.querySelectorAll("option").forEach(function (option) {
+          if (!option.value) return;
+          var hide = !!allowed && allowed.indexOf(groupOf[option.value]) === -1 && !option.selected;
+          option.hidden = hide;
+          option.disabled = hide;
+        });
+        select.querySelectorAll("optgroup").forEach(function (group) {
+          group.hidden = !Array.prototype.some.call(group.querySelectorAll("option"), function (o) { return !o.hidden; });
+        });
+      });
+    }
+    supplier.addEventListener("change", follow);
+    document.addEventListener("formset:added", follow);
+    follow();
   })();
   (function () {
     function recalc() {

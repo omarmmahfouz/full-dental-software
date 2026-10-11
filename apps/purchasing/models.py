@@ -19,6 +19,9 @@ class Supplier(TimeStampedModel):
     address = models.CharField(_("address"), max_length=255, blank=True)
     notes = models.TextField(_("notes"), blank=True)
     is_active = models.BooleanField(_("active"), default=True)
+    # What he sells (round 16): the purchase groups, e.g. a supermarket sells kitchen, cleaning and office things,
+    # never implants. Empty = anything. A purchase from him offers only the categories of these groups.
+    groups = models.CharField(_("what he supplies"), max_length=200, blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -27,6 +30,22 @@ class Supplier(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def group_codes(self):
+        return [code for code in self.groups.split(",") if code]
+
+    def group_labels(self):
+        labels = dict(PurchaseCategory.Group.choices)
+        return [str(labels[code]) for code in self.group_codes if code in labels]
+
+    def supplies(self, category):
+        """True when this supplier sells the category (or sells anything)."""
+        codes = self.group_codes
+        if not codes or category is None:
+            return True
+        group = category.group or ("other" if category.kind == PurchaseCategory.Kind.NON_DENTAL else "")
+        return group in codes
 
     def get_absolute_url(self):
         return reverse("purchasing:supplier_detail", args=[self.pk])

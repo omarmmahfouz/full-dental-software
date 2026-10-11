@@ -78,6 +78,7 @@
             <li><a class="dropdown-item" href="{% url 'patients:list' %}"><i class="bi bi-person-lines-fill"></i> {% trans "All patients" %}</a></li>
             {% if my_dentist %}<li><a class="dropdown-item" href="{% url 'patients:list' %}?mine=on"><i class="bi bi-person-check"></i> {% trans "My patients" %}</a></li>{% endif %}
             <li><a class="dropdown-item" href="{% url 'patients:medical_followup' %}"><i class="bi bi-heart-pulse"></i> {% trans "Medical follow-up" %}</a></li>
+            <li><a class="dropdown-item" href="{% url 'patients:recall_list' %}"><i class="bi bi-telephone-forward"></i> {% trans "Calls for a new test" %}</a></li>
           </ul>
         </li>
         {% endif %}

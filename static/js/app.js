@@ -106,6 +106,87 @@
       });
   });
 
+  // A new patient who may be an expected patient (round 16): his name or mobile is on the call list or booked
+  // from it. "Yes, it is him" completes the expected file (his booking stays); "No" asks no more about that one.
+  document.querySelectorAll("[data-expected-check]").forEach(function (box) {
+    var form = box.closest("form"), url = box.getAttribute("data-expected-check");
+    var chosen = form.querySelector("[name='expected']"), refused = form.querySelector("[name='not_expected']");
+    var list = box.querySelector("[data-expected-list]"), done = form.querySelector("[data-expected-chosen]");
+    var phones = done.querySelector("[data-expected-phones]");
+    function field(name) { return form.querySelector("[name='" + name + "']"); }
+    function value(name) { var el = field(name); return el ? el.value.trim() : ""; }
+    function digits(text) { return (text || "").replace(/[٠-٩]/g, function (d) { return "٠١٢٣٤٥٦٧٨٩".indexOf(d); }).replace(/\D/g, "").slice(-10); }
+    function showPhones(match) {
+      var typed = [digits(value("phone_primary")), digits(value("phone_secondary"))];
+      var booked = [digits(match.phone), digits(match.phone2)].filter(Boolean);
+      phones.hidden = !booked.length || booked.every(function (p) { return typed.indexOf(p) >= 0; });
+    }
+    function choose(match) {
+      chosen.value = match.key;
+      box.hidden = true;
+      done.hidden = false;
+      done.querySelector("[data-expected-name]").textContent = match.name;
+      showPhones(match);
+    }
+    function check() {
+      if (chosen.value) return;
+      var name = value("full_name"), phone = value("phone_primary"), phone2 = value("phone_secondary");
+      if (name.length < 6 && phone.length < 8 && phone2.length < 8) return;
+      fetch(url + "?" + new URLSearchParams({ name: name, phone: phone, phone2: phone2 }), { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var no = (refused.value || "").split(",");
+          var rows = (data.matches || []).filter(function (m) { return no.indexOf(m.key) < 0; });
+          list.textContent = "";
+          rows.forEach(function (m) {
+            var row = document.createElement("div"), text = document.createElement("div");
+            row.className = "expected-row";
+            var strong = document.createElement("b");
+            strong.textContent = m.name;
+            text.append(strong, " · ");
+            var tel = document.createElement("span");
+            tel.className = "ltr";
+            tel.textContent = m.phone + (m.phone2 ? " / " + m.phone2 : "");
+            text.append(tel);
+            var extra = m.file ? box.getAttribute("data-file") + " " + m.file : box.getAttribute("data-on-list");
+            if (m.booked) extra += " · " + box.getAttribute("data-booked") + " " + m.booked;
+            var small = document.createElement("div");
+            small.className = "small text-muted";
+            small.textContent = extra + " (" + m.why + ")";
+            text.append(small);
+            var yes = document.createElement("button"), no = document.createElement("button");
+            yes.type = no.type = "button";
+            yes.className = "btn btn-success btn-sm";
+            yes.textContent = box.getAttribute("data-yes");
+            no.className = "btn btn-outline-secondary btn-sm";
+            no.textContent = box.getAttribute("data-no");
+            yes.addEventListener("click", function () { choose(m); });
+            no.addEventListener("click", function () {
+              refused.value = (refused.value ? refused.value + "," : "") + m.key;
+              row.remove();
+              if (!list.children.length) box.hidden = true;
+            });
+            var buttons = document.createElement("div");
+            buttons.className = "d-flex gap-2 flex-wrap";
+            buttons.append(yes, no);
+            row.append(text, buttons);
+            list.append(row);
+          });
+          box.hidden = !rows.length;
+        });
+    }
+    ["full_name", "phone_primary", "phone_secondary"].forEach(function (name) {
+      var el = field(name);
+      if (el) el.addEventListener("change", check);
+    });
+    done.querySelector("[data-expected-undo]").addEventListener("click", function () {
+      if (chosen.value) refused.value = (refused.value ? refused.value + "," : "") + chosen.value;
+      chosen.value = "";
+      done.hidden = true;
+    });
+    if (!chosen.value) check();
+  });
+
   // A form that opens WhatsApp in a new tab (the message to many, round 15): this tab shows the next one.
   document.addEventListener("submit", function (event) {
     if (event.target.matches && event.target.matches("form[data-reload-after-send]")) {

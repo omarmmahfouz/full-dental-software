@@ -207,3 +207,42 @@ class Round15PlacesAndGroupsTests(TestCase):
         self.assertEqual(both.context["total"], Decimal("3200"))
         dental = self.client.get("/purchases/", dict(dates, place="all", group="implants"))
         self.assertEqual(dental.context["total"], Decimal("3000"))
+
+
+class Round16SupplierGroupsTests(TestCase):
+    """Round 16: a supplier sells some groups only (a supermarket: kitchen, cleaning, office); a purchase from him
+    offers and accepts only these categories."""
+
+    def setUp(self):
+        setup_clinic()
+        make_user("stock", "stock")
+        self.client.login(username="stock", password=PASSWORD)
+        self.bone = PurchaseCategory.objects.get(name_en="Bone grafts & membranes")
+        self.tea = PurchaseCategory.objects.get(name_en="Tea, coffee & sugar")
+
+    def test_the_supplier_form_keeps_what_he_supplies(self):
+        response = self.client.post("/purchases/suppliers/new/", {
+            "name": "Super market", "supplies": ["hospitality", "cleaning"], "is_active": "on"})
+        self.assertEqual(response.status_code, 302)
+        market = Supplier.objects.get()
+        self.assertEqual(market.group_codes, ["hospitality", "cleaning"])
+        self.assertTrue(market.supplies(self.tea))
+        self.assertFalse(market.supplies(self.bone))
+        self.assertContains(self.client.get(market.get_absolute_url()), "المطبخ والضيوف")  # the stock manager: Arabic
+
+    def test_a_purchase_from_him_refuses_implants(self):
+        market = Supplier.objects.create(name="Super market", groups="hospitality,cleaning")
+        page = self.client.get("/purchases/new/")
+        self.assertEqual(page.context["supplier_groups"], {market.pk: ["hospitality", "cleaning"]})
+        from apps.core.models import Branch
+
+        data = {"branch": Branch.default().pk, "supplier": market.pk, "purchase_date": "20/09/2026", "payment_method": "cash",
+                "payment_status": "paid", "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "0",
+                "items-MIN_NUM_FORMS": "0", "items-MAX_NUM_FORMS": "1000", "items-0-category": self.bone.pk,
+                "items-0-description": "Bone", "items-0-quantity": "1", "items-0-unit_price": "100"}
+        response = self.client.post("/purchases/new/", data)
+        self.assertFalse(Purchase.objects.exists())
+        self.assertIn("category", response.context["formset"].forms[0].errors)
+        data["items-0-category"] = self.tea.pk
+        self.client.post("/purchases/new/", data)
+        self.assertEqual(Purchase.objects.count(), 1)

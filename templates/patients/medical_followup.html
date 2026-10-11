@@ -18,24 +18,15 @@
 </div>
 
 <div class="card mb-3 border-info" id="recalls"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-telephone-forward text-info"></i> {% trans "Calls for a new test" %} <span class="badge text-bg-info">{{ recalls|length }}</span></span>
-  {% if recalls_coming %}<span class="small text-muted">{% blocktrans count n=recalls_coming %}{{ n }} more in the next 30 days{% plural %}{{ n }} more in the next 30 days{% endblocktrans %}</span>{% endif %}</div>
-  <div class="list-group list-group-flush">{% for r in recalls %}
-    <div class="list-group-item recall-row">
-      <div class="d-flex flex-wrap justify-content-between gap-2">
-        <span><a href="{{ r.patient.get_absolute_url }}"><b>{{ r.patient.full_name }}</b></a> <span class="small text-muted">{{ r.patient.file_number }}</span> <span class="ltr small">{{ r.patient.preferred_number }}</span></span>
-        <span class="small">{% if r.is_late %}<span class="badge text-bg-danger">{% trans "late" %}</span>{% endif %} {% trans "call on" %} <b>{{ r.due_on|date:"d/m/Y" }}</b></span>
-      </div>
-      <div class="small mt-1"><span class="medical-alert py-0">{{ r.get_reason_display }}: <span class="ltr">{{ r.reading }}</span></span> {% trans "reading of" %} {{ r.reading_on|date:"d/m/Y" }}
-        {% if r.calls %}· {% blocktrans count n=r.calls %}{{ n }} call{% plural %}{{ n }} calls{% endblocktrans %}: {{ r.get_last_outcome_display }} ({{ r.last_call_at|date:"d/m/Y" }}{% if r.last_call_by %}, {{ r.last_call_by.get_full_name|default:r.last_call_by.username }}{% endif %}){% endif %}
-        {% if r.notes %}· <span class="text-muted">{{ r.notes }}</span>{% endif %}</div>
-      <form method="post" action="{% url 'patients:recall_call' r.pk %}" class="recall-answer no-print" data-no-leave-warning>{% csrf_token %}
-        {% if r.whatsapp %}<a class="btn btn-sm btn-success" target="_blank" rel="noopener" href="{{ r.whatsapp }}"><i class="bi bi-whatsapp"></i> {% trans "WhatsApp" %}</a>{% endif %}
-        <input class="form-control form-control-sm" name="notes" maxlength="255" placeholder="{% trans 'What he said (optional)' %}" aria-label="{% trans 'What he said (optional)' %}">
-        {% for code, label in outcomes %}<button class="btn btn-sm {% if code == 'done' %}btn-success{% elif code == 'refused' %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}" name="outcome" value="{{ code }}">{{ label }}</button>{% endfor %}
-      </form>
-    </div>
+  <span class="d-flex flex-wrap gap-1 small no-print">
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'patients:recall_list' %}?tab=will_do">{% trans "He will do it: waiting for the result" %} <span class="badge text-bg-light">{{ recall_counts.will_do }}</span></a>
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'patients:recall_list' %}?tab=no_answer">{% trans "No answer: call again" %} <span class="badge text-bg-light">{{ recall_counts.no_answer }}</span></a>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'patients:recall_list' %}?tab=done">{% trans "Results written (60 days)" %} <span class="badge text-bg-light">{{ recall_counts.done }}</span></a>
+  </span>
+  {% if recalls_coming %}<span class="small text-muted w-100">{% blocktrans count n=recalls_coming %}{{ n }} more in the next 30 days{% plural %}{{ n }} more in the next 30 days{% endblocktrans %}</span>{% endif %}</div>
+  <div class="list-group list-group-flush">{% for r in recalls %}{% include "patients/_recall_row.html" %}
   {% empty %}<div class="list-group-item text-muted text-center py-3">{% trans "No patient to call today." %}</div>{% endfor %}</div>
-  <div class="card-footer small text-muted">{% blocktrans with hba1c=options.hba1c_recheck_days other=options.readings_recheck_days %}A high HbA1c is asked again after {{ hba1c }} days, a high sugar or pressure after {{ other }} days (Settings → Clinic options). "He will do it" calls again in two weeks, "No answer" in two days; a new reading in the medical history closes the call.{% endblocktrans %}</div>
+  <div class="card-footer small text-muted">{% blocktrans with hba1c=options.hba1c_recheck_days other=options.readings_recheck_days %}A high HbA1c is asked again after {{ hba1c }} days, a high sugar or pressure after {{ other }} days (Settings → Clinic options). "He will do the test" stays in its tab and is called again in two weeks, "No answer" in two days (or on the day written). When he did it, write the result here: it goes into the medical history and closes the call; a result still high opens the next call by itself.{% endblocktrans %}</div>
 </div>
 
 <div class="card mb-3 border-warning"><div class="card-header"><i class="bi bi-exclamation-triangle text-warning"></i> {% trans "Readings above the limits: write a consultation" %}</div>

@@ -153,6 +153,13 @@ class Appointment(TimeStampedModel):
     no_follow_up = models.BooleanField(
         _("no next visit needed"), default=False,
         help_text=_("Ticked by the reception when the patient left and needs no other appointment."))
+    # Seen by another doctor than the one booked (round 16): the doctor did not come or was late. The reception
+    # changes it; the doctor booked stays written here.
+    booked_dentist = models.ForeignKey(
+        "dentists.Dentist", verbose_name=_("booked with"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="+")
+    dentist_change_reason = models.CharField(_("why another doctor"), max_length=255, blank=True)
+    dentist_changed_at = models.DateTimeField(_("doctor changed at"), null=True, blank=True)
     notes_reminded_at = models.DateTimeField(_("dentist reminded to write the visit notes"), null=True, blank=True)
     notes_escalated_at = models.DateTimeField(_("supervisor told the visit notes are missing"), null=True,
                                               blank=True)

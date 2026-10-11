@@ -172,6 +172,8 @@ def _purchase_form(request, purchase=None):
     form = PurchaseForm(request.POST or None, request.FILES or None, instance=purchase, user=request.user,
                         place=branch_for_user(request.user))
     formset = PurchaseItemFormSet(request.POST or None, instance=purchase or Purchase(), prefix="items")
+    if request.method == "POST" and form.is_valid():
+        formset.supplier = form.cleaned_data.get("supplier")
     if request.method == "POST" and form.is_valid() and formset.is_valid():
         with transaction.atomic():
             purchase = form.save(commit=False)
@@ -195,7 +197,9 @@ def _purchase_form(request, purchase=None):
     return render(
         request, "purchasing/purchase_form.html",
         {"form": form, "formset": formset, "title": _("Edit purchase") if purchase else _("New purchase"),
-         "last_prices": last_prices(None)},
+         "last_prices": last_prices(None), "supplier_groups": form.supplier_groups(),
+         "category_groups": {c.pk: c.group or ("other" if c.kind == PurchaseCategory.Kind.NON_DENTAL else "")
+                             for c in PurchaseCategory.objects.filter(is_active=True)}},
     )
 
 

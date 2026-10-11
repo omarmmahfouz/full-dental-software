@@ -1,5 +1,7 @@
 """Lists of patients for the reception to call, and the answers they write down."""
 
+from datetime import timedelta
+
 from django import forms
 from django.contrib import messages
 from django.db import transaction
@@ -26,6 +28,35 @@ class EntryForm(StyledForm):
     outcome = forms.ChoiceField(label=gettext_lazy("result"), choices=CallListEntry.Outcome.choices)
     response = forms.CharField(label=gettext_lazy("patient's answer"), required=False,
                                widget=forms.Textarea(attrs={"rows": 1}))
+    next_call_on = forms.DateField(label=gettext_lazy("call again on"), required=False)
+
+
+# "No answer" is called again the next day and "call again later" after 3 days, unless a day is chosen (round 16).
+CALL_AGAIN_DAYS = {CallListEntry.Outcome.NO_ANSWER: 1, CallListEntry.Outcome.CALL_BACK: 3}
+
+
+def entry_order(entry):
+    """Still to call first (the due ones, then by the day to call again), then the closed answers, the booked last."""
+    today = timezone.localdate()
+    if entry.outcome == CallListEntry.Outcome.BOOKED:
+        return (3, entry.pk)
+    if entry.is_closed:
+        return (2, entry.pk)
+    when = entry.next_call_on or today
+    return (0 if when <= today else 1, when, entry.outcome != CallListEntry.Outcome.PENDING, entry.pk)
+
+
+def link_call_entry(request, appointment):
+    """Booking from a call list (?call_entry=<pk>): the patient is marked booked there and goes to the end."""
+    pk = request.GET.get("call_entry", "")
+    if not pk.isdigit():
+        return None
+    entry = CallListEntry.objects.filter(pk=pk, patient=appointment.patient).first()
+    if entry is not None:
+        entry.outcome, entry.appointment, entry.next_call_on = CallListEntry.Outcome.BOOKED, appointment, None
+        entry.called_at, entry.called_by = entry.called_at or timezone.now(), entry.called_by or request.user
+        entry.save()
+    return entry
 
 
 def create_call_list(title, message, rows, user):
@@ -72,7 +103,11 @@ def calllist_create(request):
 def calllist_list(request):
     lists = CallList.objects.filter(branch=branch_for_user(request.user)).select_related(
         "created_by").prefetch_related("entries")
-    rows = [(c, *c.progress) for c in lists[:200]]
+    rows = []
+    for c in lists[:200]:
+        done, total = c.progress
+        c.due = sum(1 for e in c.entries.all() if e.is_due)
+        rows.append((c, done, total))
     return render(request, "patients/calllist_list.html", {
         "open_lists": [r for r in rows if r[1] < r[2]], "done_lists": [r for r in rows if r[1] >= r[2]][:30],
     })
@@ -81,15 +116,16 @@ def calllist_list(request):
 @role_required(*FRONT_DESK, TEAM_HEAD)
 def calllist_detail(request, pk):
     call_list = get_object_or_404(CallList.objects.select_related("created_by"), pk=pk)
-    entries = call_list.entries.select_related("patient", "called_by")
-    if request.GET.get("pending"):
-        entries = entries.filter(outcome=CallListEntry.Outcome.PENDING)
-    rows = [(e, EntryForm(initial={"outcome": e.outcome, "response": e.response}, prefix=f"e{e.pk}")) for e in entries]
+    entries = call_list.entries.select_related("patient", "called_by", "appointment")
+    if request.GET.get("pending"):  # still to call: not called yet, no answer, call again later
+        entries = entries.filter(outcome__in=CallListEntry.OPEN)
+    rows = [(e, EntryForm(initial={"outcome": e.outcome, "response": e.response, "next_call_on": e.next_call_on},
+                          prefix=f"e{e.pk}")) for e in sorted(entries, key=entry_order)]
     done, total = call_list.progress
     reasons = " ".join(e.reason for e, _form in rows)
     glossary = [t for t in TreatmentStepType.objects.exclude(description_ar="") if t.name_ar in reasons]
     return render(request, "patients/calllist_detail.html", {
-        "call_list": call_list, "rows": rows, "done": done, "total": total,
+        "call_list": call_list, "rows": rows, "done": done, "total": total, "counts": call_list.counts(),
         "can_call": has_role(request.user, *FRONT_DESK), "glossary": glossary,
     })
 
@@ -104,12 +140,20 @@ def calllist_answer(request, pk):
         entry.response = form.cleaned_data["response"]
         entry.attempts += 1
         entry.called_at, entry.called_by = timezone.now(), request.user
+        entry.next_call_on = None
+        if entry.outcome in CALL_AGAIN_DAYS:  # stays on the list, to call again (round 16)
+            entry.next_call_on = form.cleaned_data["next_call_on"] or (
+                timezone.localdate() + timedelta(days=CALL_AGAIN_DAYS[entry.outcome]))
         entry.save()
         call_list = entry.call_list
         done, total = call_list.progress
         if done == total and call_list.created_by_id:
-            notify_users([call_list.created_by], gettext_lazy("The reception called every patient of %(title)s"), "",
+            notify_users([call_list.created_by], gettext_lazy("The reception finished the list %(title)s"), "",
                          call_list.get_absolute_url(), Notification.Level.SUCCESS, exclude=request.user,
                          params={"title": call_list.title})
-        messages.success(request, _("Answer saved for %(name)s.") % {"name": entry.patient.full_name})
+        if entry.next_call_on:
+            messages.success(request, _("Answer saved for %(name)s: still on the list, to call again on %(day)s.") % {
+                "name": entry.patient.full_name, "day": entry.next_call_on.strftime("%d/%m/%Y")})
+        else:
+            messages.success(request, _("Answer saved for %(name)s.") % {"name": entry.patient.full_name})
     return redirect(f"{entry.call_list.get_absolute_url()}#e{entry.pk}")

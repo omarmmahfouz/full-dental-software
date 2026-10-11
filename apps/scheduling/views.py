@@ -43,6 +43,7 @@ from apps.patients.models import Patient
 
 from .daygrid import day_grid, week_outline
 from .forms import (
+    ChangeDentistForm,
     AppointmentFilterForm, AppointmentForm, CancelForm, RescheduleForm, RoomShiftForm, VisitTimesForm, WalkInForm,
 )
 from .models import Appointment, MessageTemplate, Room, RoomShift, day_bounds
@@ -50,6 +51,7 @@ from .rooms import doctor_elsewhere, free_room, shared
 from apps.specialties.services import link_booking as link_referral
 
 from .patient_requests import link_booking
+from apps.patients.calllists import link_call_entry
 from .waiting import link_waiting, place_freed
 from .free_times import day_slots, dentist_day, free_times
 from .whatsapp import record, whatsapp_number, whatsapp_url
@@ -246,7 +248,7 @@ def today_board(request):
     branch = branch_for_user(request.user)
     appointments = (
         Appointment.objects.filter(branch=branch, scheduled_at__gte=start, scheduled_at__lt=end)
-        .select_related("patient", "room", "dentist", "procedure", "requested_by", "second_dentist")
+        .select_related("patient", "room", "dentist", "procedure", "requested_by", "second_dentist", "booked_dentist")
         .prefetch_related("patient__medical_conditions")
         .annotate(
             open_labs=Count(
@@ -514,6 +516,7 @@ def appointment_create(request):
                 tell_dentists(old, gettext_lazy("Appointment cancelled"), request)
                 place_freed(old, request)
             link_booking(request, appointment)
+            link_call_entry(request, appointment)
             link_waiting(request, appointment)
             link_referral(request, appointment)
             tell_dentists(appointment, gettext_lazy("New appointment with you"), request)
@@ -600,6 +603,47 @@ def appointment_reschedule(request, pk):
         "title": _("Move the appointment of %(name)s (now %(when)s)") % {
             "name": appointment.patient.full_name,
             "when": timezone.localtime(appointment.scheduled_at).strftime("%d/%m/%Y %I:%M %p")},
+    })
+
+
+@role_required(*FRONT_DESK)
+def appointment_change_dentist(request, pk):
+    """The patient goes in with another doctor (round 16): the doctor booked did not come or was late. The reception
+    changes it; the doctor booked stays written on the visit, and both doctors are told."""
+    appointment = get_object_or_404(Appointment.objects.select_related("patient", "dentist", "branch"), pk=pk)
+    if appointment.branch_id != getattr(branch_for_user(request.user), "pk", appointment.branch_id):
+        raise PermissionDenied
+    form = ChangeDentistForm(request.POST or None, appointment=appointment)
+    back = _safe_next(request, appointment.get_absolute_url())
+    if request.method == "POST" and form.is_valid():
+        before = appointment.dentist
+        if appointment.booked_dentist_id is None:
+            appointment.booked_dentist = before
+        appointment.dentist = form.cleaned_data["dentist"]
+        appointment.second_dentist = form.cleaned_data.get("second_dentist")
+        appointment.dentist_change_reason = form.reason_text()[:255]
+        appointment.dentist_changed_at = timezone.now()
+        appointment.save()
+        with_new = appointment.dentist
+        if with_new is not None and with_new.user_id:
+            notify_users([with_new.user], gettext_lazy("%(patient)s goes in with you now"),
+                         gettext_lazy("Booked with %(before)s: %(why)s"), reverse("scheduling:visit", args=[pk]),
+                         Notification.Level.WARNING, exclude=request.user,
+                         params={"patient": appointment.patient.full_name, "before": str(before or "—"),
+                                 "why": appointment.dentist_change_reason})
+        if before is not None and before.user_id:
+            notify_users([before.user], gettext_lazy("Your patient %(patient)s went in with %(doctor)s"),
+                         appointment.dentist_change_reason.replace("%", "%%"), appointment.get_absolute_url(),
+                         exclude=request.user,
+                         params={"patient": appointment.patient.full_name, "doctor": str(with_new)})
+        messages.success(request, _("%(patient)s goes in with %(doctor)s.") % {
+            "patient": appointment.patient.full_name, "doctor": with_new})
+        return redirect(back)
+    return render(request, "scheduling/change_dentist.html", {
+        "appointment": appointment, "form": form, "back": back,
+        "on_shift": [shift.dentist for shift in RoomShift.objects.filter(
+            date=timezone.localtime(appointment.scheduled_at).date(), room__branch=appointment.branch,
+            dentist__isnull=False).select_related("dentist", "room")],
     })
 
 

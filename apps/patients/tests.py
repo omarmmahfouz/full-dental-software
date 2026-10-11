@@ -227,8 +227,16 @@ class PlanFinderAndCallListTests(TestCase):
                                                                        f"e{entry.pk}-response": "ok"})
         first = call_list.entries.get(patient=self.p1)
         self.assertEqual((first.outcome, first.called_by, first.attempts), ("booked", self.secretary, 1))
+        # "No answer" stays on the list, to call again tomorrow (round 16).
+        second = call_list.entries.get(patient=self.p2)
+        self.assertEqual(second.next_call_on, timezone.localdate() + timedelta(days=1))
+        self.assertEqual(call_list.progress, (1, 2))
+        self.assertFalse(Notification.objects.filter(recipient=self.head, title__contains="Guided cases").exists())
+        rows = self.client.get(call_list.get_absolute_url()).context["rows"]
+        self.assertEqual([entry.patient for entry, _form in rows], [self.p2, self.p1])  # the booked one is last
+        self.client.post(f"/patients/to-call/answer/{second.pk}/", {f"e{second.pk}-outcome": "not_interested"})
         self.assertEqual(call_list.progress, (2, 2))
-        # The head of CIA is told when every patient was called.
+        # The head of CIA is told when the list is finished.
         self.assertTrue(Notification.objects.filter(recipient=self.head, title__contains="Guided cases").exists())
         self.assertEqual(self.client.post("/patients/to-call/new/", {"title": "x", "patient": [self.p1.pk]}).status_code, 403)
         self.assertEqual(CallListEntry.objects.filter(outcome="pending").count(), 0)
@@ -1028,3 +1036,191 @@ class Round15MedicalRecallTests(TestCase):
                                    hba1c=Decimal("6.5"), hba1c_date=timezone.localdate())
         sync_recalls(Patient.objects.all())
         self.assertEqual(MedicalRecall.objects.get().status, "done")
+
+
+class Round16CallListTests(TestCase):
+    """Round 16: on a list of patients to call, "no answer" and "call again later" stay on the list with the day to
+    call again; booking from the list marks the patient booked and moves him to the end."""
+
+    def setUp(self):
+        from apps.patients.calllists import create_call_list
+
+        self.branch = setup_clinic()
+        self.head = make_user("head", "head_cia")
+        make_user("sec", "secretary")
+        self.p1 = make_patient(self.branch)
+        self.p2 = make_patient(self.branch, nid="28501010101235", phone="01112223334")
+        self.call_list = create_call_list("Second stage", "", [(self.p1, "36"), (self.p2, "46")], self.head)
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_call_again_later_keeps_the_patient_with_its_day(self):
+        entry = self.call_list.entries.get(patient=self.p1)
+        later = timezone.localdate() + timedelta(days=5)
+        self.client.post(f"/patients/to-call/answer/{entry.pk}/", {
+            f"e{entry.pk}-outcome": "call_back", f"e{entry.pk}-next_call_on": later.strftime("%d/%m/%Y")})
+        entry.refresh_from_db()
+        self.assertEqual((entry.next_call_on, entry.is_closed, entry.is_due), (later, False, False))
+        # The home page counts only the ones to call today; the list still counts him as not finished.
+        home = self.client.get("/").context["call_lists"]
+        self.assertEqual(home[0].pending, 1)
+        self.assertEqual(self.call_list.counts(), {"booked": 0, "closed": 0, "open": 2, "all": 2})
+        page = self.client.get(self.call_list.get_absolute_url() + "?pending=1")
+        self.assertEqual(len(page.context["rows"]), 2)
+
+    def test_booking_from_the_list_marks_it_booked(self):
+        entry = self.call_list.entries.get(patient=self.p2)
+        day = timezone.localdate() + timedelta(days=3)
+        self.client.post(f"/schedule/appointments/new/?patient={self.p2.pk}&call_entry={entry.pk}", {
+            "patient_lookup": self.p2.file_number, "scheduled_at_0": day.strftime("%d/%m/%Y"),
+            "scheduled_at_1": "11:00", "duration_minutes": "30"})
+        entry.refresh_from_db()
+        self.assertEqual(entry.outcome, "booked")
+        self.assertEqual(entry.appointment, Appointment.objects.get())
+        self.assertEqual(self.call_list.progress, (1, 2))
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class Round16MedicalRecallTests(TestCase):
+    """Round 16: the calls for a new test in tabs (he will do it, no answer...), and the result written on the
+    calls page into the medical history."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from apps.charting.models import Examination
+        from apps.patients.medical import sync_recalls
+        from apps.patients.models import MedicalCondition, MedicalRecall
+
+        self.branch = setup_clinic()
+        self.patient = make_patient(self.branch)
+        make_user("sec", "secretary")
+        old = timezone.localdate() - timedelta(days=100)
+        self.exam = Examination.objects.create(patient=self.patient, history_only=True, medical_taken=True,
+                                               hba1c=Decimal("8.4"), hba1c_date=old, exam_date=old,
+                                               drugs_taken="Metformin 500")
+        self.exam.conditions.add(MedicalCondition.objects.first())
+        sync_recalls(Patient.objects.all())
+        self.recall = MedicalRecall.objects.get()
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_will_do_and_no_answer_have_their_tabs(self):
+        url = f"/patients/medical-follow-up/calls/{self.recall.pk}/"
+        later = timezone.localdate() + timedelta(days=10)
+        self.client.post(url, {"outcome": "will_do", "next_on": later.strftime("%d/%m/%Y")})
+        self.recall.refresh_from_db()
+        self.assertEqual(self.recall.due_on, later)
+        page = self.client.get("/patients/medical-follow-up/tests/?tab=will_do")
+        self.assertEqual(list(page.context["page_obj"]), [self.recall])
+        self.assertEqual(page.context["counts"]["will_do"], 1)
+        self.assertEqual(list(self.client.get("/patients/medical-follow-up/tests/").context["page_obj"]), [])
+        self.client.post(url, {"outcome": "no_answer"})
+        page = self.client.get("/patients/medical-follow-up/tests/?tab=no_answer")
+        self.assertEqual(list(page.context["page_obj"]), [self.recall])
+
+    def test_the_result_goes_into_the_medical_history(self):
+        from apps.charting.models import Examination
+        from apps.patients.models import MedicalRecall, PatientDocument
+
+        photo = SimpleUploadedFile("result.jpg", b"\xff\xd8\xff" + b"0" * 100, content_type="image/jpeg")
+        day = timezone.localdate() - timedelta(days=2)
+        response = self.client.post(f"/patients/medical-follow-up/calls/{self.recall.pk}/result/", {
+            f"r{self.recall.pk}-value": "٦٫٨", f"r{self.recall.pk}-on": day.strftime("%d/%m/%Y"),
+            f"r{self.recall.pk}-photo": photo, "next": "/patients/medical-follow-up/tests/?tab=will_do"})
+        self.assertRedirects(response, "/patients/medical-follow-up/tests/?tab=will_do",
+                             fetch_redirect_response=False)
+        self.recall.refresh_from_db()
+        self.assertEqual((self.recall.status, self.recall.result, self.recall.result_on), ("done", "6.8%", day))
+        history = Examination.objects.exclude(pk=self.exam.pk).get()
+        self.assertEqual((str(history.hba1c), history.hba1c_date, history.drugs_taken), ("6.8", day, "Metformin 500"))
+        self.assertEqual(history.conditions.count(), 1)  # the rest of the history is kept
+        self.assertEqual(PatientDocument.objects.get().kind, "lab_test")
+        self.assertEqual(MedicalRecall.objects.filter(status="open").count(), 0)
+
+    def test_a_result_still_high_opens_the_next_call_and_a_wrong_one_is_refused(self):
+        from apps.patients.models import MedicalRecall
+
+        url = f"/patients/medical-follow-up/calls/{self.recall.pk}/result/"
+        self.client.post(url, {f"r{self.recall.pk}-value": "abc", f"r{self.recall.pk}-on": "01/01/2026"})
+        self.recall.refresh_from_db()
+        self.assertEqual(self.recall.status, "open")
+        self.client.post(url, {f"r{self.recall.pk}-value": "9.1",
+                               f"r{self.recall.pk}-on": timezone.localdate().strftime("%d/%m/%Y")})
+        new = MedicalRecall.objects.get(status="open")
+        self.assertEqual((new.reading, new.due_on), ("9.1%", timezone.localdate() + timedelta(days=90)))
+
+
+class Round16ExpectedPatientTests(TestCase):
+    """Round 16: an expected patient has a temporary file number until his file is completed; registering a new
+    patient with his mobile or a name alike asks "Did this patient come?" and completes his file."""
+
+    def setUp(self):
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.client.login(username="sec", password=PASSWORD)
+        self.facebook = ReferralSource.objects.get(name_en="Facebook")
+        self.lead = Lead.objects.create(branch=self.branch, full_name="سعيد محمود علي", phone_primary="01005556667",
+                                        referral_source=self.facebook)
+        self.client.post(f"/patients/calls/{self.lead.pk}/book/")
+        self.expected = Patient.objects.get()
+        day = timezone.localdate() + timedelta(days=1)
+        self.visit = Appointment.objects.create(branch=self.branch, patient=self.expected,
+                                                scheduled_at=timezone.now() + timedelta(days=1))
+
+    def registration(self, **extra):
+        data = {"full_name": "سعيد محمود على حسن", "id_type": "nid", "national_id": "29001150101234",
+                "phone_primary": "01223334445", "phone_secondary": "", "preferred_phone": "primary",
+                "marital_status": "married", "occupation": "مهندس", "city": "مدينة نصر", "missing_teeth": "single",
+                "referral_source": self.facebook.pk}
+        data.update(extra)
+        return data
+
+    def test_the_expected_file_has_a_temporary_number(self):
+        self.assertTrue(self.expected.file_number.startswith("CIA-TMP-"))
+        self.assertTrue(self.expected.has_temporary_number)
+
+    def test_a_name_alike_or_the_same_mobile_is_found(self):
+        by_name = self.client.get("/patients/expected-check/", {"name": "سعيد محمود على"}).json()["matches"]
+        self.assertEqual(by_name[0]["key"], f"patient:{self.expected.pk}")
+        self.assertTrue(by_name[0]["booked"])
+        by_phone = self.client.get("/patients/expected-check/", {"phone": "+20 100 555 6667"}).json()["matches"]
+        self.assertEqual(by_phone[0]["key"], f"patient:{self.expected.pk}")
+        other = Lead.objects.create(branch=self.branch, full_name="منى عبد الله حسن", phone_primary="01099998888")
+        found = self.client.get("/patients/expected-check/", {"name": "منى عبدالله حسن"}).json()["matches"]
+        self.assertEqual(found[0]["key"], f"lead:{other.pk}")
+        self.assertEqual(self.client.get("/patients/expected-check/", {"name": "كريم سامي فؤاد"}).json()["matches"], [])
+
+    def test_yes_it_is_him_completes_his_file_with_the_new_mobile(self):
+        response = self.client.post("/patients/new/", self.registration(expected=f"patient:{self.expected.pk}"))
+        self.assertEqual(Patient.objects.count(), 1)
+        patient = Patient.objects.get()
+        self.assertRedirects(response, f"/patients/{patient.pk}/", fetch_redirect_response=False)
+        self.assertFalse(patient.is_expected)
+        self.assertEqual(patient.file_number, f"CIA-{patient.pk:05d}")  # his final number now
+        self.assertEqual((patient.phone_primary, patient.phone_secondary), ("01223334445", "01005556667"))
+        self.assertEqual(patient.national_id, "29001150101234")
+        self.visit.refresh_from_db()
+        self.assertEqual(self.visit.patient, patient)  # his booking stays
+        self.lead.refresh_from_db()
+        self.assertEqual(self.lead.status, Lead.Status.CONVERTED)
+
+    def test_the_booked_mobile_can_stay_the_main_one(self):
+        self.client.post("/patients/new/", self.registration(
+            expected=f"patient:{self.expected.pk}", main_phone="old", phone_secondary="01112223334"))
+        patient = Patient.objects.get()
+        self.assertEqual((patient.phone_primary, patient.phone_secondary), ("01005556667", "01223334445"))
+        self.assertIn("01112223334", patient.notes)
+
+    def test_a_lead_on_the_list_is_converted(self):
+        lead = Lead.objects.create(branch=self.branch, full_name="منى عبد الله حسن", phone_primary="01099998888")
+        self.client.post("/patients/new/", self.registration(
+            full_name="منى عبد الله حسن", national_id="29001150101235", phone_primary="01099998880",
+            expected=f"lead:{lead.pk}"))
+        patient = Patient.objects.get(full_name="منى عبد الله حسن")
+        lead.refresh_from_db()
+        self.assertEqual((lead.status, lead.converted_patient), (Lead.Status.CONVERTED, patient))
+        self.assertEqual(patient.phone_secondary, "01099998888")
+
+    def test_the_same_mobile_without_yes_explains_who_it_is(self):
+        response = self.client.post("/patients/new/", self.registration(phone_primary="01005556667"))
+        self.assertEqual(Patient.objects.count(), 1)
+        self.assertIn("phone_primary", response.context["form"].errors)

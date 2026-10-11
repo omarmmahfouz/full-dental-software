@@ -78,6 +78,8 @@ def minutes(value):
     value = abs(value)
     if value < 60:
         return sign + _("%(m)s min") % {"m": value}
+    if not value % 60:
+        return sign + _("%(h)s h") % {"h": value // 60}
     return sign + _("%(h)s h %(m)s min") % {"h": value // 60, "m": value % 60}
 
 

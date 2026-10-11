@@ -9,6 +9,28 @@
   <form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     {% if lead %}<input type="hidden" name="lead" value="{{ lead.pk }}">{% endif %}
+    {% if expected_check %}
+    <input type="hidden" name="expected" value="{{ request.POST.expected|default:'' }}">
+    <input type="hidden" name="not_expected" value="{{ request.POST.not_expected|default:'' }}">
+    <div class="expected-match no-print" data-expected-check="{{ expected_check }}" hidden
+         data-yes="{% trans 'Yes, it is him' %}" data-no="{% trans 'No, another person' %}"
+         data-booked="{% trans 'booked for' %}" data-file="{% trans 'temporary file' %}" data-on-list="{% trans 'on the call list' %}">
+      <div class="alert alert-warning mb-3">
+        <div class="fw-bold"><i class="bi bi-person-exclamation"></i> {% trans "Is this an expected patient?" %}</div>
+        <div class="small mb-2">{% trans "This name or mobile is on the expected patients. Did this patient come? Is it the same person (the same name, the same everything)?" %}</div>
+        <div class="d-grid gap-2" data-expected-list></div>
+      </div>
+    </div>
+    <div class="alert alert-success expected-chosen no-print" data-expected-chosen {% if not expected_name %}hidden{% endif %}>
+      <div><i class="bi bi-person-check"></i> {% trans "Completing the file of the expected patient" %} <b data-expected-name>{{ expected_name }}</b>: {% trans "his booking stays and he takes his final file number when saved." %}</div>
+      <div class="small mt-2" data-expected-phones>
+        <div class="fw-semibold">{% trans "He came with another mobile than the booked one (someone may have booked for him). The main mobile:" %}</div>
+        <label class="me-3"><input type="radio" name="main_phone" value="new" {% if request.POST.main_phone != "old" %}checked{% endif %}> {% trans "the new one typed now (the booked one is kept as mobile 2)" %}</label>
+        <label><input type="radio" name="main_phone" value="old" {% if request.POST.main_phone == "old" %}checked{% endif %}> {% trans "the booked one (the new one becomes mobile 2)" %}</label>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-expected-undo>{% trans "Not him: a new patient" %}</button>
+    </div>
+    {% endif %}
     {% include "includes/form_fields.html" %}
     <div class="mt-2 d-flex gap-2">
       <button class="btn btn-primary btn-lg px-5"><i class="bi bi-check2-circle"></i> {% trans "Save" %}</button>

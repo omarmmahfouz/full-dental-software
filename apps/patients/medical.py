@@ -234,3 +234,82 @@ def recall_text(recall):
     return (f"أهلًا {recall.patient.full_name}، نتمنى تكون بخير. مر وقت على آخر {tests.get(recall.reason, 'تحليل')} "
             f"({recall.reading_on:%d/%m/%Y}). برجاء عمل {tests.get(recall.reason, 'التحليل')} من جديد وإرسال النتيجة "
             f"لنا قبل العلاج القادم. — {place.name_ar if place else ''} {place.phone if place else ''}").strip()
+
+
+def parse_result(reason, value):
+    """The reading typed on the calls page: "6.8" for an HbA1c, "180" for a sugar, "150/95" for a pressure (Arabic
+    digits too). Returns the values to write in the medical history, or raises ValueError."""
+    from decimal import Decimal, InvalidOperation
+
+    from apps.core.utils import normalize_digits
+
+    text = normalize_digits(value or "").replace("٫", ".").replace(",", ".").replace("%", "").strip()
+    if reason == MedicalConsult.Reason.HBA1C:
+        try:
+            number = Decimal(text)
+        except InvalidOperation:
+            raise ValueError
+        if not Decimal("3") <= number <= Decimal("20"):
+            raise ValueError
+        return {"hba1c": number.quantize(Decimal("0.1"))}
+    if reason == MedicalConsult.Reason.GLUCOSE:
+        if not text.isdigit() or not 30 <= int(text) <= 900:
+            raise ValueError
+        return {"glucose_random_clinic": int(text)}
+    parts = [part.strip() for part in text.replace("\\", "/").replace("-", "/").split("/")]
+    if len(parts) != 2 or not all(part.isdigit() for part in parts):
+        raise ValueError
+    systolic, diastolic = int(parts[0]), int(parts[1])
+    if not (60 <= systolic <= 260 and 30 <= diastolic <= 160):
+        raise ValueError
+    return {"bp_clinic_systolic": systolic, "bp_clinic_diastolic": diastolic}
+
+
+def write_result(recall, value, on, user, photo=None):
+    """The new test of a call (round 16): a new medical history is written from the last one with the new reading
+    (so the rest of the history stays), the call is closed, and a reading still above the limit opens the next call
+    by itself. The photo of the result is kept with the patient's documents."""
+    from django.db import transaction
+
+    from apps.charting.sync import sync_medical_history
+
+    from .models import MedicalRecall, PatientDocument
+
+    values = parse_result(recall.reason, value)
+    patient = recall.patient
+    latest = latest_history(patient)
+    with transaction.atomic():
+        history = Examination(patient=patient, history_only=True, medical_taken=True,
+                              dental_taken=bool(latest and latest.dental_taken), created_by=user)
+        if latest is not None:
+            from apps.charting.forms import HISTORY_FIELDS
+
+            for name in HISTORY_FIELDS:
+                field = Examination._meta.get_field(name)
+                if not field.many_to_many:
+                    setattr(history, field.attname, getattr(latest, field.attname))
+        for name, number in values.items():
+            setattr(history, name, number)
+        # The HbA1c keeps its own date; the sugar and the pressure take the day of the test (never before the
+        # last history, so the new one is the last).
+        if "hba1c" in values:
+            history.hba1c_date, history.exam_date = on, timezone.localdate()
+        else:
+            history.exam_date = max(on, latest.exam_date) if latest is not None else on
+        history.save()
+        if latest is not None:
+            history.conditions.set(latest.conditions.all())
+        sync_medical_history(history)
+        recall.result = reading_value(history, recall.reason)
+        recall.result_on = on
+        recall.status = MedicalRecall.Status.DONE
+        recall.calls += 1
+        recall.last_outcome, recall.last_call_at, recall.last_call_by = (
+            MedicalRecall.Outcome.DONE, timezone.now(), user)
+        recall.save()
+        if photo:
+            PatientDocument.objects.create(patient=patient, kind=PatientDocument.Kind.LAB_TEST, file=photo,
+                                           notes=f"{recall.get_reason_display()} {recall.result} {on:%d/%m/%Y}",
+                                           created_by=user)
+    sync_recalls(type(patient).objects.filter(pk=patient.pk))
+    return history

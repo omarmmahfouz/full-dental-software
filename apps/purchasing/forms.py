@@ -14,9 +14,24 @@ from .models import Purchase, PurchaseCategory, PurchaseItem, PurchaseReturn, Su
 
 
 class SupplierForm(StyledModelForm):
+    supplies = forms.MultipleChoiceField(
+        label=_("what he supplies"), required=False, widget=forms.CheckboxSelectMultiple,
+        choices=PurchaseCategory.Group.choices,
+        help_text=_("Tick the groups he sells (a supermarket: kitchen, cleaning, office). A purchase from him then "
+                    "offers only these categories. Nothing ticked = anything."))
+
     class Meta:
         model = Supplier
-        fields = ["name", "phone", "contact_person", "address", "is_active", "notes"]
+        fields = ["name", "phone", "contact_person", "address", "supplies", "is_active", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["supplies"].initial = self.instance.group_codes
+        self.fields["supplies"].col = "col-12"
+
+    def save(self, commit=True):
+        self.instance.groups = ",".join(self.cleaned_data.get("supplies") or [])
+        return super().save(commit)
 
 
 def purchase_places(user):
@@ -66,6 +81,10 @@ class PurchaseForm(StyledModelForm):
             self.add_error("amount_paid", _("Enter how much was paid."))
         return data
 
+    def supplier_groups(self):
+        """{supplier pk: [groups]} for the page: the item lines offer only what the chosen supplier sells."""
+        return {supplier.pk: supplier.group_codes for supplier in self.fields["supplier"].queryset if supplier.groups}
+
 
 class PurchaseItemForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
@@ -83,11 +102,21 @@ class PurchaseItemForm(BootstrapFormMixin, forms.ModelForm):
 
 
 class BaseItemFormSet(forms.BaseInlineFormSet):
+    supplier = None  # set by the view from the purchase form: each line must be something he sells (round 16)
+
     def clean(self):
         super().clean()
         filled = [f for f in self.forms if f.cleaned_data and not f.cleaned_data.get("DELETE")]
         if not filled:
             raise forms.ValidationError(_("Add at least one item."))
+        if self.supplier is not None and self.supplier.group_codes:
+            for form in filled:
+                category = form.cleaned_data.get("category")
+                if category is not None and not self.supplier.supplies(category):
+                    form.add_error("category", _("%(supplier)s does not sell %(category)s. He sells: %(groups)s "
+                                                 "(change it on the supplier's page).") % {
+                        "supplier": self.supplier, "category": category,
+                        "groups": ", ".join(self.supplier.group_labels())})
 
 
 PurchaseItemFormSet = inlineformset_factory(

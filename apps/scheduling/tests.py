@@ -824,3 +824,48 @@ class Round15BookingTests(TestCase):
         self.assertEqual(page.context["done"], 2)
         numbers = self.client.get(f"/schedule/whatsapp/many/{bulk.pk}/numbers/")
         self.assertIn("+2010", numbers.content.decode("utf-8"))
+
+
+@override_settings(CLINIC={"LATE_THRESHOLD_MINUTES": 10, "DEFAULT_APPOINTMENT_MINUTES": 60,
+                           "COMPLAINT_FOLLOW_UP_DAYS": 2, "DEFAULT_BRANCH_CODE": "CIA", "CURRENCY": "EGP"})
+class Round16BoardTests(TestCase):
+    """Round 16: a patient late for hours reads "8 h 14 min"; the reception changes the doctor a patient goes in
+    with (the one booked did not come)."""
+
+    def setUp(self):
+        from apps.core.models import Notification
+
+        self.Notification = Notification
+        self.branch = setup_clinic()
+        make_user("sec", "secretary")
+        self.first = make_dentist("dentist1", kind="fulltime")
+        self.second = make_dentist("dentist2", kind="fulltime")
+        self.patient = make_patient(self.branch)
+        self.visit = Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.first,
+                                                scheduled_at=timezone.now() - timedelta(minutes=5))
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_minutes_over_an_hour_read_in_hours(self):
+        from apps.core.templatetags.clinic import minutes
+
+        with translation.override("en"):
+            self.assertEqual(minutes(494), "8 h 14 min")
+            self.assertEqual(minutes(120), "2 h")
+            self.assertEqual(minutes(45), "45 min")
+
+    def test_the_reception_changes_the_doctor(self):
+        url = f"/schedule/appointments/{self.visit.pk}/doctor/"
+        self.assertEqual(self.client.get(url).status_code, 200)
+        response = self.client.post(url, {"dentist": self.second.pk, "reason": "absent", "next": "/schedule/today/"})
+        self.assertRedirects(response, "/schedule/today/", fetch_redirect_response=False)
+        self.visit.refresh_from_db()
+        self.assertEqual((self.visit.dentist, self.visit.booked_dentist), (self.second, self.first))
+        self.assertIn("did not come", self.visit.dentist_change_reason)
+        self.assertTrue(self.Notification.objects.filter(recipient=self.second.user).exists())
+        self.assertTrue(self.Notification.objects.filter(recipient=self.first.user).exists())
+        # Changed again: the doctor booked stays the first one.
+        self.client.post(url, {"dentist": self.first.pk, "reason": "other", "details": "back"})
+        self.visit.refresh_from_db()
+        self.assertEqual((self.visit.dentist, self.visit.booked_dentist), (self.first, self.first))
+        response = self.client.post(url, {"dentist": self.first.pk, "reason": "late"})
+        self.assertIn("dentist", response.context["form"].errors)  # the same doctor

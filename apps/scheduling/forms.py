@@ -329,3 +329,46 @@ class WaitingEntryForm(StyledModelForm):
         for field in self.fields.values():
             field.col = "col-md-4"
         self.fields["notes"].col = "col-md-8"
+
+
+class ChangeDentistForm(StyledForm):
+    """The patient goes in with another doctor than the one booked (round 16): the doctor did not come, was late,
+    or the patient asked. The reception changes it (and can add a second doctor)."""
+
+    REASONS = [
+        ("absent", _("The doctor did not come")),
+        ("late", _("The doctor is late")),
+        ("busy", _("The doctor is busy with another patient")),
+        ("patient", _("The patient asked for another doctor")),
+        ("other", _("Other")),
+    ]
+
+    dentist = DentistChoiceField(label=_("the doctor he goes in with"))
+    second_dentist = DentistChoiceField(label=_("second dentist in the room"), required=False)
+    reason = forms.ChoiceField(label=_("why"), choices=REASONS, widget=forms.RadioSelect)
+    details = forms.CharField(label=_("details"), required=False, max_length=200)
+
+    def __init__(self, *args, appointment=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.appointment = appointment
+        for name in ("dentist", "second_dentist"):
+            field = self.fields[name]
+            field.queryset = field.queryset.working_at(appointment.branch) if appointment.branch_id else field.queryset
+        self.fields["dentist"].initial = None
+        self.fields["second_dentist"].initial = appointment.second_dentist_id
+
+    def clean(self):
+        data = super().clean()
+        if data.get("dentist") and data.get("dentist") == self.appointment.dentist:
+            self.add_error("dentist", _("This is the doctor already on the visit: choose another one."))
+        if data.get("second_dentist") and data.get("second_dentist") == data.get("dentist"):
+            self.add_error("second_dentist", _("The second dentist is the same doctor."))
+        if data.get("reason") == "other" and not data.get("details"):
+            self.add_error("details", _("Write why."))
+        return data
+
+    def reason_text(self):
+        labels = dict(self.REASONS)
+        text = str(labels.get(self.cleaned_data["reason"], ""))
+        details = self.cleaned_data.get("details")
+        return f"{text}: {details}" if details else text

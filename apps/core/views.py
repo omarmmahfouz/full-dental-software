@@ -169,10 +169,12 @@ def dashboard(request):
         )
         context["here_now"] = todays.filter(status=Appointment.Status.ARRIVED).select_related("patient", "dentist")\
             .order_by("arrived_at")[:6]
+        # Still to call today: not called yet, or "no answer" / "call again later" whose day has come (round 16).
+        due = Q(entries__outcome__in=CallListEntry.OPEN) & (
+            Q(entries__next_call_on__isnull=True) | Q(entries__next_call_on__lte=today))
         context["call_lists"] = (
-            CallList.objects.filter(branch=branch, entries__outcome=CallListEntry.Outcome.PENDING)
-            .annotate(pending=Count("entries", filter=Q(entries__outcome=CallListEntry.Outcome.PENDING)))
-            .order_by("-created_at")[:6]
+            CallList.objects.filter(branch=branch).annotate(pending=Count("entries", filter=due))
+            .filter(pending__gt=0).order_by("-created_at")[:6]
         )
 
     academy_here = branch is None or branch == Branch.default()  # the academy's courses belong to CIA
