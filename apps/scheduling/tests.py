@@ -860,7 +860,8 @@ class Round16BoardTests(TestCase):
         self.assertRedirects(response, "/schedule/today/", fetch_redirect_response=False)
         self.visit.refresh_from_db()
         self.assertEqual((self.visit.dentist, self.visit.booked_dentist), (self.second, self.first))
-        self.assertIn("did not come", self.visit.dentist_change_reason)
+        # Written in the language of the person who changed it (the reception reads Arabic).
+        self.assertIn(self.visit.dentist_change_reason, {"The doctor did not come", "الطبيب لم يحضر"})
         self.assertTrue(self.Notification.objects.filter(recipient=self.second.user).exists())
         self.assertTrue(self.Notification.objects.filter(recipient=self.first.user).exists())
         # Changed again: the doctor booked stays the first one.

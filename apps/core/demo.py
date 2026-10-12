@@ -659,7 +659,7 @@ def load_round_sixteen(today, patients, owner, secretary, stock_user, make_user)
             patient=operated.patient, branch=cia, dentist=operated.operator_1, seen_on=operated.date,
             diagnosis="Missing teeth; implants placed", treatment="Dental implant surgery", days=3,
             starts_on=operated.date, purpose=SickLeave.Purpose.WORK,
-            advice="Rest at home, no hard effort, soft food, and the medicines as prescribed.", created_by=owner)
+            advice="راحة في البيت، بدون مجهود شاق، أكل طري، والأدوية كما في الروشتة.", created_by=owner)
     implant_form = ConsentTemplate.objects.filter(procedures__icontains="implant").first()
     extraction_form = ConsentTemplate.objects.filter(procedures__icontains="extraction").first()
     for patient, template, signed in ((cia_patients[1], implant_form, True), (cia_patients[2], extraction_form,

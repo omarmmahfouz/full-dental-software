@@ -178,3 +178,19 @@ In the sample data:
    14–17. *Specialists → Prosthodontics* lists the cases.
 2. `owner`: *Purchases* → the **EK** tab: the composite kit, files and burs (dental materials, instruments) and water.
 3. `khadem`: *New complaint* → a patient who already complained: the same reason is written as *called again*.
+
+## P. New in this version (16)
+1. `endo` (Dr. Yasser, the endodontist): *Patients*: only the patients he treated, is booked with or was referred.
+   Their files show no money; the file is **by specialty**: a tile for endodontics, restorative, prosthodontics, oral
+   surgery, implants, periodontics, TMJ, orthodontics and pediatric, with the count, the last date and the doctor, and
+   the open cases (a root canal not finished).
+2. `endo`: Karim's referral (36, done): the **road of the patient**: he was sent on to Dr. Amr for the crown. On
+   another referral: **Finished: send him on to the next doctor** → the doctor and what he does next → the reception is
+   told to book him.
+3. `amr`: a plan with an item for another doctor: the **Refer** button fills the referral (doctor, teeth, reason).
+   *Print for the patient*: each item's price, the total, and the specialist it is referred to.
+4. `endo`: *New prescription*: **After root canal treatment** (and *with swelling*) is offered first; the TMJ specialist
+   gets *TMJ and muscle pain*, the orthodontist *After placing or adjusting braces*.
+5. `amr`: a patient → *Record* → **Sick leave** (printed on El Khadem's paper, Arabic or English) and **Patient
+   consent** (*Consent to root canal treatment*, signed on the tablet).
+6. `khadem`: search `122` opens **EK-00122** (not a CIA file); `0110` finds the mobiles starting with 0110.

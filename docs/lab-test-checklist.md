@@ -138,3 +138,22 @@ In the sample data:
 1. `owner`: *Purchases* → the **LAB** tab: the lab's own purchases (none in the sample): *New purchase* → bought for
    **LAB**, with the group *Lab materials* (blocks, discs).
 2. A CIA secretary: **Lab requests** is a main menu entry with the number waiting; tabs *still in work* / *delivered*.
+
+## M. New in this version (16)
+1. `labhead`: *Lab → Prices*: **Dr. Ramy Saad (special)**: its own zirconia crown price (1,500); the other boxes show in
+   grey the outside price less 10%. A new case for Dr. Ramy takes these prices. *New price list* → *the rest from the
+   list* + *less (%)* makes another one; choose it on the client's page.
+2. `owner` → *Settings → Lab options* → **Where the work comes and goes, and the machines**: the scans folder, the
+   designs folder, one machine per line.
+3. `labmanager`: a case of our clinics: **The scan is** in the scans folder with the case's number; an outside clinic's:
+   by e-mail. Give a case in *Design* to **Dr. Ahmed Moharram** (he is told).
+4. `designer` (Dr. Ahmed Moharram, works only for the lab): *My lab work*: his case with where the scan is → **Done**:
+   it asks **Where did you put the design?** (the designs folder, e-mail...) → the manager is told and the case shows
+   **The finished design**.
+5. `labmanager`: a zirconia case goes Design → **CAM** → Milling → Sintering...; **Done** on milling asks the
+   **machine** (the zirconia mill). New work types: titanium milling, printing then milling, laser cutting / welding
+   (their roads have the CAM, *after printing* and *laser* steps).
+6. `labmanager`: *Lab → Blocks*: the **height** (14 mm zirconia, 20 mm PMMA) in each block's name; **Open a block**
+   asks it. **Add an item to the lab's stock** and **In and out lately** on the same page.
+7. Any lab paper (a label, a receipt) and a clinic's lab request: the lab's address is **Zahraa El Maadi**; the lab
+   request's chart shows **natural teeth** (crowns and roots), not squares.

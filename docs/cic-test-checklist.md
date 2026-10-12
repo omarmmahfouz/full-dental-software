@@ -152,3 +152,11 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
 57. `moderator`: a bill → *Print*: the small 80 mm bill with *what he owes in all*.
 58. `cicdoctor`: *Record treatment* → a step with its service: the usual CIC price fills in; another price is told to
     `moderator` and `owner`.
+
+## P. New in this version (16)
+59. The secretary at CIC: search `115`: it opens **CIC-00115** (not CIA's file 115); search `0115`: the mobiles starting
+    with 0115.
+60. The secretary at CIC: *Today* → the person icon beside the doctor: **He goes in with another doctor**: the doctor
+    he went in with gets today's treatment and his share; the visit keeps *Booked with* the first doctor.
+61. `cicdoctor`: a patient's file → *Record* → **Sick leave** and **Patient consent**: printed on CIC's paper with its
+    logo.

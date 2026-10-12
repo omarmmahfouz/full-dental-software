@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-12 09:59+0300\n"
+"POT-Creation-Date: 2026-10-12 10:09+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4387,7 +4387,7 @@ msgstr "العيادات: أنصبة الأطباء"
 #: apps/clinics/forms.py:25 apps/clinics/forms.py:53 apps/clinics/models.py:30
 #: apps/clinics/models.py:95 apps/clinics/models.py:124 apps/lab/models.py:276
 #: apps/prescriptions/models.py:148 apps/prescriptions/models.py:217
-#: apps/prescriptions/papers.py:38 apps/prescriptions/papers.py:104
+#: apps/prescriptions/papers.py:38 apps/prescriptions/papers.py:105
 #: apps/specialties/forms.py:30 apps/specialties/models.py:105
 msgid "doctor"
 msgstr "الطبيب"
@@ -5495,20 +5495,30 @@ msgstr ""
 
 #: apps/core/hints.py:35
 msgid ""
+"The file by specialty: each tile shows what was done in it, when and by "
+"whom; tap it to open the case or start one. Record opens a treatment, a "
+"prescription, a sick leave or a consent."
+msgstr ""
+"الملف حسب التخصص: كل مربع يعرض ما تم فيه ومتى وبواسطة من؛ اضغط عليه لفتح "
+"الحالة أو بدء حالة جديدة. «تسجيل» يفتح علاجاً أو روشتة أو إجازة مرضية أو "
+"إقراراً."
+
+#: apps/core/hints.py:38
+msgid ""
 "The file step by step: the yellow button opens the next step. Record opens a"
 " treatment, a surgery chart, a request or a prescription."
 msgstr ""
 "الملف خطوة بخطوة: الزرار الأصفر بيفتح الخطوة الجاية. «تسجيل» بيفتح علاج أو "
 "شارت عملية أو طلب أو روشتة."
 
-#: apps/core/hints.py:37
+#: apps/core/hints.py:40
 msgid ""
 "Everything about this patient is on this page. The buttons at the top book, "
 "bill and print."
 msgstr ""
 "كل ما يخص المريض في هذه الصفحة. الأزرار بالأعلى للحجز والفاتورة والطباعة."
 
-#: apps/core/hints.py:39
+#: apps/core/hints.py:42
 msgid ""
 "Patients whose readings need a physician's opinion before surgery, the "
 "letters waiting for an answer, and the surgeries postponed for a medical "
@@ -5517,7 +5527,7 @@ msgstr ""
 "المرضى اللي قراياتهم محتاجة رأي طبيب باطنة قبل العملية، والخطابات اللي "
 "مستنية رد، والعمليات اللي اتأجلت لسبب طبي."
 
-#: apps/core/hints.py:41
+#: apps/core/hints.py:44
 msgid ""
 "The letter is written from the medical history: tick the procedure, check "
 "the medicines, then save and print it for the patient."
@@ -5525,7 +5535,7 @@ msgstr ""
 "الخطاب بيتكتب من التاريخ المرضي: علّم العملية، وراجع الأدوية، وبعدين احفظه "
 "واطبعه للمريض."
 
-#: apps/core/hints.py:43
+#: apps/core/hints.py:46
 msgid ""
 "Print the letter for the patient. When he brings the answer back, record it "
 "with a photo of the paper: the dentist is told."
@@ -5533,7 +5543,7 @@ msgstr ""
 "اطبع الخطاب للمريض. لما يرجع بالرد، سجّله مع صورة الورقة: الطبيب بيوصله "
 "إشعار."
 
-#: apps/core/hints.py:45
+#: apps/core/hints.py:48
 msgid ""
 "Tap what you did today: the impression, the scan or the CBCT. Or skip it: it"
 " is not needed for every patient."
@@ -5541,7 +5551,7 @@ msgstr ""
 "اضغط على اللي عملته النهارده: الطبعة أو المسح أو الأشعة المقطعية. أو فوّتها:"
 " مش كل مريض محتاجها."
 
-#: apps/core/hints.py:47
+#: apps/core/hints.py:50
 msgid ""
 "People who called but have no file yet. When one comes in, open the call and"
 " turn it into a patient file in one click."
@@ -5549,7 +5559,7 @@ msgstr ""
 "أشخاص اتصلوا وليس لهم ملف بعد. عندما يحضر أحدهم، افتح المكالمة وحوّلها إلى "
 "ملف مريض بضغطة واحدة."
 
-#: apps/core/hints.py:49
+#: apps/core/hints.py:52
 msgid ""
 "Lists of patients to call, sent by the dentists or the heads. Open a list, "
 "call each patient and write the answer."
@@ -5557,7 +5567,7 @@ msgstr ""
 "قوائم مرضى للاتصال بهم، أرسلها الأطباء أو المسؤولون. افتح القائمة، اتصل بكل "
 "مريض واكتب رده."
 
-#: apps/core/hints.py:51
+#: apps/core/hints.py:54
 msgid ""
 "Tap Arrived when the patient comes in, then In the room and Left. The panel "
 "at the top follows the clock of this computer."
@@ -5565,7 +5575,7 @@ msgstr ""
 "اضغط «وصل» عند حضور المريض، ثم «دخل الغرفة» و«انصرف». اللوحة بالأعلى تتبع "
 "ساعة هذا الجهاز."
 
-#: apps/core/hints.py:53
+#: apps/core/hints.py:56
 msgid ""
 "One column per room (or per doctor: By doctor), in 15-minute steps. Tap a "
 "green place to book it, or tap a booking to open it."
@@ -5573,7 +5583,7 @@ msgstr ""
 "عمود لكل غرفة (أو لكل طبيب: حسب الطبيب)، كل ربع ساعة. اضغط على مكان أخضر "
 "للحجز فيه، أو على حجز لفتحه."
 
-#: apps/core/hints.py:55
+#: apps/core/hints.py:58
 msgid ""
 "Choose the patient and the dentist, then tap a green place in the day grid "
 "under the form, or use Nearest free times."
@@ -5581,20 +5591,20 @@ msgstr ""
 "اختر المريض والطبيب، ثم اضغط على مكان أخضر في جدول اليوم أسفل النموذج، أو "
 "استخدم «أقرب مواعيد فاضية»."
 
-#: apps/core/hints.py:58
+#: apps/core/hints.py:61
 msgid ""
 "Your appointments. Tap one to open the visit page and record what was done."
 msgstr "مواعيدك. اضغط على موعد لفتح صفحة الزيارة وتسجيل ما تم."
 
-#: apps/core/hints.py:59
+#: apps/core/hints.py:62
 msgid "Filter by day, dentist or status. Tap an appointment to open it."
 msgstr "اختر اليوم أو الطبيب أو الحالة. اضغط على الموعد لفتحه."
 
-#: apps/core/hints.py:62
+#: apps/core/hints.py:65
 msgid "Your shifts: which room and which hours, and the surgery days."
 msgstr "شيفتاتك: أي غرفة وأي ساعات، وأيام العمليات."
 
-#: apps/core/hints.py:63
+#: apps/core/hints.py:66
 msgid ""
 "Who works in which room this week. Add a shift, or fill the week from last "
 "week in one click."
@@ -5602,7 +5612,7 @@ msgstr ""
 "من يعمل في أي غرفة هذا الأسبوع. أضف شيفت، أو املأ الأسبوع مثل الأسبوع الماضي"
 " بضغطة واحدة."
 
-#: apps/core/hints.py:65
+#: apps/core/hints.py:68
 msgid ""
 "Tap Send: WhatsApp opens with the message ready. Press send there, then come"
 " back for the next one."
@@ -5610,20 +5620,20 @@ msgstr ""
 "اضغط «إرسال»: يفتح واتساب والرسالة جاهزة. أرسلها من هناك، ثم ارجع للرسالة "
 "التالية."
 
-#: apps/core/hints.py:67
+#: apps/core/hints.py:70
 msgid ""
 "Patients waiting for a place. When a place frees up, you are told who to "
 "call."
 msgstr "مرضى ينتظرون مكانًا. عندما يفرغ مكان، يُقال لك بمن تتصل."
 
-#: apps/core/hints.py:68
+#: apps/core/hints.py:71
 msgid ""
 "Follow the tiles in order: the treatment or the surgery chart first, then "
 "the prescription and the instructions."
 msgstr ""
 "اتبع المربعات بالترتيب: العلاج أو شارت العملية أولًا، ثم الروشتة والتعليمات."
 
-#: apps/core/hints.py:70
+#: apps/core/hints.py:73
 msgid ""
 "Add the patients you want on your days, with the step and the time needed. "
 "The supervisor approves the list, then the reception calls them."
@@ -5631,7 +5641,7 @@ msgstr ""
 "أضف المرضى الذين تريدهم في أيامك، مع الخطوة والوقت المطلوب. يوافق المشرف على"
 " القائمة، ثم يتصل بهم الاستقبال."
 
-#: apps/core/hints.py:72
+#: apps/core/hints.py:75
 msgid ""
 "Call the patients in order. Book fills the booking form in one step; if one "
 "cannot come, the page says who to call instead."
@@ -5639,14 +5649,14 @@ msgstr ""
 "اتصل بالمرضى بالترتيب. «احجز» يملأ نموذج الحجز مرة واحدة؛ وإذا لم يستطع "
 "أحدهم الحضور، تخبرك الصفحة بمن تتصل بدلًا منه."
 
-#: apps/core/hints.py:74
+#: apps/core/hints.py:77
 msgid ""
 "Every treatment recorded. Filter by dentist or date, and tap a row for the "
 "details."
 msgstr ""
 "كل العلاجات المسجلة. اختر الطبيب أو التاريخ، واضغط على السطر للتفاصيل."
 
-#: apps/core/hints.py:75
+#: apps/core/hints.py:78
 msgid ""
 "Choose the patient and the teeth first: each tooth shows how it is now, what"
 " was done and what is planned, and the kinds of work that fit come first. "
@@ -5655,7 +5665,7 @@ msgstr ""
 "اختر المريض والأسنان أولاً: كل سن يظهر حاله الآن وما عُمل وما هو مخطط، "
 "وأنواع الشغل المناسبة تظهر أولاً. بعدها الخطوة."
 
-#: apps/core/hints.py:77
+#: apps/core/hints.py:80
 msgid ""
 "Take the photos and periapical X-rays this step needs: each box opens the "
 "tablet's camera."
@@ -5663,25 +5673,25 @@ msgstr ""
 "صوّر الصور والأشعة الصغيرة اللي الخطوة محتاجاها: كل خانة بتفتح كاميرا "
 "التابلت."
 
-#: apps/core/hints.py:79
+#: apps/core/hints.py:82
 msgid ""
 "Each lab work from the request to the fitting. Late work is marked in red."
 msgstr "كل شغل معمل من الطلب حتى التركيب. الشغل المتأخر باللون الأحمر."
 
-#: apps/core/hints.py:80
+#: apps/core/hints.py:83
 msgid ""
 "Visits with nothing written in the patient's file. Open each one and record "
 "what was done."
 msgstr "زيارات لم يُكتب عنها شيء في ملف المريض. افتح كل واحدة وسجّل ما تم."
 
-#: apps/core/hints.py:82
+#: apps/core/hints.py:85
 msgid ""
 "Tap a tooth to see its history. The buttons above the chart open the "
 "examination, the plan and the photos."
 msgstr ""
 "اضغط على السن لترى تاريخه. الأزرار فوق الشارت تفتح الكشف والخطة والصور."
 
-#: apps/core/hints.py:84
+#: apps/core/hints.py:87
 msgid ""
 "The implant and surgery part of the plans. Choose the filters, then send the"
 " patients found to the reception to call them."
@@ -5689,7 +5699,7 @@ msgstr ""
 "جزء الزرع والجراحة من الخطط. اختار الفلاتر، وبعدين ابعت المرضى للاستقبال "
 "يتصلوا بيهم."
 
-#: apps/core/hints.py:86
+#: apps/core/hints.py:89
 msgid ""
 "The restorative part of the plans (crowns, fillings, root canals, "
 "dentures…). Choose the filters, then send the patients to the reception."
@@ -5697,7 +5707,7 @@ msgstr ""
 "الجزء التعويضي والعلاجي من الخطط (تيجان، حشوات، علاج عصب، أطقم…). اختار "
 "الفلاتر، وبعدين ابعت المرضى للاستقبال."
 
-#: apps/core/hints.py:88
+#: apps/core/hints.py:91
 msgid ""
 "Every restorative step of the treatment log. Tap a group button for the "
 "statistics, or a kind of work to see only its steps."
@@ -5705,11 +5715,11 @@ msgstr ""
 "كل خطوات العلاج التعويضي والعلاجي المسجلة. اضغط زرار تجميع للإحصائيات، أو "
 "نوع عمل لعرض خطواته فقط."
 
-#: apps/core/hints.py:90
+#: apps/core/hints.py:93
 msgid "Every surgery chart. Tap one to open it, or start a new surgery chart."
 msgstr "كل شارتات العمليات. اضغط على واحد لفتحه، أو ابدأ شارت عملية جديدًا."
 
-#: apps/core/hints.py:91
+#: apps/core/hints.py:94
 msgid ""
 "Choose a tool (implant, pontic, extraction...) and tap the teeth, like on a "
 "scanner. Choose the implant company once, then the sizes and lots implant by"
@@ -5718,14 +5728,14 @@ msgstr ""
 "اختار أداة (زرعة، سنة معلّقة، خلع...) واضغط على الأسنان، زي برنامج السكانر. "
 "اختار شركة الزرعات مرة واحدة، وبعدين المقاسات والتشغيلات زرعة زرعة."
 
-#: apps/core/hints.py:93
+#: apps/core/hints.py:96
 msgid ""
 "Tap the teeth to change the design; each tooth's details are in the list "
 "below it."
 msgstr ""
 "اضغط على الأسنان عشان تغيّر التصميم؛ تفاصيل كل سنة في القائمة اللي تحته."
 
-#: apps/core/hints.py:94
+#: apps/core/hints.py:97
 msgid ""
 "Tap each point as you do it and write the torque. Save it as delivered at "
 "the end: the implants become loaded on the chart."
@@ -5733,14 +5743,14 @@ msgstr ""
 "اضغط على كل نقطة وانت بتعملها واكتب العزم. في الآخر احفظها «اتسلّمت»: "
 "الزرعات بتبقى محمّلة على الشارت."
 
-#: apps/core/hints.py:96
+#: apps/core/hints.py:99
 msgid ""
 "Choose filters, then group by one or two columns for the statistics. Export "
 "to Excel for publications."
 msgstr ""
 "اختر الفلاتر، ثم جمّع بعمود أو اثنين للإحصائيات. صدّر إلى إكسل للنشر العلمي."
 
-#: apps/core/hints.py:98
+#: apps/core/hints.py:101
 msgid ""
 "Open complaints come first. Tap one: it opens here with its story, and you "
 "can write a comment at once. The number opens the whole complaint."
@@ -5748,7 +5758,7 @@ msgstr ""
 "الشكاوى المفتوحة أولًا. اضغطي على شكوى: هتتفتح هنا بتفاصيلها وتقدري تكتبي "
 "تعليق على طول. رقم الشكوى يفتح الشكوى كاملة."
 
-#: apps/core/hints.py:100
+#: apps/core/hints.py:103
 msgid ""
 "Choose the patient first: his earlier complaints show. The same problem "
 "again? Press He called again on it instead of writing a new one."
@@ -5756,7 +5766,7 @@ msgstr ""
 "اختاري المريض الأول: شكاويه القديمة هتظهر. نفس المشكلة تاني؟ اضغطي «اتصل "
 "تاني عليها» بدل ما تكتبي شكوى جديدة."
 
-#: apps/core/hints.py:102
+#: apps/core/hints.py:105
 msgid ""
 "The candidates by batch: regular or private, online or in the academy. Tap "
 "one for the enrollment, the installments, the implants and the days he came."
@@ -5764,18 +5774,18 @@ msgstr ""
 "المرشحون حسب الدفعة: عادية أو خاصة، أونلاين أو في الأكاديمية. اضغطي على واحد"
 " لتسجيله والأقساط والزرعات والأيام اللي حضرها."
 
-#: apps/core/hints.py:104
+#: apps/core/hints.py:107
 msgid ""
 "What each candidate pays this month. Tap the WhatsApp button to remind them."
 msgstr "المطلوب من كل دارس هذا الشهر. اضغط زر واتساب لتذكيره."
 
-#: apps/core/hints.py:105
+#: apps/core/hints.py:108
 msgid ""
 "Installments past their date. Call or send a WhatsApp reminder, then record "
 "the payment."
 msgstr "أقساط فات موعدها. اتصل أو أرسل تذكير واتساب، ثم سجّل الدفع."
 
-#: apps/core/hints.py:106
+#: apps/core/hints.py:109
 msgid ""
 "Tap a quick button for the usual services, or add lines yourself. Tick Pay "
 "now to take the money at once."
@@ -5783,19 +5793,19 @@ msgstr ""
 "اضغط زرًا سريعًا للخدمات المعتادة، أو أضف السطور بنفسك. علّم «ادفع الآن» "
 "لتحصيل المبلغ فورًا."
 
-#: apps/core/hints.py:108
+#: apps/core/hints.py:111
 msgid ""
 "Bills to collect are at the top. Tap a bill to take a payment or print it."
 msgstr ""
 "الفواتير التي لم تُحصّل بعد بالأعلى. اضغط على الفاتورة لتحصيلها أو طباعتها."
 
-#: apps/core/hints.py:109
+#: apps/core/hints.py:112
 msgid ""
 "The day's collections by payment method are at the top. Tap a payment to "
 "print its receipt."
 msgstr "تحصيل اليوم حسب طريقة الدفع بالأعلى. اضغط على الدفعة لطباعة الإيصال."
 
-#: apps/core/hints.py:111
+#: apps/core/hints.py:114
 msgid ""
 "All the receipts of the day at this place. Before you leave, count the cash "
 "in the drawer and close the day. A receipt written by mistake is cancelled "
@@ -5804,21 +5814,21 @@ msgstr ""
 "كل إيصالات اليوم في هذا المكان. قبل أن تنصرف، عُدّ النقدية في الدرج وأغلق "
 "اليوم. الإيصال المكتوب بالخطأ يُلغى من الإيصال نفسه."
 
-#: apps/core/hints.py:113
+#: apps/core/hints.py:116
 msgid ""
 "The day's receipts, bills and changes. Tick the day as reviewed when it is "
 "right."
 msgstr ""
 "إيصالات وفواتير وتعديلات اليوم. علّم اليوم كمُراجَع عندما يكون صحيحًا."
 
-#: apps/core/hints.py:115
+#: apps/core/hints.py:118
 msgid ""
 "Each day of the month with its total, whether it was closed and reviewed, "
 "and the difference in the drawer. Tap a day to open it."
 msgstr ""
 "كل يوم في الشهر بإجماليه، وهل أُغلق وروجع، وفرق الدرج. اضغط على يوم لفتحه."
 
-#: apps/core/hints.py:117
+#: apps/core/hints.py:120
 msgid ""
 "Correct the amount or the way of paying, cancel a receipt written by "
 "mistake, or give money back. Write why: the owner sees every change."
@@ -5826,7 +5836,7 @@ msgstr ""
 "صحّح المبلغ أو طريقة الدفع، أو ألغِ إيصالًا كُتب بالخطأ، أو رُدّ مبلغًا. "
 "اكتب السبب: المالك يرى كل تعديل."
 
-#: apps/core/hints.py:120
+#: apps/core/hints.py:123
 msgid ""
 "The reception is told of this bill and takes the payment. Press WhatsApp to "
 "ask the reception to send it to the patient."
@@ -5834,11 +5844,11 @@ msgstr ""
 "يُبلَّغ الاستقبال بهذه الفاتورة ويأخذ الدفع. اضغط واتساب لتطلب من الاستقبال "
 "إرسالها للمريض."
 
-#: apps/core/hints.py:122
+#: apps/core/hints.py:125
 msgid "Take the payment under the bill; the receipt opens after saving."
 msgstr "خذ الدفع تحت الفاتورة؛ يفتح الإيصال بعد الحفظ."
 
-#: apps/core/hints.py:124
+#: apps/core/hints.py:127
 msgid ""
 "Print the request for the patient. When the scan is done, press Done here or"
 " at the centre and write the folder of the scan: it then opens with one "
@@ -5847,7 +5857,7 @@ msgstr ""
 "اطبع الطلب للمريض. عندما تتم الأشعة، اضغط تمت هنا أو في المركز واكتب مجلد "
 "الأشعة: تفتح بعدها بضغطة واحدة."
 
-#: apps/core/hints.py:126
+#: apps/core/hints.py:129
 msgid ""
 "Ask the questions in order and tick the answers. Save and go on: the file "
 "goes step by step to the dental history, the examination and the plan."
@@ -5855,7 +5865,7 @@ msgstr ""
 "اسأل الأسئلة بالترتيب وعلّم الإجابات. احفظ وتابع: الملف يمشي خطوة بخطوة إلى "
 "تاريخ الأسنان ثم الكشف ثم خطة العلاج."
 
-#: apps/core/hints.py:128
+#: apps/core/hints.py:131
 msgid ""
 "Draw a frame to crop (4:3 fits the log book), turn or mirror, then save. The"
 " original photo is kept and can be put back."
@@ -5863,7 +5873,7 @@ msgstr ""
 "ارسم إطارًا للقص (4:3 يناسب الـ log book)، دوّر أو اعكس، ثم احفظ. الصورة "
 "الأصلية محفوظة ويمكن إرجاعها."
 
-#: apps/core/hints.py:130
+#: apps/core/hints.py:133
 msgid ""
 "The stock is in groups (dental, implants, beverage, stationery...), each "
 "with its categories. Add or rename a category here; the clock button shows "
@@ -5872,7 +5882,7 @@ msgstr ""
 "المخزن مقسم إلى مجموعات (مواد أسنان، زرعات، مشروبات، أدوات مكتبية...)، ولكل "
 "مجموعة أقسامها. أضف أو غيّر اسم قسم من هنا؛ زر الساعة يعرض حركته."
 
-#: apps/core/hints.py:132
+#: apps/core/hints.py:135
 msgid ""
 "Card payments appear here by themselves. Add bills paid on the machine, "
 "money put on it and Fawry's transfers to the bank."
@@ -5880,7 +5890,7 @@ msgstr ""
 "مدفوعات الكارت تظهر هنا تلقائيًا. أضف الفواتير المدفوعة على الماكينة، "
 "والمبالغ الموضوعة عليها، وتحويلات فوري إلى البنك."
 
-#: apps/core/hints.py:134
+#: apps/core/hints.py:137
 msgid ""
 "The people in groups (the tabs). Take off the lists someone who comes "
 "rarely: his work stays. Candidates leave the lists when their course ends."
@@ -5888,24 +5898,24 @@ msgstr ""
 "الناس في مجموعات (التبويبات). شيل من القوائم اللي بيجي نادراً: شغله يفضل. "
 "المرشحون يخرجوا من القوائم لما دورتهم تخلص."
 
-#: apps/core/hints.py:136
+#: apps/core/hints.py:139
 msgid ""
 "Red rows are below their reorder level. Tap an item to receive, take out or "
 "count it."
 msgstr ""
 "السطور الحمراء تحت حد الطلب. اضغط على الصنف للاستلام أو الصرف أو الجرد."
 
-#: apps/core/hints.py:137
+#: apps/core/hints.py:140
 msgid ""
 "Choose who takes the items, then add one line per item. The stock goes down "
 "when you save."
 msgstr "اختر من سيستلم الأصناف، ثم سطرًا لكل صنف. ينقص المخزن عند الحفظ."
 
-#: apps/core/hints.py:138
+#: apps/core/hints.py:141
 msgid "Every stock movement, with who and for whom. Filter by item or date."
 msgstr "كل حركة في المخزن، من قام بها ولمن. اختر الصنف أو التاريخ."
 
-#: apps/core/hints.py:139
+#: apps/core/hints.py:142
 msgid ""
 "What was bought at a new price: the last price against the one before. Tap "
 "an item for all its prices."
@@ -5913,7 +5923,7 @@ msgstr ""
 "الأصناف اللي اتشرت بسعر جديد: آخر سعر قصاد اللي قبله. اضغط على صنف لعرض كل "
 "أسعاره."
 
-#: apps/core/hints.py:141
+#: apps/core/hints.py:144
 msgid ""
 "Items given back to the suppliers. The open ones come first: tap one to "
 "finish its next step."
@@ -5921,19 +5931,19 @@ msgstr ""
 "الأصناف المرتجعة للموردين. المفتوحة الأول: اضغط على مرتجع لتكملة الخطوة "
 "الجاية."
 
-#: apps/core/hints.py:143
+#: apps/core/hints.py:146
 msgid ""
 "Write how many of each item go back and why. They go out of the stock when "
 "you save."
 msgstr "اكتب عدد كل صنف هيرجع وليه. بيخرجوا من المخزن أول ما تحفظ."
 
-#: apps/core/hints.py:145
+#: apps/core/hints.py:148
 msgid ""
 "Sign once in the box: your signature is printed on the receipts and the "
 "prescriptions."
 msgstr "امضي مرة واحدة في المربع: توقيعك بيتطبع على الإيصالات والروشتات."
 
-#: apps/core/hints.py:146
+#: apps/core/hints.py:149
 msgid ""
 "The purchases of the place chosen in the tabs, dental or not, then by group."
 " Tap one for its lines and invoice photo."
@@ -5941,19 +5951,19 @@ msgstr ""
 "مشتريات المكان المختار في التبويبات، أسنان أو غير أسنان، وبعدين حسب "
 "المجموعة. اضغط على واحدة لسطورها وصورة الفاتورة."
 
-#: apps/core/hints.py:148
+#: apps/core/hints.py:151
 msgid ""
 "Add one line per item with its category. Link a line to a stock item to fill"
 " the stock."
 msgstr "أضف سطرًا لكل صنف مع فئته. اربط السطر بصنف في المخزن ليزيد المخزن."
 
-#: apps/core/hints.py:149
+#: apps/core/hints.py:152
 msgid ""
 "Choose a report. Each one can be filtered by dates, and most can be "
 "exported."
 msgstr "اختر تقريرًا. كل تقرير يمكن تحديد تواريخه، وأغلبها يمكن تصديره."
 
-#: apps/core/hints.py:150
+#: apps/core/hints.py:153
 msgid ""
 "The main settings first, then each place (its people, rooms, services and "
 "look), then the lists: type in Find a list to reach one quickly. Nothing is "
@@ -5963,7 +5973,7 @@ msgstr ""
 "القوائم: اكتب في «دوّر على قائمة» عشان توصل لها بسرعة. مفيش حاجة بتتمسح: شيل"
 " علامة «نشط» بدل كده."
 
-#: apps/core/hints.py:152
+#: apps/core/hints.py:155
 msgid ""
 "Choose a role on the side, then for each part: Normal, Read only or No "
 "access. Save once for every role."
@@ -5971,7 +5981,7 @@ msgstr ""
 "اختار الدور من الجنب، وبعدين لكل جزء: عادي، أو قراءة فقط، أو ممنوع. واحفظ "
 "مرة واحدة لكل الأدوار."
 
-#: apps/core/hints.py:154
+#: apps/core/hints.py:157
 msgid ""
 "Choose a place to see only its people. The lab shows the dentists who design"
 " for it too."
@@ -5979,7 +5989,7 @@ msgstr ""
 "اختار مكان عشان تشوف ناسه بس. المعمل بيظهر فيه كمان الدكاترة اللي بيعملوا له"
 " ديزاين."
 
-#: apps/core/hints.py:155
+#: apps/core/hints.py:158
 msgid ""
 "For each person: how many times they opened the system, how long it was open"
 " and how long they worked. Tap a name to see each time."
@@ -5987,7 +5997,7 @@ msgstr ""
 "لكل واحد: فتح النظام كام مرة، وفضل مفتوح قد إيه، واشتغل قد إيه. اضغط على "
 "الاسم عشان تشوف كل مرة."
 
-#: apps/core/hints.py:157
+#: apps/core/hints.py:160
 msgid ""
 "Each time this person opened the system: when, how long it stayed open, how "
 "long they worked and how it ended."
@@ -5995,7 +6005,7 @@ msgstr ""
 "كل مرة الشخص ده فتح فيها النظام: إمتى، وفضل مفتوح قد إيه، واشتغل قد إيه، "
 "وانتهت إزاي."
 
-#: apps/core/hints.py:159
+#: apps/core/hints.py:162
 msgid ""
 "The lab's receipts of the day and the work delivered. At the end of the day "
 "count the cash in the drawer and close the day; the owner reviews it."
@@ -6003,7 +6013,7 @@ msgstr ""
 "إيصالات المعمل النهارده والشغل اللي اتسلم. آخر اليوم عِد الفلوس اللي في "
 "الدرج وقفّل اليوم؛ وصاحب المكان بيراجعه."
 
-#: apps/core/hints.py:161
+#: apps/core/hints.py:164
 msgid ""
 "Green means the last backup worked. Every night the data is saved as a ZIP "
 "and the new photos are copied to the backup disk. Make a backup now before "
@@ -6013,7 +6023,7 @@ msgstr ""
 "ZIP وتُنسخ الصور الجديدة إلى هارد النسخ الاحتياطي. اعمل نسخة احتياطية الآن "
 "قبل أي تغيير كبير."
 
-#: apps/core/hints.py:163
+#: apps/core/hints.py:166
 msgid ""
 "A yellow line is something to fix, with how. Below: who is logged in now, "
 "the logins closed after wrong passwords (Open lets them try again) and "
@@ -6023,7 +6033,7 @@ msgstr ""
 "اللي اتقفل بعد كلمات سر غلط (افتح بيخليهم يحاولوا تاني)، وكل اللي حصل في "
 "الدخول والملفات اللي اتنزّلت."
 
-#: apps/core/hints.py:166
+#: apps/core/hints.py:169
 msgid ""
 "Whatever anyone deletes is kept here for a year: open a line to see what it "
 "held, then write it again if it was a mistake."
@@ -6031,7 +6041,7 @@ msgstr ""
 "أي حاجة حد بيمسحها بتتحفظ هنا سنة: افتح السطر تشوف كان فيه إيه، واكتبه تاني "
 "لو اتمسح بالغلط."
 
-#: apps/core/hints.py:168
+#: apps/core/hints.py:171
 msgid ""
 "Problems told by the staff, and pages that stopped with an error (written "
 "down by themselves). Mark each one when it is being looked at or solved."
@@ -6039,7 +6049,7 @@ msgstr ""
 "المشاكل التي أبلغ عنها الموظفون، والصفحات التي توقفت بخطأ (تُسجَّل وحدها). "
 "حدّد حالة كل مشكلة عند متابعتها أو حلها."
 
-#: apps/core/hints.py:170
+#: apps/core/hints.py:173
 msgid ""
 "Each doctor of the place: visits, time in the chair, what the patients paid "
 "and the doctor's share. Tap a doctor for the details and to record a payment"
@@ -6048,13 +6058,13 @@ msgstr ""
 "كل طبيب في المكان: الزيارات، ووقت الكرسي، وما دفعه المرضى، ونصيب الطبيب. "
 "اضغط على الطبيب للتفاصيل ولتسجيل مبلغ دُفع له."
 
-#: apps/core/hints.py:173
+#: apps/core/hints.py:176
 msgid ""
 "Your services and visits at this place, the share of each one, and what you "
 "were paid."
 msgstr "خدماتك وزياراتك في هذا المكان، ونصيبك من كل منها، وما تم دفعه لك."
 
-#: apps/core/hints.py:174
+#: apps/core/hints.py:177
 msgid ""
 "Every service and visit of the doctor with its share. Record each payment to"
 " the doctor under the list: what is still owed goes down."
@@ -6062,7 +6072,7 @@ msgstr ""
 "كل خدمة وزيارة للطبيب مع نصيبه منها. سجّل كل مبلغ يُدفع للطبيب أسفل القائمة:"
 " فيقل المتبقي له."
 
-#: apps/core/hints.py:177
+#: apps/core/hints.py:180
 msgid ""
 "How each doctor is paid: a percentage, a fixed amount for each service (each"
 " tooth) or for each visit. To change it from a date, add a new rule from "
@@ -6071,7 +6081,7 @@ msgstr ""
 "طريقة محاسبة كل طبيب: نسبة، أو مبلغ ثابت لكل خدمة (لكل سن) أو لكل زيارة. "
 "لتغييرها من تاريخ معين، أضف قاعدة جديدة من هذا التاريخ."
 
-#: apps/core/hints.py:179
+#: apps/core/hints.py:182
 msgid ""
 "The place over the period: what the patients paid, visits and time, the "
 "doctors' shares, the materials used, and what is left for the clinic."
@@ -6079,7 +6089,7 @@ msgstr ""
 "المكان خلال الفترة: ما دفعه المرضى، والزيارات والوقت، وأنصبة الأطباء، "
 "والخامات المستخدمة، وما يتبقى للعيادة."
 
-#: apps/core/hints.py:181
+#: apps/core/hints.py:184
 msgid ""
 "A doctor's own price for a service (e.g. the TMJ specialist's examination) "
 "and its usual lab or implant cost. His bills take this price by themselves."
@@ -6087,7 +6097,7 @@ msgstr ""
 "سعر خاص بالطبيب لخدمة (مثلًا كشف أخصائي المفصل) وتكلفة المعمل أو الزرعة "
 "المعتادة لها. فواتيره تاخد السعر ده لوحدها."
 
-#: apps/core/hints.py:183
+#: apps/core/hints.py:186
 msgid ""
 "The specialists' charts at this place: endodontics, TMJ, orthodontics and "
 "shades. Tap a row to open it; new ones start from the patient's file → "
@@ -6096,38 +6106,38 @@ msgstr ""
 "ملفات الأخصائيين في المكان ده: العصب، مفصل الفك، التقويم، والألوان. اضغط على"
 " سطر لفتحه؛ الجديد يبدأ من ملف المريض ← الأخصائيون."
 
-#: apps/core/hints.py:186
+#: apps/core/hints.py:189
 msgid ""
 "The patient's referrals. Tap Book on a referral to book the patient with the"
 " specialist."
 msgstr "تحويلات المريض. اضغط احجز على التحويل لحجز المريض مع الأخصائي."
 
-#: apps/core/hints.py:187
+#: apps/core/hints.py:190
 msgid ""
 "Refer the patient, or open a specialist's chart. The referrals and every "
 "chart of the patient are listed below."
 msgstr "حوّل المريض، أو افتح ملف أخصائي. التحويلات وكل ملفات المريض تحت."
 
-#: apps/core/hints.py:191
+#: apps/core/hints.py:194
 msgid ""
 "Referrals to book: open one and tap Book, the specialist and the patient are"
 " filled in."
 msgstr ""
 "تحويلات مطلوب حجزها: افتح واحد واضغط احجز، الأخصائي والمريض بيتكتبوا لوحدهم."
 
-#: apps/core/hints.py:192
+#: apps/core/hints.py:195
 msgid ""
 "The referrals of this place: the ones sent to you, the ones you sent, and "
 "their answers."
 msgstr "تحويلات المكان ده: اللي اتبعتت لك، واللي انت بعتها، وردودها."
 
-#: apps/core/hints.py:195
+#: apps/core/hints.py:198
 msgid ""
 "Book the patient with the specialist from here, and print the letter for the"
 " patient."
 msgstr "احجز المريض مع الأخصائي من هنا، واطبع الخطاب للمريض."
 
-#: apps/core/hints.py:196
+#: apps/core/hints.py:199
 msgid ""
 "The letter prints with the place's letterhead. The specialist writes his "
 "answer at the bottom and, when he finished, sends the patient on to the next"
@@ -6136,7 +6146,7 @@ msgstr ""
 "الخطاب يُطبع على ورق المكان. الأخصائي يكتب رده في الأسفل، وعندما ينتهي يحوّل"
 " المريض إلى الطبيب التالي: ويصل الإشعار لكل واحد."
 
-#: apps/core/hints.py:199
+#: apps/core/hints.py:202
 msgid ""
 "Add each visit with the medication left in the canals. When the tooth is "
 "obturated, tap Obturated: the dental chart shows the root canal."
@@ -6144,26 +6154,26 @@ msgstr ""
 "أضف كل زيارة والحشو الدوائي اللي في القنوات. لما السن يتحشي نهائي اضغط \"تم "
 "الحشو\": الشارت يظهر علاج العصب."
 
-#: apps/core/hints.py:201
+#: apps/core/hints.py:204
 msgid ""
 "Add each follow-up with the mouth opening and the pain: the bars show the "
 "progress."
 msgstr "أضف كل متابعة بفتحة الفم والألم: الأعمدة بتوضح التحسن."
 
-#: apps/core/hints.py:202
+#: apps/core/hints.py:205
 msgid ""
 "Add each adjustment visit: the wires of the last visit are filled in, change"
 " what is new."
 msgstr ""
 "أضف كل زيارة ضبط: أسلاك الزيارة اللي فاتت بتتكتب لوحدها، غيّر الجديد بس."
 
-#: apps/core/hints.py:203
+#: apps/core/hints.py:206
 msgid ""
 "The shade of each third of the tooth for the ceramist. Tap Lab request to "
 "send it with the work."
 msgstr "لون كل ثلث من السن للفني. اضغط \"طلب معمل\" لإرساله مع الشغل."
 
-#: apps/core/hints.py:206
+#: apps/core/hints.py:209
 msgid ""
 "Every place side by side. Choose today, 7 days or this month; rest the mouse"
 " on a column to see its number, or open Show the numbers."
@@ -6171,7 +6181,7 @@ msgstr ""
 "كل الأماكن جنب بعض. اختار النهارده أو 7 أيام أو الشهر ده، وقف بالماوس على أي"
 " عمود تشوف رقمه، أو افتح «اعرض الأرقام»."
 
-#: apps/core/hints.py:209
+#: apps/core/hints.py:212
 msgid ""
 "One column per step. Press the button under a case when its step is done: it"
 " goes on to the next step, and to the person who does it."
@@ -6179,14 +6189,14 @@ msgstr ""
 "عمود لكل مرحلة. اضغط الزرار اللي تحت الحالة لما مرحلتها تخلص: تروح للمرحلة "
 "اللي بعدها وللشخص اللي بيعملها."
 
-#: apps/core/hints.py:211
+#: apps/core/hints.py:214
 msgid ""
 "One column per step. The cases with you have your name; press Done when your"
 " step is finished."
 msgstr ""
 "عمود لكل مرحلة. الحالات اللي معاك عليها اسمك، واضغط «خلصت» لما مرحلتك تخلص."
 
-#: apps/core/hints.py:214
+#: apps/core/hints.py:217
 msgid ""
 "Choose the client and write the work: the price comes from the client's "
 "price list and the steps from the kind of work. Then print the label for the"
@@ -6195,7 +6205,7 @@ msgstr ""
 "اختار العميل واكتب الشغل: السعر بييجي من قائمة أسعار العميل، والمراحل من نوع"
 " الشغل. بعد كده اطبع الملصق للعلبة."
 
-#: apps/core/hints.py:216
+#: apps/core/hints.py:219
 msgid ""
 "Work sent by CIA, CIC or El Khadem. When it arrives, tick what came with it "
 "and press Received."
@@ -6203,7 +6213,7 @@ msgstr ""
 "شغل باعته الأكاديمية أو CIC أو عيادة الخادم. لما يوصل علّم على اللي جه معاه "
 "واضغط «استلمناه»."
 
-#: apps/core/hints.py:218
+#: apps/core/hints.py:221
 msgid ""
 "The big button moves the case to its next step. The bars show how long each "
 "step took. A remake opens a new case linked to this one."
@@ -6211,14 +6221,14 @@ msgstr ""
 "الزرار الكبير بينقل الحالة للمرحلة اللي بعدها. الأشرطة بتبيّن كل مرحلة خدت "
 "قد إيه. الإعادة بتفتح حالة جديدة مربوطة بالحالة دي."
 
-#: apps/core/hints.py:220
+#: apps/core/hints.py:223
 msgid ""
 "The cases given to you. Press the button when your step is finished: the "
 "next person is told."
 msgstr ""
 "الحالات اللي معاك. اضغط الزرار لما مرحلتك تخلص: اللي بعدك هيوصله تنبيه."
 
-#: apps/core/hints.py:221
+#: apps/core/hints.py:224
 msgid ""
 "Open a new block when you start it: then record on each case how many units "
 "were milled from it, and close the block when it is finished."
@@ -6226,7 +6236,7 @@ msgstr ""
 "افتح بلوك جديد لما تبدأ فيه، وبعد كده سجّل على كل حالة كام وحدة اتفرّزت منه،"
 " واقفل البلوك لما يخلص."
 
-#: apps/core/hints.py:223
+#: apps/core/hints.py:226
 msgid ""
 "Each client with what was delivered, paid and still owed. Open one for its "
 "cases, receipts and statement."
@@ -6234,20 +6244,20 @@ msgstr ""
 "كل عميل واللي اتسلّمله واللي دفعه واللي لسه عليه. افتح أي عميل تشوف حالاته "
 "وإيصالاته وكشف حسابه."
 
-#: apps/core/hints.py:225
+#: apps/core/hints.py:228
 msgid ""
 "Type the prices of each list and press Save. An empty box means no price for"
 " that work."
 msgstr ""
 "اكتب أسعار كل قائمة واضغط حفظ. الخانة الفاضية معناها مفيش سعر للشغل ده."
 
-#: apps/core/hints.py:226
+#: apps/core/hints.py:229
 msgid ""
 "Every receipt of the lab. A mistake is cancelled with its reason (never "
 "deleted)."
 msgstr "كل إيصالات المعمل. الإيصال الغلط بيتلغي مع السبب (عمره ما بيتمسح)."
 
-#: apps/core/hints.py:227
+#: apps/core/hints.py:230
 msgid ""
 "The time each step takes, the people, the remakes and their reasons, the "
 "blocks and the money. Change the dates to compare months."
@@ -6255,7 +6265,7 @@ msgstr ""
 "الوقت اللي كل مرحلة بتاخده، والناس، والإعادات وأسبابها، والبلوكات، والفلوس. "
 "غيّر التواريخ عشان تقارن الشهور."
 
-#: apps/core/hints.py:229
+#: apps/core/hints.py:232
 msgid ""
 "Type the case number or the doctor's mobile: the answer with the real status"
 " is written for you. Press Send, then send it in WhatsApp."
@@ -6263,7 +6273,7 @@ msgstr ""
 "اكتب رقم الحالة أو موبايل الدكتور: الرد بالحالة الحقيقية بيتكتب لوحده. اضغط "
 "«ابعت» وبعدين ابعته من واتساب."
 
-#: apps/core/hints.py:231
+#: apps/core/hints.py:234
 msgid ""
 "Tick the steps each person does: a case goes by itself to the only person "
 "who does a step."
@@ -6271,7 +6281,7 @@ msgstr ""
 "علّم على المراحل اللي كل شخص بيعملها: الحالة بتروح لوحدها للشخص الوحيد اللي "
 "بيعمل المرحلة."
 
-#: apps/core/hints.py:233
+#: apps/core/hints.py:236
 msgid ""
 "Messages to many patients. Make a new one, then send it one patient at a "
 "time: WhatsApp opens with the message ready."
@@ -6279,7 +6289,7 @@ msgstr ""
 "رسائل لمرضى كتير. اعملي رسالة جديدة، وبعدين ابعتيها لمريض مريض: الواتساب "
 "يفتح والرسالة جاهزة."
 
-#: apps/core/hints.py:235
+#: apps/core/hints.py:238
 #, python-brace-format
 msgid ""
 "Choose who receives it (by filters or by hand), then write the message. "
@@ -6288,7 +6298,7 @@ msgstr ""
 "اختاري مين يستلمها (بالفلاتر أو باليد)، وبعدين اكتبي الرسالة. {patient} "
 "يتغير لاسم كل مريض."
 
-#: apps/core/hints.py:237
+#: apps/core/hints.py:240
 msgid ""
 "Press Send next to each patient: WhatsApp opens; send, then come back for "
 "the next. Do not send more than about a hundred a day from one number."
@@ -6296,7 +6306,7 @@ msgstr ""
 "اضغطي «إرسال» جنب كل مريض: الواتساب يفتح؛ ابعتي وارجعي للي بعده. ماتبعتيش "
 "أكتر من حوالي مية في اليوم من رقم واحد."
 
-#: apps/core/hints.py:239
+#: apps/core/hints.py:242
 msgid ""
 "Tick the services to give back: the amount is filled for you, and the "
 "original receipt shows. Write why, then save."
@@ -6304,7 +6314,7 @@ msgstr ""
 "علّمي على الخدمات اللي هترجع فلوسها: المبلغ يتكتب لوحده، والإيصال الأصلي "
 "ظاهر. اكتبي السبب وبعدين احفظي."
 
-#: apps/core/hints.py:241
+#: apps/core/hints.py:244
 msgid ""
 "Money the owner put in the drawer (when the day's costs are more than the "
 "income), or took out. It shows in the day's closing and the balance sheet."
@@ -6312,7 +6322,7 @@ msgstr ""
 "فلوس حطها المالك في الدرج (لما مصاريف اليوم تبقى أكتر من الدخل)، أو أخدها. "
 "بتظهر في قفلة اليوم والميزانية."
 
-#: apps/core/hints.py:243
+#: apps/core/hints.py:246
 msgid ""
 "A CIA junior writes who supervised today's surgeries. Each surgery of the "
 "day takes him as its instructor; he is printed on the case report and the "
@@ -6321,7 +6331,7 @@ msgstr ""
 "طبيب من أطباء CIA يكتب مين أشرف على جراحات اليوم. كل جراحة في اليوم تاخده "
 "مشرفاً لها؛ واسمه يُطبع في تقرير الحالة وفي اللوج بوك."
 
-#: apps/core/hints.py:245
+#: apps/core/hints.py:248
 msgid ""
 "The life of this implant: each check (its class) and each complication in "
 "detail. Add a check or a complication with the buttons."
@@ -6329,13 +6339,13 @@ msgstr ""
 "حياة هذه الزرعة: كل فحص (وتصنيفه) وكل مضاعفة بالتفصيل. أضف فحصاً أو مضاعفة "
 "بالأزرار."
 
-#: apps/core/hints.py:247
+#: apps/core/hints.py:250
 msgid ""
 "Write the findings: the class of the tissues around the implant is worked "
 "out for you."
 msgstr "اكتب نتائج الفحص: تصنيف الأنسجة حول الزرعة يُحسب لك."
 
-#: apps/core/hints.py:248
+#: apps/core/hints.py:251
 msgid ""
 "Choose the group and the kind, when it showed, the treatment and how it "
 "ended. A removed or lost implant becomes failed on the chart."
@@ -6343,11 +6353,11 @@ msgstr ""
 "اختر المجموعة والنوع، ومتى ظهرت، والعلاج، وكيف انتهت. الزرعة المشالة أو "
 "المفقودة تصبح فاشلة على المخطط."
 
-#: apps/core/hints.py:250
+#: apps/core/hints.py:253
 msgid "Choose the implant that was checked or has a complication."
 msgstr "اختر الزرعة التي تم فحصها أو بها مضاعفة."
 
-#: apps/core/hints.py:251
+#: apps/core/hints.py:254
 msgid ""
 "Every implant complication of this place, by group and kind, for the follow-"
 "up and for papers. Excel gives one line for each."
@@ -6355,7 +6365,7 @@ msgstr ""
 "كل مضاعفات الزرعات في هذا المكان، حسب المجموعة والنوع، للمتابعة وللأبحاث. "
 "ملف Excel يعطي سطراً لكل واحدة."
 
-#: apps/core/hints.py:253
+#: apps/core/hints.py:256
 msgid ""
 "The prosthodontic case: the missing teeth, the abutments, the occlusion, the"
 " esthetics and the plan, with its shades and lab work."
@@ -6363,7 +6373,7 @@ msgstr ""
 "حالة التركيبات: الأسنان المفقودة، الدعامات، الإطباق، الشكل الجمالي والخطة، "
 "مع درجات اللون وشغل المعمل."
 
-#: apps/core/hints.py:255
+#: apps/core/hints.py:258
 msgid ""
 "Write the prosthodontic examination; the plan at the end is what the patient"
 " agreed to. The shade is taken from the case page."
@@ -6371,7 +6381,7 @@ msgstr ""
 "اكتب فحص التركيبات؛ الخطة في الآخر هي ما وافق عليه المريض. درجة اللون تؤخذ "
 "من صفحة الحالة."
 
-#: apps/core/hints.py:257
+#: apps/core/hints.py:260
 msgid ""
 "The tooth boxes start as the dental chart is now: change only what you find "
 "different. The chart above colours the teeth as you write them."
@@ -6379,7 +6389,7 @@ msgstr ""
 "خانات الأسنان تبدأ كما هو المخطط الآن: غيّر فقط ما تجده مختلفاً. المخطط فوق "
 "يلوّن الأسنان وأنت تكتبها."
 
-#: apps/core/hints.py:260
+#: apps/core/hints.py:263
 msgid ""
 "Call the patients of today first. No answer or Call again later keeps the "
 "patient on the list with the day to call again; Book takes him off when the "
@@ -6388,7 +6398,7 @@ msgstr ""
 "اتصل بمرضى اليوم أولاً. «لم يرد» أو «اتصل لاحقاً» تبقي المريض في القائمة مع "
 "يوم الاتصال القادم؛ و«احجز» تخرجه منها عندما يتم الحجز."
 
-#: apps/core/hints.py:263
+#: apps/core/hints.py:266
 msgid ""
 "The tabs: to call today, he will do the test, no answer, done. When he did "
 "the test, press Write the result: it goes into his medical history."
@@ -6396,7 +6406,7 @@ msgstr ""
 "الأقسام: اتصال اليوم، سيعمل التحليل، لم يرد، تم. عندما يعمل التحليل اضغط "
 "«اكتب النتيجة»: تدخل في تاريخه الطبي."
 
-#: apps/core/hints.py:266
+#: apps/core/hints.py:269
 msgid ""
 "For an instructor without a login: choose his name, then write the grade and"
 " notes he tells you. Your name is kept with each grade."
@@ -6404,7 +6414,7 @@ msgstr ""
 "لمدرب ليس له حساب: اختر اسمه، ثم اكتب الدرجة والملاحظات التي يقولها لك. اسمك"
 " يُحفظ مع كل تقييم."
 
-#: apps/core/hints.py:268
+#: apps/core/hints.py:271
 msgid ""
 "The work of your days waits here: approve each step with a grade, or send it"
 " back with what to correct. Grade the surgeries and each junior's level from"
@@ -6414,7 +6424,7 @@ msgstr ""
 "الجراحات ومستوى كل طبيب مبتدئ من وقت لآخر. المالك ورئيس الأكاديمية فقط يرون "
 "التقييمات."
 
-#: apps/core/hints.py:272
+#: apps/core/hints.py:275
 msgid ""
 "The patients called for the coming surgery days, before any time is given. "
 "Write each answer; Book opens the booking page when he agrees."
@@ -6422,7 +6432,7 @@ msgstr ""
 "المرضى المتصل بهم لأيام الجراحة القادمة، قبل إعطاء أي موعد. اكتب كل رد؛ "
 "و«احجز» تفتح صفحة الحجز عندما يوافق."
 
-#: apps/core/hints.py:274
+#: apps/core/hints.py:277
 msgid ""
 "Choose the doctor who will see the patient now and why. The doctor booked "
 "stays written on the visit."
@@ -6430,7 +6440,7 @@ msgstr ""
 "اختر الطبيب الذي سيكشف على المريض الآن والسبب. الطبيب المحجوز معه يبقى "
 "مكتوباً على الزيارة."
 
-#: apps/core/hints.py:276 apps/core/hints.py:278
+#: apps/core/hints.py:279 apps/core/hints.py:281
 msgid ""
 "Write what every candidate of this batch must do: the implants, the sinus "
 "lifts, the GBR... His page counts them from the surgery charts."
@@ -6438,7 +6448,7 @@ msgstr ""
 "اكتب ما يجب أن يعمله كل دارس في هذه الدفعة: الزرعات، رفع الجيب، الـ GBR... "
 "صفحته تعدّها من تقارير الجراحة."
 
-#: apps/core/hints.py:280
+#: apps/core/hints.py:283
 msgid ""
 "What he did against what his course asks, with the extra cases he asked for."
 " Add extra cases at the bottom."
@@ -6446,19 +6456,19 @@ msgstr ""
 "ما عمله مقابل ما يطلبه الكورس، مع الحالات الإضافية التي طلبها. أضف الحالات "
 "الإضافية في الأسفل."
 
-#: apps/core/hints.py:282
+#: apps/core/hints.py:285
 msgid ""
 "Open a supplier to choose what he sells: a purchase from him then offers "
 "only those categories."
 msgstr "افتح المورد لتختار ما يبيعه: الشراء منه يعرض بعدها هذه الأصناف فقط."
 
-#: apps/core/hints.py:284
+#: apps/core/hints.py:287
 msgid ""
 "The treatment of today is written for you. Choose the days of rest and who "
 "it is for, then print it with your signature."
 msgstr "علاج اليوم مكتوب لك. اختر أيام الراحة ولمن هي، ثم اطبعها بتوقيعك."
 
-#: apps/core/hints.py:286
+#: apps/core/hints.py:289
 msgid ""
 "The form that fits the patient's plan comes first. Choose the procedure and "
 "the teeth; the next page is read with the patient and signed."
@@ -6466,7 +6476,7 @@ msgstr ""
 "النموذج المناسب لخطة المريض يظهر أولاً. اختر الإجراء والأسنان؛ الصفحة "
 "التالية تُقرأ مع المريض ويوقّع عليها."
 
-#: apps/core/hints.py:288
+#: apps/core/hints.py:291
 msgid ""
 "Read it with the patient, then let him sign with his finger (or photograph "
 "the paper he signed). Print a copy for him."
@@ -10252,7 +10262,7 @@ msgid ""
 " %(file)s). If he is the one who came, press “Yes, it is him” above: his "
 "file is completed."
 msgstr ""
-"هذا الموبايل يخص المريض المنتظر %(name)s (محجوز، ملف مؤقت %(file)s). إذا كان"
+"هذا الموبايل يخص المريض المتوقع %(name)s (محجوز، ملف مؤقت %(file)s). إذا كان"
 " هو الذي حضر اضغط «نعم، هو» في الأعلى: يكتمل ملفه."
 
 #: apps/patients/forms.py:104
@@ -11381,7 +11391,7 @@ msgstr "تسجيل مريض جديد"
 msgid ""
 "The expected file of %(name)s is completed: file number %(file)s. His "
 "bookings stay."
-msgstr "اكتمل ملف المريض المنتظر %(name)s: رقم الملف %(file)s. حجوزاته باقية."
+msgstr "اكتمل ملف المريض المتوقع %(name)s: رقم الملف %(file)s. حجوزاته باقية."
 
 #: apps/patients/views.py:505 apps/patients/views.py:557
 #, python-format
@@ -11774,21 +11784,21 @@ msgstr "إقرارات المرضى"
 msgid "Between 1 and 30 days."
 msgstr "بين يوم و30 يوماً."
 
-#: apps/prescriptions/papers.py:66
+#: apps/prescriptions/papers.py:65
 msgid ""
 "Rest at home, no hard effort, soft food, and the medicines as prescribed."
 msgstr "راحة في البيت، بدون مجهود شاق، أكل طري، والأدوية كما في الروشتة."
 
-#: apps/prescriptions/papers.py:71
+#: apps/prescriptions/papers.py:72
 #, python-format
 msgid "Sick leave %(number)s written: print it for the patient."
 msgstr "تمت كتابة الإجازة المرضية %(number)s: اطبعها للمريض."
 
-#: apps/prescriptions/papers.py:153
+#: apps/prescriptions/papers.py:154
 msgid "The photo of the signed paper is kept."
 msgstr "تم حفظ صورة الورقة الموقّعة."
 
-#: apps/prescriptions/papers.py:163
+#: apps/prescriptions/papers.py:164
 msgid "Signed. Print it or keep it in the file."
 msgstr "تم التوقيع. اطبعه أو احفظه في الملف."
 
@@ -24619,19 +24629,19 @@ msgstr "في قائمة الاتصال"
 
 #: templates/patients/patient_form.html:19
 msgid "Is this an expected patient?"
-msgstr "هل هذا مريض منتظر؟"
+msgstr "هل هذا مريض متوقع؟"
 
 #: templates/patients/patient_form.html:20
 msgid ""
 "This name or mobile is on the expected patients. Did this patient come? Is "
 "it the same person (the same name, the same everything)?"
 msgstr ""
-"هذا الاسم أو الموبايل موجود في المرضى المنتظرين. هل حضر هذا المريض؟ هل هو "
+"هذا الاسم أو الموبايل موجود في المرضى المتوقعين. هل حضر هذا المريض؟ هل هو "
 "نفس الشخص (نفس الاسم ونفس كل شيء)؟"
 
 #: templates/patients/patient_form.html:25
 msgid "Completing the file of the expected patient"
-msgstr "استكمال ملف المريض المنتظر"
+msgstr "استكمال ملف المريض المتوقع"
 
 #: templates/patients/patient_form.html:25
 msgid "his booking stays and he takes his final file number when saved."

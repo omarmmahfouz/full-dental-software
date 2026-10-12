@@ -61,9 +61,10 @@ def sick_leave_create(request, patient_pk):
     patient = get_visible_patient_or_403(request.user, patient_pk)
     me = Dentist.for_user(request.user)
     done = _today_work(patient)
+    with translation.override("ar"):  # the paper is the patient's: Arabic, like his instructions
+        advice = _("Rest at home, no hard effort, soft food, and the medicines as prescribed.")
     form = SickLeaveForm(request.POST or None, initial={
-        "dentist": me or patient.assigned_dentist, "treatment": done, "days": 3 if done else 1,
-        "advice": _("Rest at home, no hard effort, soft food, and the medicines as prescribed.")})
+        "dentist": me or patient.assigned_dentist, "treatment": done, "days": 3 if done else 1, "advice": advice})
     if request.method == "POST" and form.is_valid():
         leave = form.save(commit=False)
         leave.patient, leave.branch, leave.created_by = patient, patient.branch, request.user

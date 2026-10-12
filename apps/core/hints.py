@@ -32,6 +32,9 @@ HINTS = {
                          "The number, the name, the address and the birth date are read and written in yellow: "
                          "check them. Fields with a red * are needed."),
     "patients:detail": {
+        "specialists": _("The file by specialty: each tile shows what was done in it, when and by whom; tap it to "
+                         "open the case or start one. Record opens a treatment, a prescription, a sick leave or a "
+                         "consent."),
         "dentist": _("The file step by step: the yellow button opens the next step. Record opens a treatment, a "
                      "surgery chart, a request or a prescription."),
         "default": _("Everything about this patient is on this page. The buttons at the top book, bill and print."),
@@ -304,6 +307,11 @@ def hint_for(request):
             hint = hint["owner_all"]
         elif getattr(branch_for_user(request.user), "kind", None) == Branch.Kind.LAB:
             hint = hint["lab_desk"] if has_role(request.user, *LAB_DESK) else hint["lab"]
+    if match.view_name == "patients:detail" and has_role(request.user, *DENTISTS):
+        from .models import branch_for_user
+
+        if getattr(branch_for_user(request.user), "specialist_clinic", False):  # El Khadem (round 16)
+            hint = hint["specialists"]
     if isinstance(hint, dict):
         for group, roles in ROLE_GROUPS.items():
             if group in hint and has_role(request.user, *roles):

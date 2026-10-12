@@ -23,7 +23,8 @@ Read this first, then `README.md` (what the system does, role by role) and the c
      - be honest about limits.
 - The owner writes quick English with typos. Answer in plain English, and ask only when truly blocked.
 - Decisions already taken:
-  - Supervisors, course candidates and training dentists **do not log in**; they are chosen by name.
+  - Course candidates and training dentists **do not log in**; they are chosen by name. Supervisors are chosen by name
+    too; since round 16 a supervisor may have a `grader` login (linked as `Dentist.user`) only to approve and grade.
   - The login (decided in round 9): one login page with a tile for each place (CIA, EK, CIC, LAB); the place tapped
     opens after login and the PC remembers it (`device_place` cookie; `?place=EK` still works). Someone who does not
     work at the place tapped is told and her own place opens (`core.views.PlaceLoginView`).
@@ -149,6 +150,27 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     the list by `?place=` (or all).
   - `specialties.ProsthoCase` (the prosthodontic chart); `core/photo_folder.py` + `move_photos` (where the photos are);
     `security.ReplacedSessionMiddleware` (one device per login).
+- **Round 16 map**:
+  - Call lists: `CallListEntry.CLOSED` / `OPEN`, `next_call_on`, `appointment`; `calllists.link_call_entry` (the
+    booking made with `?call_entry=` closes it). Recalls: `MedicalRecall.result`, `medical.parse_result` /
+    `write_result` (a new history from the last one), `consults.recall_list` (tabs, `recall_counts` in one query).
+  - Expected patients: `Patient.temporary_number()` (`CIA-TMP-<pk>`) until completed; `core.utils.names_alike` /
+    `simple_arabic`; `patients.views.expected_match` (JSON for `[data-expected-check]` in app.js); `PatientForm(as_new,
+    spare_phone)`. Search: `patients.views._number_search` (0… = mobile prefix, else this place's file number).
+  - `Supplier.groups` (`supplies(category)`); `Appointment.booked_dentist` + `ChangeDentistForm`.
+  - Academy: `academy.models.Target` / `CourseTarget` / `EnrollmentExtra`, `academy/targets.py`; `clinical/grading.py`
+    (`WorkGrade`, the `grader` role, `GRADE_VIEWERS` = owner + head of CIA, `sees_grades` in the context);
+    `DaySupervisor.Role.MAIN` + `Surgery.main_supervisor`; `ClinicSettings.data_entry_until` / `is_live` and
+    `surgery.forms.live_writer_check`; `scheduling.DraftBooking` + `scheduling/drafts.py` (`link_draft`).
+  - Lab: `LabPriceList.based_on` / `percent_off` / `price()`; `LabCase.scan_source` / `design_output` (a designer's
+    *Done* on DESIGN asks where); `LabCaseStep.machine` (`MACHINE_STEPS`, `LabSettings.machine_list()`); `LabBlock.height`
+    / `label`; steps `CAM`, `TI_MILLING`, `POST_PRINT`, `LASER`; `charting.odontogram.arch_picture()` (natural teeth on
+    the lab papers).
+  - El Khadem: `Branch.specialist_clinic` (`patients.access.own_patients_only`: a specialist sees only his patients);
+    `specialties/strip.py` (the file by specialty); `Referral.follows` (sent on); `PrescriptionTemplate.specialty`.
+  - `prescriptions/papers.py`: `SickLeave`, `ConsentTemplate` (defaults `CONSENTS`, *Settings → Consent forms*),
+    `PatientConsent` (signed with `data-signature-pad` or a photo). `charting.views.plan_print` shows prices and
+    referrals (`?prices=0` without).
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
   through `WorkingPlaceMiddleware`); `working_places(user)` = the clinic places (the owner's all, else `profile.places`
   + `profile.branch`); `switch_places(user)` adds the LAB place for the lab staff and the owner (the switch, the login).
@@ -286,7 +308,7 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - Logins (password `demo12345`): owner, headcia, teamhead, dentist1, dentist2 (also at CIC, and a lab designer),
   secretary (CIA and CIC), secretary2 (no academy), stock, moderator (CIC manager), cicdoctor (a CIC doctor), amr (Dr.
   Amr, El Khadem's doctor and manager), khadem (El Khadem's reception), endo (El Khadem's endodontist), labhead,
-  labmanager, labsec (the lab).
+  labmanager, labsec (the lab), designer (a lab-only designer), supervisor (Dr. Khaled Mansour, the `grader` role).
 - CIC's steps are in `docs/cic-test-checklist.md`; El Khadem's in `docs/khadem-test-checklist.md`; the lab's in
   `docs/lab-test-checklist.md`.
 - Known limits to state honestly:
@@ -336,5 +358,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - One device per login logs out the older session at its next page; a page left open shows the message when it is
     used again.
   - The implant tissue class follows the findings typed (Berglundh 2018 thresholds); the dentist can override it.
+  - Round 16: the consent forms and the sick leave text need a doctor's (and a lawyer's) review in Settings; the
+    expected-patient match finds the same mobile or a name spelled alike, not a very different spelling; an
+    instructor's grades written by a junior rely on the junior; the lab's scan and design places are written, the
+    files themselves stay on the server or the e-mail.
   - The planned prosthesis made from a surgery's design is a best guess (a full arch from 10 units, a bridge when a
     pontic is between implants, else a crown for each implant): the dentist corrects it on the dental chart.

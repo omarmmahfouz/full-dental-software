@@ -35,58 +35,149 @@ The language follows the person, not the PC:
 | Head of the lab | `lab_head` | the whole lab: every case, the **prices** of each client, the receipts and their cancelling, the costs, the **lab report** with the money, the lab's options |
 | Lab manager | `lab_manager` | gives out the work (who designs, mills, finishes…), moves any case, sends work to another lab, the lab report without the money, the lab staff |
 | Lab secretary | `lab_secretary` | the lab's reception (Arabic): receives the cases and prints their labels, checks in the work of our clinics, WhatsApp to the doctors and the **answer with the real status**, deliveries, receipts, the clients' accounts |
-| Lab designers | `lab_designer` (e.g. CIA doctors), or no login | **My lab work**: the cases given to them; they finish their step and the case goes on. Technicians without a login are recorded by the manager |
+| Lab designers | `lab_designer` (CIA, CIC or El Khadem doctors, or designers who work only for the lab), or no login | **My lab work**: the cases given to them with **where the scan is**; they finish the design, write **where they put it**, and the case goes on. Technicians without a login are recorded by the manager |
 | CIC doctors | `dentist`, or no login | booked at CIC; the ones with a login see **My shares**. A doctor can work at CIA and CIC |
-| Supervisors | no login for now | chosen by name: on treatments, surgeries, plans and lab requests |
+| Supervisors / instructors | `grader` (new in round 16), or no login | chosen by name on treatments, surgeries, plans and lab requests; with a login: **Approve and grade** only (the work of their days, a grade for each step and surgery, each junior's level). An instructor without a login has his grades written by the CIA junior. The grades are seen by the owner and the head of CIA only |
 | Course candidates | **no login** | followed through their dentist file: batch, payments, implants done and remaining, every case |
 | Training dentists | no login | chosen by name |
 
 ## What it does
 
-### New in this version: round 15 (new)
+### New in this version: round 16 (new)
+The numbers follow the owner's list. The steps to try are in every checklist, in its last section (the secretary's
+**AA**, the dentists' and the owner's **Z**, the stock manager's **T**, CIC's **P**, El Khadem's **P**, the lab's **M**).
+1. and 6. **Patients to call stay on the list until booked (new)**: *No answer* and *Call again later* keep the patient
+   on the list with the day to call again (tomorrow for no answer, in three days for later, or the day written); the
+   list shows **to call today** first. A patient leaves only when **booked** (the booking made from the list closes
+   him by itself and he moves to the end) or with a final answer (*not interested*, *wrong number*). The list counts
+   booked / closed / still to call, and is *finished* only when nobody is left to call; the reception's home page counts
+   the patients to call **today**.
+2. **Calls for a new test, followed in tabs (new)**: *Medical follow-up → Calls for a new test* has tabs: **to call
+   today**, **he will do it** (waiting for the result, called again in two weeks), **no answer** (called again in two
+   days), **coming**, **results written**. When he did the test, **He did it: write the result** (HbA1c 6.8, sugar 180,
+   pressure 140/90, with an optional photo of the paper): it goes into his medical history and closes the call; a
+   result still high opens the next call by itself and the dentist is told.
+3. **What each supplier sells (new)**: a supplier's page has **What he supplies** (the purchase groups: a supermarket
+   sells kitchen, cleaning and office things, never implants). A purchase from him offers only those categories, and
+   saving another category is refused with what he sells. Nothing ticked = anything.
+4. **Expected patients: a temporary number, found again when they come (new)**: a patient booked from the call list
+   gets a **temporary file number** (`CIA-TMP-131`) and takes his final number when his file is completed. On **New
+   patient**, typing a mobile or a name like an expected patient's (even spelled differently: أحمد / احمد, عبد الرحمن /
+   عبدالرحمن, ة / ه, ى / ي) shows **Is this an expected patient?** with his booking: **Yes, it is him** completes his
+   file (his bookings stay); if he came with another mobile, choose which one is the main mobile (the other is kept as
+   mobile 2, someone else may have booked for him); **No, another person** goes on with a new file.
+5. **Late in hours and minutes (new)**: *Late, not arrived yet: 8 h 14 min* instead of 494 minutes (over an hour).
+6. See 1.
+7. **Another doctor for a visit (new)**: *Today* → the person icon beside the doctor: **He goes in with another doctor**
+   (the doctor did not come, is late, is busy, or the patient asked): the doctors working today are offered first.
+   Both doctors are told; the visit shows *Booked with Dr. X*; the treatment and the bill of today go to the new doctor.
+8. **The academy (new)**:
+   - **The course's content**: a course says what each candidate does (e.g. batch 7: 40 implants, 2 open sinus lifts,
+     1 GBR, 3 immediate implants). The candidate's page counts what he did (from the teeth he operated on the surgery
+     charts) and what is left; **He asked for extra cases** adds e.g. 5 extra implants (and their fee).
+   - **The supervisor logs in to approve and grade** (the new role *Supervisor / instructor: approves and grades*,
+     sample login `supervisor`): *Approve and grade* shows the work that names him (the last two months): each
+     treatment step to **approve with a grade 1–5** or **send back to correct** with notes (the dentist is told), the
+     surgeries he instructed (a grade for each operator and the assistant), and each CIA junior's **overall level**
+     (grade, *ready for the next level?*, notes). He is told when work names him. **Only the owner and the head of CIA
+     see the grades** (on each dentist's page).
+   - **An instructor without a login** (Thursdays and Fridays): the CIA junior opens *Approve and grade*, chooses the
+     instructor's name and writes what he says; each grade keeps who wrote it.
+   - **The main supervisor**: *Surgery day* takes a **main supervisor** (a professor; a title only) beside the
+     instructor: the surgery chart and the log book print "under the supervision of Prof. X". The surgeries
+     are counted to the candidates who operated; a CIA junior is written as the assistant.
+   - **Old cases typed in, then live (new setting)**: *Settings → Clinic options → old cases typed in: work before*:
+     work dated before that day takes any names; from that day a CIA dentist writes with his own login (written as the
+     assistant unless he operated) and changing the team after saving waits for the head of CIA's approval.
+   - **The draft list of the surgery days**: *Schedule → Surgery days: draft list*: the patients called for the
+     coming Thursdays and Fridays, **not on the calendar**: not called, no answer, still thinking, not ready, ready,
+     agreed; **Book** opens the booking page and the patient leaves the draft as booked.
+   - The photos of a case stay with each candidate's teeth (round 15); the shared ones (pre-op, bite) show for both.
+9. **The lab (new)**:
+   - **A special price list** for a doctor or a clinic: its own price for some work, and the rest from another list
+     **less a percentage** (e.g. the outside prices less 10%), shown in grey in its empty boxes (*Lab → Prices*).
+   - **Where the scan is and where the design was put**: a case says where the scan is (the scans folder on the
+     server, e-mail, the scanner's cloud, WhatsApp, USB, an impression) and exactly where; the case of our clinics
+     points to the scans folder with its number. When the designer finishes his step he must write **where he put the
+     design** (the designs folder, e-mail...): the manager is told. A designer can be lab-only (sample: `designer`,
+     Dr. Ahmed Moharram) or a doctor of CIA, CIC or El Khadem with the *Lab designer* role (`dentist2`).
+   - **The block used**: blocks have a **height / thickness** (zirconia 14 mm, PMMA 20 mm): the case chooses "ZR · A2 ·
+     14 mm · lot …", and a block is marked finished on *Lab → Blocks*.
+   - **The lab's stock**: *Lab → Blocks* has **Add an item to the lab's stock** and *In and out lately*; the manager and
+     the owner receive and take out lab stock there (or in *Stock*, the lab's place).
+   - **The processing in detail**: new steps **CAM** (nesting in the block), **titanium milling**, **after printing**
+     (washing, curing, supports off), **metal printing then milling**, **laser cutting / welding**; each step done on a
+     machine asks **which machine** (the lab's machines are listed in *Settings → Lab options*, with the scans and
+     designs folders).
+   - **The lab's address** is Zahraa El Maadi on every paper. The lab request's tooth chart is drawn with **natural
+     tooth shapes** (crowns and roots), not squares.
+10. **Searching by number (new)**: a number starting with **0** is a mobile: `0122` finds every mobile starting with
+    0122; another number is the **file number at the place open**: `12` opens CIA-00012 (at CIC: CIC-00012), not every
+    file with 12 in it.
+11. **El Khadem, a clinic of specialists (new)**: each specialist opens only the patients he treated, is booked with or
+    was referred, with no money: the file shows **what was done and by whom**. The file is not CIA's steps but **one
+    tile per specialty** (endodontics, restorative, prosthodontics, oral surgery, implants, periodontics, TMJ,
+    orthodontics, pediatric) with its count, last date and doctor, and the open cases. The treatment plan covers every
+    specialty; a plan item for another doctor has a **Refer** button. When the specialist finishes he **sends the
+    patient on** to the next doctor (back to Dr. Amr for the crown...): the referral page shows the patient's road.
+    **Prescriptions by specialty**: after a root canal (with or without swelling), for the TMJ and the muscles, after
+    placing or adjusting braces, after an extraction: offered first to the doctors of that specialty.
+12. **The professional sick leave (new)**: a patient's file → *Record* → **Sick leave**: the diagnosis and the
+    treatment of today are written for you; the days of rest, from when, for his work / school / whom it may concern,
+    and the advice; it prints in Arabic or English on the place's paper with the doctor's signature and the stamp box.
+13. **Patient consents (new)**: *Record* (or *More*) → **Patient consent**: seven ready forms (treatment and local
+    anaesthesia, implant surgery, extraction, root canal, orthodontics, crowns / bridges / veneers, treatment at the
+    academy and photos for teaching) in Arabic and English, the one fitting the plan first; the patient reads it and **signs with his finger** on the
+    tablet (or the paper signed is photographed); printed with the doctor's signature and a witness. The forms are
+    edited in *Settings → Consent forms*. The file's *Documents* tab lists the consents and the sick leaves.
+14. **The treatment plan printed with prices and referrals (new)**: *Print for the patient* (Arabic or English) shows
+    each item's **price** (the plan's fee, else the usual price of the doctor's service × the teeth), the total, and
+    **which specialist** each item is referred to; a button prints it without the prices.
+
+### Round 15: old paper files, WhatsApp to many, refunds, implant complications, the prosthodontic chart
 The numbers follow the owner's list. The steps to try are in every checklist, in its last section (the secretary's
 **Z**, the dentists' and the owner's **Y**, the stock manager's **S**, CIC's **O**, El Khadem's **O**, the lab's **L**).
-1. **Typing in the old paper files (new)**: *New patient* → tick **An old paper file (data entry)**: write the number
+1. **Typing in the old paper files**: *New patient* → tick **An old paper file (data entry)**: write the number
    of the paper file (1234 becomes CIA-01234) and only the name, the ID and the first mobile are needed. The national
    ID is typed by the reception as before (the card reader only helps). The next new file skips the numbers typed.
-2. **Where the photos are kept (new)**: *Settings → Backup* has a card **Where the photos are kept**: the folder now,
+2. **Where the photos are kept**: *Settings → Backup* has a card **Where the photos are kept**: the folder now,
    how many files and how big, the free space; write another folder and **Check this folder** (can it be written,
    is there room). To move them: `move_photos.bat` on the server PC (or `manage.py move_photos D:\CIA photos`) copies
    every photo, checks each copy and sets the new folder; with Docker, `MEDIA_HOST_DIR` in `.env`.
-3. **The camera for the ID card (new)**: the camera button inside the page now goes through **every camera** of the
+3. **The camera for the ID card**: the camera button inside the page now goes through **every camera** of the
    tablet (front, back, wide) and remembers the one chosen. No extra app is needed; if the tablet's own camera is
    better, take the photo with it (or with a scanner app such as Microsoft Lens) and press *Choose a photo*.
-4. **How far the patient lives in hours and minutes (new)**: two boxes (hours, minutes); the file shows "1 h 15 min".
-5. **نوبة became شيفت (new)** on every Arabic screen and in the secretary's guide.
-6. **WhatsApp to many patients (new)**: *Schedule → WhatsApp to many patients*: choose the patients (by doctor,
+4. **How far the patient lives in hours and minutes**: two boxes (hours, minutes); the file shows "1 h 15 min".
+5. **نوبة became شيفت** on every Arabic screen and in the secretary's guide.
+6. **WhatsApp to many patients**: *Schedule → WhatsApp to many patients*: choose the patients (by doctor,
    age, area, no visit since..., or the expected patients of the call list), write the message once ({patient} is
    each one's name), then **Send the next one**: WhatsApp opens with the next person and the text ready. The page
    counts what is sent and warns after about 100 a day (WhatsApp blocks numbers that send too many).
-7. **The doctor's times when booking (new)**: choose the doctor and the day: his shift's times show as buttons; the
+7. **The doctor's times when booking**: choose the doctor and the day: his shift's times show as buttons; the
    busy ones are grey and cannot be pressed. A day without his shift shows the place's opening hours.
-8. **An expected patient who wants an appointment (new)**: the call list's **Book an appointment** opens a short file
+8. **An expected patient who wants an appointment**: the call list's **Book an appointment** opens a short file
    (name, mobile, what he said) and the booking page with the day's times; on the day the file says *new: complete
    the file* and **Patient came: complete the file** asks for the rest.
-9. and 22. **Giving money back, easier (new)**: *Account → Give money back*: tap the services to give back (what was
+9. and 22. **Giving money back, easier**: *Account → Give money back*: tap the services to give back (what was
    paid on each fills in, lower it for part), how and why: a refund receipt is printed, the original receipts stay
    and show beside it, and the owner is told. Tick *the service was not done* to take it off his account.
-10. **The owner's money (new)**: *Patients → The owner's money*: money the owner puts in the drawer when the day's
+10. **The owner's money**: *Patients → The owner's money*: money the owner puts in the drawer when the day's
    costs are more than the income (or takes out). It counts in the day's cash and shows in the balance sheet apart
    from the income.
-11. **One login on one device (new)**: a login opened on a second PC or tablet logs out the first, which is told why
+11. **One login on one device**: a login opened on a second PC or tablet logs out the first, which is told why
    (Settings → Clinic options can switch it off).
-12. **Lab requests in the main menu (new)**, with the number waiting; tabs **Treatment plan: still in work** and
+12. **Lab requests in the main menu**, with the number waiting; tabs **Treatment plan: still in work** and
    **Treatment done: delivered**.
-13. and 30. **Menus that were hidden (new)**: the *More* menu of the patient's file and every drop-down list in the
+13. and 30. **Menus that were hidden**: the *More* menu of the patient's file and every drop-down list in the
    frame with the patient's name were cut by the frame on a PC: fixed.
-14. **A patient who already complained (new)**: *New complaint* asks for the patient first and shows his complaints;
+14. **A patient who already complained**: *New complaint* asks for the patient first and shows his complaints;
    the same reason again → **He called again on it** writes what he said on the old complaint and counts the calls
    (the list shows "called 3 times"); another reason → a new complaint under his name. The list groups by patient.
-15. and 21. **Pop-up messages that would not close (new)**: an empty required box now shows a message that closes
+15. and 21. **Pop-up messages that would not close**: an empty required box now shows a message that closes
    with OK and goes to the box; the pop-ups that stayed behind a grey layer were fixed everywhere.
-16. **Candidates by batch (new)**: a course has a **batch number** and is **regular or private**; *Academy →
+16. **Candidates by batch**: a course has a **batch number** and is **regular or private**; *Academy →
    Candidates* lists them batch by batch with **online / in the academy** and studying or finished, with filters.
-17. **The academy's people, reorganised (new)**: *Academy → The academy's people* (also a tile in Settings) in tabs:
+17. **The academy's people, reorganised**: *Academy → The academy's people* (also a tile in Settings) in tabs:
    the CIA junior dentists (**full or part time**, they log in), the candidates by batch, the training dentists, the
    supervisors. The drop lists on every form are **grouped** (juniors, candidates of each batch, supervisors...), the
    candidates whose course ended are **left out**, and anyone can be **taken off the lists** (his work stays).
@@ -94,34 +185,34 @@ The numbers follow the owner's list. The steps to try are in every checklist, in
    came. **Surgery day** (Surgeries menu): a junior writes **who supervised the day**; each surgery of that day takes
    him as instructor, printed on the case report and the log book. Two candidates on one patient (36 and 46): the
    **log book** asks **whose log book** and prints each one's own teeth and photos.
-18. **The narrow menu on a tablet (new)**: tapping an icon (Academy...) opens the right menu at once.
-19. **Purchases by group (new)**: dental or non-dental, then a group (**implants and surgery** with bone and
+18. **The narrow menu on a tablet**: tapping an icon (Academy...) opens the right menu at once.
+19. **Purchases by group**: dental or non-dental, then a group (**implants and surgery** with bone and
    membranes, **dental materials**, **instruments and equipment**, consumables, medicines, lab; kitchen, office,
    cleaning, maintenance) then the category. The new purchase lists the categories under their groups; the purchases
    page totals dental / non-dental and each group.
-20. **Purchases of each place (new)**: tabs CIA / El Khadem / CIC / lab / All places; a purchase says which place it
+20. **Purchases of each place**: tabs CIA / El Khadem / CIC / lab / All places; a purchase says which place it
    was **bought for**.
-23. **The small bill (new)**: the bill prints on the 80 mm receipt printer with **what he owes in all**; A4 is still
+23. **The small bill**: the bill prints on the 80 mm receipt printer with **what he owes in all**; A4 is still
    a choice.
-24. **"Patients the doctors want me to call" at CIC (new)**: the number counted CIA's requests; each place now counts
+24. **"Patients the doctors want me to call" at CIC**: the number counted CIA's requests; each place now counts
    only its own (and says when another place has some).
-25. **Calls for a new test (new)**: a high HbA1c is called after 3 months (a high sugar or pressure after 30 days;
+25. **Calls for a new test**: a high HbA1c is called after 3 months (a high sugar or pressure after 30 days;
    Settings → Clinic options): *Medical follow-up → Calls for a new test* and a card on the reception's home, with
    WhatsApp and the answers: he will do it (called again in two weeks), no answer (in two days), he did it (write the
    result in the medical history), he does not want to. A new reading closes the call.
-26. and 34. **The examination and the chart as one (new)**: a new examination starts from the dental chart (the tooth
+26. and 34. **The examination and the chart as one**: a new examination starts from the dental chart (the tooth
    boxes are filled as the chart is), each box opens the **teeth diagram**, the chart above **colours the teeth as
    they are written**, and saving writes back only the differences (a tooth taken off a box is taken off the chart).
    The chart page shows the last examination and **Examine again**.
-27. **Single crown, bridge or full arch (new)** in the restorative finder and the plan finder (filter, column, and
+27. **Single crown, bridge or full arch** in the restorative finder and the plan finder (filter, column, and
    *group by*); the case finder already had the prosthesis on each implant.
-28. **The surgery chart's parts must be filled (new)**: GBR chosen → its bone particle and material are needed; open
+28. **The surgery chart's parts must be filled**: GBR chosen → its bone particle and material are needed; open
    sinus → approach and fill; suture *Yes* → size, material and technique; also a block, a membrane, a soft tissue
    graft. The parts needed are marked when chosen.
-29. **The surgery chart's lists in Settings (new)**: *Settings → Surgery chart lists*: donor sites, cutting tools, soft
+29. **The surgery chart's lists in Settings**: *Settings → Surgery chart lists*: donor sites, cutting tools, soft
    tissue grafts, suture sizes and materials, temporaries; and the suggestions for the bone, sinus, membrane, tacks
    and techniques. A choice taken off the list stays on old charts.
-31. **Record treatment, teeth first (new)**: choose the patient and the **teeth first**: each tooth shows how it is
+31. **Record treatment, teeth first**: choose the patient and the **teeth first**: each tooth shows how it is
    now, what was done on it (with dates) and what is planned; for an implant its stage, last check and open
    complications. The kinds of work are in dental terms (periodontics, operative, endodontics, fixed and removable
    prosthodontics, oral surgery, implant surgery, implant prosthodontics, **implant follow-up and complications**,
@@ -130,10 +221,10 @@ The numbers follow the owner's list. The steps to try are in every checklist, in
    in detail (group, kind, during surgery / healing / after loading, severity, the nerve, side and area for a nerve
    injury, treatment, outcome, dates); a removed or lost implant becomes failed on the chart. *Finders → Implant
    complications* counts them by group and kind, with an Excel file for papers.
-32. **The bill of the treatment (new)**: each step names its paid service; recording it fills the usual price and
+32. **The bill of the treatment**: each step names its paid service; recording it fills the usual price and
    shows what the patient owes now; the dentist can change the price, and a different price is told to the clinic
    manager and the owner.
-33. **The prosthodontist's chart (new)**: it was only the shade. Now a **prosthodontic chart**: Kennedy class of each
+33. **The prosthodontist's chart**: it was only the shade. Now a **prosthodontic chart**: Kennedy class of each
    jaw, ridge, abutments and their findings, vertical dimension, space, occlusal scheme, parafunction, smile line,
    lip support, midline, the old prosthesis, diagnosis and the plan (prosthesis, material, retention); its page shows
    its shades, lab work and prosthetic steps. The shade stays one step of it.
@@ -842,7 +933,16 @@ Only the roles that see patients can open patient documents and photos.
 
 ## How to test it now (trial on any PC)
 
-This makes a **practice copy on your PC** with sample data (round 15 adds: an old paper file typed with its own number (CIA-00777), travel times, an expected patient booked for tomorrow from the call list, an Eid message to twelve patients (six sent), a refund of one service and the owner's money in and out, a complaint called about twice, implant checks (healthy, mucositis, peri-implantitis) and four complications (a paresthesia of the inferior alveolar nerve, a peri-implantitis, a loose screw and an early failure), a prosthodontic case at El Khadem, three calls for a new test (two HbA1c, one pressure), purchases of CIC and El Khadem by group, batch 7 and a finished batch 6, a private course with an online candidate, a preparation day, the supervisor of the last surgery day and a patient operated by two candidates (36 and 46) with the photos of each; round 14 adds: a week of time in the system for the
+This makes a **practice copy on your PC** with sample data (round 16 adds: a call list with two patients not
+answering and one to call in three days, a call for a new test that he will do and one result written (HbA1c 7.4,
+still high: the next call is open), what the corner market and the dental depot sell, an expected patient with a
+temporary file (محمد عبد الرحمن السيد, 01017778899) booked in two days, a visit of today seen by Dr. Sherif because Dr.
+Mona is late, the content of batch 7 and 5 extra implants for a candidate, Dr. Khaled Mansour's login with work to
+approve, two steps graded and Dr. Mona's level, the last surgery day under Dr. Khaled with Dr. Hesham's grades written
+by Dr. Mona, the old cases date two weeks ago, six patients on the draft list of the coming surgery days, a sick
+leave and two consents (one signed), Dr. Amr's patient sent on by the endodontist for his crown, the lab's folders
+and machines, the blocks' heights, Dr. Ramy Saad's special price list (zirconia 1,500, the rest 10% less) and Dr.
+Ahmed Moharram designing for the lab; round 15 adds: an old paper file typed with its own number (CIA-00777), travel times, an expected patient booked for tomorrow from the call list, an Eid message to twelve patients (six sent), a refund of one service and the owner's money in and out, a complaint called about twice, implant checks (healthy, mucositis, peri-implantitis) and four complications (a paresthesia of the inferior alveolar nerve, a peri-implantitis, a loose screw and an early failure), a prosthodontic case at El Khadem, three calls for a new test (two HbA1c, one pressure), purchases of CIC and El Khadem by group, batch 7 and a finished batch 6, a private course with an online candidate, a preparation day, the supervisor of the last surgery day and a patient operated by two candidates (36 and 46) with the photos of each; round 14 adds: a week of time in the system for the
 staff, three of them in it now; yesterday's day closed at the lab, 20 short; ten photos of a surgery case (the first
 CIA surgery's patient) to try the photo editor and 4 or 6 photos on a page; round 13: the patients' visit preferences, how far
 they live and their city, drawn signatures for the reception and the doctors, the articaine bought dearer and the tea
@@ -879,8 +979,11 @@ step, two remakes, a case at another lab, one on hold and one at a try-in, recei
    | `labhead` | Dr. Hossam, the head of the lab | English |
    | `labmanager` | Eng. Karim, the lab manager who gives out the work | English |
    | `labsec` | the lab's secretary | Arabic |
+   | `designer` | Dr. Ahmed Moharram, a designer who works only for the lab (new) | English |
+   | `supervisor` | Dr. Khaled Mansour, a CIA supervisor: approves and grades the work of his days (new) | English |
 
-   The 4 course candidates (batch IMP-2026-A), the training dentist and the supervisors have no login, as agreed.
+   The 4 course candidates (batch IMP-2026-A) and the training dentist have no login, as agreed; the other
+   supervisors and instructors are chosen by name.
 
 5. Follow the checklists step by step:
    - **[docs/lab-test-checklist.md](docs/lab-test-checklist.md)** for the dental lab and the login page with the places

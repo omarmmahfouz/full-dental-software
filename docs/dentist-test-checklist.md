@@ -472,3 +472,38 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
 196. `owner`: *Purchases*: tabs for each place and totals by group. *Patients → The owner's money*: put in and taken out;
      the balance sheet shows them apart from the income. *Settings → Backup* → **Where the photos are kept**.
 197. `owner`: log in as `dentist1` in two browsers: the first is logged out and told why.
+
+## Z. New in this version (16)
+198. `secretary`: *Patients to call* → the list: *No answer* and *Call again later* stay on the list with the day to
+     call again; booking from the list closes the patient (booked, at the end). The list is finished only when nobody is
+     left to call.
+199. `dentist1`: *Medical follow-up* → **Calls for a new test**: the tabs (today, he will do it, no answer, coming,
+     results written). **He did it: write the result** (7.4): it is in the medical history; still high → a new call.
+200. `dentist1`: *Today*: the patient of Dr. Mona went in with Dr. Sherif (*Booked with Dr. Mona*). The icon beside a
+     doctor: **He goes in with another doctor**: both doctors are told.
+201. `owner`: *Academy → Courses* → batch 7 → *Edit*: **The content of the course** (10 implants, 2 open sinus lifts,
+     1 GBR, 3 immediate). A candidate's page: **Cases done** against the course, the 5 extra implants he asked for, and
+     **He asked for extra cases** to add more.
+202. `supervisor` (Dr. Khaled Mansour): his home is **Approve and grade**: the treatments that name him: **Approve** with
+     a grade 1–5 and notes, or **To correct** (the dentist is told); the CIA juniors who worked with him: their level
+     (grade, *ready for the next level?*, notes). The bell told him of the work waiting.
+203. `dentist1`: *Approve and grade* → choose **Dr. Hesham Fawzy** (an instructor without a login): grade the surgery of
+     the last Thursday for him (each operator and the assistant). Your name is kept with the grades.
+204. `owner` and `headcia`: Dr. Mona's page → **Grades and notes of the supervisors** (no one else sees them).
+205. `dentist1`: *Surgeries → Surgery day* (the last Thursday): the **main supervisor** Dr. Khaled Mansour beside the
+     instructor; the log book page prints *under the supervision of Dr. Khaled Mansour*.
+206. `owner`: *Settings → Clinic options* → **old cases typed in: work before** (two weeks ago in the sample). As
+     `dentist1`, a new surgery chart dated today with another operator and assistant: refused (you are the assistant);
+     dated a month ago: any names are taken.
+207. `dentist1`: *Schedule → Surgery days: draft list*: six patients for the coming Thursdays and Fridays, not on the
+     calendar; change a status; **Book** opens the booking page.
+208. `dentist1`: a patient's file → *Record* → **Sick leave**: today's treatment is written; 3 days for his work → print
+     (Arabic or English, with your signature). *Record* → **Patient consent**: the implant form first for an implant
+     plan; he signs on the tablet; print. The *Documents* tab lists both.
+209. `dentist1`: a plan → **Plan for the patient** (or *Print for the patient* in the file): the price of each item and
+     the total, and the specialist an item is referred to; the crossed coin prints it without the prices.
+210. Search `0101` (mobiles starting with 0101) and `12` (the file CIA-00012 only).
+211. `owner`: *Settings → Lab options*: the scans and designs folders and the lab's machines. *Lab → Prices*: Dr. Ramy
+     Saad's special list (zirconia 1,500, the rest in grey: the outside prices less 10%).
+212. `dentist2` (a lab designer): *My lab work*: each case says where the scan is; **Done** on a design asks **where
+     you put the design**: the lab manager is told.

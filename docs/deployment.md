@@ -70,7 +70,8 @@ To update to a new version: `sh deploy/update-docker.sh`. It makes a backup of a
 2. **Users**:
    - Create one account per person, with their first and last name.
    - Tick the right **group**: `owner`, `head_cia` (head of CIA), `team_head` (head of the CIA dentists team, together with `dentist`), `dentist` (CIA dentist), `secretary` or `stock` (stock manager).
-   - Supervisors, course candidates and training dentists get **no login**: add them under **Academy → Dentists** (candidates come from **Academy → Candidates**) and they are chosen by name on the forms.
+   - Course candidates and training dentists get **no login**: add them under **Academy → Dentists** (candidates come from **Academy → Candidates**) and they are chosen by name on the forms.
+   - Supervisors are chosen by name too. A supervisor who approves and grades the work of his days gets a login with the group `grader` (*Settings → People and logins*), then chosen as the **login** on his dentist record (*Academy → The academy's people* → the supervisor → *Edit*); an instructor without a login has his grades written by a CIA junior.
    - Set the **branch** in the staff profile to *Cairo Implant Academy*.
    - Tick "Staff status" only for people who may edit the settings lists, usually just the owner.
 3. **Rooms**: 5 rooms are created for you (`غرفة 1` … `غرفة 5`). You can rename them or add more.
