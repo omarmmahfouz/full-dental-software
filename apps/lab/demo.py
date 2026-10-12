@@ -298,11 +298,65 @@ def load_lab(today, at, make_user, owner):
         LabMessage.objects.create(case=case, client=case.client, kind=LabMessage.Kind.RECEIVED,
                                   phone=case.whatsapp_phone, text=message_text(case, LabMessage.Kind.RECEIVED),
                                   by=secretary, sent_at=case.received_at + timedelta(minutes=10))
+    _round_sixteen(make_user, lab_place, manager, outside_list, outside[2], types)
+
     # The notifications of the sample weeks are read, except those of the cases still open.
     still_open = {c.get_absolute_url() for c in LabCase.objects.exclude(step__in=CLOSED_STEPS)}
     Notification.objects.filter(url__startswith="/lab/").exclude(url__in=still_open).update(read_at=now)
     LabCase.objects.filter(received_at__isnull=False).update(created_at=F("received_at"))
     return {"cases": LabCase.objects.count()}
+
+
+def _round_sixteen(make_user, lab_place, manager, outside_list, ramy, types):
+    """Round 16: where the scans and the designs are, the lab's machines, the blocks' heights, a special price list
+    (Dr. Ramy: his own zirconia price, the rest 10% less than the outside list) and a designer who works only for the
+    lab (Dr. Ahmed Moharram, with his own login)."""
+    from .models import LabSettings
+
+    options = LabSettings.get()
+    options.scans_folder = r"\\LAB-SERVER\Scans"
+    options.designs_folder = r"\\LAB-SERVER\Designs"
+    options.machines = "\n".join(MACHINES.values())
+    options.save()
+    for step, machine in MACHINES.items():
+        LabCaseStep.objects.filter(step=step, done_at__isnull=False).update(machine=machine)
+    LabBlock.objects.filter(item__name__startswith="Zirconia").update(height=Decimal("14"))
+    LabBlock.objects.filter(item__name__startswith="PMMA").update(height=Decimal("20"))
+
+    designs = LabCase.objects.exclude(step__in=(Step.INCOMING, Step.RECEIVED, Step.DESIGN)).filter(
+        steps__step=Step.DESIGN).distinct()
+    for case in LabCase.objects.filter(impression=LabCase.Impression.DIGITAL).select_related("client"):
+        if case.client.branch_id:
+            source, where = LabCase.Source.FOLDER, rf"{options.scans_folder}\{case.number}"
+        else:
+            source, where = LabCase.Source.EMAIL, f"From {case.client.name}: “{case.patient_name}”"
+        LabCase.objects.filter(pk=case.pk).update(scan_source=source, scan_location=where)
+    for case in designs:
+        LabCase.objects.filter(pk=case.pk).update(design_output=LabCase.Output.FOLDER,
+                                                  design_location=rf"{options.designs_folder}\{case.number}")
+
+    special = LabPriceList.objects.create(name="Dr. Ramy Saad (special)", based_on=outside_list,
+                                          percent_off=Decimal("10"),
+                                          notes="His own zirconia price; the rest 10% less than the outside list")
+    if "Zirconia crown" in types:
+        LabPrice.objects.create(price_list=special, work_type=types["Zirconia crown"], price=Decimal("1500"))
+    type(ramy).objects.filter(pk=ramy.pk).update(price_list=special)
+
+    designer = make_user("designer", "Dr. Ahmed", "Moharram", "lab_designer")
+    designer.profile.branch = lab_place
+    designer.profile.save()
+    worker = LabWorker.objects.create(name="Dr. Ahmed Moharram", user=designer, jobs=[Step.DESIGN],
+                                      fee_per_unit=Decimal("150"), phone="01000000032", sort_order=2)
+    waiting = LabCase.objects.filter(step=Step.DESIGN, worker__isnull=True).order_by("pk").first() \
+        or LabCase.objects.filter(step=Step.DESIGN).order_by("pk").first()
+    if waiting is not None:
+        services.assign(waiting, worker, manager)
+
+
+# The lab's machines, by the step done on them (round 16)
+MACHINES = {Step.MILLING: "Zirconia mill (5 axes)", Step.TI_MILLING: "Titanium mill",
+            Step.PRINTING: "Resin printer", Step.METAL_PRINTING: "Metal printer (SLM)",
+            Step.SINTERING: "Sintering furnace", Step.LASER: "Laser welder"}
 
 
 def _walk(case, start, until, rng, doers, manager, secretary, finish=False):

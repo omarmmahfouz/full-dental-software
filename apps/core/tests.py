@@ -773,6 +773,15 @@ class SpeedTests(TestCase):
         ("dentist", "/surgery/day/", 40),
         ("owner", "/surgery/complications/", 40),
         ("dentist", "/surgery/new/", 60),
+        # Round 16
+        ("secretary", "/patients/medical-follow-up/tests/", 40),
+        ("secretary", "/patients/medical-follow-up/tests/?tab=done", 40),
+        ("secretary", "/patients/?q=0100", 40),
+        ("secretary", "/patients/?q=12", 40),
+        ("owner", "/clinical/approve/", 40),
+        ("secretary", "/schedule/surgery-drafts/", 40),
+        ("owner", "/purchases/suppliers/", 40),
+        ("owner", "/academy/courses/new/", 40),
     ]
 
     @classmethod

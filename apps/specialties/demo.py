@@ -172,6 +172,11 @@ def load_khadem(today, at, make_user, secretary, stock_user, owner, types):
                                    reply="Symptomatic irreversible pulpitis, normal apical tissues. RCT done in two "
                                          "visits (Ca(OH)2 between them), 3 canals obturated. Ready for the crown; "
                                          "fibre post not needed.")
+    # Round 16: the endodontist finished and sent Karim on, back to Dr. Amr for the crown (the road of the patient).
+    Referral.objects.create(branch=place, patient=karim, from_dentist=endo, to_dentist=amr, follows=done,
+                            specialty=S.PROSTHODONTIST, teeth="36",
+                            reason="Root canal of 36 finished (3 canals). Zirconia crown, please.",
+                            created_by=endo_user)
     Referral.objects.create(branch=place, patient=noha, from_dentist=amr, to_dentist=tmj, specialty=S.TMJ,
                             reason="Limited opening and clicking on the left for 2 months. Please examine the TMJ.",
                             status=Referral.Status.BOOKED, created_by=amr_user,

@@ -490,3 +490,184 @@ def load_round_fifteen(today, patients, owner, secretary, stock_user, demo_photo
             ClinicalPhoto.objects.create(patient=patient, stage=PhotoStage.SURGERY, photo_type=shot, surgery=surgery,
                                          teeth=teeth, taken_on=surgery_day,
                                          file=demo_photo(f"Implant {teeth}", 1500 + number))
+
+
+def load_round_sixteen(today, patients, owner, secretary, stock_user, make_user):
+    """Round 16 sample data: patients of a call list not answering (called again tomorrow) or asking to be called later,
+    calls for a new test (one will do it, one result written), what each supplier sells, an expected patient with a
+    temporary number, a visit seen by another doctor, the course's content and a candidate's extra implants, the
+    supervisor's login with work to approve and grades, the main supervisor of a surgery day, the data entry date,
+    the draft list of the coming surgery days, a sick leave and two consents."""
+    from datetime import datetime, time as day_time
+    from decimal import Decimal
+
+    from apps.academy.models import Course, CourseTarget, Enrollment, EnrollmentExtra, Target
+    from apps.clinical.grading import tell_supervisor_of_step
+    from apps.clinical.models import TreatmentStep, WorkGrade
+    from apps.dentists.models import Dentist
+    from apps.patients.medical import write_result
+    from apps.patients.models import CallList, CallListEntry, MedicalRecall, Patient
+    from apps.prescriptions.models import ConsentTemplate, PatientConsent, SickLeave
+    from apps.purchasing.models import Supplier
+    from apps.scheduling.drafts import coming_surgery_days
+    from apps.scheduling.models import Appointment, DraftBooking
+    from apps.surgery.models import DaySupervisor, Surgery
+
+    from .models import Branch, ClinicSettings
+
+    cia = Branch.default()
+    now = timezone.now()
+    cia_patients = [p for p in patients if p.branch_id == cia.pk]
+    everyone = list(Patient.objects.filter(branch=cia, is_expected=False).order_by("pk"))
+
+    # 1 and 6. A call list: two did not answer (called again tomorrow), one asked to be called in three days; they
+    # stay on the list until booked.
+    call_list = CallList.objects.order_by("pk").first()
+    if call_list is not None:
+        listed = set(call_list.entries.values_list("patient_id", flat=True))
+        for patient in [p for p in everyone[50:60] if p.pk not in listed][:3]:
+            CallListEntry.objects.create(call_list=call_list, patient=patient, reason="Guided implant plan")
+    open_entries = list(CallListEntry.objects.filter(outcome=CallListEntry.Outcome.PENDING).order_by("pk")[:3])
+    for entry, (outcome, days, answer) in zip(open_entries, (
+            (CallListEntry.Outcome.NO_ANSWER, 1, ""), (CallListEntry.Outcome.NO_ANSWER, 0, ""),
+            (CallListEntry.Outcome.CALL_BACK, 3, "مسافر، كلموني بعد ٣ أيام"))):
+        CallListEntry.objects.filter(pk=entry.pk).update(
+            outcome=outcome, attempts=2 if days == 0 else 1, called_at=now - timedelta(days=1),
+            called_by=secretary, next_call_on=today + timedelta(days=days), response=answer)
+
+    # 2. Calls for a new test: one said he will do it (called again in a week), one did it and the result is written.
+    recalls = list(MedicalRecall.objects.filter(status=MedicalRecall.Status.OPEN).select_related("patient")
+                   .order_by("pk"))
+    if recalls:
+        MedicalRecall.objects.filter(pk=recalls[0].pk).update(
+            calls=1, last_outcome=MedicalRecall.Outcome.WILL_DO, last_call_at=now - timedelta(hours=5),
+            last_call_by=secretary, due_on=today + timedelta(days=7), notes="Will do it at the lab near his home")
+    if len(recalls) > 1:
+        recall = recalls[1]
+        value = "7.4" if recall.reason == "hba1c" else ("160" if recall.reason == "sugar" else "135/85")
+        try:
+            write_result(recall, value, today - timedelta(days=1), secretary)
+        except Exception:  # noqa: BLE001 - a sample: a reading of an unusual kind is left to be written by hand
+            pass
+
+    # 3. What each supplier sells: the corner market never sells implants.
+    Supplier.objects.filter(name__in=("Corner market", "سوبر ماركت الحي")).update(
+        groups="hospitality,cleaning,office")
+    Supplier.objects.filter(name__in=("Dental depot (Cairo)", "شركة المستلزمات الطبية")).update(
+        groups="implants,materials,instruments,consumables,medicines")
+
+    # 4. An expected patient (booked from a call): a temporary number until his file is completed. Try a new file
+    # named "Mohamed Abdelrahman" or the mobile 0101 777 8899: the page asks if he is the one expected.
+    expected = Patient.objects.create(
+        branch=cia, full_name="محمد عبد الرحمن السيد", national_id="", is_expected=True,
+        phone_primary="01017778899", created_by=secretary, notes="Booked from the call list")
+    Appointment.objects.create(
+        branch=cia, patient=expected, created_by=secretary, duration_minutes=30,
+        scheduled_at=timezone.make_aware(datetime.combine(today + timedelta(days=2), day_time(11, 0))))
+
+    # 7. A visit today seen by another doctor: the doctor booked is late.
+    mona = Dentist.objects.filter(user__username="dentist1").first()
+    sherif = Dentist.objects.filter(user__username="dentist2").first()
+    visit = Appointment.objects.filter(branch=cia, dentist=mona, scheduled_at__date=today).exclude(
+        status__in=("cancelled", "no_show")).order_by("scheduled_at").last()
+    if visit is not None and sherif is not None:
+        Appointment.objects.filter(pk=visit.pk).update(
+            booked_dentist=mona, dentist=sherif, dentist_change_reason="Dr. Mona is late (traffic)",
+            dentist_changed_at=now - timedelta(minutes=20))
+
+    # 8. The academy: the course's content (40 implants for batch 7, 2 sinus lifts, 1 GBR) and 5 extra implants.
+    course = Course.objects.filter(code="IMP-2026-A").first()
+    if course is not None:
+        for kind, count in ((Target.IMPLANTS, course.implants_required or 40), (Target.OPEN_SINUS, 2),
+                            (Target.GBR, 1), (Target.IMMEDIATE, 3)):
+            CourseTarget.objects.get_or_create(course=course, kind=kind, defaults={"count": count})
+        enrollment = Enrollment.objects.filter(course=course).order_by("pk").first()
+        if enrollment is not None:
+            EnrollmentExtra.objects.create(enrollment=enrollment, kind=Target.IMPLANTS, count=5,
+                                           fee=Decimal("7500"), notes="Asked for more cases before the exam",
+                                           created_by=owner)
+
+    # The supervisor's login: Dr. Khaled Mansour approves and grades the work of his days.
+    khaled = Dentist.objects.filter(full_name="Dr. Khaled Mansour").first()
+    hesham = Dentist.objects.filter(full_name="Dr. Hesham Fawzy").first()
+    if khaled is not None:
+        login = make_user("supervisor", "Dr. Khaled", "Mansour", "grader")
+        login.profile.branch = cia
+        login.profile.save()
+        Dentist.objects.filter(pk=khaled.pk).update(user=login)
+        khaled.refresh_from_db()
+        steps = list(TreatmentStep.objects.filter(supervisor=khaled, verified_at__isnull=True)
+                     .select_related("operator", "assistant", "patient", "step_type").order_by("-performed_at")[:6])
+        for step, (grade, notes) in zip(steps[3:], ((4, "Good margins; take the bite again next time."),
+                                                     (5, "Excellent isolation and photos."))):
+            person = step.operator if step.operator.kind == Dentist.Kind.FULLTIME or not step.assistant_id \
+                else step.assistant
+            WorkGrade.objects.create(dentist=person, kind=WorkGrade.Kind.STEP, step=step, grade=grade, notes=notes,
+                                     graded_by=khaled, created_by=login,
+                                     role="operator" if person == step.operator else "assistant")
+            TreatmentStep.objects.filter(pk=step.pk).update(verified_by=login, verified_at=now, grade=grade,
+                                                            supervisor_comment=notes)
+        if steps:
+            tell_supervisor_of_step(TreatmentStep, steps[0], created=True)
+        if mona is not None:
+            WorkGrade.objects.create(dentist=mona, kind=WorkGrade.Kind.OVERALL, grade=4,
+                                     readiness=WorkGrade.Readiness.ALMOST, level="Assists in implant surgery",
+                                     notes="Ready to place simple implants under supervision after 5 more cases.",
+                                     graded_by=khaled, created_by=login)
+
+    # The last surgery day: under the name of Dr. Khaled (main supervisor), Dr. Hesham the instructor; his grades
+    # were written for him by the CIA junior (he has no login).
+    surgery = Surgery.objects.filter(branch=cia, instructor=hesham).order_by("-date").first() if hesham else None
+    if surgery is not None and khaled is not None:
+        DaySupervisor.objects.create(branch=cia, date=surgery.date, supervisor=khaled, role=DaySupervisor.Role.MAIN,
+                                     written_by=owner)
+        Surgery.objects.filter(pk=surgery.pk).update(main_supervisor=khaled)
+        for role, person, grade in (("operator_1", surgery.operator_1, 4), ("operator_2", surgery.operator_2, 3),
+                                    ("assistant", surgery.assistant, 5)):
+            if person is not None:
+                WorkGrade.objects.create(dentist=person, kind=WorkGrade.Kind.SURGERY, surgery=surgery, role=role,
+                                         grade=grade, notes="Flap design good; drill with more irrigation.",
+                                         graded_by=hesham, for_instructor=True,
+                                         created_by=mona.user if mona and mona.user_id else owner)
+
+    # The old cases typed in from paper: before two weeks ago; from then on each dentist writes with his login.
+    options = ClinicSettings.get()
+    options.data_entry_until = today - timedelta(days=14)
+    options.save()
+
+    # The draft list of the coming surgery days: called, not answering, ready, agreed, still thinking.
+    days = coming_surgery_days(4)
+    candidates = list(Dentist.objects.filter(kind=Dentist.Kind.CANDIDATE, is_active=True).order_by("pk")[:3])
+    drafts = [(DraftBooking.Status.AGREED, "36, 46 implants", "Agreed; give him the morning"),
+              (DraftBooking.Status.READY, "Sinus lifting 26", "HbA1c 6.4 — ready"),
+              (DraftBooking.Status.NO_ANSWER, "Implant 11", ""),
+              (DraftBooking.Status.THINKING, "Full arch upper", "Asking about the price with his family"),
+              (DraftBooking.Status.NOT_READY, "GBR 21", "Waiting for the physician's letter"),
+              (DraftBooking.Status.TO_CALL, "Implant 46", "")]
+    for number, (patient, (status, what, notes)) in enumerate(zip(everyone[40:46], drafts)):
+        DraftBooking.objects.create(
+            branch=cia, patient=patient, day=days[number % len(days)] if number % 3 else None,
+            candidate=candidates[number % len(candidates)] if candidates else None, what=what, status=status,
+            notes=notes, calls=0 if status == DraftBooking.Status.TO_CALL else 1 + number % 2,
+            last_call_at=None if status == DraftBooking.Status.TO_CALL else now - timedelta(hours=number + 2),
+            created_by=secretary)
+
+    # 12. A sick leave after a surgery, and 13. two consents (one signed on the tablet, one waiting).
+    operated = Surgery.objects.filter(branch=cia).select_related("patient", "operator_1").order_by("-date").first()
+    if operated is not None:
+        SickLeave.objects.create(
+            patient=operated.patient, branch=cia, dentist=operated.operator_1, seen_on=operated.date,
+            diagnosis="Missing teeth; implants placed", treatment="Dental implant surgery", days=3,
+            starts_on=operated.date, purpose=SickLeave.Purpose.WORK,
+            advice="Rest at home, no hard effort, soft food, and the medicines as prescribed.", created_by=owner)
+    implant_form = ConsentTemplate.objects.filter(procedures__icontains="implant").first()
+    extraction_form = ConsentTemplate.objects.filter(procedures__icontains="extraction").first()
+    for patient, template, signed in ((cia_patients[1], implant_form, True), (cia_patients[2], extraction_form,
+                                                                               False)):
+        if template is None:
+            continue
+        PatientConsent.objects.create(
+            patient=patient, branch=cia, template=template, dentist=patient.assigned_dentist or mona,
+            procedure=str(template), teeth="36" if signed else "48", language="ar", witness="منة (الاستقبال)",
+            signature=signature_png(160 + patient.pk) if signed else "", signed_at=now if signed else None,
+            created_by=secretary)

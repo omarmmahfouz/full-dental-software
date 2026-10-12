@@ -108,7 +108,7 @@ class LabPriceList(models.Model):
                                  help_text=_("For a special list: the work without its own price here takes the "
                                              "price of this list, less the percentage below."))
     percent_off = models.DecimalField(_("less (%)"), max_digits=5, decimal_places=2, default=0,
-                                      help_text=_("e.g. 10 = 10% less than the list above."))
+                                      help_text=_("e.g. 10 = ten percent less than the list above."))
 
     class Meta:
         ordering = ["name"]

@@ -107,7 +107,7 @@ class Migration(migrations.Migration):
             field=models.DecimalField(
                 decimal_places=2,
                 default=0,
-                help_text="e.g. 10 = 10% less than the list above.",
+                help_text="e.g. 10 = ten percent less than the list above.",
                 max_digits=5,
                 verbose_name="less (%)",
             ),

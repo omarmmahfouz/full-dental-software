@@ -55,7 +55,7 @@ from apps.surgery.views import complete_plan_for_surgery, update_chart_for_surge
 
 STOCK_LIST = Path(__file__).resolve().parents[3] / "stock" / "data" / "cia_material_instrument_list.csv"
 DEMO_USERS = ["owner", "headcia", "teamhead", "dentist1", "dentist2", "secretary", "secretary2", "stock", "moderator",
-              "cicdoctor", "amr", "khadem", "endo", "labhead", "labmanager", "labsec"]
+              "cicdoctor", "amr", "khadem", "endo", "labhead", "labmanager", "labsec", "supervisor", "designer"]
 
 FIRST = ["محمد", "أحمد", "محمود", "مصطفى", "علي", "حسن", "إبراهيم", "يوسف", "سارة", "منى", "هبة", "فاطمة", "نادية", "سعاد", "أمل"]
 LAST = ["عبد الله", "السيد", "حسين", "عبد الرحمن", "إبراهيم", "مصطفى", "الشريف", "عثمان", "سليمان", "فؤاد"]
@@ -693,14 +693,18 @@ class Command(BaseCommand):
         from apps.core.demo import load_round_fifteen
 
         load_round_fifteen(today, patients, owner, secretary, stock_user, demo_photo)
+        from apps.core.demo import load_round_sixteen
+
+        load_round_sixteen(today, patients, owner, secretary, stock_user, user)
 
         self.stdout.write(self.style.SUCCESS(
             "Demo data loaded (password as given). Users: owner (CEO), headcia (head of CIA), teamhead (head of the "
             "CIA dentists team), dentist1 and dentist2 (CIA dentists), secretary, secretary2 (reception without the "
             "academy), stock (stock manager), moderator (CIC clinic manager), cicdoctor (a CIC doctor), amr (Dr. Amr "
             "El Khadem), khadem (El Khadem's reception), endo (El Khadem's endodontist), labhead, labmanager and "
-            "labsec (the dental lab; dentist2 also designs for the lab). "
-            "Candidates, training dentists and supervisors have no login."
+            "labsec (the dental lab; dentist2 also designs for the lab), designer (Dr. Ahmed Moharram, designs for "
+            "the lab only), supervisor (Dr. Khaled Mansour: approves and grades the work of his days). "
+            "Candidates and training dentists have no login."
         ))
 
     def _round_three(self, branch, today, now, at, patients, booked_patients, rooms, cia_dentists, candidates,

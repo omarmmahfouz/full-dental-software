@@ -193,8 +193,8 @@ HINTS = {
     },
     "specialties:referral": {
         "front_desk": _("Book the patient with the specialist from here, and print the letter for the patient."),
-        "default": _("The letter prints with the place's letterhead. The specialist writes his answer at the bottom: "
-                     "the referring doctor is told."),
+        "default": _("The letter prints with the place's letterhead. The specialist writes his answer at the bottom "
+                     "and, when he finished, sends the patient on to the next doctor: each one is told."),
     },
     "specialties:endo": _("Add each visit with the medication left in the canals. When the tooth is obturated, tap "
                           "Obturated: the dental chart shows the root canal."),
@@ -256,6 +256,37 @@ HINTS = {
                                     "agreed to. The shade is taken from the case page."),
     "charting:exam_create": _("The tooth boxes start as the dental chart is now: change only what you find different. "
                               "The chart above colours the teeth as you write them."),
+    # Round 16
+    "patients:calllist_detail": _("Call the patients of today first. No answer or Call again later keeps the patient "
+                                  "on the list with the day to call again; Book takes him off when the visit is "
+                                  "booked."),
+    "patients:recall_list": _("The tabs: to call today, he will do the test, no answer, done. When he did the test, "
+                              "press Write the result: it goes into his medical history."),
+    "clinical:supervise": {
+        "dentist": _("For an instructor without a login: choose his name, then write the grade and notes he tells "
+                     "you. Your name is kept with each grade."),
+        "default": _("The work of your days waits here: approve each step with a grade, or send it back with what to "
+                     "correct. Grade the surgeries and each junior's level from time to time. Only the owner and the "
+                     "head of CIA see the grades."),
+    },
+    "scheduling:drafts": _("The patients called for the coming surgery days, before any time is given. Write each "
+                           "answer; Book opens the booking page when he agrees."),
+    "scheduling:appointment_change_dentist": _("Choose the doctor who will see the patient now and why. The doctor "
+                                               "booked stays written on the visit."),
+    "academy:course_create": _("Write what every candidate of this batch must do: the implants, the sinus lifts, the "
+                               "GBR... His page counts them from the surgery charts."),
+    "academy:course_update": _("Write what every candidate of this batch must do: the implants, the sinus lifts, the "
+                               "GBR... His page counts them from the surgery charts."),
+    "academy:candidate_detail": _("What he did against what his course asks, with the extra cases he asked for. Add "
+                                  "extra cases at the bottom."),
+    "purchasing:supplier_list": _("Open a supplier to choose what he sells: a purchase from him then offers only "
+                                  "those categories."),
+    "prescriptions:sick_leave_create": _("The treatment of today is written for you. Choose the days of rest and "
+                                         "who it is for, then print it with your signature."),
+    "prescriptions:consent_create": _("The form that fits the patient's plan comes first. Choose the procedure and "
+                                      "the teeth; the next page is read with the patient and signed."),
+    "prescriptions:consent": _("Read it with the patient, then let him sign with his finger (or photograph the "
+                               "paper he signed). Print a copy for him."),
 }
 
 
