@@ -22,7 +22,7 @@ class _PatientScopedForm(StyledModelForm):
         super().__init__(*args, **kwargs)
         self.fields["patient_lookup"].initial = lookup_value(patient) if patient else None
         if patient:
-            self.fields["patient_lookup"].help_text = str(patient)
+            self.fields["patient_lookup"].help_text = ""  # the box already shows the patient chosen
 
     def clean_patient_lookup(self):
         patient = self.cleaned_data["patient_lookup"]

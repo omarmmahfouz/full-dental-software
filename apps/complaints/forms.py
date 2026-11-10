@@ -32,7 +32,7 @@ class ComplaintForm(StyledModelForm):
         self.fields["follow_up_due"].help_text = _("Leave empty for the default follow-up period.")
         if patient is not None:
             self.fields["patient_lookup"].initial = lookup_value(patient)
-            self.fields["patient_lookup"].help_text = str(patient)
+            self.fields["patient_lookup"].help_text = ""  # the box already shows the patient chosen
         elif self.instance.pk:
             self.fields["patient_lookup"].initial = lookup_value(self.instance.patient)
         else:  # choosing the patient shows his earlier complaints first (round 15)

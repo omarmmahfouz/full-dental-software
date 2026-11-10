@@ -16,7 +16,7 @@ from apps.clinical.models import TreatmentStepType
 from apps.core.forms import StyledForm
 from apps.core.mixins import role_required
 from apps.core.models import Notification, branch_for_user
-from apps.core.notify import notify_roles, notify_users
+from apps.core.notify import notify_place, notify_users
 from apps.core.roles import FRONT_DESK, MANAGEMENT, SECRETARY, TEAM_HEAD, has_role
 
 from .models import CallList, CallListEntry, Patient
@@ -72,8 +72,8 @@ def create_call_list(title, message, rows, user):
             seen.add(patient.pk)
             entries.append(CallListEntry(call_list=call_list, patient=patient, reason=reason[:255]))
         CallListEntry.objects.bulk_create(entries)
-    notify_roles(
-        (SECRETARY,), gettext_lazy("Patients to call: %(title)s"), gettext_lazy("%(n)s patients. %(message)s"),
+    notify_place(
+        call_list.branch, (SECRETARY,), gettext_lazy("Patients to call: %(title)s"), gettext_lazy("%(n)s patients. %(message)s"),
         call_list.get_absolute_url(), Notification.Level.WARNING, exclude=user,
         params={"title": call_list.title, "n": len(entries), "message": message[:200]},
     )

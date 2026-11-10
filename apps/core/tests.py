@@ -721,8 +721,8 @@ class SpeedTests(TestCase):
         ("owner", f"/reports/dentists/?{PERIOD}", 60),
         ("owner", f"/reports/money/?{PERIOD}", 60),
         ("owner", f"/reports/balance/?{PERIOD}", 60),
-        ("owner", f"/clinics/?place=CIC&{PERIOD}", 120),
-        ("owner", f"/clinics/report/?place=CIC&{PERIOD}", 120),
+        ("owner", f"/clinics/?place=CIC&{PERIOD}", 50),  # the revision: read once for all the doctors (it was 120)
+        ("owner", f"/clinics/report/?place=CIC&{PERIOD}", 60),
         ("owner", "/surgery/finder/", 60),
         ("secretary", "/billing/day/", 40),
         ("owner", "/billing/month/", 40),
@@ -772,7 +772,7 @@ class SpeedTests(TestCase):
         ("owner", "/dentists/", 40),
         ("dentist", "/surgery/day/", 40),
         ("owner", "/surgery/complications/", 40),
-        ("dentist", "/surgery/new/", 60),
+        ("dentist", "/surgery/new/", 64),  # the visits waiting for notes: two look-ups by index, not one scan
         # Round 16
         ("secretary", "/patients/medical-follow-up/tests/", 40),
         ("secretary", "/patients/medical-follow-up/tests/?tab=done", 40),
@@ -876,6 +876,25 @@ class SpeedTests(TestCase):
             for key in ("billed", "collected", "share", "visit_count", "chair_minutes", "patient_count"):
                 self.assertEqual(quick[key], full[key], key)
             self.assertGreater(full["share"], 0)
+
+    def test_the_doctors_summary_agrees_with_each_doctors_totals(self):
+        """The summary reads everything once for all the doctors: its rows are the quick totals of each doctor,
+        and what is owed counts from the first day."""
+        from apps.clinics.shares import owed, summary, totals
+        from apps.core.models import Branch
+
+        cic = Branch.objects.get(code="CIC")
+        today = date.today()
+        for date_from, date_to in ((date(2020, 1, 1), date(2030, 12, 31)), (today.replace(day=1), today)):
+            rows, sums = summary(cic, date_from, date_to)
+            self.assertGreaterEqual(len(rows), 4)
+            for row in rows:
+                alone = totals(row["dentist"], cic, date_from, date_to)
+                for key in ("billed", "collected", "costs", "services_share", "visits_share", "share", "visit_count",
+                            "chair_minutes", "patient_count"):
+                    self.assertEqual(row[key], alone[key], key)
+                self.assertEqual(row["owed"], owed(row["dentist"], cic, date_to))
+            self.assertEqual(sums["share"], sum(row["share"] for row in rows))
 
 
 class SafetyTests(TestCase):
@@ -1746,3 +1765,230 @@ class Round15CoreTests(TestCase):
             self.assertEqual(hours_minutes(90), "1 h 30 min")
             self.assertEqual(hours_minutes(120), "2 h")
             self.assertEqual(hours_minutes(45), "45 min")
+
+
+class RevisionTests(TestCase):
+    """The revision after round 16: a link shows only where it opens, news goes to the people of the patient's place,
+    a page of another place offers the switch, and the pages read the database a few times, not once per patient."""
+
+    def setUp(self):
+        from apps.core.models import UserProfile
+        from apps.core.testing import make_dentist
+
+        self.cia = setup_clinic()
+        self.cic = Branch.objects.get(code="CIC")
+        self.khadem = Branch.objects.get(code="PVT")
+        self.owner = make_user("owner", "owner")
+        self.head = make_user("head", "head_cia")
+        self.sec = make_user("sec", "secretary")  # CIA and CIC
+        self.sec.profile.places.add(self.cic)
+        khadem_sec = make_user("khadem", "secretary")  # El Khadem only
+        UserProfile.objects.filter(user=khadem_sec).update(branch=self.khadem)
+        self.khadem_sec = type(khadem_sec).objects.get(pk=khadem_sec.pk)  # read again: her place is El Khadem
+        self.dentist = make_dentist("doc", kind="fulltime")
+
+    def _lab_request(self, patient, status="pending_review"):
+        from apps.clinical.models import Lab, LabRequest, LabWorkType
+
+        lab, _made = Lab.objects.get_or_create(name="Outside lab")
+        return LabRequest.objects.create(branch=patient.branch, patient=patient, lab=lab, teeth="36", status=status,
+                                         work_type=LabWorkType.objects.first(), dentist=self.dentist)
+
+    def test_up_passes_over_a_page_the_reader_cannot_open(self):
+        from apps.core.navigation import opens, up_url
+
+        doc = self.dentist.user
+        self.assertFalse(opens(doc, "/dentists/"))  # the list of dentists is the reception's
+        self.assertTrue(opens(self.sec, "/dentists/"))
+        self.assertFalse(opens(doc, "/billing/bills/"))
+        self.assertFalse(opens(self.khadem_sec, "/academy/candidates/"))  # the academy is closed at El Khadem
+        self.assertTrue(opens(self.sec, "/academy/candidates/"))
+        self.assertEqual(up_url(f"/dentists/{self.dentist.pk}/", doc), "/")
+        self.assertEqual(up_url(f"/dentists/{self.dentist.pk}/", self.sec), "/dentists/")
+        # A page that only takes a sent form is never the page above.
+        self.assertEqual(up_url("/complaints/4/follow-up/2/edit/", self.owner), "/complaints/4/")
+        self.assertEqual(up_url("/complaints/4/follow-up/2/edit/"), "/complaints/4/follow-up/")
+        self.client.login(username="doc", password=PASSWORD)
+        page = self.client.get(f"/dentists/{self.dentist.pk}/")
+        self.assertContains(page, 'href="/" data-up')
+        self.assertNotContains(page, 'href="/dentists/" data-up')
+        self.assertContains(self.client.get("/problems/report/"), 'href="/" data-up')  # the list is the owner's
+
+    def test_a_page_about_a_patient_of_another_place_offers_the_switch(self):
+        from apps.core.testing import make_patient
+
+        patient = make_patient(self.cic, name="مريض السنتر", nid="29001011234999", phone="01001230000")
+        lab_request = self._lab_request(patient)
+        self.client.login(username="sec", password=PASSWORD)  # she works at CIA now, and at CIC too
+        page = self.client.get(lab_request.get_absolute_url())
+        self.assertEqual(page.status_code, 200)
+        self.assertTemplateUsed(page, "patients/other_place.html")
+        self.assertContains(page, 'name="place" value="CIC"')
+        self.client.post("/place/", {"place": "CIC", "next": lab_request.get_absolute_url()})
+        self.assertTemplateUsed(self.client.get(lab_request.get_absolute_url()), "clinical/lab_detail.html")
+        self.client.login(username="khadem", password=PASSWORD)  # she does not work at CIC: still closed
+        self.assertEqual(self.client.get(lab_request.get_absolute_url()).status_code, 403)
+
+    def test_lab_news_goes_to_the_reception_of_the_patients_place(self):
+        from apps.clinical.services import perform_lab_action
+        from apps.core.notify import notify_place
+        from apps.core.testing import make_patient
+
+        patient = make_patient(self.cia)
+        lab_request = self._lab_request(patient)
+        perform_lab_action(lab_request, "approve", self.head)
+        told = set(Notification.objects.filter(title__contains=lab_request.number).values_list(
+            "recipient__username", flat=True))
+        self.assertIn("sec", told)
+        self.assertNotIn("khadem", told)  # she cannot open CIA's patients
+        # Nobody with the role at the place: everyone who holds it is told, so the news is not lost.
+        self.assertEqual(notify_place(self.cic, ("head_cia",), "x"), 1)
+        self.assertEqual(notify_place(self.khadem, ("secretary", "owner"), "y"), 2)  # its reception and the owner
+
+    def test_missing_visit_notes_are_told_to_the_heads_of_the_visits_place(self):
+        from datetime import timedelta
+
+        from django.contrib.auth.models import Group
+        from django.utils import timezone
+
+        from apps.clinical.visit_notes import count_without_notes, followers_at, send_notes_alerts, visits_without_notes
+        from apps.core.models import UserProfile
+        from apps.core.testing import make_dentist, make_patient
+        from apps.scheduling.models import Appointment
+
+        amr = make_dentist("amr", kind="specialist")  # El Khadem's doctor and manager
+        amr.user.groups.add(Group.objects.get(name="moderator"))
+        UserProfile.objects.filter(user=amr.user).update(branch=self.khadem)
+        endo = make_dentist("endo", kind="specialist")
+        UserProfile.objects.filter(user=endo.user).update(branch=self.khadem)
+        self.assertEqual(followers_at(self.khadem), [amr.user])
+        self.assertEqual(followers_at(self.cia), [self.head])
+        self.assertEqual(followers_at(self.cic), [self.owner])  # nobody there opens the files: the owner
+        patient = make_patient(self.khadem)
+        visits = []
+        for days in (2, 3, 4):
+            visit = Appointment.objects.create(branch=self.khadem, patient=patient, dentist=endo,
+                                               scheduled_at=timezone.now() - timedelta(days=days))
+            visit.mark_left(timezone.now() - timedelta(days=days))
+            visit.save()
+            visits.append(visit)
+        self.assertEqual(count_without_notes(endo), 3)
+        self.assertEqual(len(visits_without_notes(endo)), 3)
+        self.assertEqual(count_without_notes(amr), 0)
+        self.assertEqual(send_notes_alerts(limit=2), 2)  # one visit's reminder and warning: the rest at the next run
+        self.assertEqual(send_notes_alerts(), 4)
+        self.assertEqual(send_notes_alerts(), 0)  # once only
+        self.assertEqual(Notification.objects.filter(recipient=endo.user, level="warning").count(), 3)
+        self.assertEqual(Notification.objects.filter(recipient=amr.user, level="danger").count(), 3)
+        self.assertFalse(Notification.objects.filter(recipient=self.head).exists())  # she cannot open El Khadem's
+        # A visit of his own without notes is not told to himself as "missing: Dr. Amr".
+        mine = Appointment.objects.create(branch=self.khadem, patient=patient, dentist=amr,
+                                          scheduled_at=timezone.now() - timedelta(days=9))
+        mine.mark_left(timezone.now() - timedelta(days=9))
+        mine.save()
+        send_notes_alerts()
+        self.assertEqual(Notification.objects.filter(recipient=amr.user, level="danger").count(), 3)
+        self.assertEqual(Notification.objects.filter(recipient=amr.user, level="warning").count(), 1)
+
+    def test_the_patient_list_marks_lab_work_and_complaints_of_the_page_shown(self):
+        from apps.complaints.models import Complaint
+        from apps.core.testing import make_patient
+
+        first = make_patient(self.cia)
+        second = make_patient(self.cia, name="مريض تجربة ثاني", nid="29001011234568", phone="01001234568")
+        self._lab_request(first, status="sent")
+        Complaint.objects.create(patient=second, branch=self.cia, description="late", created_by=self.sec)
+        self.client.login(username="sec", password=PASSWORD)
+        rows = {p.pk: p for p in self.client.get("/patients/").context["page_obj"]}
+        self.assertEqual((rows[first.pk].has_lab_work, rows[first.pk].has_complaint), (True, False))
+        self.assertEqual((rows[second.pk].has_lab_work, rows[second.pk].has_complaint), (False, True))
+        only = self.client.get("/patients/?lab=on")
+        self.assertRedirects(only, first.get_absolute_url(), fetch_redirect_response=False) if only.status_code == 302 \
+            else self.assertEqual([p.pk for p in only.context["page_obj"]], [first.pk])
+
+    def test_a_dentists_home_opens_on_his_own_day(self):
+        from django.utils import timezone
+
+        from apps.core.testing import make_patient
+        from apps.scheduling.models import Appointment
+
+        patient = make_patient(self.cia, assigned_dentist=self.dentist)
+        Appointment.objects.create(branch=self.cia, patient=patient, dentist=self.dentist, scheduled_at=timezone.now(),
+                                   status=Appointment.Status.ARRIVED)
+        self.client.login(username="doc", password=PASSWORD)
+        with translation.override("en"):
+            page = self.client.get("/")
+        self.assertEqual(page.context["my_day"], {"visits": 1, "waiting": 1, "in_room": 0})
+        self.assertNotIn("patient_totals", page.context)  # the clinic's totals are not his to act on
+        self.assertContains(page, "My visits today")
+        self.assertContains(page, 'href="/patients/?mine=on"')
+        self.client.login(username="head", password=PASSWORD)
+        self.assertIn("patient_totals", self.client.get("/").context)
+
+    def test_a_dentists_page_counts_his_cases_once_and_links_only_what_opens(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from apps.core.testing import make_patient
+
+        def add(n, place):
+            return [make_patient(place, name=f"مريض رقم {i}", nid=f"2900101123{i:04d}", phone=f"0100200{i:04d}",
+                                 assigned_dentist=self.dentist) for i in n]
+
+        add(range(4), self.cia)
+        elsewhere = add(range(10, 11), self.khadem)[0]
+        self.client.login(username="head", password=PASSWORD)
+        url = f"/dentists/{self.dentist.pk}/"
+        self.client.get(url)  # the first page after a login writes the session's own records
+        with CaptureQueriesContext(connection) as few:
+            page = self.client.get(url)
+        cases = {case["patient"].pk: case for case in page.context["cases"]}
+        self.assertEqual(len(cases), 5)
+        self.assertEqual((cases[elsewhere.pk]["here"], cases[elsewhere.pk]["named"]), (False, False))
+        self.assertNotContains(page, f'/chart/patient/{elsewhere.pk}/')  # El Khadem's patient does not open from CIA
+        self.assertNotContains(page, elsewhere.full_name)
+        add(range(20, 32), self.cia)
+        with CaptureQueriesContext(connection) as many:
+            self.client.get(url)
+        self.assertEqual(len(many), len(few))  # 12 more patients: not one more look-up
+
+    def test_the_follow_up_page_reads_only_the_page_shown(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.charting.models import Examination
+        from apps.core.testing import make_patient
+        from apps.patients.medical import needing_consult, needing_exam_ids
+
+        today = timezone.localdate()
+        patients = [make_patient(self.cia, name=f"مريض ضغط {i}", nid=f"2900101125{i:04d}", phone=f"0100300{i:04d}")
+                    for i in range(3)]
+        for index, patient in enumerate(patients):
+            Examination.objects.create(patient=patient, history_only=True, medical_taken=True,
+                                       bp_clinic_systolic=180, bp_clinic_diastolic=110,
+                                       exam_date=today - timedelta(days=index))
+        from apps.patients.models import Patient
+
+        ids = needing_exam_ids(Patient.objects.filter(branch=self.cia))
+        self.assertEqual(len(ids), 3)
+        self.assertEqual([exam.pk for exam, _flags in needing_consult(Patient.objects.filter(branch=self.cia))], ids)
+        self.client.login(username="sec", password=PASSWORD)
+        page = self.client.get("/patients/medical-follow-up/")
+        self.assertEqual(page.context["needing_count"], 3)
+        self.assertEqual([exam.patient for exam, _flags in page.context["needing"]], patients)  # the newest first
+        self.assertEqual((page.context["waiting_count"], page.context["held_count"]), (0, 0))
+
+    def test_check_pages_opens_every_page_a_login_reaches(self):
+        import io
+
+        from django.core.management import CommandError, call_command
+
+        from apps.core.management.commands.check_pages import pattern
+
+        self.assertEqual(pattern("/patients/12/?q=a&page=2"), "/patients/N/?page&q")
+        out = io.StringIO()
+        call_command("check_pages", users="doc,khadem", max_pages=60, test_copy=True, stdout=out)
+        self.assertIn("for 2 login(s): 0 with a problem", out.getvalue())
+        with self.assertRaises(CommandError):  # never on the clinic's real database by mistake
+            call_command("check_pages", stdout=io.StringIO())

@@ -28,7 +28,7 @@
   <div class="col-lg-8"><div class="card h-100"><div class="table-responsive"><table class="table mb-0">
     <thead><tr><th>{% trans "Category" %}</th><th>{% trans "Item" %}</th><th>{% trans "Quantity" %}</th><th>{% trans "Unit price" %}</th><th>{% trans "Total" %}</th></tr></thead>
     <tbody>
-    {% for i in items %}<tr><td>{{ i.category }}</td><td>{{ i.description }}{% if i.stock_item %} <a class="small" href="{{ i.stock_item.get_absolute_url }}#prices"><i class="bi bi-graph-up"></i></a>{% endif %}</td>
+    {% for i in items %}<tr><td>{{ i.category }}</td><td>{{ i.description }}{% if i.stock_item and can_stock %} <a class="small" href="{{ i.stock_item.get_absolute_url }}#prices"><i class="bi bi-graph-up"></i></a>{% endif %}</td>
       <td>{{ i.quantity|floatformat:"-2" }} {{ i.unit }}{% if i.given_back %}<div class="small text-warning-emphasis">{% blocktrans with n=i.given_back|floatformat:"-2" %}{{ n }} given back{% endblocktrans %}</div>{% endif %}</td>
       <td>{{ i.unit_price|money }}{% if i.change is not None %}<div class="price-hint">{% if i.change > 0 %}<span class="price-up"><i class="bi bi-arrow-up"></i> <span class="ltr">{{ i.change }}%</span></span>{% elif i.change < 0 %}<span class="price-down"><i class="bi bi-arrow-down"></i> <span class="ltr">{{ i.change }}%</span></span>{% else %}<span class="text-muted">=</span>{% endif %} <span class="text-muted">{% blocktrans with before=i.before|money %}was {{ before }}{% endblocktrans %}</span></div>{% endif %}</td>
       <td class="fw-bold">{{ i.total|money }}</td></tr>{% endfor %}

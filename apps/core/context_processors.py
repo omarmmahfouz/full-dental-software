@@ -73,14 +73,13 @@ def app_context(request):
         levels = area_levels(user)
         context["hidden_areas"] = {area for area, level in levels.items() if level == "hidden"}
         from .hints import hint_for
-        from .navigation import bottom_nav, up_url
+        from .navigation import bottom_nav
 
         profile = getattr(user, "profile", None)
         context["hints_on"] = profile is None or profile.show_hints
         context["page_hint"] = hint_for(request) if context["hints_on"] else None
         context["hints_reset"] = request.session.pop("hints_reset", False)
         context["bottom_nav"] = bottom_nav(user, request.path, context["hidden_areas"], at_lab=context["at_lab"])
-        context["back_url"] = up_url(request.path)
         context["role_labels"] = [label for code, label in ROLE_CHOICES if code in roles]
         places = switch_places(user)
         context["working_places"] = places if len(places) > 1 else []
@@ -130,7 +129,7 @@ def app_context(request):
             context["my_dentist"] = Dentist.for_user(user)
             if context["my_dentist"] is not None:
                 context["my_fee_rules"] = context["my_dentist"].fee_rules.exists()
-                from apps.clinical.visit_notes import visits_without_notes
+                from apps.clinical.visit_notes import count_without_notes
 
-                context["missing_notes"] = len(visits_without_notes(context["my_dentist"]))
+                context["missing_notes"] = count_without_notes(context["my_dentist"])
     return context

@@ -24,14 +24,18 @@ from apps.scheduling.whatsapp import whatsapp_url
 from .access import get_visible_patient_or_403, visible_patients
 from .forms import ConsultAnswerForm, MedicalConsultForm
 from .medical import (
-    latest_history, letter_findings, needing_consult, reading_flags, reasons_for, recall_text, recalls_due,
-    sync_recalls, usual_medications, write_result,
+    latest_history, letter_findings, needing_exam_ids, needing_rows, reading_flags, reasons_for, recall_text, recalls_due,
+    sync_recalls_soon, usual_medications, write_result,
 )
 from .models import MedicalConsult, MedicalRecall
 
 QUESTION = ("Kindly examine the patient and tell us whether he is medically fit for this surgery under local "
             "anaesthesia, with any precautions: changes to his medicines, antibiotic cover, stopping blood thinners, "
             "or the readings he should reach first.")
+
+
+SHOWN_HERE = 20  # the calls for a new test shown on the follow-up page; the calls page has them all
+LIST_LIMIT = 100  # the rows of each list of letters on the follow-up page (the oldest or the most urgent first)
 
 
 @role_required(*PATIENT_VIEWERS)
@@ -56,17 +60,22 @@ def medical_followup(request):
                    and c.answer not in MedicalConsult.CLEARED), key=lambda c: c.recheck_on or today)
     cleared = sorted((c for c in latest if c.is_cleared and (c.answered_on or c.sent_on) >= today - timedelta(days=30)),
                      key=lambda c: c.answered_on or c.sent_on, reverse=True)
-    needing = needing_consult(patients)
-    sync_recalls(patients)
-    recalls = _with_forms(list(recalls_due(patients)[:200]))
+    needing_ids = needing_exam_ids(patients)
+    needing = Paginator(needing_ids, 50).get_page(request.GET.get("page"))
+    needing.object_list = needing_rows(list(needing.object_list))  # only the page shown is read in full
+    sync_recalls_soon(branch_for_user(request.user))
+    counts = recall_counts(patients)
+    # The first calls here; all of them, in pages, on the calls page (200 rows with their forms made a 1 MB page).
+    recalls = _with_forms(list(recalls_due(patients)[:SHOWN_HERE]))
     coming = MedicalRecall.objects.filter(patient__in=patients, status=MedicalRecall.Status.OPEN,
                                           due_on__gt=today, due_on__lte=today + timedelta(days=30)).count()
     return render(request, "patients/medical_followup.html", {
-        "needing": Paginator(needing, 50).get_page(request.GET.get("page")), "needing_count": len(needing),
+        "needing": needing, "needing_count": len(needing_ids),
         "recalls": recalls, "recalls_coming": coming, "outcomes": CALL_ANSWERS,
-        "recall_counts": recall_counts(patients), "can_write_result": has_role(request.user, *FRONT_DESK, *CLINICAL),
+        "recall_counts": counts, "can_write_result": has_role(request.user, *FRONT_DESK, *CLINICAL),
         "options": ClinicSettings.get(),
-        "waiting": waiting, "held": held, "cleared": cleared,
+        "waiting": waiting[:LIST_LIMIT], "held": held[:LIST_LIMIT], "cleared": cleared[:LIST_LIMIT],
+        "waiting_count": len(waiting), "held_count": len(held), "cleared_count": len(cleared),
         "mine": mine, "has_dentist": me is not None, "today": today, "is_clinical": has_role(request.user, *CLINICAL),
     })
 
@@ -156,7 +165,7 @@ def recall_list(request):
     """Calls for a new test, in tabs (round 16): to call today, the patients who will do it (each with the day he is
     asked again), no answer (called again), coming, and the results written. Each row writes the result."""
     patients = visible_patients(request.user)
-    sync_recalls(patients)
+    sync_recalls_soon(branch_for_user(request.user))
     today = timezone.localdate()
     tab = request.GET.get("tab") if request.GET.get("tab") in dict(RECALL_TABS) else "today"
     calls = MedicalRecall.objects.filter(patient__in=patients).select_related("patient__branch", "last_call_by")

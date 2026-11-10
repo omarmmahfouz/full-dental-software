@@ -62,7 +62,7 @@ class LabWorkflowTests(TestCase):
 
         # The patient list shows the lab-work flag.
         listing = self.client.get("/patients/")
-        self.assertEqual(listing.context["page_obj"][0].open_labs, 1)
+        self.assertTrue(listing.context["page_obj"][0].has_lab_work)
 
         self.action(lab_request, "receive", checked="on")
         lab_request.refresh_from_db()

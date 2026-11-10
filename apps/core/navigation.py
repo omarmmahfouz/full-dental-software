@@ -73,9 +73,42 @@ def bottom_nav(user, path, hidden_areas, at_lab=False):
     return items
 
 
-def up_url(path):
+def _get_allowed(view):
+    """False for a view that only takes a sent form (``require_POST``): it is never a page to go up to."""
+    while view is not None:
+        code = getattr(view, "__code__", None)
+        if code is not None and "request_method_list" in code.co_freevars:
+            methods = view.__closure__[code.co_freevars.index("request_method_list")].cell_contents
+            if "GET" not in methods:
+                return False
+        view = getattr(view, "__wrapped__", None)
+    return True
+
+
+def opens(user, url):
+    """Can this person open the page at ``url``? Read from the roles its view asks for (``role_required`` /
+    ``RoleRequiredMixin``) and the parts of the system closed for the person in Settings → Access. A view that checks
+    inside itself counts as open."""
+    from .access import area_levels, area_of
+
+    try:
+        view = resolve(url.partition("?")[0]).func
+    except Resolver404:
+        return False
+    if not _get_allowed(view):
+        return False
+    if user is None or not user.is_authenticated:
+        return True
+    roles = getattr(getattr(view, "view_class", view), "allowed_roles", None)
+    if roles and not user.is_superuser and not user_roles(user) & set(roles):
+        return False
+    return area_levels(user).get(area_of(url)) != "hidden"
+
+
+def up_url(path, user=None):
     """The page above this one, from its address: /lab/cases/5/edit/ → /lab/cases/5/ → /lab/cases/ → the home page.
-    "Back" opens it when the tab has no page before (e.g. a page opened from a notification)."""
+    With ``user``, a page this person cannot open is passed over (a doctor's own page went up to the list of
+    dentists, which only the reception opens): the next page above that opens, in the end the home page."""
     parts = [part for part in path.split("/") if part]
     while parts:
         parts.pop()
@@ -83,6 +116,8 @@ def up_url(path):
         try:
             resolve(candidate)
         except Resolver404:
+            continue
+        if user is not None and candidate != "/" and not opens(user, candidate):
             continue
         return candidate
     return "/"
@@ -130,15 +165,16 @@ def up_name(url):
         return None
 
 
-def up_target(path, patient=None):
+def up_target(path, patient=None, user=None):
     """Where "Up" goes from the page at ``path`` (round 14: the page above it, not back one step): the patient's file
     for a page about a patient (a visit, an edit form...), unless the page above is itself one of the patient's pages
-    (e.g. the log book → the patient's photos); else the address one level up."""
+    (e.g. the log book → the patient's photos); else the address one level up. With ``user``, only a page this person
+    can open."""
     from apps.patients.models import Patient
 
-    url = up_url(path)
+    url = up_url(path, user)
     if isinstance(patient, Patient) and patient.pk:
         file_url = patient.get_absolute_url()
-        if file_url != path and f"/{patient.pk}/" not in url:
+        if file_url != path and f"/{patient.pk}/" not in url and (user is None or opens(user, file_url)):
             return {"url": file_url, "name": _("Patient file")}
     return {"url": url, "name": up_name(url)}

@@ -157,3 +157,8 @@ In the sample data:
    asks it. **Add an item to the lab's stock** and **In and out lately** on the same page.
 7. Any lab paper (a label, a receipt) and a clinic's lab request: the lab's address is **Zahraa El Maadi**; the lab
    request's chart shows **natural teeth** (crowns and roots), not squares.
+
+## N. New in this version (17): the whole system revised
+8. `labsec`, `labmanager`, `designer`: *Report a problem* → **Up** goes to the home page, not to a closed page.
+9. A clinic's reception is told about its **own** lab work only: when the lab delivers a case of a CIA patient, CIA's
+   reception gets *Lab work … is ready: book the patient for the fitting*; El Khadem's reception does not.

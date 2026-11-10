@@ -103,6 +103,15 @@
 </div>
 {% endif %}
 
+{% if my_day and only_dentist %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><a href="{% url 'scheduling:appointment_list' %}" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-calendar-check"></i></span><div class="stat-value">{{ my_day.visits }}</div><div class="stat-label">{% trans "My visits today" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><a href="{% url 'scheduling:appointment_list' %}" class="card stat-card text-decoration-none{% if my_day.waiting %} border-warning{% endif %}"><div class="card-body"><span class="stat-icon"><i class="bi bi-person-lines-fill"></i></span><div class="stat-value text-warning">{{ my_day.waiting }}</div><div class="stat-label">{% trans "Arrived, waiting for me" %}{% if my_day.in_room %} · {% blocktrans with n=my_day.in_room %}{{ n }} in the room{% endblocktrans %}{% endif %}</div></div></a></div>
+  <div class="col-6 col-md-3"><a href="{% url 'patients:list' %}?mine=on" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-people"></i></span><div class="stat-value text-success">{{ my_patient_count }}</div><div class="stat-label">{% trans "My patients under treatment" %}</div></div></a></div>
+  <div class="col-6 col-md-3"><a href="{% url 'clinical:lab_list' %}?mine=1" class="card stat-card text-decoration-none"><div class="card-body"><span class="stat-icon"><i class="bi bi-lab-request"></i></span><div class="stat-value text-primary">{{ my_open_labs }}</div><div class="stat-label">{% trans "My open lab requests" %}</div></div></a></div>
+</div>
+{% endif %}
+
 {% if appointment_counts %}
 <div class="row g-3 mb-3">
   {% url 'scheduling:today' as today_url %}
@@ -141,10 +150,10 @@
           </div>
           {% endfor %}
         </div>
-        <div class="d-flex flex-wrap gap-2 mt-2">
-          <a class="btn btn-sm btn-outline-primary" href="{% url 'patients:list' %}">{% trans "My patients" %} <span class="badge text-bg-primary">{{ my_patient_count }}</span></a>
+        {% if not only_dentist %}<div class="d-flex flex-wrap gap-2 mt-2">
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'patients:list' %}?mine=on">{% trans "My patients" %} <span class="badge text-bg-primary">{{ my_patient_count }}</span></a>
           <a class="btn btn-sm btn-outline-primary" href="{% url 'clinical:lab_list' %}?mine=1">{% trans "My open lab requests" %} <span class="badge text-bg-primary">{{ my_open_labs }}</span></a>
-        </div>
+        </div>{% endif %}
       </div>
     </div>
   </div>

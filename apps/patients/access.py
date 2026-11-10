@@ -11,21 +11,26 @@ from .models import Patient
 
 
 def dentist_patients_q(dentist):
-    """Patients a dentist is responsible for, is booked with, or has treated."""
+    """Patients a dentist is responsible for, is booked with, or has treated. Each kind of record is looked up on
+    its own (by its index): joining visits, treatments and surgeries to the patients in one go multiplied the rows
+    and took a tenth of a second on every "my patients" list."""
+    from apps.clinical.models import TreatmentStep
+    from apps.scheduling.models import Appointment
+    from apps.specialties.models import Referral
+    from apps.surgery.models import Surgery
+
+    def of(model, *fields):
+        mine = Q()
+        for field in fields:
+            mine |= Q(**{field: dentist})
+        return Q(pk__in=model.objects.filter(mine).order_by().values("patient_id"))
+
     return (
-        Q(assigned_dentist=dentist)
-        | Q(appointments__dentist=dentist)
-        | Q(appointments__second_dentist=dentist)
-        | Q(treatment_steps__operator=dentist)
-        | Q(treatment_steps__assistant=dentist)
-        | Q(surgeries__operator_1=dentist)
-        | Q(surgeries__operator_2=dentist)
-        | Q(surgeries__assistant=dentist)
-        | Q(surgeries__instructor=dentist)
-        | Q(treatment_steps__supervisor=dentist)
-        | Q(brought_by=dentist)
-        | Q(referrals__to_dentist=dentist)
-        | Q(referrals__from_dentist=dentist)
+        Q(assigned_dentist=dentist) | Q(brought_by=dentist)
+        | of(Appointment, "dentist", "second_dentist")
+        | of(TreatmentStep, "operator", "assistant", "supervisor")
+        | of(Surgery, "operator_1", "operator_2", "assistant", "instructor")
+        | of(Referral, "to_dentist", "from_dentist")
     )
 
 
@@ -55,7 +60,7 @@ def visible_patients(user):
             dentist = Dentist.for_user(user)
             if dentist is None:
                 return Patient.objects.none()
-            return patients.filter(pk__in=Patient.objects.filter(dentist_patients_q(dentist)).values("pk"))
+            return patients.filter(dentist_patients_q(dentist))
         return patients
     return Patient.objects.none()
 
@@ -67,14 +72,25 @@ def my_patients(user):
     dentist = Dentist.for_user(user)
     if dentist is None:
         return Patient.objects.none()
-    return visible_patients(user).filter(pk__in=Patient.objects.filter(dentist_patients_q(dentist)).values("pk"))
+    return visible_patients(user).filter(dentist_patients_q(dentist))
+
+
+class OtherPlace(PermissionDenied):
+    """The page is about a patient of another place. When the person also works there, the page that offers to
+    switch to that place is shown instead of "not allowed" (``ErrorRecorderMiddleware``): a lab request, a bill or a
+    chart opened from a notification."""
+
+    def __init__(self, branch_id):
+        super().__init__()
+        self.branch_id = branch_id
 
 
 def get_visible_patient_or_403(user, pk):
     patient = visible_patients(user).filter(pk=pk).first()
     if patient is None:
-        if Patient.objects.filter(pk=pk).exists():
-            raise PermissionDenied
+        found = Patient.objects.filter(pk=pk).values_list("branch_id", flat=True)[:1]
+        if found:
+            raise OtherPlace(found[0])
         raise Http404
     return patient
 

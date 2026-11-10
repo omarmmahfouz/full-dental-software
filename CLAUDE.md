@@ -171,6 +171,30 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   - `prescriptions/papers.py`: `SickLeave`, `ConsentTemplate` (defaults `CONSENTS`, *Settings → Consent forms*),
     `PatientConsent` (signed with `data-signature-pad` or a photo). `charting.views.plan_print` shows prices and
     referrals (`?prices=0` without).
+- **Round 17 map** (the revision: no new list, the whole system gone over):
+  - Links that open: `navigation.opens(user, url)` reads the roles of the view (`role_required` puts `allowed_roles`
+    on it; `RoleRequiredMixin.allowed_roles`), passes over a view that only takes a sent form (`require_POST`) and a
+    part closed in Settings → Access; `up_url(path, user)` / `up_target(path, patient, user)` use it. Give a view its
+    roles with `role_required`, not with `if not has_role(...)` inside it, or the links cannot know.
+  - `patients.access.OtherPlace` (a `PermissionDenied`, raised by `get_visible_patient_or_403`): on a GET
+    `ErrorRecorderMiddleware.process_exception` shows `other_place_page` (switch to that place) to someone who also
+    works there.
+  - News about a patient: `notify.notify_place(place, roles, ...)` (the people of that place; the owner everywhere;
+    nobody there → everyone with the role), not `notify_roles`. `make_notifications` gives unsaved rows for a sender
+    that writes many (`bulk_create`).
+  - `clinical/visit_notes.py`: `followers_at(place)`, `send_notes_alerts(limit=MAX_ALERTS)` written together,
+    `count_without_notes(dentist)` (every page of a dentist: by the `appointment_dentist_time` index, two look-ups,
+    `LATE_CLOSING`).
+  - `clinics.shares.summary` reads everything once for all the doctors (`_sum_services`, `_sum_visits`,
+    `CHARGE_FIELDS`); `SpeedTests` compares it with `totals` / `owed`: change them together.
+  - `patients.medical`: `sync_recalls_soon(place)` (at most every 3 minutes), `needing_exam_ids` / `needing_rows`;
+    `consults.SHOWN_HERE` / `LIST_LIMIT`. `PatientListView.paginate_queryset` marks `has_lab_work` /
+    `has_complaint` on the page shown; `dentist_patients_q` uses `pk__in` look-ups (no joins).
+  - The dentist's home: `my_day`; an only-dentist has no `patient_totals`.
+  - `manage.py check_pages` (`core/management/commands/check_pages.py`): every page each login reaches by its
+    links (GET only): the links that answer 403 / 405 with the page that shows them, errors, heavy pages. Run it on
+    the sample data before pushing, and after `fill_big_data` to see what is slow.
+  - Tests: `core.testing.setup_clinic()` clears the cache; never a fixed date where the page compares with today.
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
   through `WorkingPlaceMiddleware`); `working_places(user)` = the clinic places (the owner's all, else `profile.places`
   + `profile.branch`); `switch_places(user)` adds the LAB place for the lab staff and the owner (the switch, the login).
@@ -299,7 +323,8 @@ Read this first, then `README.md` (what the system does, role by role) and the c
 - Stop the server with ``kill $(pgrep -f "[m]anage.py runserver")``. A plain `pkill -f "manage.py ..."` also matches
   and kills your own shell.
 - Before pushing:
-  - Open every page as every role, in Arabic and English, and look for errors.
+  - Open every page as every role, in Arabic and English, and look for errors: `DJANGO_DEBUG=1 .venv/bin/python
+    manage.py check_pages` on the demo copy does the opening (it must end with "0 with a problem").
   - Take screenshots at 1400, 1024 and 768 px, and check nothing scrolls sideways.
   - Run `python -m pyflakes apps`.
 
@@ -362,5 +387,9 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     expected-patient match finds the same mobile or a name spelled alike, not a very different spelling; an
     instructor's grades written by a junior rely on the junior; the lab's scan and design places are written, the
     files themselves stay on the server or the e-mail.
+  - Round 17: *All the data as Excel* (Settings → Backup) takes about a minute for every 10,000 patients and
+    is made while the page waits; the nightly backup ZIP holds the same tables. A notification already sent before
+    the revision keeps its old reader. The surgery and plan forms still read their lists once for each row (quick on
+    the clinic's PC, to tidy if the server moves to PostgreSQL on another machine).
   - The planned prosthesis made from a surgery's design is a best guess (a full arch from 10 units, a bridge when a
     pontic is between implants, else a crown for each implant): the dentist corrects it on the dental chart.

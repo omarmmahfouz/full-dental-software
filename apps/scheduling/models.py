@@ -168,7 +168,9 @@ class Appointment(TimeStampedModel):
         ordering = ["scheduled_at"]
         verbose_name = _("appointment")
         verbose_name_plural = _("appointments")
-        indexes = [models.Index(fields=["branch", "scheduled_at"], name="appointment_place_time")]
+        indexes = [models.Index(fields=["branch", "scheduled_at"], name="appointment_place_time"),
+                   # a dentist's visits of a period: his week, his list, the visits waiting for their notes
+                   models.Index(fields=["dentist", "scheduled_at"], name="appointment_dentist_time")]
 
     def __str__(self):
         local = timezone.localtime(self.scheduled_at)

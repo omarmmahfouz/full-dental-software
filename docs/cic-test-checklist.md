@@ -160,3 +160,13 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
     he went in with gets today's treatment and his share; the visit keeps *Booked with* the first doctor.
 61. `cicdoctor`: a patient's file → *Record* → **Sick leave** and **Patient consent**: printed on CIC's paper with its
     logo.
+
+## Q. New in this version (17): the whole system revised
+62. `secretary` (opens at CIA): the bell → *Lab request LR-000009 is reviewed - send it to the lab* (a CIC patient):
+    the page says **This patient's file is at CIC** with **Work at CIC and open the file**; press it: the request
+    opens at CIC. Before, it answered *not allowed*.
+63. `secretary2` (CIA only) and `khadem` (El Khadem): no notification about LR-000009: it is not their place.
+64. `moderator`: *Clinics → Doctors* and *Clinic report*: the same numbers as before, opening quicker (everything is
+    read once for all the doctors). A doctor's row agrees with his statement.
+65. `cicdoctor`: *My shares* → **Up** goes to the home page (the list of doctors is the manager's); a bill of his →
+    **Up** goes to the home page too.

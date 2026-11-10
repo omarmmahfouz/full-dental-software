@@ -16,11 +16,12 @@ from django.views.decorators.http import require_POST
 from apps.clinical.models import TreatmentStep
 from apps.core.access import area_levels
 from apps.core.mixins import role_required
-from apps.core.models import AreaAccess, UserProfile, branch_for_user
+from apps.core.models import AreaAccess, UserProfile, branch_for_user, working_places
 from apps.core.roles import (
     CLINICAL, DENTIST, FRONT_DESK, HEAD_CIA, MODERATOR, OWNER, PATIENT_VIEWERS, TEAM_HEAD, has_role,
 )
 from apps.core.utils import normalize_phone
+from apps.patients.access import visible_patients
 from apps.patients.models import Patient
 from apps.surgery.models import Surgery, SurgerySite
 
@@ -156,19 +157,32 @@ def dentist_detail(request, pk):
 
     patient_ids = set(surgeries.values_list("patient_id", flat=True)) | set(steps.values_list("patient_id", flat=True))
     patient_ids |= set(Patient.objects.filter(assigned_dentist=dentist).values_list("pk", flat=True))
+    # Counted once for all his patients (it was five look-ups for each patient: a slow page for a busy dentist).
+    implants_by_patient = Counter(implants_op1.values_list("surgery__patient_id", flat=True))
+    role_fields = (("operator_1_id", _("operator 1")), ("operator_2_id", _("operator 2")),
+                   ("assistant_id", _("assistant")), ("instructor_id", _("instructor")))
+    roles_by_patient = {}
+    for row in surgeries.values("patient_id", *(field for field, _label in role_fields)):
+        mine = roles_by_patient.setdefault(row["patient_id"], set())
+        mine.update(str(label) for field, label in role_fields if row[field] == dentist.pk)
+    # A patient of another place does not open from here (each place sees its own patients): no link, the place's
+    # name instead; his name shows only to someone who also works at that place.
+    here = set(visible_patients(request.user).filter(pk__in=patient_ids).values_list("pk", flat=True))
+    my_places = set(working_places(request.user).values_list("pk", flat=True))
     cases = []
-    for patient in Patient.objects.filter(pk__in=patient_ids).order_by("full_name"):
+    for patient in Patient.objects.filter(pk__in=patient_ids).select_related("branch").order_by("full_name"):
         cases.append({
-            "patient": patient,
-            "implants": SurgerySite.objects.done_by(dentist).filter(surgery__patient=patient)
-            .exclude(implant_status="").count(),
-            "roles": sorted({
-                str(label) for field, label in (
-                    ("operator_1", _("operator 1")), ("operator_2", _("operator 2")), ("assistant", _("assistant")),
-                    ("instructor", _("instructor")),
-                ) if surgeries.filter(patient=patient, **{field: dentist}).exists()
-            }),
+            "patient": patient, "here": patient.pk in here,
+            "named": patient.pk in here or patient.branch_id in my_places,
+            "implants": implants_by_patient.get(patient.pk, 0),
+            "roles": sorted(roles_by_patient.get(patient.pk, ())),
         })
+    recent = list(surgeries[:30])
+    for surgery in recent:
+        surgery.opens_here = surgery.patient_id in here
+    implants = list(implants_op1.select_related("surgery__patient", "implant_system")[:60])
+    for site in implants:
+        site.opens_here = site.surgery.patient_id in here
 
     return render(request, "dentists/dentist_detail.html", {
         "dentist": dentist, "enrollment": enrollment, "required": required, "remaining": remaining,
@@ -186,7 +200,7 @@ def dentist_detail(request, pk):
             "supervised": steps.filter(supervisor=dentist).count(),
         },
         "by_type": by_type, "grade": round(grade, 1) if grade else None,
-        "surgeries": surgeries[:30], "implants": implants_op1.select_related("surgery__patient", "implant_system")[:60],
+        "surgeries": recent, "implants": implants,
         "cases": cases, "can_manage": has_role(request.user, OWNER),
         "opens": _opens(request.user),
         "lang_en": (request.LANGUAGE_CODE or "").startswith("en"),

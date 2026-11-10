@@ -27,6 +27,7 @@ def role_required(*roles):
                 raise PermissionDenied
             return view(request, *args, **kwargs)
 
+        wrapper.allowed_roles = roles  # read by navigation.opens: a link is shown only to someone who can open it
         return wrapper
 
     return decorator

@@ -130,43 +130,72 @@ def statement(dentist, branch, date_from, date_to, accounts=None):
     }
 
 
+# A service or a visit read lightly (no model objects): only what the sums need.
+CHARGE_FIELDS = ("pk", "patient_id", "service_id", "charged_on", "teeth", "price", "discount_percent", "cost",
+                 "patient__brought_by_id")
+VISIT_FIELDS = ("patient_id", "scheduled_at", "entered_room_at", "left_at", "patient__brought_by_id")
+
+
+def _sum_services(dentist_pk, charges, rules, accounts):
+    """The sums of a doctor's services (rows of ``CHARGE_FIELDS``) and the patients they were for."""
+    billed = collected = share = costs = ZERO
+    patients = set()
+    for pk, patient_id, service_id, day, teeth, price, percent, cost, brought_by in charges:
+        paid = accounts[patient_id].get(pk, ZERO)
+        billed += price - (price * percent / 100).quantize(CENT)
+        collected += paid
+        rule = pick_rule(rules, service_id, day, source_of(dentist_pk, brought_by))
+        share += line_share(rule, paid, teeth, cost)
+        if rule is not None and rule.deduct_costs:
+            costs += cost
+        patients.add(patient_id)
+    return {"billed": billed, "collected": collected, "costs": costs, "services_share": share}, patients
+
+
+def _sum_visits(dentist_pk, visits, rules):
+    """The number, the chair time and the share of a doctor's finished visits (rows of ``VISIT_FIELDS``)."""
+    count = minutes = 0
+    share = ZERO
+    patients = set()
+    per_visit = _paid_by_visit(rules)
+    for patient_id, scheduled_at, entered, left, brought_by in visits:
+        count += 1
+        minutes += minutes_between(entered, left) or 0
+        patients.add(patient_id)
+        if per_visit:
+            share += visit_share(rules, timezone.localtime(scheduled_at).date(), source_of(dentist_pk, brought_by))
+    return {"visit_count": count, "chair_minutes": minutes, "visits_share": share}, patients
+
+
+def _paid_by_visit(rules):
+    return any(rule.method == M.PER_VISIT for rule in rules)
+
+
+def _finished_visits(branch, date_from, date_to):
+    visits = Appointment.objects.filter(branch=branch, status=Appointment.Status.COMPLETED,
+                                        scheduled_at__lt=_bounds(date_to, date_to)[1])
+    if date_from is not None:
+        visits = visits.filter(scheduled_at__gte=_bounds(date_from, date_from)[0])
+    return visits.order_by()
+
+
 def totals(dentist, branch, date_from, date_to, accounts=None, rules=None):
     """The numbers of ``statement`` without its lines, read lightly so that years of work stay quick.
     ``date_from`` None counts from the first day."""
     rules = _rules(dentist, branch) if rules is None else rules
     accounts = {} if accounts is None else accounts
     charges = doctor_charges(dentist, branch).filter(charged_on__lte=date_to)
-    appointments = Appointment.objects.filter(branch=branch, dentist=dentist, status=Appointment.Status.COMPLETED,
-                                              scheduled_at__lt=_bounds(date_to, date_to)[1])
     if date_from is not None:
         charges = charges.filter(charged_on__gte=date_from)
-        appointments = appointments.filter(scheduled_at__gte=_bounds(date_from, date_from)[0])
-    charges = list(charges.order_by().values_list("pk", "patient_id", "service_id", "charged_on", "teeth", "price",
-                                                  "discount_percent", "cost", "patient__brought_by_id"))
-    accounts.update(paid_by_charge({row[1] for row in charges} - set(accounts)))
-    billed = collected = services_share = visits_share = costs = ZERO
-    patients = set()
-    for pk, patient_id, service_id, day, teeth, price, percent, cost, brought_by in charges:
-        paid = accounts[patient_id].get(pk, ZERO)
-        billed += price - (price * percent / 100).quantize(CENT)
-        collected += paid
-        rule = pick_rule(rules, service_id, day, source_of(dentist.pk, brought_by))
-        services_share += line_share(rule, paid, teeth, cost)
-        if rule is not None and rule.deduct_costs:
-            costs += cost
-        patients.add(patient_id)
-    visit_count = chair_minutes = 0
-    per_visit = any(rule.method == M.PER_VISIT for rule in rules)
-    for patient_id, scheduled_at, entered, left, brought_by in appointments.order_by().values_list(
-            "patient_id", "scheduled_at", "entered_room_at", "left_at", "patient__brought_by_id"):
-        visit_count += 1
-        chair_minutes += minutes_between(entered, left) or 0
-        patients.add(patient_id)
-        if per_visit:
-            visits_share += visit_share(rules, timezone.localtime(scheduled_at).date(), source_of(dentist.pk, brought_by))
-    return {"dentist": dentist, "branch": branch, "rules": rules, "billed": billed, "collected": collected,
-            "costs": costs, "services_share": services_share, "visits_share": visits_share, "share": services_share + visits_share,
-            "visit_count": visit_count, "chair_minutes": chair_minutes, "patient_count": len(patients)}
+    charges = list(charges.order_by().values_list(*CHARGE_FIELDS))
+    missing = {row[1] for row in charges} - set(accounts)
+    if missing:
+        accounts.update(paid_by_charge(missing))
+    services, patients = _sum_services(dentist.pk, charges, rules, accounts)
+    visits, seen = _sum_visits(dentist.pk, _finished_visits(branch, date_from, date_to).filter(dentist=dentist)
+                               .values_list(*VISIT_FIELDS), rules)
+    return {"dentist": dentist, "branch": branch, "rules": rules, **services, **visits,
+            "share": services["services_share"] + visits["visits_share"], "patient_count": len(patients | seen)}
 
 
 def owed(dentist, branch, until, accounts=None, rules=None):
@@ -192,18 +221,50 @@ def doctors_at(branch, date_from, date_to):
 
 
 def summary(branch, date_from, date_to):
-    """One row per doctor at the place, with the place's totals."""
-    # What is paid on every service ever given at the place, read once for all the doctors.
+    """One row per doctor at the place, with the place's totals. Everything is read once for all the doctors (the
+    services, the visits, the rules, the payouts) and shared out here: it was eight look-ups for each doctor, each
+    reading his services from the first day (4 seconds at a clinic with two years of work)."""
+    dentists = list(doctors_at(branch, date_from, date_to))
+    ids = [dentist.pk for dentist in dentists]
+    rules = defaultdict(list)
+    for rule in FeeRule.objects.filter(branch=branch, dentist__in=ids).select_related("service"):
+        rules[rule.dentist_id].append(rule)
+    # Every service given at the place up to the last day: what is owed counts from the first day.
+    services = defaultdict(list)
+    for row in (Charge.objects.filter(branch=branch, charged_on__lte=date_to)
+                .filter(Q(dentist__in=ids) | Q(dentist__isnull=True, bill__dentist__in=ids)).order_by()
+                .values_list(*CHARGE_FIELDS, "dentist_id", "bill__dentist_id")):
+        services[row[-2] or row[-1]].append(row[:-2])
     accounts = paid_by_charge(Charge.objects.filter(branch=branch, charged_on__lte=date_to).values("patient_id"))
+    visits = defaultdict(list)
+    for row in _finished_visits(branch, date_from, date_to).filter(dentist__in=ids).values_list(
+            *VISIT_FIELDS, "dentist_id"):
+        visits[row[-1]].append(row[:-1])
+    # The visits before the period count only for a doctor paid by the visit.
+    by_visit = [pk for pk in ids if _paid_by_visit(rules[pk])]
+    earlier = defaultdict(list)
+    if by_visit:
+        before = date_from - timedelta(days=1)
+        for row in _finished_visits(branch, None, before).filter(dentist__in=by_visit).values_list(
+                *VISIT_FIELDS, "dentist_id"):
+            earlier[row[-1]].append(row[:-1])
+    paid_out, paid_ever = defaultdict(lambda: ZERO), defaultdict(lambda: ZERO)
+    for dentist_id, paid_on, amount in DoctorPayout.objects.filter(
+            branch=branch, dentist__in=ids, paid_on__lte=date_to).values_list("dentist_id", "paid_on", "amount"):
+        paid_ever[dentist_id] += amount
+        if paid_on >= date_from:
+            paid_out[dentist_id] += amount
     rows = []
-    for dentist in doctors_at(branch, date_from, date_to):
-        rules = _rules(dentist, branch)
-        data = totals(dentist, branch, date_from, date_to, accounts, rules)
-        data["paid_out"] = DoctorPayout.objects.filter(dentist=dentist, branch=branch,
-                                                       paid_on__range=(date_from, date_to)).aggregate(
-            total=Sum("amount"))["total"] or ZERO
-        data["owed"] = owed(dentist, branch, date_to, accounts, rules)
-        rows.append(data)
+    for dentist in dentists:
+        mine, ever = rules[dentist.pk], services[dentist.pk]
+        period, patients = _sum_services(dentist.pk, [row for row in ever if row[3] >= date_from], mine, accounts)
+        seen, visited = _sum_visits(dentist.pk, visits[dentist.pk], mine)
+        earned = _sum_services(dentist.pk, ever, mine, accounts)[0]["services_share"] + seen["visits_share"] \
+            + _sum_visits(dentist.pk, earlier[dentist.pk], mine)[0]["visits_share"]
+        rows.append({"dentist": dentist, "branch": branch, "rules": mine, **period, **seen,
+                     "share": period["services_share"] + seen["visits_share"],
+                     "patient_count": len(patients | visited), "paid_out": paid_out[dentist.pk],
+                     "owed": earned - paid_ever[dentist.pk]})
     sums = defaultdict(lambda: ZERO)
     sums.update(visit_count=0, chair_minutes=0)
     for row in rows:

@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Notification
-from apps.core.notify import notify_roles, notify_users
+from apps.core.notify import notify_place, notify_users
 from apps.core.roles import (
     DENTISTS,
     FRONT_DESK,
@@ -158,14 +158,15 @@ def _requesters(lab_request):
 def _notify(lab_request, action, user, notes):
     url = lab_request.get_absolute_url()
     params = {"number": lab_request.number, "patient": lab_request.patient.full_name, "notes": notes}
+    here = lab_request.patient.branch  # the people of the patient's place: the others cannot open the request
     if action == "submit":
-        notify_roles(
-            (HEAD_CIA, SUPERVISOR), _("Lab request %(number)s needs your review"),
+        notify_place(
+            here, (HEAD_CIA, SUPERVISOR), _("Lab request %(number)s needs your review"),
             _("Patient: %(patient)s"), url, Notification.Level.WARNING, exclude=user, params=params,
         )
     elif action == "approve":
-        notify_roles(
-            (SECRETARY,), _("Lab request %(number)s is reviewed - send it to the lab"),
+        notify_place(
+            here, (SECRETARY,), _("Lab request %(number)s is reviewed - send it to the lab"),
             _("Patient: %(patient)s"), url, exclude=user, params=params,
         )
         notify_users(_requesters(lab_request), _("Your lab request %(number)s was approved"), "", url,
@@ -176,8 +177,8 @@ def _notify(lab_request, action, user, notes):
     elif action == "receive":
         notify_users(_requesters(lab_request), _("Lab work %(number)s arrived from the lab"),
                      _("Patient: %(patient)s"), url, Notification.Level.SUCCESS, exclude=user, params=params)
-        notify_roles((SECRETARY,), _("Lab work %(number)s is ready: book the patient for the fitting"),
+        notify_place(here, (SECRETARY,), _("Lab work %(number)s is ready: book the patient for the fitting"),
                      _("Patient: %(patient)s"), url, Notification.Level.INFO, exclude=user, params=params)
     elif action == "remake":
-        notify_roles((HEAD_CIA, SUPERVISOR, OWNER), _("Lab work %(number)s returned to the lab for remake"),
+        notify_place(here, (HEAD_CIA, SUPERVISOR, OWNER), _("Lab work %(number)s returned to the lab for remake"),
                      "%(notes)s", url, Notification.Level.WARNING, exclude=user, params=params)

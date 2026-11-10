@@ -362,6 +362,8 @@ tr.row-link { cursor: pointer; }
 /* Dental chart */
 .odontogram-wrap { direction: ltr; overflow-x: auto; }
 .odontogram { width: 100%; min-width: 640px; height: auto; display: block; }
+/* An overview beside other things (the visit page): the whole chart fits its card, no sideways scrolling. */
+.chart-fit .odontogram { min-width: 0; }
 .odontogram a .tooth:hover > rect:first-of-type { fill: rgba(158, 198, 79, .18); }
 .odontogram a { cursor: pointer; text-decoration: none; }
 .chart-legend { display: flex; flex-wrap: wrap; gap: .35rem 1rem; color: #495057; direction: ltr; }

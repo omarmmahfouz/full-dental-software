@@ -161,7 +161,7 @@ class BillForm(StyledForm):
         self.fields["dentist"].queryset = self.fields["dentist"].queryset.working_at(branch)
         if patient is not None:
             self.fields["patient_lookup"].initial = lookup_value(patient)
-            self.fields["patient_lookup"].help_text = str(patient)
+            self.fields["patient_lookup"].help_text = ""  # the box already shows the patient chosen
         for name in ("patient_lookup", "billed_on", "dentist"):
             self.fields[name].col = "col-md-4"
 

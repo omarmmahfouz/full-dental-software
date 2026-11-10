@@ -213,7 +213,7 @@ def up_target(context):
     request = context.get("request")
     if request is None:
         return {"url": "/", "name": None}
-    return target(request.path, context.get("patient"))
+    return target(request.path, context.get("patient"), getattr(request, "user", None))
 
 
 @register.filter

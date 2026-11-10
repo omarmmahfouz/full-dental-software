@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
+from apps.core.mixins import role_required
 from apps.core.models import branch_for_user
 from apps.core.roles import CLINICAL, FRONT_DESK, MANAGEMENT, has_role, is_only_dentist
 from apps.dentists.models import Dentist
@@ -75,10 +76,9 @@ def _referral_from(request, patient):
 
 
 # ------------------------------------------------------------------ the list of cases
+@role_required(*CLINICAL)
 def cases(request):
     """Every specialist record at the place: endodontic cases, TMJ examinations, orthodontic cases, shades."""
-    if not has_role(request.user, *CLINICAL):
-        raise PermissionDenied
     place = _place(request)
     kind = request.GET.get("kind") if request.GET.get("kind") in ("endo", "tmj", "ortho", "prostho", "shade") \
         else "endo"

@@ -507,3 +507,25 @@ Log in as `owner` unless written otherwise. For the steps with "another browser"
      Saad's special list (zirconia 1,500, the rest in grey: the outside prices less 10%).
 212. `dentist2` (a lab designer): *My lab work*: each case says where the scan is; **Done** on a design asks **where
      you put the design**: the lab manager is told.
+
+## AA. New in this version (17): the whole system revised
+No new list: the system was gone over for mistakes, slowness and repetition.
+213. `dentist1`: the **home page** opens on your own day: *My visits today*, *Arrived, waiting for me*, *My patients
+     under treatment*, *My open lab requests* (not the clinic's totals). Tap *My patients under treatment*: only your
+     patients.
+214. `dentist1`: the user menu → your own page (or a notification about you) → **Up** goes to the home page, not to
+     the list of dentists (which answered *not allowed*). The same from *My shares* (`cicdoctor`) and from a bill.
+215. `dentist1`: a delivery checklist (*Implant surgeries* → an implant → the prosthesis → *Delivery check*): **Book
+     the next check** is not shown to a dentist (the reception books); log in as `secretary`: nothing changed for her.
+216. `dentist1`: *Today's visits* → a visit: the **whole tooth chart** shows beside the visit (18 to 28 and 48 to 38),
+     without scrolling sideways. *Restorative or other treatment*: the patient is in the patient box once, not written
+     again under it.
+217. `teamhead`: *Dentists* → Dr. Walid Hamdy (a CIC doctor): his cases at CIC show the file number and **CIC**
+     without a link and without the name (you do not work at CIC); a CIA dentist's cases open as before.
+218. `owner`: *Clinics → Doctors* and *Clinic report* at CIC: the same numbers as before (shares, owed, paid), opening
+     quicker. Compare a doctor's row with his statement (tap his name): billed, collected and share agree.
+219. `amr` (El Khadem): the bell: *Visit notes missing* about El Khadem's doctors comes to you, not about yourself.
+     `headcia`: no *Visit notes missing* about El Khadem's visits (she cannot open them); CIA's still come.
+220. `supervisor` (grades only): no *Write the visit notes* reminder about visits he cannot open.
+221. `owner` with many patients (a test copy: `python manage.py fill_big_data`): the home page, *Patients*, *Medical
+     follow-up* and *Clinics → Doctors* open in under a second.

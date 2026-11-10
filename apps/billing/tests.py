@@ -130,7 +130,10 @@ class BillTests(TestCase):
         page = self.client.get(f"/billing/bills/new/?patient={self.patient.pk}")
         self.assertIsNone(page.context["pay"])  # no payment part for the dentist
         self.assertContains(page, "Send the bill to the reception")
-        response = self.post_bill([{"service": self.consult.pk}], **{"pay-amount": "300", "pay-method": "cash"})
+        # Today's bill: the reception's home page lists the doctors' bills of the last 30 days (a fixed date made
+        # this test fail a month later).
+        response = self.post_bill([{"service": self.consult.pk}], billed_on=timezone.localdate().strftime("%d/%m/%Y"),
+                                  **{"pay-amount": "300", "pay-method": "cash"})
         from apps.billing.models import Bill
 
         bill = Bill.objects.get()

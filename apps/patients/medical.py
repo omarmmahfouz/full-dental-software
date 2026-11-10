@@ -79,24 +79,34 @@ def clearance(patient):
     return {"state": state, "flags": flags, "consult": consult}
 
 
-def needing_consult(patients):
-    """[(exam, flags)] of the patients whose last medical history is above the limits, without a letter that
-    answers for it. ``patients`` is the place's patients (a queryset)."""
-    options = ClinicSettings.get()
+def needing_exam_ids(patients):
+    """The last medical histories above the limits without a letter that answers for them: their pks, newest
+    first, read lightly (only the page shown is then read in full). ``patients`` is a queryset."""
     latest = Examination.objects.filter(patient=OuterRef("patient"), medical_taken=True).order_by(
         "-exam_date", "-pk").values("pk")[:1]
     exams = list(Examination.objects.filter(medical_taken=True, patient__in=patients).filter(
-        out_of_range_q(options)).filter(pk=Subquery(latest)).select_related(
-        "patient", "patient__assigned_dentist", "examined_by").order_by("-exam_date"))
-    consults = {}
-    for consult in MedicalConsult.objects.filter(patient__in=[e.patient_id for e in exams]).order_by("created_at"):
-        consults[consult.patient_id] = consult  # the last one
-    rows = []
-    for exam in exams:
-        consult = consults.get(exam.patient_id)
-        if consult is None or not covers(consult, exam):
-            rows.append((exam, reading_flags(exam, options)))
-    return rows
+        out_of_range_q()).filter(pk=Subquery(latest)).order_by("-exam_date").values_list("pk", "patient_id", "exam_date"))
+    answered = {}
+    for patient_id, created_at in MedicalConsult.objects.filter(
+            patient__in=patients).order_by("created_at").values_list("patient_id", "created_at"):
+        answered[patient_id] = timezone.localtime(created_at).date()  # the last letter
+    limit = timedelta(days=CONSULT_VALID_DAYS)
+    return [pk for pk, patient_id, exam_date in exams
+            if patient_id not in answered or answered[patient_id] < exam_date - limit]
+
+
+def needing_rows(exam_ids):
+    """[(exam, flags)] for these histories, in the order given."""
+    options = ClinicSettings.get()
+    exams = Examination.objects.filter(pk__in=exam_ids).select_related(
+        "patient", "patient__assigned_dentist", "examined_by").in_bulk()
+    return [(exams[pk], reading_flags(exams[pk], options)) for pk in exam_ids if pk in exams]
+
+
+def needing_consult(patients):
+    """[(exam, flags)] of the patients whose last medical history is above the limits, without a letter that
+    answers for it. ``patients`` is the place's patients (a queryset)."""
+    return needing_rows(needing_exam_ids(patients))
 
 
 def letter_findings(patient, exam=None):
@@ -213,6 +223,21 @@ def sync_recalls(patients):
              if flagged.get((patient, reason)) != on]
     if stale:
         MedicalRecall.objects.filter(pk__in=stale).update(status=MedicalRecall.Status.DONE)
+
+
+SYNC_EVERY_SECONDS = 180
+
+
+def sync_recalls_soon(place):
+    """``sync_recalls`` for all the patients of a place, at most once every few minutes: the pages that list the
+    calls (the home page, the medical follow-up) stay quick with thousands of patients. A history saved in a
+    patient's file writes its own calls at once."""
+    from django.core.cache import cache
+
+    from .models import Patient
+
+    if place is not None and cache.add(f"recalls-{place.pk}", True, SYNC_EVERY_SECONDS):
+        sync_recalls(Patient.objects.filter(branch=place))
 
 
 def recalls_due(patients, until=None):

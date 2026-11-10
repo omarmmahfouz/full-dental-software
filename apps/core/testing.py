@@ -12,6 +12,9 @@ PASSWORD = "test-pass-123"
 
 
 def setup_clinic():
+    from django.core.cache import cache
+
+    cache.clear()  # each test starts as a server just started: "done a minute ago" marks are not carried over
     call_command("setup_clinic", stdout=io.StringIO())
     return Branch.objects.get(code="CIA")
 

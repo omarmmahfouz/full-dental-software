@@ -94,7 +94,7 @@ class SurgeryForm(StyledModelForm):
         patient = patient or (self.instance.patient if self.instance.pk else None)
         if patient is not None:
             self.fields["patient_lookup"].initial = lookup_value(patient)
-            self.fields["patient_lookup"].help_text = str(patient)
+            self.fields["patient_lookup"].help_text = ""  # the box already shows the patient chosen
         self.initial["augmentation_sites"] = (self.instance.augmentation_sites or "").split(",")
         for name in ("gbr_notes", "sinus_notes", "soft_tissue_notes", "notes", "complications"):
             self.fields[name].widget.attrs["rows"] = 2

@@ -12,13 +12,14 @@
 
 <div class="row g-2 mb-3">
   <div class="col-6 col-md-3"><div class="card stat-card h-100 {% if needing_count %}border-warning{% endif %}"><div class="card-body p-2"><div class="stat-value text-warning">{{ needing_count }}</div><div class="stat-label">{% trans "need a consultation" %}</div></div></div></div>
-  <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ waiting|length }}</div><div class="stat-label">{% trans "waiting for the physician" %}</div></div></div></div>
-  <div class="col-6 col-md-3"><div class="card stat-card h-100 {% if held %}border-danger{% endif %}"><div class="card-body p-2"><div class="stat-value text-danger">{{ held|length }}</div><div class="stat-label">{% trans "postponed / not fit" %}</div></div></div></div>
-  <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{{ cleared|length }}</div><div class="stat-label">{% trans "cleared (30 days)" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value">{{ waiting_count }}</div><div class="stat-label">{% trans "waiting for the physician" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card h-100 {% if held %}border-danger{% endif %}"><div class="card-body p-2"><div class="stat-value text-danger">{{ held_count }}</div><div class="stat-label">{% trans "postponed / not fit" %}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat-card h-100"><div class="card-body p-2"><div class="stat-value text-success">{{ cleared_count }}</div><div class="stat-label">{% trans "cleared (30 days)" %}</div></div></div></div>
 </div>
 
-<div class="card mb-3 border-info" id="recalls"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-telephone-forward text-info"></i> {% trans "Calls for a new test" %} <span class="badge text-bg-info">{{ recalls|length }}</span></span>
+<div class="card mb-3 border-info" id="recalls"><div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-telephone-forward text-info"></i> {% trans "Calls for a new test" %} <span class="badge text-bg-info">{{ recall_counts.today }}</span></span>
   <span class="d-flex flex-wrap gap-1 small no-print">
+    {% if recall_counts.today > recalls|length %}<a class="btn btn-sm btn-primary" href="{% url 'patients:recall_list' %}?tab=today">{% trans "To call today" %} <span class="badge text-bg-light">{{ recall_counts.today }}</span></a>{% endif %}
     <a class="btn btn-sm btn-outline-primary" href="{% url 'patients:recall_list' %}?tab=will_do">{% trans "He will do it: waiting for the result" %} <span class="badge text-bg-light">{{ recall_counts.will_do }}</span></a>
     <a class="btn btn-sm btn-outline-primary" href="{% url 'patients:recall_list' %}?tab=no_answer">{% trans "No answer: call again" %} <span class="badge text-bg-light">{{ recall_counts.no_answer }}</span></a>
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'patients:recall_list' %}?tab=done">{% trans "Results written (60 days)" %} <span class="badge text-bg-light">{{ recall_counts.done }}</span></a>
@@ -63,6 +64,7 @@
     </tr>
     {% empty %}<tr><td colspan="5" class="text-muted text-center py-3">{% trans "No letter waiting." %}</td></tr>{% endfor %}</tbody>
   </table></div>
+  {% if waiting_count > waiting|length %}<div class="card-footer small text-muted">{% blocktrans with shown=waiting|length total=waiting_count %}Showing the first {{ shown }} of {{ total }}.{% endblocktrans %}</div>{% endif %}
 </div>
 
 <div class="card mb-3 border-danger"><div class="card-header"><i class="bi bi-x-octagon text-danger"></i> {% trans "Postponed or not fit: check again" %}</div>
@@ -77,6 +79,7 @@
     </tr>
     {% empty %}<tr><td colspan="4" class="text-muted text-center py-3">{% trans "No surgery postponed for a medical reason." %}</td></tr>{% endfor %}</tbody>
   </table></div>
+  {% if held_count > held|length %}<div class="card-footer small text-muted">{% blocktrans with shown=held|length total=held_count %}Showing the first {{ shown }} of {{ total }}.{% endblocktrans %}</div>{% endif %}
 </div>
 
 {% if cleared %}<div class="card mb-3 border-success"><div class="card-header"><i class="bi bi-check2-circle text-success"></i> {% trans "Cleared in the last 30 days" %}</div>
@@ -85,5 +88,6 @@
       <span><b>{{ c.patient.full_name }}</b> <span class="text-muted">{{ c.patient.file_number }}</span></span>
       <span>{% if c.status == "not_needed" %}<span class="badge text-bg-light">{% trans "No consultation needed" %}</span>{% else %}<span class="badge text-bg-success">{{ c.get_answer_display }}</span>{% endif %} {{ c.answered_on|date:"d/m/Y" }}</span>
     </a>{% endfor %}</div>
+  {% if cleared_count > cleared|length %}<div class="card-footer small text-muted">{% blocktrans with shown=cleared|length total=cleared_count %}Showing the first {{ shown }} of {{ total }}.{% endblocktrans %}</div>{% endif %}
 </div>{% endif %}
 {% endblock %}

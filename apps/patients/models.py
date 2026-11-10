@@ -281,6 +281,8 @@ class Patient(TimeStampedModel):
                                     condition=~models.Q(national_id="")),
             models.UniqueConstraint(fields=["branch", "phone_primary"], name="patient_one_mobile_per_place"),
         ]
+        # The list of a place's patients opens on the newest files.
+        indexes = [models.Index(fields=["branch", "-created_at"], name="patient_place_newest")]
 
     def __str__(self):
         return f"{self.full_name} ({self.file_number})" if self.file_number else self.full_name

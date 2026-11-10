@@ -194,3 +194,12 @@ In the sample data:
 5. `amr`: a patient → *Record* → **Sick leave** (printed on El Khadem's paper, Arabic or English) and **Patient
    consent** (*Consent to root canal treatment*, signed on the tablet).
 6. `khadem`: search `122` opens **EK-00122** (not a CIA file); `0110` finds the mobiles starting with 0110.
+
+## Q. New in this version (17): the whole system revised
+7. `khadem`: the bell has only El Khadem's news: nothing about the lab requests or the call lists of CIA and CIC.
+8. `khadem`: *Referrals* → **Up** goes to the home page (the specialists' list is the doctors'); *Report a problem* →
+   **Up** goes to the home page.
+9. `amr`: a visit of one of El Khadem's doctors left without notes for a day is told to **you** (*Visit notes
+   missing: Dr. …*), not to the head of CIA; a visit of your own is only your reminder, not a warning about yourself.
+10. `endo`: *Room schedule*: the link **The day by doctor** is not shown to a doctor (it answered *not allowed*);
+    `khadem` and `amr` still have it.

@@ -55,6 +55,7 @@ from .roles import (
     SUPERVISOR,
     TEAM_HEAD,
     has_role,
+    is_only_dentist,
 )
 
 
@@ -131,11 +132,10 @@ def dashboard(request):
             Lead.objects.filter(status__in=(Lead.Status.NEW, Lead.Status.FOLLOW_UP), branch=branch)
             .order_by("first_call_on", "created_at")[:8]
         )
-        from apps.patients.medical import recalls_due, sync_recalls
+        from apps.patients.medical import recalls_due, sync_recalls_soon
 
         here = Patient.objects.filter(branch=branch)
-        if branch is not None and cache.add(f"recalls-{branch.pk}", True, ALERTS_EVERY_SECONDS):
-            sync_recalls(here)  # a high HbA1c three months ago: a call for a new test (round 15)
+        sync_recalls_soon(branch)  # a high HbA1c three months ago: a call for a new test (round 15)
         context["tests_to_call"] = list(recalls_due(here)[:6])
         context["tests_to_call_count"] = recalls_due(here).count() if len(context["tests_to_call"]) == 6 \
             else len(context["tests_to_call"])
@@ -222,6 +222,16 @@ def dashboard(request):
             appointment.can_open = not appointment.other_place or appointment.branch_id in my_places
             days[timezone.localtime(appointment.scheduled_at).date()]["appointments"].append(appointment)
         context["my_week"] = list(days.values())
+        mine_today = [a for a in days[today]["appointments"] if not a.other_place]
+        context["my_day"] = {
+            "visits": len(mine_today),
+            "waiting": sum(1 for a in mine_today if a.status == Appointment.Status.ARRIVED),
+            "in_room": sum(1 for a in mine_today if a.status == Appointment.Status.IN_ROOM),
+        }
+        if is_only_dentist(user):
+            # A dentist's home opens on his own day (his visits, who waits for him, his patients, his lab work),
+            # not on the clinic's totals, which he does not act on.
+            context.pop("patient_totals", None)
         context["my_complaints"] = unanswered(dentist)
         context["my_updates"] = user.notifications.filter(url__startswith="/schedule/appointments/")[:6]
         context["my_patient_count"] = Patient.objects.here().filter(

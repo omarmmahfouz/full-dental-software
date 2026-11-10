@@ -50,6 +50,12 @@ class ErrorRecorderMiddleware:
         return self.get_response(request)
 
     def process_exception(self, request, exception):
+        from apps.patients.access import OtherPlace, other_place_page
+
+        if isinstance(exception, OtherPlace) and request.method == "GET":
+            # A patient of another place where this person also works (a page opened from a notification): offer
+            # to switch to that place and open it, instead of "not allowed".
+            return other_place_page(request, exception.branch_id)
         from .problems import record_error
 
         record_error(request, exception)

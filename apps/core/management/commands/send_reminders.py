@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.clinical.models import LabRequest
 from apps.complaints.models import Complaint
 from apps.core.models import Notification
-from apps.core.notify import notify_roles, notify_users
+from apps.core.notify import notify_place, notify_roles, notify_users
 from apps.core.roles import HEAD_CIA, OWNER, SECRETARY, SUPERVISOR
 
 
@@ -37,11 +37,11 @@ class Command(BaseCommand):
                                      Notification.Level.DANGER, params=params)
 
         late_labs = LabRequest.objects.filter(status=LabRequest.Status.SENT, due_date__lt=today).select_related(
-            "patient", "lab"
+            "patient__branch", "lab"
         )
         for lab_request in late_labs:
-            sent += notify_roles(
-                (SECRETARY,), _("Lab work %(number)s is late at %(lab)s"), _("Patient: %(patient)s"),
+            sent += notify_place(
+                lab_request.patient.branch, (SECRETARY,), _("Lab work %(number)s is late at %(lab)s"), _("Patient: %(patient)s"),
                 lab_request.get_absolute_url(), Notification.Level.WARNING,
                 params={"number": lab_request.number, "lab": lab_request.lab.name, "patient": lab_request.patient.full_name},
             )

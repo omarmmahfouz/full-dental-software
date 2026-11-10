@@ -671,3 +671,30 @@ def load_round_sixteen(today, patients, owner, secretary, stock_user, make_user)
             procedure=str(template), teeth="36" if signed else "48", language="ar", witness="منة (الاستقبال)",
             signature=signature_png(160 + patient.pk) if signed else "", signed_at=now if signed else None,
             created_by=secretary)
+
+
+def load_round_seventeen(today, owner):
+    """The revision's sample data: a lab request of a CIC patient, reviewed and waiting to be sent. The reception
+    of CIC is told (the secretary, who also works at CIA; El Khadem's reception is not). Opening it from the bell
+    while working at CIA shows the page that offers to switch to CIC."""
+    from datetime import timedelta
+
+    from apps.clinical.models import Lab, LabRequest, LabRequestEvent, LabWorkType
+    from apps.clinical.services import perform_lab_action
+    from apps.core.models import Branch
+    from apps.dentists.models import Dentist
+    from apps.patients.models import Patient
+
+    cic = Branch.objects.filter(code="CIC").first()
+    patient = Patient.objects.filter(branch=cic).order_by("pk").first() if cic else None
+    lab = Lab.objects.filter(branch__isnull=True, is_active=True).first()
+    work = LabWorkType.objects.filter(is_active=True).first()
+    if patient is None or lab is None or work is None:
+        return
+    doctor = Dentist.objects.working_at(cic).order_by("pk").first()
+    lab_request = LabRequest.objects.create(
+        branch=cic, patient=patient, lab=lab, work_type=work, teeth="46", shade="A3",
+        shade_guide=LabRequest.ShadeGuide.CLASSICAL, dentist=doctor, work_form=LabRequest.WorkForm.DIGITAL,
+        due_date=today + timedelta(days=6), status=LabRequest.Status.PENDING_REVIEW, created_by=owner)
+    LabRequestEvent.objects.create(request=lab_request, action=LabRequestEvent.Action.CREATED, by=owner)
+    perform_lab_action(lab_request, "approve", owner)

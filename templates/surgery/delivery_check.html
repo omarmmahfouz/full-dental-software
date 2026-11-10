@@ -54,7 +54,7 @@
 <div class="d-flex flex-wrap gap-2 mt-3 no-print">
   <a class="btn btn-outline-secondary" href="{% url 'charting:photos' patient.pk %}?stage=delivery"><i class="bi bi-camera"></i> {% trans "Delivery photos" %}</a>
   <a class="btn btn-outline-secondary" href="{% url 'prescriptions:instructions' patient.pk %}{% if sheet %}?sheet={{ sheet.pk }}{% endif %}"><i class="bi bi-card-checklist"></i> {% trans "Instructions for the patient" %}</a>
-  <a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book the next check" %}</a>
+  {% if is_front_desk and "schedule" not in hidden_areas %}<a class="btn btn-outline-secondary" href="{% url 'scheduling:appointment_create' %}?patient={{ patient.pk }}"><i class="bi bi-calendar-plus"></i> {% trans "Book the next check" %}</a>{% endif %}
 </div>
 {% endblock %}
 {% block extra_js %}<script>

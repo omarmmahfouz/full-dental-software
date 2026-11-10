@@ -43,35 +43,85 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: round 16 (new)
+### New in this version: round 17, the revision (new)
+No new list this time: the whole system was gone over for mistakes, slowness and repetition. Every page was opened as
+each of the 18 sample logins (2,613 openings), then again with **10,000 made-up patients**, and 800 pages in a real
+browser at tablet width. The steps to try are in every checklist, in its last section (the secretary's **AB**, the
+dentists' and the owner's **AA**, the stock manager's **U**, CIC's **Q**, El Khadem's **Q**, the lab's **N**).
+1. **“Up” never opens a closed page (new)**: *Up* goes to the page above that this person can open. A doctor on his
+   own page went up to the list of dentists and got *not allowed*; the same from *My shares*, a bill, *Report a
+   problem* and the referrals. It now passes over such a page (in the end, the home page).
+2. **No button that answers “not allowed” (new)**: *Book the next check* shows only to who books; the stock link on a
+   purchase or a return only to who opens the stock; *The day by doctor* only to who opens the day planner; on a
+   dentist's page a case of another place has no link (its place is written; the name shows only to someone who also
+   works there).
+3. **A page of another of your places offers the switch (new)**: a lab request, a bill, a chart or a visit of a CIC
+   patient opened while working at CIA (e.g. from the bell) now shows **Work at CIC and open the file** instead of
+   *not allowed*. Someone who does not work there is still refused.
+4. **News goes to the people of the patient's place (new)**: *send it to the lab*, *the lab work is ready*, *lab work
+   is late* and *patients to call* went to every reception, so El Khadem's reception was told about CIA's patients,
+   which she cannot open. They now go to the reception of the patient's place. A visit left without notes is told to
+   the heads of the visit's place (El Khadem's to Dr. Amr, CIA's to the head of CIA and the team head), never to the
+   doctor about himself, and not to a supervisor who only grades.
+5. **A dentist's home opens on his own day (new)**: *My visits today*, *Arrived, waiting for me*, *My patients under
+   treatment* and *My open lab requests* replace the clinic's totals, which he does not act on. *My patients* now
+   opens his patients (it opened everyone's).
+6. **Less repetition on the forms (new)**: the patient chosen is no longer written a second time under the patient
+   box (booking, treatment, surgery, bill, complaint). The tooth chart on the visit page fits its card (half of it
+   was hidden, to scroll sideways).
+7. **Quick with 10,000 patients (new)**, measured on a test copy (SQLite, an ordinary PC):
+
+   | Page | Before | Now |
+   |---|---|---|
+   | The home page, first opening after busy days (the alerts) | 17 s | 1 s |
+   | *Clinics → Doctors* and the clinic report | 4 s, 168 look-ups | 0.7 s, 33 look-ups |
+   | *Medical follow-up* | 3.7 s, a 1 MB page | 0.15 s, 230 KB |
+   | *Calls for a new test* | 1.4 s | 0.09 s |
+   | *Patients* (the list) | 0.08 s | 0.02 s |
+   | *My patients* | 0.13 s in the database | 0.03 s |
+   | A dentist's page | 226 look-ups | 61 look-ups |
+   | Every page a dentist opens (the visits waiting for notes) | 12–23 ms in the database | under 1 ms |
+
+   How: the alerts are written together, 200 at most in one go; the doctors' shares are read once for all the
+   doctors; lists show the first rows and count the rest; two new indexes (a dentist's visits by day, a place's
+   newest patients). The numbers of the doctors' shares were compared with the old way on every doctor: the same to
+   the piastre.
+8. **A test that only passed in its month (new)**: one test used a fixed date and failed a month later, so GitHub
+   showed a red mark on every push. Fixed; the whole suite was also run with the clock moved 200 days ahead. There are
+   now 461 tests.
+9. **A check that can be run again (new)**: `python manage.py check_pages` (on the sample data or a test copy) opens
+   every page each login reaches by its links and names the links that answer *not allowed*, the pages that stop
+   with an error and the heavy pages. It found 48 such links before this revision; it now finds none.
+
+### Round 16: calls kept until booked, expected patients, the academy's targets and grades, the lab's prices and machines, sick leave and consents
 The numbers follow the owner's list. The steps to try are in every checklist, in its last section (the secretary's
 **AA**, the dentists' and the owner's **Z**, the stock manager's **T**, CIC's **P**, El Khadem's **P**, the lab's **M**).
-1. and 6. **Patients to call stay on the list until booked (new)**: *No answer* and *Call again later* keep the patient
+1. and 6. **Patients to call stay on the list until booked**: *No answer* and *Call again later* keep the patient
    on the list with the day to call again (tomorrow for no answer, in three days for later, or the day written); the
    list shows **to call today** first. A patient leaves only when **booked** (the booking made from the list closes
    him by itself and he moves to the end) or with a final answer (*not interested*, *wrong number*). The list counts
    booked / closed / still to call, and is *finished* only when nobody is left to call; the reception's home page counts
    the patients to call **today**.
-2. **Calls for a new test, followed in tabs (new)**: *Medical follow-up → Calls for a new test* has tabs: **to call
+2. **Calls for a new test, followed in tabs**: *Medical follow-up → Calls for a new test* has tabs: **to call
    today**, **he will do it** (waiting for the result, called again in two weeks), **no answer** (called again in two
    days), **coming**, **results written**. When he did the test, **He did it: write the result** (HbA1c 6.8, sugar 180,
    pressure 140/90, with an optional photo of the paper): it goes into his medical history and closes the call; a
    result still high opens the next call by itself and the dentist is told.
-3. **What each supplier sells (new)**: a supplier's page has **What he supplies** (the purchase groups: a supermarket
+3. **What each supplier sells**: a supplier's page has **What he supplies** (the purchase groups: a supermarket
    sells kitchen, cleaning and office things, never implants). A purchase from him offers only those categories, and
    saving another category is refused with what he sells. Nothing ticked = anything.
-4. **Expected patients: a temporary number, found again when they come (new)**: a patient booked from the call list
+4. **Expected patients: a temporary number, found again when they come**: a patient booked from the call list
    gets a **temporary file number** (`CIA-TMP-131`) and takes his final number when his file is completed. On **New
    patient**, typing a mobile or a name like an expected patient's (even spelled differently: أحمد / احمد, عبد الرحمن /
    عبدالرحمن, ة / ه, ى / ي) shows **Is this an expected patient?** with his booking: **Yes, it is him** completes his
    file (his bookings stay); if he came with another mobile, choose which one is the main mobile (the other is kept as
    mobile 2, someone else may have booked for him); **No, another person** goes on with a new file.
-5. **Late in hours and minutes (new)**: *Late, not arrived yet: 8 h 14 min* instead of 494 minutes (over an hour).
+5. **Late in hours and minutes**: *Late, not arrived yet: 8 h 14 min* instead of 494 minutes (over an hour).
 6. See 1.
-7. **Another doctor for a visit (new)**: *Today* → the person icon beside the doctor: **He goes in with another doctor**
+7. **Another doctor for a visit**: *Today* → the person icon beside the doctor: **He goes in with another doctor**
    (the doctor did not come, is late, is busy, or the patient asked): the doctors working today are offered first.
    Both doctors are told; the visit shows *Booked with Dr. X*; the treatment and the bill of today go to the new doctor.
-8. **The academy (new)**:
+8. **The academy**:
    - **The course's content**: a course says what each candidate does (e.g. batch 7: 40 implants, 2 open sinus lifts,
      1 GBR, 3 immediate implants). The candidate's page counts what he did (from the teeth he operated on the surgery
      charts) and what is left; **He asked for extra cases** adds e.g. 5 extra implants (and their fee).
@@ -93,7 +143,7 @@ The numbers follow the owner's list. The steps to try are in every checklist, in
      coming Thursdays and Fridays, **not on the calendar**: not called, no answer, still thinking, not ready, ready,
      agreed; **Book** opens the booking page and the patient leaves the draft as booked.
    - The photos of a case stay with each candidate's teeth (round 15); the shared ones (pre-op, bite) show for both.
-9. **The lab (new)**:
+9. **The lab**:
    - **A special price list** for a doctor or a clinic: its own price for some work, and the rest from another list
      **less a percentage** (e.g. the outside prices less 10%), shown in grey in its empty boxes (*Lab → Prices*).
    - **Where the scan is and where the design was put**: a case says where the scan is (the scans folder on the
@@ -111,10 +161,10 @@ The numbers follow the owner's list. The steps to try are in every checklist, in
      designs folders).
    - **The lab's address** is Zahraa El Maadi on every paper. The lab request's tooth chart is drawn with **natural
      tooth shapes** (crowns and roots), not squares.
-10. **Searching by number (new)**: a number starting with **0** is a mobile: `0122` finds every mobile starting with
+10. **Searching by number**: a number starting with **0** is a mobile: `0122` finds every mobile starting with
     0122; another number is the **file number at the place open**: `12` opens CIA-00012 (at CIC: CIC-00012), not every
     file with 12 in it.
-11. **El Khadem, a clinic of specialists (new)**: each specialist opens only the patients he treated, is booked with or
+11. **El Khadem, a clinic of specialists**: each specialist opens only the patients he treated, is booked with or
     was referred, with no money: the file shows **what was done and by whom**. The file is not CIA's steps but **one
     tile per specialty** (endodontics, restorative, prosthodontics, oral surgery, implants, periodontics, TMJ,
     orthodontics, pediatric) with its count, last date and doctor, and the open cases. The treatment plan covers every
@@ -122,15 +172,15 @@ The numbers follow the owner's list. The steps to try are in every checklist, in
     patient on** to the next doctor (back to Dr. Amr for the crown...): the referral page shows the patient's road.
     **Prescriptions by specialty**: after a root canal (with or without swelling), for the TMJ and the muscles, after
     placing or adjusting braces, after an extraction: offered first to the doctors of that specialty.
-12. **The professional sick leave (new)**: a patient's file → *Record* → **Sick leave**: the diagnosis and the
+12. **The professional sick leave**: a patient's file → *Record* → **Sick leave**: the diagnosis and the
     treatment of today are written for you; the days of rest, from when, for his work / school / whom it may concern,
     and the advice; it prints in Arabic or English on the place's paper with the doctor's signature and the stamp box.
-13. **Patient consents (new)**: *Record* (or *More*) → **Patient consent**: seven ready forms (treatment and local
+13. **Patient consents**: *Record* (or *More*) → **Patient consent**: seven ready forms (treatment and local
     anaesthesia, implant surgery, extraction, root canal, orthodontics, crowns / bridges / veneers, treatment at the
     academy and photos for teaching) in Arabic and English, the one fitting the plan first; the patient reads it and **signs with his finger** on the
     tablet (or the paper signed is photographed); printed with the doctor's signature and a witness. The forms are
     edited in *Settings → Consent forms*. The file's *Documents* tab lists the consents and the sick leaves.
-14. **The treatment plan printed with prices and referrals (new)**: *Print for the patient* (Arabic or English) shows
+14. **The treatment plan printed with prices and referrals**: *Print for the patient* (Arabic or English) shows
     each item's **price** (the plan's fee, else the usual price of the doctor's service × the teeth), the total, and
     **which specialist** each item is referred to; a button prints it without the prices.
 
@@ -979,8 +1029,8 @@ step, two remakes, a case at another lab, one on hold and one at a try-in, recei
    | `labhead` | Dr. Hossam, the head of the lab | English |
    | `labmanager` | Eng. Karim, the lab manager who gives out the work | English |
    | `labsec` | the lab's secretary | Arabic |
-   | `designer` | Dr. Ahmed Moharram, a designer who works only for the lab (new) | English |
-   | `supervisor` | Dr. Khaled Mansour, a CIA supervisor: approves and grades the work of his days (new) | English |
+   | `designer` | Dr. Ahmed Moharram, a designer who works only for the lab | English |
+   | `supervisor` | Dr. Khaled Mansour, a CIA supervisor: approves and grades the work of his days | English |
 
    The 4 course candidates (batch IMP-2026-A) and the training dentist have no login, as agreed; the other
    supervisors and instructors are chosen by name.
@@ -1058,6 +1108,7 @@ See **[docs/deployment.md](docs/deployment.md)** for these topics:
   - `static/js/app.js` adds the motion, the loading line, the tooltips, the rows that open from anywhere, and the sticky *Save*.
   - Page hints are in `apps/core/hints.py`, keyed by the page's address name, with a text per role where needed.
     The bottom bar of each role is in `apps/core/navigation.py`.
+- Check every page as every login (sample data or a test copy): `DJANGO_DEBUG=1 python manage.py check_pages`.
 - Run the tests: `DJANGO_DEBUG=1 python manage.py test apps` (as GitHub does on every push; test files import with
   `apps.…`, not relative imports), or list the modules:
   ```bash

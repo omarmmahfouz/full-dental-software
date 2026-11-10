@@ -21,7 +21,7 @@
   </dl></div></div></div>
   <div class="col-lg-7"><div class="card h-100"><div class="table-responsive"><table class="table mb-0">
     <thead><tr><th>{% trans "Item" %}</th><th>{% trans "Quantity given back" %}</th><th>{% trans "Unit price" %}</th><th>{% trans "Total" %}</th></tr></thead>
-    <tbody>{% for line in lines %}<tr><td>{{ line.item.description }}{% if line.item.stock_item %} <a class="small" href="{{ line.item.stock_item.get_absolute_url }}"><i class="bi bi-box-seam"></i> {% trans "stock" %}</a>{% endif %}</td><td>{{ line.quantity|floatformat:"-2" }} {{ line.item.unit }}</td><td>{{ line.item.unit_price|money }}</td><td class="fw-semibold">{{ line.total|money }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for line in lines %}<tr><td>{{ line.item.description }}{% if line.item.stock_item and can_stock %} <a class="small" href="{{ line.item.stock_item.get_absolute_url }}"><i class="bi bi-box-seam"></i> {% trans "stock" %}</a>{% endif %}</td><td>{{ line.quantity|floatformat:"-2" }} {{ line.item.unit }}</td><td>{{ line.item.unit_price|money }}</td><td class="fw-semibold">{{ line.total|money }}</td></tr>{% endfor %}</tbody>
   </table></div></div></div>
 </div>
 {% if ret.status == "waiting" %}
