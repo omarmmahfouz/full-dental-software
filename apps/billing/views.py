@@ -46,7 +46,8 @@ from .forms import (
     chosen_places,
 )
 from .models import (
-    Bill, DayClosing, FawryMachine, FawryMove, PatientPayment, Service, account, bill_totals, create_bill, paid_services,
+    Bill, DayClosing, FawryMachine, FawryMove, PatientPayment, Service, account, bill_totals, bills_left, create_bill,
+    paid_services,
 )
 
 
@@ -421,10 +422,9 @@ def bill_pay(request, pk):
     bill = get_object_or_404(Bill, pk=pk)
     pay = PayNowForm(request.POST or None, prefix="pay")
     if request.method == "POST" and pay.is_valid() and pay.cleaned_data.get("amount"):
-        payment = PatientPayment.objects.create(
-            patient=bill.patient, bill=bill, amount=pay.cleaned_data["amount"], method=pay.cleaned_data["method"],
-            reference=pay.cleaned_data.get("reference", ""), created_by=request.user, branch=bill.branch,
-            fawry_machine=pay.cleaned_data.get("fawry_machine"))
+        from .receipts import pay_bill
+
+        payment = pay_bill(bill, pay.cleaned_data, request.user)
         messages.success(request, _("Payment saved: %(amount)s (%(method)s). Receipt %(number)s.") % {
             "amount": f"{payment.amount:,.2f}", "method": payment.get_method_display(), "number": payment.receipt_number})
         return redirect(payment)
@@ -446,8 +446,14 @@ def bill_list(request):
     data = form.cleaned_data if form.is_valid() else {}
     date_from, date_to = data.get("date_from") or today, data.get("date_to") or today
     shown = chosen_places(form, places, here)
-    bills = list(Bill.objects.filter(billed_on__range=(date_from, date_to), branch__in=shown)
-                 .select_related("patient", "dentist", "branch"))
+    bills = Bill.objects.filter(billed_on__range=(date_from, date_to), branch__in=shown)
+    if data.get("source"):  # e.g. the dentists' bills: with "not fully paid", what the reception still collects
+        bills = bills.filter(source=data["source"])
+    if data.get("unpaid"):
+        # Read lightly which bills still have money left, then read in full only those (a year of bills stays quick).
+        owed = [pk for pk, left in bills_left(bills.order_by().values_list("pk", "patient_id")).items() if left > 0]
+        bills = Bill.objects.filter(pk__in=owed)
+    bills = list(bills.select_related("patient", "dentist", "branch"))
     rows, all_totals = [], bill_totals(bills)
     for bill in bills:
         totals = all_totals[bill.pk]

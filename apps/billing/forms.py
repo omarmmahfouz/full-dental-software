@@ -8,7 +8,7 @@ from apps.core.forms import BootstrapFormMixin, StyledForm, StyledModelForm
 from apps.dentists.forms import DentistChoiceField
 from apps.patients.forms import PatientLookupField, lookup_value
 
-from .models import Charge, FawryMachine, FawryMove, OwnerCash, PatientPayment, Service
+from .models import Bill, Charge, FawryMachine, FawryMove, OwnerCash, PatientPayment, Service
 
 NEEDS_REFERENCE = (PaymentMethod.INSTAPAY, PaymentMethod.WALLET, PaymentMethod.BANK, PaymentMethod.BANK_DEPOSIT,
                    PaymentMethod.CHEQUE)
@@ -232,10 +232,13 @@ class PayNowForm(StyledForm):
 class BillFilterForm(StyledForm):
     date_from = forms.DateField(label=_("From"), required=False)
     date_to = forms.DateField(label=_("To"), required=False)
+    source = forms.ChoiceField(label=_("made by"), required=False,
+                               choices=[("", _("Everyone")), *Bill.Source.choices])
     unpaid = forms.BooleanField(label=_("not fully paid"), required=False)
 
     def __init__(self, *args, places=(), current=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["source"].widget.attrs["class"] = "form-select"
         add_place_filter(self, places, current)
 
 

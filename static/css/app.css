@@ -2219,3 +2219,12 @@ details.card.is-needed { border-color: var(--bs-warning); box-shadow: 0 0 0 2px 
 .stamp-box { width: 7rem; height: 7rem; border: 1px dashed var(--ink-3, #adb5bd); border-radius: 50%; display: grid;
   place-items: center; font-size: .7rem; color: var(--ink-3, #6c757d); text-align: center; }
 @media print { .consent-paper { border: 0; box-shadow: none; } }
+
+/* The checkout (round 18): what is still to do before the patient goes, at a glance. */
+.checkout-state { display: flex; flex-wrap: wrap; gap: .5rem; }
+.checkout-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .8rem; border-radius: 999px;
+  border: 1px solid var(--bs-border-color); background: var(--bs-body-bg); font-size: .95rem; }
+.checkout-chip.is-done { color: var(--bs-success-text-emphasis); background: var(--bs-success-bg-subtle); border-color: var(--bs-success-border-subtle); }
+.checkout-chip.is-open { color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle); border-color: var(--bs-warning-border-subtle); font-weight: 600; }
+.checkout-chip.is-note { color: var(--bs-info-text-emphasis); background: var(--bs-info-bg-subtle); border-color: var(--bs-info-border-subtle); }
+.checkout-pay { padding: .75rem; border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); }

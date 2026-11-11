@@ -139,15 +139,17 @@ def dashboard(request):
         context["tests_to_call"] = list(recalls_due(here)[:6])
         context["tests_to_call_count"] = recalls_due(here).count() if len(context["tests_to_call"]) == 6 \
             else len(context["tests_to_call"])
-        from apps.billing.models import Bill, bill_totals
+        from apps.billing.models import RECENT_BILL_DAYS, Bill, bill_totals, old_doctor_bills
 
-        since = today - timedelta(days=30)
+        since = today - timedelta(days=RECENT_BILL_DAYS)
         doctor_bills = list(Bill.objects.filter(branch=branch, source=Bill.Source.DENTIST, billed_on__gte=since)
                             .select_related("patient", "dentist").order_by("-billed_on", "-pk")[:200])
         left = bill_totals(doctor_bills)
         context["doctor_bills"] = [{"bill": b, "left": left[b.pk]["left"]} for b in doctor_bills
                                    if left[b.pk]["left"] > 0][:8]
         context["doctor_bills_from"] = since
+        # The older ones not collected do not drop out of sight after a month (round 18): counted under the card.
+        context["old_doctor_bills"] = old_doctor_bills(branch, today)
         labs = LabRequest.objects.filter(patient__branch=branch)
         context["lab_to_send"] = labs.filter(status=LabRequest.Status.APPROVED).count()
         context["lab_overdue"] = labs.filter(status=LabRequest.Status.SENT, due_date__lt=today).count()

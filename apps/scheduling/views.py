@@ -280,7 +280,6 @@ def today_board(request):
             room.next_in = next((a for a in here if a.status in Appointment.WAITING_STATUSES + (Appointment.Status.ARRIVED,)
                                  and a.scheduled_end >= now), None)
     left_rows = _left_without_next(appointments) if day == timezone.localdate() else []
-    just_left = next((row for row in left_rows if str(row["appointment"].pk) == request.GET.get("left")), None)
     from apps.billing.models import Bill, bill_totals
 
     to_collect = []
@@ -296,7 +295,6 @@ def today_board(request):
             "bills_to_collect": to_collect,
             "checked": checked,
             "left_rows": left_rows,
-            "just_left": just_left,
             "day": day,
             "is_today": day == timezone.localdate(),
             "prev_day": day - timedelta(days=1),
@@ -407,8 +405,13 @@ def appointment_action(request, pk):
     )
     if action == "late":  # book the patient another time straight away
         return redirect(_booking_url(appointment))
-    if action == "leave" and not appointment.other_upcoming().exists():
-        return redirect(f"{reverse('scheduling:today')}?left={appointment.pk}")
+    if action == "leave":
+        # Round 18: the checkout, when there is something to do before he goes (money left on today's bills, the
+        # next visit to book, a prescription to hand); else straight back to the board.
+        from .checkout import has_something
+
+        if has_something(appointment):
+            return redirect("scheduling:checkout", appointment.pk)
     return redirect(_safe_next(request, reverse("scheduling:today")))
 
 
@@ -486,9 +489,15 @@ def appointment_create(request):
     at = parse_datetime(request.GET.get("at") or "")
     if at is not None:
         initial["scheduled_at"] = timezone.make_aware(at) if timezone.is_naive(at) else at
+    else:
+        # Round 18: the form opens on today (the day's bookings show at once), the time still to choose.
+        initial["scheduled_at"] = timezone.localdate().strftime("%d/%m/%Y")
     for name in ("room", "dentist"):
         if request.GET.get(name, "").isdigit():
             initial[name] = int(request.GET[name])
+    if "dentist" not in initial and patient is not None and patient.assigned_dentist_id and \
+            Dentist.objects.working_at(branch).filter(pk=patient.assigned_dentist_id).exists():
+        initial["dentist"] = patient.assigned_dentist_id  # his dentist's day and free times show at once
     if request.GET.get("duration", "").isdigit():  # booking from a dentist's patient list
         initial["duration_minutes"] = int(request.GET["duration"])
     if request.GET.get("purpose"):
@@ -529,11 +538,13 @@ def appointment_create(request):
                 message += " " + _("%(n)s other appointments cancelled.") % {"n": len(cancel)}
             if appointment.status != Appointment.Status.PENDING:
                 messages.success(request, message)
+            if request.GET.get("checkout", "").isdigit():  # booked from a checkout: back to it, the visit shown
+                return redirect("scheduling:checkout", int(request.GET["checkout"]))
             return redirect(appointment)
     return render(
         request, "scheduling/appointment_form.html",
         {"form": form, "title": _("Book appointment"), "cancel_url": reverse("scheduling:day_planner"),
-         "others": others},
+         "others": others, "auto_free": request.method == "GET" and at is None},
     )
 
 

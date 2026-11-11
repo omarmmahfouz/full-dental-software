@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import bulk, drafts, patient_requests, views, waiting, whatsapp_requests
+from . import bulk, checkout, drafts, patient_requests, views, waiting, whatsapp_requests
 
 app_name = "scheduling"
 
@@ -17,6 +17,7 @@ urlpatterns = [
     path("appointments/<int:pk>/", views.appointment_detail, name="appointment_detail"),
     path("appointments/<int:pk>/edit/", views.appointment_update, name="appointment_update"),
     path("appointments/<int:pk>/action/", views.appointment_action, name="appointment_action"),
+    path("appointments/<int:pk>/checkout/", checkout.checkout, name="checkout"),
     path("appointments/<int:pk>/times/", views.appointment_times, name="appointment_times"),
     path("appointments/<int:pk>/move/", views.appointment_reschedule, name="appointment_reschedule"),
     path("appointments/<int:pk>/doctor/", views.appointment_change_dentist, name="appointment_change_dentist"),

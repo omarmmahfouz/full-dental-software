@@ -51,12 +51,14 @@ HINTS = {
                             "into a patient file in one click."),
     "patients:calllist_list": _("Lists of patients to call, sent by the dentists or the heads. Open a list, call each "
                                 "patient and write the answer."),
-    "scheduling:today": _("Tap Arrived when the patient comes in, then In the room and Left. "
-                          "The panel at the top follows the clock of this computer."),
+    "scheduling:today": _("Tap Arrived when the patient comes in, then In the room and Left. Left opens the "
+                          "checkout when there is money to collect or a next visit to book."),
+    "scheduling:checkout": _("Before the patient goes: collect what is left on today's bill here, then book the "
+                             "next visit (the dentist's note is beside it). Done takes you back to the reception."),
     "scheduling:day_planner": _("One column per room (or per doctor: By doctor), in 15-minute steps. Tap a green "
                                 "place to book it, or tap a booking to open it."),
-    "scheduling:appointment_create": _("Choose the patient and the dentist, then tap a green place in the day grid "
-                                       "under the form, or use Nearest free times."),
+    "scheduling:appointment_create": _("The form opens on today with the nearest free times listed: tap one, or tap "
+                                       "a green place in the day grid under the form, or choose another day."),
     "scheduling:appointment_list": {
         "dentist": _("Your appointments. Tap one to open the visit page and record what was done."),
         "default": _("Filter by day, dentist or status. Tap an appointment to open it."),

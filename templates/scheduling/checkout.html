@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Checkout" %} — {{ patient.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="mb-0"><i class="bi bi-box-arrow-right"></i> {% trans "Checkout" %}: <a href="{{ patient.get_absolute_url }}">{{ patient.full_name }}</a> <small class="text-muted fs-6">{{ patient.file_number }}</small></h1>
+    <div class="text-muted small">{{ a.scheduled_at|date:"l d/m/Y g:i A" }}{% if a.dentist %} · {{ a.dentist }}{% endif %}{% if a.room %} · {{ a.room }}{% endif %} {% status_badge a %} <a class="ltr ms-2" href="tel:{{ patient.preferred_number }}">{{ patient.preferred_number }}</a></div>
+  </div>
+  <a class="btn {% if all_done %}btn-primary{% else %}btn-outline-secondary{% endif %}" href="{% url 'scheduling:today' %}"><i class="bi bi-display"></i> {% trans "Done: back to the reception" %}</a>
+</div>
+
+<div class="checkout-state mb-3 no-print">
+  <span class="checkout-chip {% if money_done %}is-done{% else %}is-open{% endif %}"><i class="bi {% if money_done %}bi-check-circle-fill{% else %}bi-cash-coin{% endif %}"></i> {% if money_done %}{% trans "Nothing left to collect today" %}{% else %}{% trans "To collect now" %}: <b>{{ to_collect|money }}</b>{% endif %}</span>
+  <span class="checkout-chip {% if needs_booking %}is-open{% else %}is-done{% endif %}"><i class="bi {% if needs_booking %}bi-calendar-plus{% else %}bi-check-circle-fill{% endif %}"></i> {% if upcoming %}{% trans "Next visit booked" %}{% elif a.no_follow_up %}{% trans "No next visit needed" %}{% else %}{% trans "Next visit not booked yet" %}{% endif %}</span>
+  {% if prescriptions %}<span class="checkout-chip is-note"><i class="bi bi-capsule"></i> {% trans "A prescription to hand over" %}</span>{% endif %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3 {% if not money_done %}border-warning{% endif %}">
+      <div class="card-header d-flex flex-wrap justify-content-between gap-2"><span><i class="bi bi-cash-coin"></i> {% trans "The money of this visit" %}</span>
+        {% if "billing" not in hidden_areas %}<a class="small" href="{% url 'billing:account' patient.pk %}">{% trans "Patient account" %}</a>{% endif %}</div>
+      {% for row in bills %}
+      <div class="card-body border-bottom">
+        <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
+          <span><a href="{{ row.bill.get_absolute_url }}"><b>{{ row.bill.number }}</b></a>{% if row.bill.dentist %} <span class="small text-muted">{{ row.bill.dentist }}</span>{% endif %}{% if row.bill.notes %} <span class="small text-muted">· {{ row.bill.notes }}</span>{% endif %}</span>
+          <span class="small">{% trans "Net" %} <b>{{ row.net|money }}</b> · {% trans "Paid" %} <b class="text-success">{{ row.paid|money }}</b> · {% trans "Left" %} <b class="{% if row.left > 0 %}text-danger{% else %}text-success{% endif %}">{{ row.left|money }}</b></span>
+        </div>
+        {% if row.form %}
+        <form method="post" class="checkout-pay mt-2 no-print" novalidate>{% csrf_token %}
+          <input type="hidden" name="bill" value="{{ row.bill.pk }}">
+          {% with form=row.form %}{% include "includes/form_fields.html" %}{% endwith %}
+          <button class="btn btn-success mt-2"><i class="bi bi-check2-circle"></i> {% trans "Collect" %}</button>
+        </form>
+        {% endif %}
+      </div>
+      {% empty %}
+      <div class="card-body">
+        {% if no_bill %}<div class="text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> {% trans "Work was recorded today but no bill was written for it." %}</div>
+        {% else %}<div class="text-muted">{% trans "No bill for this visit." %}</div>{% endif %}
+        {% if "billing" not in hidden_areas %}<a class="btn btn-outline-success mt-2" href="{% url 'billing:bill_create' %}?appointment={{ a.pk }}"><i class="bi bi-receipt"></i> {% trans "New bill" %}</a>{% endif %}
+      </div>
+      {% endfor %}
+      {% if before > 0 %}<div class="card-footer small"><i class="bi bi-hourglass-bottom text-danger"></i> {% blocktrans with amount=before|money %}He also owes {{ amount }} from earlier visits.{% endblocktrans %} {% if "billing" not in hidden_areas %}<a href="{% url 'billing:account' patient.pk %}">{% trans "Collect it from his account" %}</a>{% endif %}</div>{% endif %}
+      {% if receipts %}<div class="list-group list-group-flush">
+        {% for receipt in receipts %}<a class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-2 small" href="{{ receipt.get_absolute_url }}">
+          <span><i class="bi bi-printer"></i> {% trans "Receipt" %} <b>{{ receipt.receipt_number }}</b>{% if receipt.is_cancelled %} <span class="badge text-bg-secondary">{% trans "cancelled" %}</span>{% endif %} · {{ receipt.get_method_display }}</span>
+          <b class="{% if receipt.amount < 0 %}text-danger{% else %}text-success{% endif %}">{{ receipt.amount|money }}</b></a>{% endfor %}
+      </div>{% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3 {% if needs_booking %}border-info{% endif %}">
+      <div class="card-header"><i class="bi bi-calendar-plus"></i> {% trans "The next visit" %}</div>
+      <div class="card-body">
+        {% if next_visit %}<div class="mb-2">{% trans "The dentist wrote for the next visit" %}: <b>{{ next_visit }}</b></div>{% endif %}
+        {% if asked %}<div class="mb-2 small"><i class="bi bi-person-lines-fill"></i> {% blocktrans with dentist=asked.dentist %}{{ dentist }} asked for him{% endblocktrans %}: <b>{{ asked.step_type|default:"" }}</b> <span class="ltr">{{ asked.teeth }}</span> · {{ asked.time_given }} {% trans "min" %}{% if asked.status == "proposed" %} <span class="badge text-bg-light border">{% trans "waiting for the supervisor" %}</span>{% endif %}</div>{% endif %}
+        {% for next in upcoming %}
+        <a class="d-block mb-1" href="{{ next.get_absolute_url }}"><i class="bi bi-check-circle-fill text-success"></i> <b>{{ next.scheduled_at|date:"l d/m/Y g:i A" }}</b>{% if next.dentist %} · {{ next.dentist }}{% endif %}{% if next.room %} · {{ next.room }}{% endif %}</a>
+        {% empty %}
+          {% if a.no_follow_up %}<div class="text-muted"><i class="bi bi-check-circle-fill text-success"></i> {% trans "No next visit needed" %}</div>
+          {% elif not next_visit and not asked %}<div class="text-muted small mb-2">{% trans "The dentist wrote nothing for a next visit. Ask the patient, or the dentist." %}</div>{% endif %}
+        {% endfor %}
+        <div class="d-flex flex-wrap gap-2 mt-3 no-print">
+          <a class="btn {% if needs_booking %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ book_url }}"><i class="bi bi-calendar-plus"></i> {% if upcoming %}{% trans "Book another visit" %}{% else %}{% trans "Book the next visit" %}{% endif %}</a>
+          {% if needs_booking %}<form method="post" action="{% url 'scheduling:appointment_action' a.pk %}" data-no-leave-warning>{% csrf_token %}<input type="hidden" name="next" value="{% url 'scheduling:checkout' a.pk %}"><button name="action" value="no_follow_up" class="btn btn-outline-secondary">{% trans "No next visit needed" %}</button></form>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-list-check"></i> {% trans "Done at this visit" %}</div>
+      <ul class="list-group list-group-flush small">
+        {% for step in steps %}<li class="list-group-item"><i class="bi bi-check2 text-success"></i> {{ step.step_type }} <span class="ltr">{{ step.teeth }}</span>{% if step.operator %} <span class="text-muted">· {{ step.operator }}</span>{% endif %}</li>
+        {% empty %}<li class="list-group-item text-muted">{% trans "Nothing is written for this visit yet." %}</li>{% endfor %}
+        {% for prescription in prescriptions %}{% if "prescriptions" not in hidden_areas %}<a class="list-group-item list-group-item-action" href="{{ prescription.get_absolute_url }}"><i class="bi bi-capsule text-success"></i> {% trans "Prescription" %}: {% trans "print it for the patient" %} <i class="bi bi-printer"></i></a>{% else %}<li class="list-group-item"><i class="bi bi-capsule"></i> {% trans "Prescription" %}</li>{% endif %}{% endfor %}
+      </ul>
+    </div>
+    {% if alerts %}<div class="small"><i class="bi bi-heart-pulse text-danger"></i> {% for item in alerts %}<span class="medical-alert py-0">{{ item }}</span> {% endfor %}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

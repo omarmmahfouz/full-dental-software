@@ -316,9 +316,9 @@ class ClinicSettings(models.Model):
         _("log out after (minutes without use)"), default=60,
         help_text=_("A PC left open closes its session by itself. 0 = never."))
     force_strong_passwords = models.BooleanField(
-        _("people with an easy password must change it"), default=False,
+        _("people with an easy password must change it"), default=True,
         help_text=_("At their next login, people whose password is short, common or like their username choose a "
-                    "new one."))
+                    "new one, once. Unticked: only a reminder shows at the top of their pages."))
     one_device_per_login = models.BooleanField(
         _("one device per login"), default=True,
         help_text=_("A login opened on a second PC or tablet logs out the first one (it is told why)."))

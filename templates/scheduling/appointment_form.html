@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header"><h1>{{ title }}</h1></div>
 <div class="card mb-3"><div class="card-body">
-  <form method="post" novalidate id="appointment-form" data-free-url="{% url 'scheduling:free_times' %}" data-day-url="{% url 'scheduling:dentist_day' %}" data-prefs-url="{% url 'patients:prefs' %}"{% if form.instance.pk %} data-exclude="{{ form.instance.pk }}"{% endif %}>
+  <form method="post" novalidate id="appointment-form" data-free-url="{% url 'scheduling:free_times' %}" data-day-url="{% url 'scheduling:dentist_day' %}" data-prefs-url="{% url 'patients:prefs' %}"{% if form.instance.pk %} data-exclude="{{ form.instance.pk }}"{% endif %}{% if auto_free %} data-auto-free{% endif %}>
     {% csrf_token %}
     {% if others %}
     <div class="alert alert-warning others-check" role="alert">
@@ -153,9 +153,19 @@
         if (prefs) prefsBox.querySelector("span").textContent = prefs.text;
         form.querySelector("[data-fits-box]").hidden = !(prefs && (prefs.days.length || prefs.times.length));
         checkPrefs();
+        autoFind();
       });
   }
+  // Round 18: a new booking opens on today with the nearest free times already listed (of his dentist when the
+  // patient is chosen): one tap takes a time, instead of choosing a date first to see anything.
+  var autoFree = form.hasAttribute("data-auto-free");
+  function autoFind() {
+    if (!autoFree || !timeSelect || timeSelect.value) return;
+    autoFree = false;
+    form.querySelector("[data-find-free]").click();
+  }
   if (patientBox) { patientBox.addEventListener("change", loadPrefs); loadPrefs(); }
+  if (!patientBox || !patientBox.value.trim()) window.setTimeout(autoFind, 0);
   dateInput.addEventListener("change", checkPrefs);
   if (timeSelect) timeSelect.addEventListener("change", checkPrefs);
 

@@ -150,6 +150,13 @@ class AppointmentForm(StyledModelForm):
                 if c[0] in (Appointment.Status.SCHEDULED, Appointment.Status.CONFIRMED) or c[0] == self.instance.status
             ]
 
+    def clean_scheduled_at(self):
+        start = self.cleaned_data.get("scheduled_at")
+        # The day without a time arrives as midnight (the list of times starts at 7:00): the time was not chosen.
+        if start is not None and timezone.localtime(start).time() == time(0):
+            raise forms.ValidationError(_("Choose the time of the appointment."))
+        return start
+
     def clean(self):
         data = super().clean()
         patient = data.get("patient_lookup") or (self.instance.patient if self.instance.pk else None)

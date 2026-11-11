@@ -1261,6 +1261,8 @@ class SecurityTests(TestCase):
     def test_easy_passwords_are_noted_and_may_be_forced_to_change(self):
         from apps.core.models import ClinicSettings
 
+        self.assertTrue(ClinicSettings.get().force_strong_passwords)  # round 18: on from the start
+        ClinicSettings.objects.update(force_strong_passwords=False)  # a clinic that only reminds
         self.secretary.set_password("demo12345")
         self.secretary.save()
         self.client.post("/login/", {"username": "sec", "password": "demo12345"})
@@ -1274,6 +1276,12 @@ class SecurityTests(TestCase):
         options.save()
         self.client.post("/login/", {"username": "sec", "password": "demo12345"})
         self.assertRedirects(self.client.get("/"), "/password/")
+        page = self.client.get("/password/")
+        self.assertEqual((page.context["forced"], page.context["was_easy"]), (True, True))  # the page says why
+        # Another easy one is refused here, or she would be sent back at every login.
+        again = self.client.post("/password/", {"old_password": "demo12345", "new_password1": "cia12345",
+                                                "new_password2": "cia12345"})
+        self.assertIn("new_password2", again.context["form"].errors)
         self.client.post("/password/", {"old_password": "demo12345", "new_password1": "Reception-2026-strong",
                                         "new_password2": "Reception-2026-strong"})
         self.secretary.profile.refresh_from_db()

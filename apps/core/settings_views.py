@@ -299,6 +299,10 @@ class UserForm(StyledForm):
     is_active = forms.BooleanField(label=gettext_lazy("can log in"), required=False, initial=True)
     new_password = forms.CharField(label=gettext_lazy("new password"), required=False,
                                    help_text=gettext_lazy("Leave empty to keep the password (a new person gets one made up)."))
+    choose_own = forms.BooleanField(
+        label=gettext_lazy("chooses their own password at the first login"), required=False, initial=True,
+        help_text=gettext_lazy("You know the password you give: at the first login the person must choose one that "
+                               "only they know. Untick only for a login several people share."))
     places = forms.ModelMultipleChoiceField(
         label=gettext_lazy("works at"), required=False, widget=forms.CheckboxSelectMultiple,
         queryset=Branch.objects.filter(is_active=True).order_by("sort_order", "pk"),
@@ -319,7 +323,8 @@ class UserForm(StyledForm):
                                  widget=TimeSelect())
 
     fieldsets = [
-        (gettext_lazy("Person"), ["username", "first_name", "roles", "places", "is_active", "new_password", "dentist"]),
+        (gettext_lazy("Person"), ["username", "first_name", "roles", "places", "is_active", "new_password",
+                                  "choose_own", "dentist"]),
         (gettext_lazy("Access limits"), ["read_only", "access_from", "access_until", "access_days", "access_start",
                                          "access_end"]),
     ]
@@ -436,6 +441,9 @@ def user_edit(request, pk=None):
                 from .security import is_easy, log_event
 
                 profile.weak_password = is_easy(data["new_password"], target)
+            if password and target.pk != request.user.pk:
+                # A password the owner gave (typed or made up): the person chooses their own at the first login.
+                profile.must_change_password = bool(data.get("choose_own"))
                 log_event(SecurityEvent.Kind.PASSWORD_GIVEN, request, user=target,
                           details=_("set in People and logins by %(owner)s") % {"owner": request.user.get_username()})
             if target.pk == request.user.pk and OWNER not in data["roles"] and not target.is_superuser:
@@ -466,6 +474,8 @@ def user_edit(request, pk=None):
         text = _("Saved.")
         if password:
             text += " " + _("Password: %(p)s (write it down now; it will not be shown again).") % {"p": password}
+            if profile.must_change_password:
+                text += " " + _("At the first login they choose their own password.")
         messages.success(request, text)
         return redirect("settings:users")
     return render(request, "settings/user_form.html", {"form": form, "target": target})

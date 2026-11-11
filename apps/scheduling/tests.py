@@ -113,12 +113,15 @@ class ReceptionBoardTests(TestCase):
         url = f"/schedule/appointments/{walk_in.pk}/action/"
         self.client.post(url, {"action": "enter", "room": self.room.pk})
         response = self.client.post(url, {"action": "leave"})
-        self.assertRedirects(response, f"/schedule/today/?left={walk_in.pk}", fetch_redirect_response=False)
-        page = self.client.get(f"/schedule/today/?left={walk_in.pk}")
-        self.assertEqual(page.context["just_left"]["appointment"], walk_in)
-        self.assertIn(f"patient={self.patient.pk}", page.context["just_left"]["book_url"])
+        checkout = f"/schedule/appointments/{walk_in.pk}/checkout/"  # round 18: the checkout, not a strip on the board
+        self.assertRedirects(response, checkout, fetch_redirect_response=False)
+        page = self.client.get(checkout)
+        self.assertEqual((page.context["a"], page.context["needs_booking"]), (walk_in, True))
+        self.assertIn(f"patient={self.patient.pk}", page.context["book_url"])
+        self.assertIn(f"checkout={walk_in.pk}", page.context["book_url"])
         self.client.post(url, {"action": "no_follow_up"})
         self.assertEqual(self.client.get("/schedule/today/").context["left_rows"], [])
+        self.assertTrue(self.client.get(checkout).context["all_done"])
 
     def test_late_patient_not_seen_and_waiting_from_the_appointment_time(self):
         start = timezone.now().replace(second=0, microsecond=0) - timedelta(minutes=40)

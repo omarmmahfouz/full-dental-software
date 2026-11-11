@@ -254,6 +254,7 @@ class PatientPayment(TimeStampedModel):
             if not self.receipt_number:
                 self.receipt_number = f"PR-{self.pk:06d}"
                 type(self).objects.filter(pk=self.pk).update(receipt_number=self.receipt_number)
+        forget_old_bills(self.branch_id)  # the count of the old bills not collected is read again
 
 
 class PaymentLog(models.Model):
@@ -493,6 +494,56 @@ def bill_totals(bills):
                  "left": c.net - paid[bill.patient_id].get(c.pk, Decimal("0"))} for c in lines.get(bill.pk, [])]
         result[bill.pk] = Bill.totals_of(rows)
     return result
+
+
+def bills_left(bills):
+    """What is left to pay on each bill, read lightly: {bill pk: left}. ``bills`` is [(bill pk, patient pk)]."""
+    bills = list(bills)
+    patient_of = dict(bills)
+    paid = paid_by_charge(set(patient_of.values()))
+    left = {pk: Decimal("0") for pk in patient_of}
+    for chunk in _in_chunks(patient_of):
+        for pk, bill_id, price, percent in Charge.objects.filter(bill_id__in=chunk).order_by().values_list(
+                "pk", "bill_id", "price", "discount_percent"):
+            left[bill_id] += _net(price, percent) - paid[patient_of[bill_id]].get(pk, Decimal("0"))
+    return left
+
+
+# The reception's home page lists the dentists' bills of the last 30 days; the older ones not collected are counted
+# under them (round 18), back to a year: older money is the owner's to decide.
+RECENT_BILL_DAYS = 30
+OLD_BILL_DAYS = 365
+_OLD_BILLS_SECONDS = 600
+
+
+def _old_bills_key(branch_id):
+    return f"old-doctor-bills-{branch_id}"
+
+
+def old_doctor_bills(branch, today=None):
+    """The dentists' bills of a place written more than 30 days ago (and less than a year) that are still not fully
+    paid: {"count", "left", "date_from", "date_to"}. Kept for ten minutes (a payment saved forgets it at once): it
+    is on the reception's home page and reads every such bill."""
+    from datetime import timedelta
+
+    from django.core.cache import cache
+
+    today = today or timezone.localdate()
+    date_from, date_to = today - timedelta(days=OLD_BILL_DAYS), today - timedelta(days=RECENT_BILL_DAYS + 1)
+    key = _old_bills_key(getattr(branch, "pk", None))
+    kept = cache.get(key)
+    if kept is None or kept["date_to"] != date_to:
+        bills = Bill.objects.filter(branch=branch, source=Bill.Source.DENTIST, billed_on__range=(date_from, date_to))
+        owed = [left for left in bills_left(bills.order_by().values_list("pk", "patient_id")).values() if left > 0]
+        kept = {"count": len(owed), "left": sum(owed, Decimal("0")), "date_from": date_from, "date_to": date_to}
+        cache.set(key, kept, _OLD_BILLS_SECONDS)
+    return kept
+
+
+def forget_old_bills(branch_id):
+    from django.core.cache import cache
+
+    cache.delete(_old_bills_key(branch_id))
 
 
 def create_bill(patient, lines, user, billed_on=None, appointment=None, dentist=None,

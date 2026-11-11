@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_not_required
+from django.contrib.auth.forms import PasswordChangeForm
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -90,10 +91,36 @@ def refuse_password(request, pk):
     return redirect(reverse("settings:users") + "#password-requests")
 
 
+class OwnPasswordForm(PasswordChangeForm):
+    """The new password is not an easy one when the clinic asks for strong passwords: or the person would be sent
+    back here at every login."""
+
+    def clean(self):
+        from .models import ClinicSettings
+        from .security import is_easy
+
+        data = super().clean()
+        password = self.cleaned_data.get("new_password1")
+        if password and not self.errors and ClinicSettings.get().force_strong_passwords \
+                and is_easy(password, self.user):
+            self.add_error("new_password2", _("This password is too easy to guess: use at least 8 letters and "
+                                              "numbers, not like the username."))
+        return data
+
+
 class PasswordChange(auth_views.PasswordChangeView):
-    """The usual page to change one's password; it also ends the "must choose a new password" of a temporary one."""
+    """The usual page to change one's password; it also ends the "must choose a new password" of a temporary one
+    or of an easy one (round 18: an easy password is changed once at the login, by default)."""
 
     success_url = reverse_lazy("password_change_done")
+    form_class = OwnPasswordForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = getattr(self.request.user, "profile", None)
+        context["forced"] = must_change(self.request.user)
+        context["was_easy"] = bool(profile is not None and profile.weak_password)
+        return context
 
     def form_valid(self, form):
         from .models import SecurityEvent

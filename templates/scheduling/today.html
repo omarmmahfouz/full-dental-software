@@ -38,17 +38,6 @@
   <a class="small" href="{% url 'scheduling:today' %}">{% trans "Keep them as they are" %}</a>
 </div>
 {% endif %}
-{% if just_left %}
-<div class="alert alert-info no-print" role="alert">
-  <div class="fw-semibold"><i class="bi bi-calendar-plus"></i> {% blocktrans with name=just_left.appointment.patient.full_name %}{{ name }} left without a next appointment.{% endblocktrans %}</div>
-  {% if just_left.next_visit %}<div class="small">{% trans "The dentist wrote for the next visit" %}: <b>{{ just_left.next_visit }}</b></div>{% endif %}
-  <div class="d-flex gap-2 mt-2">
-    <a class="btn btn-sm btn-primary" href="{{ just_left.book_url }}">{% trans "Book the next visit" %}</a>
-    <form method="post" action="{% url 'scheduling:appointment_action' just_left.appointment.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'scheduling:today' %}"><button name="action" value="no_follow_up" class="btn btn-sm btn-outline-secondary">{% trans "No next visit needed" %}</button></form>
-  </div>
-</div>
-{% endif %}
-
 {% if is_today and appointments %}
 <div class="card mb-3 no-print now-panel" data-late="{{ late_threshold }}">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -120,6 +109,7 @@
           <button name="action" value="leave" class="btn btn-sm btn-success">{% trans "Left" %}</button>
         {% endif %}
         {% if a.status == "arrived" or a.status == "in_room" or a.status == "completed" %}<a class="btn btn-sm btn-outline-success" href="{% url 'billing:bill_create' %}?appointment={{ a.pk }}" title="{% trans 'New bill' %}"><i class="bi bi-receipt"></i></a>{% endif %}
+        {% if a.status == "completed" %}<a class="btn btn-sm btn-outline-primary" href="{% url 'scheduling:checkout' a.pk %}" title="{% trans 'Checkout: collect and book the next visit' %}"><i class="bi bi-box-arrow-right"></i> {% trans "Checkout" %}</a>{% endif %}
         {% if a.status != "scheduled" %}<button name="action" value="undo" class="btn btn-sm btn-link text-secondary" title="{% trans 'Undo last step' %}" data-confirm="{% trans 'Undo the last step?' %}"><i class="bi bi-arrow-counterclockwise"></i></button>{% endif %}
       </form>
     </td>

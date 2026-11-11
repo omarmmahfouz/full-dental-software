@@ -168,15 +168,18 @@
   </div>
   {% endif %}
 
-  {% if doctor_bills %}
+  {% if doctor_bills or old_doctor_bills.count %}
   <div class="col-lg-6">
     <div class="card h-100 border-warning">
-      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-receipt"></i> {% trans "Doctors' bills to collect" %}</span><a href="{% url 'billing:bill_list' %}?unpaid=on&amp;date_from={{ doctor_bills_from|date:'d/m/Y' }}" class="small">{% trans "All" %}</a></div>
+      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-receipt"></i> {% trans "Doctors' bills to collect" %}</span><a href="{% url 'billing:bill_list' %}?unpaid=on&amp;source=dentist&amp;date_from={{ doctor_bills_from|date:'d/m/Y' }}" class="small">{% trans "All" %}</a></div>
       <div class="list-group list-group-flush">
         {% for row in doctor_bills %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ row.bill.get_absolute_url }}">
           <span>{{ row.bill.patient.full_name }} <span class="small text-muted">{{ row.bill.number }} · {{ row.bill.dentist|default:"" }}</span></span>
-          <b class="text-danger">{{ row.left|money }}</b></a>{% endfor %}
+          <b class="text-danger">{{ row.left|money }}</b></a>{% empty %}<div class="list-group-item text-muted small">{% trans "Nothing to collect from the last 30 days." %}</div>{% endfor %}
       </div>
+      {% if old_doctor_bills.count %}<a class="card-footer d-flex flex-wrap justify-content-between gap-2 small text-decoration-none old-bills" href="{% url 'billing:bill_list' %}?unpaid=on&amp;source=dentist&amp;date_from={{ old_doctor_bills.date_from|date:'d/m/Y' }}&amp;date_to={{ old_doctor_bills.date_to|date:'d/m/Y' }}">
+        <span><i class="bi bi-hourglass-bottom text-danger"></i> {% blocktrans count n=old_doctor_bills.count %}{{ n }} older bill (more than 30 days) is still not collected{% plural %}{{ n }} older bills (more than 30 days) are still not collected{% endblocktrans %}</span>
+        <b class="text-danger">{{ old_doctor_bills.left|money }}</b></a>{% endif %}
     </div>
   </div>
   {% endif %}

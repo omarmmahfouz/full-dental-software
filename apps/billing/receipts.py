@@ -25,6 +25,14 @@ from .models import Bill, PatientPayment, PaymentLog
 ZERO = Decimal("0")
 
 
+def pay_bill(bill, data, user):
+    """A payment taken for a bill at the desk (the bill's page, the checkout): ``data`` is a valid ``PayNowForm``."""
+    return PatientPayment.objects.create(
+        patient=bill.patient, bill=bill, amount=data["amount"], method=data["method"],
+        reference=data.get("reference", ""), created_by=user, branch=bill.branch,
+        fawry_machine=data.get("fawry_machine"))
+
+
 def can_change(user, payment):
     """The owner and the head of CIA change any receipt; the reception the receipts of today."""
     if has_role(user, OWNER, HEAD_CIA):
