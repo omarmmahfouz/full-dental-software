@@ -26,7 +26,7 @@
     </dl>
   </div></div></div>
   <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-grid-3x2"></i> {% trans "The occlusion" %}</div><div class="card-body small">
-    <table class="table table-sm mb-2"><thead><tr><th></th><th>{% trans "Right" %}</th><th>{% trans "Left" %}</th></tr></thead>
+    <table class="table table-sm mb-2"><thead><tr><th></th><th>{% trans "Right" %}</th><th>{% trans "Left" context "side" %}</th></tr></thead>
       <tbody><tr><th>{% trans "Molars" %}</th><td>{{ case.get_molar_right_display|default:"—" }}</td><td>{{ case.get_molar_left_display|default:"—" }}</td></tr>
       <tr><th>{% trans "Canines" %}</th><td>{{ case.get_canine_right_display|default:"—" }}</td><td>{{ case.get_canine_left_display|default:"—" }}</td></tr></tbody></table>
     <dl class="dl-grid">

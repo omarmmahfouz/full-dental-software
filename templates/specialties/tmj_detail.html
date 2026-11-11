@@ -34,7 +34,7 @@
     </dl>
   </div></div></div>
   <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="bi bi-soundwave"></i> {% trans "The joints" %}</div><div class="card-body small">
-    <table class="table table-sm mb-2"><thead><tr><th></th><th>{% trans "Right" %}</th><th>{% trans "Left" %}</th></tr></thead>
+    <table class="table table-sm mb-2"><thead><tr><th></th><th>{% trans "Right" %}</th><th>{% trans "Left" context "side" %}</th></tr></thead>
       <tbody><tr><th>{% trans "Sounds" %}</th><td>{{ exam.get_sound_right_display|default:"—" }}</td><td>{{ exam.get_sound_left_display|default:"—" }}</td></tr>
       <tr><th>{% trans "Tender" %}</th><td>{% if exam.joint_tender_right %}<i class="bi bi-circle-fill text-danger"></i>{% else %}—{% endif %}</td><td>{% if exam.joint_tender_left %}<i class="bi bi-circle-fill text-danger"></i>{% else %}—{% endif %}</td></tr></tbody></table>
     <div><b>{% trans "Locking" %}:</b> {{ exam.get_locking_display|default:"—" }}</div>

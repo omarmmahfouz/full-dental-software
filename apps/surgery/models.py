@@ -7,6 +7,7 @@ from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import pgettext_lazy
 from django.utils.translation import ngettext
 
 from apps.charting.teeth import TOOTH_CHOICES
@@ -851,7 +852,7 @@ class ImplantComplication(TimeStampedModel):
     # A nerve injury
     nerve = models.CharField(_("nerve"), max_length=14, choices=Nerve.choices, blank=True)
     side = models.CharField(_("side"), max_length=6, blank=True,
-                            choices=[("right", _("Right")), ("left", _("Left")), ("both", _("Both"))])
+                            choices=[("right", _("Right")), ("left", pgettext_lazy("side", "Left")), ("both", _("Both"))])
     area = models.CharField(_("area felt (lip, chin, tongue, cheek...)"), max_length=150, blank=True)
     sensory_test = models.CharField(_("sensory tests (two points, brush, pin, hot / cold)"), max_length=255,
                                     blank=True)

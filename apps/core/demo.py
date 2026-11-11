@@ -698,3 +698,57 @@ def load_round_seventeen(today, owner):
         due_date=today + timedelta(days=6), status=LabRequest.Status.PENDING_REVIEW, created_by=owner)
     LabRequestEvent.objects.create(request=lab_request, action=LabRequestEvent.Action.CREATED, by=owner)
     perform_lab_action(lab_request, "approve", owner)
+
+
+def load_round_eighteen(today, owner):
+    """Round 18 sample data: a patient in a room now with a treatment, the dentist's note for the next visit and the
+    dentist's bill (press Left: the checkout opens), two dentists' bills of 45 and 120 days ago never collected (the
+    line under the reception's card), and the sample logins keep their easy password (the forced change is unticked
+    here; a real clinic has it ticked)."""
+    from datetime import timedelta
+    from decimal import Decimal
+
+    from django.utils import timezone
+
+    from apps.billing.models import Bill, Service, create_bill
+    from apps.clinical.models import TreatmentStep, TreatmentStepType
+    from apps.scheduling.models import Appointment
+
+    from .models import Branch, ClinicSettings
+
+    ClinicSettings.objects.update(force_strong_passwords=False)
+    cia = Branch.objects.filter(code="CIA").first()
+    services = list(Service.for_place(cia).filter(is_active=True, price__gt=0).order_by("pk")[:3])
+    if cia is None or not services:
+        return
+    now = timezone.now()
+    start = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
+    todays = Appointment.objects.filter(branch=cia, dentist__isnull=False, scheduled_at__gte=start,
+                                        scheduled_at__lt=start + timedelta(days=1)).select_related("patient", "dentist")
+    visit = todays.filter(status=Appointment.Status.IN_ROOM).first() or todays.exclude(
+        status__in=(Appointment.Status.COMPLETED, Appointment.Status.CANCELLED, Appointment.Status.NO_SHOW)).first()
+    if visit is not None:
+        if visit.status != Appointment.Status.IN_ROOM:
+            visit.mark_arrived(now - timedelta(minutes=50))
+            visit.mark_entered_room(now - timedelta(minutes=35))
+            visit.save()
+        step_type = TreatmentStepType.objects.filter(is_active=True).order_by("pk").first()
+        TreatmentStep.objects.create(
+            patient=visit.patient, appointment=visit, operator=visit.dentist, step_type=step_type, teeth="36",
+            performed_at=now - timedelta(minutes=10), next_visit="Crown preparation 36, in a week (45 minutes)",
+            created_by=visit.dentist.user or owner)
+        create_bill(visit.patient, [{"service": services[0], "teeth": "36"}], visit.dentist.user or owner,
+                    appointment=visit, dentist=visit.dentist, source=Bill.Source.DENTIST,
+                    notes="Collect at the checkout")
+    # Two dentists' bills never collected: older than the 30 days of the reception's card.
+    older = Appointment.objects.filter(branch=cia, dentist__isnull=False, status=Appointment.Status.COMPLETED,
+                                       patient__branch=cia).select_related("patient", "dentist").order_by("pk")
+    seen = {visit.patient_id} if visit is not None else set()
+    for days_ago, service in ((45, services[-1]), (120, services[0])):
+        past = next((a for a in older if a.patient_id not in seen), None)
+        if past is None:
+            break
+        seen.add(past.patient_id)
+        create_bill(past.patient, [{"service": service, "price": service.price or Decimal("400")}],
+                    past.dentist.user or owner, billed_on=today - timedelta(days=days_ago), dentist=past.dentist,
+                    source=Bill.Source.DENTIST, notes="Not collected yet")

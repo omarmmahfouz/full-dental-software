@@ -162,3 +162,8 @@ In the sample data:
 8. `labsec`, `labmanager`, `designer`: *Report a problem* → **Up** goes to the home page, not to a closed page.
 9. A clinic's reception is told about its **own** lab work only: when the lab delivers a case of a CIA patient, CIA's
    reception gets *Lab work … is ready: book the patient for the fitting*; El Khadem's reception does not.
+
+## O. New in this version (18)
+10. `labsec`, `designer`: with **people with an easy password must change it** ticked by the owner (unticked in the
+    sample data), a login with an easy password chooses a new one once, then works as before. Nothing else changed
+    at the lab in this round.

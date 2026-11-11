@@ -25,7 +25,7 @@
       <div class="card-body border-bottom">
         <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
           <span><a href="{{ row.bill.get_absolute_url }}"><b>{{ row.bill.number }}</b></a>{% if row.bill.dentist %} <span class="small text-muted">{{ row.bill.dentist }}</span>{% endif %}{% if row.bill.notes %} <span class="small text-muted">· {{ row.bill.notes }}</span>{% endif %}</span>
-          <span class="small">{% trans "Net" %} <b>{{ row.net|money }}</b> · {% trans "Paid" %} <b class="text-success">{{ row.paid|money }}</b> · {% trans "Left" %} <b class="{% if row.left > 0 %}text-danger{% else %}text-success{% endif %}">{{ row.left|money }}</b></span>
+          <span class="small">{% trans "Net" %} <b>{{ row.net|money }}</b> · {% trans "Paid" %} <b class="text-success">{{ row.paid|money }}</b> · {% trans "Remaining" %} <b class="{% if row.left > 0 %}text-danger{% else %}text-success{% endif %}">{{ row.left|money }}</b></span>
         </div>
         {% if row.form %}
         <form method="post" class="checkout-pay mt-2 no-print" novalidate>{% csrf_token %}

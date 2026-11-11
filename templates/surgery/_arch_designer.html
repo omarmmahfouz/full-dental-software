@@ -18,10 +18,10 @@ It fills the tooth cards below; the pontics go in the hidden "pontics" field.{% 
     {% for name, label in addons %}<button type="button" class="arch-tool arch-addon" data-tool="{{ name }}"><span class="arch-swatch sw-addon">{{ label|slice:":1" }}</span> {{ label }}</button>{% endfor %}
   </div>
   <div class="arch-board" role="group" aria-label="{% trans 'The teeth' %}">
-    <div class="arch-side"><span>{% trans "Right" %}</span><span>{% trans "Upper" %}</span><span>{% trans "Left" %}</span></div>
+    <div class="arch-side"><span>{% trans "Right" %}</span><span>{% trans "Upper" %}</span><span>{% trans "Left" context "side" %}</span></div>
     <div class="arch-row" data-jaw="upper"></div>
     <div class="arch-row" data-jaw="lower"></div>
-    <div class="arch-side"><span>{% trans "Right" %}</span><span>{% trans "Lower" %}</span><span>{% trans "Left" %}</span></div>
+    <div class="arch-side"><span>{% trans "Right" %}</span><span>{% trans "Lower" %}</span><span>{% trans "Left" context "side" %}</span></div>
   </div>
   <div class="arch-summary" data-arch-summary aria-live="polite"></div>
   <div class="arch-actions">

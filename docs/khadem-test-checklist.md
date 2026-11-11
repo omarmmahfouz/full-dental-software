@@ -203,3 +203,11 @@ In the sample data:
    missing: Dr. …*), not to the head of CIA; a visit of your own is only your reminder, not a warning about yourself.
 10. `endo`: *Room schedule*: the link **The day by doctor** is not shown to a doctor (it answered *not allowed*);
     `khadem` and `amr` still have it.
+
+## R. New in this version (18): the five workflow points
+11. `khadem`: *Calls today*: El Khadem's calls in one queue (its call lists, its calls for a new test, the patients
+    its doctors asked for); CIA's and CIC's are not here.
+12. `khadem`: a patient in a room → **Left**: the **Checkout**: the specialist's bill to collect and the next visit
+    to book in a free room (the booking comes back to the checkout).
+13. `khadem`: *Book appointment* opens on today with the nearest free times; a referral booked from *Referrals* still
+    opens filled as before.

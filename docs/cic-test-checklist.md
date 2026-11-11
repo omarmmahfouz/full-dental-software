@@ -170,3 +170,12 @@ The steps of El Khadem are in **[khadem-test-checklist.md](khadem-test-checklist
     read once for all the doctors). A doctor's row agrees with his statement.
 65. `cicdoctor`: *My shares* → **Up** goes to the home page (the list of doctors is the manager's); a bill of his →
     **Up** goes to the home page too.
+
+## R. New in this version (18): the five workflow points
+66. `secretary` → switch to **CIC**: *Calls today* shows CIC's calls only (CIA's are at CIA); an answer saved here
+    never touches another place's list.
+67. `secretary` at CIC: a patient *in the room* → **Left**: the **Checkout** with the bill of the visit: collect on
+    the second Fawry machine (choose *Fawry machine* then the machine), the receipt is listed under it; the doctor's
+    share follows the payment as before.
+68. `moderator` / `owner`: the home page at CIC → *Doctors' bills to collect*: the older bills not collected are
+    counted under the card; *Bills → made by: Dentist, not fully paid* lists them for any period.

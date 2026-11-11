@@ -43,33 +43,75 @@ The language follows the person, not the PC:
 
 ## What it does
 
-### New in this version: round 17, the revision (new)
+### New in this version: round 18, the five workflow points (new)
+The owner asked for the five suggestions of the revision. The steps to try are in every checklist, in its last
+section (the secretary's **AC**, the dentists' and the owner's **AB**, the stock manager's **V**, CIC's **R**,
+El Khadem's **R**, the lab's **O**).
+1. **One page for the calls of today (new)**: *Patients → Calls today* (and the tile and the card of the reception's
+   home page) puts in one queue the four lists that were on four pages: the **new callers** (not patients yet), the
+   **calls for a new test**, the **call lists** sent by the dentists and the heads, and the **patients a dentist asked
+   for**. The longest waiting comes first, with *waiting 6 days* in red. Each row has the mobile (tap to call),
+   WhatsApp, **Book**, a box for what he said, the day to call again, and the usual answers: *No answer* brings him
+   back tomorrow (in two days for a test), *Call back later* in three days (or the day written), and a final answer
+   (*Not interested*, *He does not want to*, *Cannot come*) takes him off after asking once. The tabs show one kind
+   with its number; each kind keeps its own page for the rest (writing a test's result, a new list). The home page
+   has **one** card *Calls today* instead of three cards and a tile, and the menu shows the number.
+2. **The checkout: one screen when the patient leaves (new)**: *Left* on the reception's board opens **Checkout**:
+   - **The money of this visit**: each bill of today with net, paid and remaining, and under it a small form to
+     **collect** (the amount is filled with what is left; cash, Fawry, card…): the page stays, the receipt is listed
+     to print. *He also owes 400 from earlier visits* links to his account; work recorded with no bill is pointed out.
+   - **The next visit**: what the dentist wrote for it, or the request he put on his list, beside **Book the next
+     visit** (the form opens filled, and comes back to the checkout when saved) and *No next visit needed*.
+   - **Done at this visit** and the prescription to print for him.
+
+   It opens only when there is something to do (money left, a visit to book, a prescription): else *Left* stays on
+   the board. A finished visit keeps a **Checkout** button on the board.
+3. **Booking opens on today (new)**: *Book appointment* no longer starts with an empty date: the day is today (its
+   bookings show under the form), the patient's dentist is chosen with his room and his times of today, and the
+   **nearest free times** are already listed: one tap takes one. A day saved without a time is asked for its time
+   (it was booked at midnight).
+4. **Dentists' bills never collected stay in sight (new)**: the card *Doctors' bills to collect* showed the last 30
+   days only, so an older bill disappeared. A line under it now says **2 older bills (more than 30 days) are still
+   not collected: 500.00** and opens them (back to a year). *Bills* has a new filter **made by** (the reception / the
+   dentist), and *not fully paid* over a long period opens quickly.
+5. **An easy password is changed once (new)**: someone whose password is easy to guess (short, common, like the
+   username) is sent at the next login to choose a new one, **once**; the page says why and refuses another easy
+   one. It was a yellow reminder on every page that nobody acted on. A login **the owner makes** (or a password he
+   gives) is ticked *chooses their own password at the first login*: nobody keeps a password the owner knows; untick
+   it for a login several people share. *Settings → Clinic options → people with an easy password must change it* is
+   now **ticked** (untick it to go back to the reminder). The sample data unticks it, so the sample logins keep
+   `demo12345`.
+6. **Arabic: "remaining" and "left side" (new)**: the word *Left* was one word for "the patient left", "the money
+   left" and "the left side", so the Arabic bills list and patient account said *انصرف* above the money still to pay.
+   The money is now **المتبقي** and the side **يسار**.
+
+### Round 17, the revision: links that open, news to the right place, quick with 10,000 patients
 No new list this time: the whole system was gone over for mistakes, slowness and repetition. Every page was opened as
 each of the 18 sample logins (2,613 openings), then again with **10,000 made-up patients**, and 800 pages in a real
 browser at tablet width. The steps to try are in every checklist, in its last section (the secretary's **AB**, the
 dentists' and the owner's **AA**, the stock manager's **U**, CIC's **Q**, El Khadem's **Q**, the lab's **N**).
-1. **“Up” never opens a closed page (new)**: *Up* goes to the page above that this person can open. A doctor on his
+1. **“Up” never opens a closed page**: *Up* goes to the page above that this person can open. A doctor on his
    own page went up to the list of dentists and got *not allowed*; the same from *My shares*, a bill, *Report a
    problem* and the referrals. It now passes over such a page (in the end, the home page).
-2. **No button that answers “not allowed” (new)**: *Book the next check* shows only to who books; the stock link on a
+2. **No button that answers “not allowed”**: *Book the next check* shows only to who books; the stock link on a
    purchase or a return only to who opens the stock; *The day by doctor* only to who opens the day planner; on a
    dentist's page a case of another place has no link (its place is written; the name shows only to someone who also
    works there).
-3. **A page of another of your places offers the switch (new)**: a lab request, a bill, a chart or a visit of a CIC
+3. **A page of another of your places offers the switch**: a lab request, a bill, a chart or a visit of a CIC
    patient opened while working at CIA (e.g. from the bell) now shows **Work at CIC and open the file** instead of
    *not allowed*. Someone who does not work there is still refused.
-4. **News goes to the people of the patient's place (new)**: *send it to the lab*, *the lab work is ready*, *lab work
+4. **News goes to the people of the patient's place**: *send it to the lab*, *the lab work is ready*, *lab work
    is late* and *patients to call* went to every reception, so El Khadem's reception was told about CIA's patients,
    which she cannot open. They now go to the reception of the patient's place. A visit left without notes is told to
    the heads of the visit's place (El Khadem's to Dr. Amr, CIA's to the head of CIA and the team head), never to the
    doctor about himself, and not to a supervisor who only grades.
-5. **A dentist's home opens on his own day (new)**: *My visits today*, *Arrived, waiting for me*, *My patients under
+5. **A dentist's home opens on his own day**: *My visits today*, *Arrived, waiting for me*, *My patients under
    treatment* and *My open lab requests* replace the clinic's totals, which he does not act on. *My patients* now
    opens his patients (it opened everyone's).
-6. **Less repetition on the forms (new)**: the patient chosen is no longer written a second time under the patient
+6. **Less repetition on the forms**: the patient chosen is no longer written a second time under the patient
    box (booking, treatment, surgery, bill, complaint). The tooth chart on the visit page fits its card (half of it
    was hidden, to scroll sideways).
-7. **Quick with 10,000 patients (new)**, measured on a test copy (SQLite, an ordinary PC):
+7. **Quick with 10,000 patients**, measured on a test copy (SQLite, an ordinary PC):
 
    | Page | Before | Now |
    |---|---|---|
@@ -86,10 +128,10 @@ dentists' and the owner's **AA**, the stock manager's **U**, CIC's **Q**, El Kha
    doctors; lists show the first rows and count the rest; two new indexes (a dentist's visits by day, a place's
    newest patients). The numbers of the doctors' shares were compared with the old way on every doctor: the same to
    the piastre.
-8. **A test that only passed in its month (new)**: one test used a fixed date and failed a month later, so GitHub
+8. **A test that only passed in its month**: one test used a fixed date and failed a month later, so GitHub
    showed a red mark on every push. Fixed; the whole suite was also run with the clock moved 200 days ahead. There are
-   now 461 tests.
-9. **A check that can be run again (new)**: `python manage.py check_pages` (on the sample data or a test copy) opens
+   then 461 tests (480 after round 18).
+9. **A check that can be run again**: `python manage.py check_pages` (on the sample data or a test copy) opens
    every page each login reaches by its links and names the links that answer *not allowed*, the pages that stop
    with an error and the heavy pages. It found 48 such links before this revision; it now finds none.
 

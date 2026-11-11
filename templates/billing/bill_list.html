@@ -9,7 +9,7 @@
   <button class="btn btn-outline-primary">{% trans "Show" %}</button>
 </div></form>
 <div class="card"><div class="table-responsive"><table class="table align-middle mb-0">
-  <thead><tr><th>{% trans "Bill" %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Made by" %}</th><th class="text-end">{% trans "Net" %}</th><th class="text-end">{% trans "Paid" %}</th><th class="text-end">{% trans "Left" %}</th></tr></thead>
+  <thead><tr><th>{% trans "Bill" %}</th><th>{% trans "Date" %}</th><th>{% trans "Patient" %}</th><th>{% trans "Dentist" %}</th><th>{% trans "Made by" %}</th><th class="text-end">{% trans "Net" %}</th><th class="text-end">{% trans "Paid" %}</th><th class="text-end">{% trans "Remaining" %}</th></tr></thead>
   <tbody>{% for r in page_obj %}<tr>
     <td><a href="{{ r.bill.get_absolute_url }}">{{ r.bill.number }}</a>{% if places_shown|length > 1 %} <span class="place-badge place-{{ r.bill.branch.code }}">{{ r.bill.branch.badge }}</span>{% endif %}</td><td>{{ r.bill.billed_on|date:"d/m/Y" }}</td>
     <td><a href="{{ r.bill.patient.get_absolute_url }}">{{ r.bill.patient.full_name }}</a></td><td>{{ r.bill.dentist|default:"—" }}</td>

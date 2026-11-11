@@ -529,3 +529,26 @@ No new list: the system was gone over for mistakes, slowness and repetition.
 220. `supervisor` (grades only): no *Write the visit notes* reminder about visits he cannot open.
 221. `owner` with many patients (a test copy: `python manage.py fill_big_data`): the home page, *Patients*, *Medical
      follow-up* and *Clinics → Doctors* open in under a second.
+
+## AB. New in this version (18): the five workflow points
+222. `secretary`: the home page → the tile **Calls today** (or *Patients → Calls today*): one queue of the new
+     callers, the calls for a new test, the call lists and the patients a dentist asked for, the longest waiting
+     first. *No answer* on a row: he leaves today's calls and comes back tomorrow; the numbers go down at once.
+223. `dentist1`: *My patient list (for the reception)*: a patient you asked for and the head approved shows in the
+     reception's **Calls today** as *Asked for by a dentist* with your name, the step and the minutes; *Cannot come*
+     there tells you, as before.
+224. `secretary`: *Reception* → the patient **in the room** (the sample: with Dr. Sherif Nabil) → **Left**: the
+     **Checkout** opens: the dentist's bill with **Collect** under it, and *The dentist wrote for the next visit:
+     Crown preparation 36…* beside **Book the next visit**. Collect, book: both stay on this page.
+225. `dentist2` (Dr. Sherif): record a treatment for a visit and write **Next visit** in it, or add a bill: this is
+     what the reception sees on the checkout when your patient leaves. A dentist does not open the checkout.
+226. `secretary`: *Book appointment* from a patient's file: today, his dentist, the dentist's times of today and the
+     nearest free times are already there.
+227. `secretary` or `owner`: the home page → *Doctors' bills to collect* → the line **2 older bills (more than 30
+     days) are still not collected**: opens *Bills* filtered on the dentists' bills not fully paid.
+228. `owner`: *Settings → People and logins → Add*: **chooses their own password at the first login** is ticked:
+     log in as the new person: she must choose her own password before anything else, once. Untick it for a shared
+     login.
+229. `owner`: *Settings → Clinic options*: **people with an easy password must change it** (unticked in the sample
+     data): tick it, log in as `dentist1` with `demo12345`: the password page opens with the reason; an easy
+     password is refused. Untick it again to keep the sample logins.
