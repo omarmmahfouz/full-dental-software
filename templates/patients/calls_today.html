@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n clinic %}
+{% block title %}{% trans "Calls today" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-telephone-outbound"></i> {% trans "Calls today" %} <span class="badge text-bg-{% if counts.total %}danger{% else %}success{% endif %}">{{ counts.total }}</span></h1>
+  <span class="text-muted small">{{ today|date:"l d/m/Y" }}</span>
+</div>
+
+<div class="place-tabs mb-3 no-print">
+  <a class="btn btn-sm {% if not kind %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{% url 'patients:calls_today' %}">{% trans "All" %} <span class="badge text-bg-light">{{ counts.total }}</span></a>
+  {% for tab in tabs %}<a class="btn btn-sm {% if kind == tab.code %}btn-primary{% else %}btn-outline-primary{% endif %}" href="?kind={{ tab.code }}"><i class="bi {{ tab.icon }}"></i> {{ tab.label }} <span class="badge text-bg-light">{{ tab.count }}</span></a>{% endfor %}
+</div>
+
+<div class="card">
+  <div class="list-group list-group-flush">
+    {% for row in page_obj %}
+    <div class="list-group-item call-row" id="call-{{ row.key }}">
+      <div class="d-flex flex-wrap justify-content-between gap-2">
+        <span class="d-flex flex-wrap align-items-center gap-2">
+          <span class="call-kind kind-{{ row.kind }}"><i class="bi {{ row.icon }}"></i> {{ row.label }}</span>
+          <a href="{{ row.url }}"><b>{{ row.name }}</b></a>{% if row.file %} <span class="small text-muted">{{ row.file }}</span>{% endif %}
+          <a class="ltr fw-semibold" href="tel:{{ row.phone }}"><i class="bi bi-telephone"></i> {{ row.phone }}</a>
+        </span>
+        <span class="small text-muted">{% if row.late %}<span class="badge text-bg-danger">{% blocktrans count n=row.late %}waiting {{ n }} day{% plural %}waiting {{ n }} days{% endblocktrans %}</span>{% else %}<span class="badge text-bg-light border">{% trans "today" %}</span>{% endif %}</span>
+      </div>
+      <div class="small mt-1">{{ row.why }}{% if row.last %} · <span class="text-muted">{% trans "last call" %}: <b>{{ row.last }}</b>{% if row.calls %} ({{ row.calls }}){% endif %}</span>{% endif %}{% if row.note %} · <span class="text-muted">{{ row.note }}</span>{% endif %}</div>
+      <div class="call-actions no-print">
+        {% if row.book_post %}<form method="post" action="{{ row.book_post }}" data-no-leave-warning>{% csrf_token %}<button class="btn btn-sm btn-primary"><i class="bi bi-calendar-plus"></i> {% trans "Book" %}</button></form>
+        {% elif row.book_url %}<a class="btn btn-sm btn-primary" href="{{ row.book_url }}"><i class="bi bi-calendar-plus"></i> {% trans "Book" %}</a>
+        {% elif row.result_url %}<a class="btn btn-sm btn-success" href="{{ row.result_url }}"><i class="bi bi-clipboard2-pulse"></i> {% trans "He did it: write the result" %}</a>{% endif %}
+        {% if row.whatsapp %}<a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" href="{{ row.whatsapp }}"><i class="bi bi-whatsapp"></i> {% trans "WhatsApp" %}</a>{% endif %}
+        <form method="post" action="{% url 'patients:calls_answer' %}" class="recall-answer mt-0" data-no-leave-warning>{% csrf_token %}
+          <input type="hidden" name="kind" value="{{ row.kind }}"><input type="hidden" name="pk" value="{{ row.pk }}"><input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <input class="form-control form-control-sm" name="note" maxlength="255" placeholder="{% trans 'What he said (optional)' %}" aria-label="{% trans 'What he said (optional)' %}">
+          <input class="form-control form-control-sm js-date recall-next" name="next_on" placeholder="{% trans 'call again on (optional)' %}" aria-label="{% trans 'call again on (optional)' %}" autocomplete="off" dir="ltr">
+          {% for code, label, final in row.answers %}<button class="btn btn-sm {% if final %}btn-outline-secondary{% else %}btn-outline-primary{% endif %}" name="outcome" value="{{ code }}"{% if final %} data-confirm="{% trans 'He will not be called again. Save this answer?' %}"{% endif %}>{{ label }}</button>{% endfor %}
+        </form>
+        {% if row.more_url %}<a class="btn btn-sm btn-link" href="{{ row.more_url }}">{% trans "More answers" %}</a>{% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="list-group-item text-center py-4"><i class="bi bi-check2-all text-success fs-3"></i><div class="fw-semibold">{% trans "Nobody to call now." %}</div></div>
+    {% endfor %}
+  </div>
+  {% if not_shown %}<div class="card-footer small text-muted">{% blocktrans with n=not_shown %}{{ n }} more are not shown here: open one kind above, or its own page.{% endblocktrans %}</div>{% endif %}
+</div>
+{% include "includes/pagination.html" %}
+
+<div class="d-flex flex-wrap gap-2 mt-3 small no-print">
+  <span class="text-muted">{% trans "The page of each kind (everything, also what is not due today)" %}:</span>
+  {% for tab in tabs %}<a href="{{ tab.page }}"><i class="bi {{ tab.icon }}"></i> {{ tab.label }}</a>{% endfor %}
+</div>
+{% endblock %}

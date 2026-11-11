@@ -782,6 +782,11 @@ class SpeedTests(TestCase):
         ("secretary", "/schedule/surgery-drafts/", 40),
         ("owner", "/purchases/suppliers/", 40),
         ("owner", "/academy/courses/new/", 40),
+        # Round 18
+        ("secretary", "/patients/calls-today/", 40),
+        ("secretary", "/patients/calls-today/?kind=test", 40),
+        ("secretary", f"/billing/bills/?unpaid=on&source=dentist&{PERIOD}", 40),
+        ("secretary", "/schedule/appointments/new/", 50),
     ]
 
     @classmethod
@@ -828,11 +833,15 @@ class SpeedTests(TestCase):
         self.assertEqual(self.added["lab cases"], 300)
         patient = Patient.objects.order_by("-pk").first()
         lab_case = LabCase.objects.exclude(step="delivered").order_by("-pk").first()
+        from apps.scheduling.models import Appointment
+
+        visit = Appointment.objects.filter(status="completed", branch__code="CIA", patient__branch__code="CIA").first()
         pages = self.PAGES + [("secretary", f"/patients/{patient.pk}/", 60),
                               ("secretary", f"/billing/patient/{patient.pk}/", 60),
                               ("dentist", f"/chart/patient/{patient.pk}/photos/", 60),
                               ("dentist", f"/chart/patient/{patient.pk}/case-report/?per_page=4", 80),
                               ("owner", f"/lab/cases/{lab_case.pk}/", 40),
+                              ("secretary", f"/schedule/appointments/{visit.pk}/checkout/", 60),
                               ("dentist", f"/patients/{patient.pk}/", 80)]
         for username, url, budget in pages:
             with self.subTest(user=username, page=url):
@@ -2000,3 +2009,50 @@ class RevisionTests(TestCase):
         self.assertIn("for 2 login(s): 0 with a problem", out.getvalue())
         with self.assertRaises(CommandError):  # never on the clinic's real database by mistake
             call_command("check_pages", stdout=io.StringIO())
+
+
+class Round18PasswordTests(TestCase):
+    """Round 18: a login the owner makes chooses its own password at the first login, and an easy password is
+    changed once at the login (it was a reminder on every page)."""
+
+    def setUp(self):
+        setup_clinic()
+        self.owner = make_user("owner", "owner")
+        self.client.login(username="owner", password=PASSWORD)
+
+    def make_login(self, username, password, **more):
+        return self.client.post("/settings/users/new/", {
+            "username": username, "first_name": username, "roles": ["secretary"], "is_active": "on",
+            "new_password": password, **more})
+
+    def test_a_login_the_owner_makes_chooses_its_own_password(self):
+        from apps.core.models import UserProfile
+
+        self.make_login("mona", "Reception-2026-first", choose_own="on")
+        self.assertTrue(UserProfile.objects.get(user__username="mona").must_change_password)
+        self.make_login("desk", "Reception-2026-shared")  # a login several people share: left as it is
+        self.assertFalse(UserProfile.objects.get(user__username="desk").must_change_password)
+        self.assertTrue(self.client.get("/settings/users/new/").context["form"].fields["choose_own"].initial)
+        # At her first login she is sent to choose her own, once.
+        self.client.post("/login/", {"username": "mona", "password": "Reception-2026-first"})
+        self.assertRedirects(self.client.get("/"), "/password/")
+        page = self.client.get("/password/")
+        self.assertEqual((page.context["forced"], page.context["was_easy"]), (True, False))
+        self.client.post("/password/", {"old_password": "Reception-2026-first", "new_password1": "Quiet-river-2026",
+                                        "new_password2": "Quiet-river-2026"})
+        self.assertEqual(self.client.get("/").status_code, 200)
+        self.assertFalse(UserProfile.objects.get(user__username="mona").must_change_password)
+
+    def test_the_owners_own_password_and_an_easy_one(self):
+        from apps.core.models import ClinicSettings, UserProfile
+
+        # The owner changing his own password here is not sent to choose again.
+        self.client.post(f"/settings/users/{self.owner.pk}/", {
+            "username": "owner", "first_name": "owner", "roles": ["owner"], "is_active": "on",
+            "new_password": "Owner-2026-strong-x", "choose_own": "on"})
+        self.assertFalse(UserProfile.objects.get(user=self.owner).must_change_password)
+        self.client.login(username="owner", password="Owner-2026-strong-x")
+        # An easy password is refused for a new login while the clinic asks for strong ones (the default).
+        self.assertTrue(ClinicSettings.get().force_strong_passwords)
+        response = self.make_login("easy", "demo12345")
+        self.assertIn("new_password", response.context["form"].errors)

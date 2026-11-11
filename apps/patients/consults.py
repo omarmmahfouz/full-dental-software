@@ -223,6 +223,25 @@ def recall_result(request, pk):
     return _back_to_calls(request)
 
 
+def save_recall_answer(recall, outcome, note, next_on, user):
+    """Write the answer of a call for a new test: he will do it (asked again in two weeks), no answer (again in
+    two days), or the day given; he did it or he does not want to closes the call."""
+    today = timezone.localdate()
+    recall.calls += 1
+    recall.last_outcome, recall.last_call_at, recall.last_call_by = outcome, timezone.now(), user
+    note = (note or "").strip()
+    if note:
+        recall.notes = note[:255]
+    if outcome == MedicalRecall.Outcome.DONE:
+        recall.status = MedicalRecall.Status.DONE
+    elif outcome == MedicalRecall.Outcome.REFUSED:
+        recall.status = MedicalRecall.Status.STOPPED
+    else:
+        recall.due_on = next_on if next_on and next_on > today else today + timedelta(days=NEXT_CALL[outcome])
+    recall.save()
+    return recall
+
+
 @require_POST
 @role_required(*PATIENT_VIEWERS)
 def recall_call(request, pk):
@@ -234,20 +253,8 @@ def recall_call(request, pk):
     if outcome not in MedicalRecall.Outcome.values:
         messages.error(request, _("Choose what the patient said."))
         return _back_to_calls(request)
-    today = timezone.localdate()
-    recall.calls += 1
-    recall.last_outcome, recall.last_call_at, recall.last_call_by = outcome, timezone.now(), request.user
-    note = (request.POST.get("notes") or "").strip()
-    if note:
-        recall.notes = note[:255]
-    if outcome == MedicalRecall.Outcome.DONE:
-        recall.status = MedicalRecall.Status.DONE
-    elif outcome == MedicalRecall.Outcome.REFUSED:
-        recall.status = MedicalRecall.Status.STOPPED
-    else:
-        next_on = parse_date_text(request.POST.get("next_on", ""))
-        recall.due_on = next_on if next_on and next_on > today else today + timedelta(days=NEXT_CALL[outcome])
-    recall.save()
+    save_recall_answer(recall, outcome, request.POST.get("notes"), parse_date_text(request.POST.get("next_on", "")),
+                       request.user)
     if outcome == MedicalRecall.Outcome.DONE:
         messages.success(request, _("Write the new result of %(name)s in the medical history: the call is closed.")
                          % {"name": patient.full_name})

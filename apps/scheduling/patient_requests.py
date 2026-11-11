@@ -165,19 +165,24 @@ def reception_requests(request):
         "groups": groups.items(), "elsewhere": [(place, n) for place, n in elsewhere if n]})
 
 
-@role_required(*FRONT_DESK)
-@require_POST
-def request_cannot_come(request, pk):
-    item = get_object_or_404(PatientRequest.objects.select_related("dentist__user", "patient"), pk=pk,
-                             status=PatientRequest.Status.APPROVED)
+def mark_cannot_come(item, note=""):
+    """The patient a dentist asked for cannot come: the dentist is told, the reception calls his backup list."""
     item.status = PatientRequest.Status.CANNOT_COME
-    item.reception_note = request.POST.get("note", "").strip()[:255]
+    item.reception_note = (note or "").strip()[:255]
     item.save(update_fields=["status", "reception_note", "updated_at"])
     if item.dentist.user_id:
         notify_users([item.dentist.user], gettext_lazy("%(patient)s cannot come"),
                      gettext_lazy("The reception will call the next patient of your backup list."),
                      reverse("scheduling:requests_mine"), Notification.Level.WARNING,
                      params={"patient": item.patient.full_name})
+
+
+@role_required(*FRONT_DESK)
+@require_POST
+def request_cannot_come(request, pk):
+    item = get_object_or_404(PatientRequest.objects.select_related("dentist__user", "patient"), pk=pk,
+                             status=PatientRequest.Status.APPROVED)
+    mark_cannot_come(item, request.POST.get("note", ""))
     messages.success(request, _("Saved. Call the next patient of the backup list."))
     return redirect("scheduling:requests_reception")
 
@@ -194,4 +199,7 @@ def link_booking(request, appointment):
         item.save(update_fields=["status", "appointment", "updated_at"])
         type(appointment).objects.filter(pk=appointment.pk).update(requested_by=item.dentist)
         appointment.requested_by = item.dentist
+        from apps.patients.calls_today import forget_count
+
+        forget_count(appointment.branch_id)
     return item

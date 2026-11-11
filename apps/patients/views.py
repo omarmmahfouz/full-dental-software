@@ -315,6 +315,9 @@ def lead_book(request, pk):
     if lead.status in (Lead.Status.NEW, Lead.Status.FOLLOW_UP):
         lead.status = Lead.Status.BOOKED
     lead.save(update_fields=["converted_patient", "status", "updated_at"])
+    from .calls_today import forget_count
+
+    forget_count(lead.branch_id)
     if patient.is_expected:
         messages.info(request, _("A short file was opened for %(name)s (%(file)s): choose the day and the time. "
                                  "Complete the file when he comes.") % {"name": patient.full_name,

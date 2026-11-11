@@ -28,7 +28,7 @@ from apps.dentists.models import Dentist
 from apps.clinical.visit_notes import send_notes_alerts
 from apps.complaints.alerts import send_answer_alerts, unanswered
 from apps.complaints.models import Complaint
-from apps.patients.models import CallList, CallListEntry, Lead, Patient
+from apps.patients.models import Patient
 from apps.scheduling.models import Appointment, RoomShift, day_bounds
 
 from . import previews
@@ -128,17 +128,15 @@ def dashboard(request):
             "completed": counts.get(Appointment.Status.COMPLETED, 0),
             "no_show": counts.get(Appointment.Status.NO_SHOW, 0),
         }
-        context["calls_due"] = (
-            Lead.objects.filter(status__in=(Lead.Status.NEW, Lead.Status.FOLLOW_UP), branch=branch)
-            .order_by("first_call_on", "created_at")[:8]
-        )
-        from apps.patients.medical import recalls_due, sync_recalls_soon
+        from apps.patients import calls_today
+        from apps.patients.medical import sync_recalls_soon
 
-        here = Patient.objects.filter(branch=branch)
         sync_recalls_soon(branch)  # a high HbA1c three months ago: a call for a new test (round 15)
-        context["tests_to_call"] = list(recalls_due(here)[:6])
-        context["tests_to_call_count"] = recalls_due(here).count() if len(context["tests_to_call"]) == 6 \
-            else len(context["tests_to_call"])
+        # Round 18: one card for every kind of call due today (they were three cards and a tile).
+        if area_levels(user).get("calls") != AreaAccess.Level.HIDDEN:
+            context["calls_counts"] = calls_today.counts(branch, today)
+            context["calls_rows"] = calls_today.rows(branch, today, limit=8) if context["calls_counts"]["total"] \
+                else []
         from apps.billing.models import RECENT_BILL_DAYS, Bill, bill_totals, old_doctor_bills
 
         since = today - timedelta(days=RECENT_BILL_DAYS)
@@ -176,13 +174,6 @@ def dashboard(request):
         )
         context["here_now"] = todays.filter(status=Appointment.Status.ARRIVED).select_related("patient", "dentist")\
             .order_by("arrived_at")[:6]
-        # Still to call today: not called yet, or "no answer" / "call again later" whose day has come (round 16).
-        due = Q(entries__outcome__in=CallListEntry.OPEN) & (
-            Q(entries__next_call_on__isnull=True) | Q(entries__next_call_on__lte=today))
-        context["call_lists"] = (
-            CallList.objects.filter(branch=branch).annotate(pending=Count("entries", filter=due))
-            .filter(pending__gt=0).order_by("-created_at")[:6]
-        )
 
     academy_here = branch is None or branch == Branch.default()  # the academy's courses belong to CIA
     if academy_here and has_role(user, SECRETARY, OWNER, HEAD_CIA) \

@@ -130,6 +130,7 @@ UP_NAMES = {
     "patients:list": _("Patients"),
     "patients:detail": _("Patient file"),
     "patients:lead_list": _("Call list"),
+    "patients:calls_today": _("Calls today"),
     "scheduling:appointment_list": _("Appointments"),
     "scheduling:today": _("Reception"),
     "clinical:step_list": _("Treatment log"),

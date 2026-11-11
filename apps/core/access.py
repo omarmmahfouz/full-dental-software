@@ -16,7 +16,8 @@ from .roles import OWNER, user_roles
 # Parts of the system and the addresses that belong to them (longest first wins).
 AREAS = [
     ("patients", gettext_lazy("Patients"), ["/patients/"]),
-    ("calls", gettext_lazy("Call lists and patients to call"), ["/patients/calls/", "/patients/to-call/"]),
+    ("calls", gettext_lazy("Call lists and patients to call"), ["/patients/calls/", "/patients/to-call/",
+                                                                "/patients/calls-today/"]),
     ("schedule", gettext_lazy("Schedule and appointments"), ["/schedule/"]),
     ("charts", gettext_lazy("Dental charts, examinations and plans"), ["/chart/"]),
     ("treatments", gettext_lazy("Treatment log"), ["/clinical/steps/"]),

@@ -2228,3 +2228,13 @@ details.card.is-needed { border-color: var(--bs-warning); box-shadow: 0 0 0 2px 
 .checkout-chip.is-open { color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle); border-color: var(--bs-warning-border-subtle); font-weight: 600; }
 .checkout-chip.is-note { color: var(--bs-info-text-emphasis); background: var(--bs-info-bg-subtle); border-color: var(--bs-info-border-subtle); }
 .checkout-pay { padding: .75rem; border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); }
+
+/* Calls today (round 18): one queue of every kind of call; the kind is a small coloured mark. */
+.call-kind { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .55rem; border-radius: 999px;
+  font-size: .8rem; font-weight: 600; border: 1px solid transparent; white-space: nowrap; }
+.call-kind.kind-lead { color: var(--bs-primary-text-emphasis); background: var(--bs-primary-bg-subtle); border-color: var(--bs-primary-border-subtle); }
+.call-kind.kind-test { color: var(--bs-danger-text-emphasis); background: var(--bs-danger-bg-subtle); border-color: var(--bs-danger-border-subtle); }
+.call-kind.kind-list { color: var(--bs-warning-text-emphasis); background: var(--bs-warning-bg-subtle); border-color: var(--bs-warning-border-subtle); }
+.call-kind.kind-doctor { color: var(--bs-info-text-emphasis); background: var(--bs-info-bg-subtle); border-color: var(--bs-info-border-subtle); }
+.call-actions { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin-top: .5rem; }
+.call-actions .recall-answer { flex: 1 1 26rem; }

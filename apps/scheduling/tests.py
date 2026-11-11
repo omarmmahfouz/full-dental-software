@@ -911,3 +911,109 @@ class Round16DraftListTests(TestCase):
             "scheduled_at_1": "10:00", "duration_minutes": "60"})
         draft.refresh_from_db()
         self.assertEqual((draft.status, draft.appointment), ("booked", Appointment.objects.get()))
+
+
+class Round18CheckoutAndBookingTests(TestCase):
+    """Round 18: "Left" opens the checkout (the money of the visit and the next visit on one screen), and the
+    booking form opens on today with the patient's dentist."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from apps.billing.models import Bill, Service, create_bill
+
+        self.branch = setup_clinic()
+        self.secretary = make_user("sec", "secretary")
+        self.dentist = make_dentist("dentist", kind="fulltime")
+        self.patient = make_patient(self.branch, assigned_dentist=self.dentist)
+        self.room = Room.objects.filter(branch=self.branch).first()
+        self.visit = Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist,
+                                                room=self.room, scheduled_at=timezone.now())
+        Service.objects.filter(name_en="Consultation").update(price=Decimal("300"))
+        self.bill = create_bill(self.patient, [{"service": Service.objects.get(name_en="Consultation")}],
+                                self.dentist.user, appointment=self.visit, dentist=self.dentist,
+                                source=Bill.Source.DENTIST)
+        self.client.login(username="sec", password=PASSWORD)
+        self.action = f"/schedule/appointments/{self.visit.pk}/action/"
+        self.checkout = f"/schedule/appointments/{self.visit.pk}/checkout/"
+
+    def leave(self):
+        self.client.post(self.action, {"action": "arrive"})
+        self.client.post(self.action, {"action": "enter", "room": self.room.pk})
+        return self.client.post(self.action, {"action": "leave"})
+
+    def test_left_opens_the_checkout_with_the_money_and_the_next_visit(self):
+        from decimal import Decimal
+
+        from apps.billing.models import PatientPayment
+        from apps.clinical.models import TreatmentStep
+
+        TreatmentStep.objects.create(patient=self.patient, appointment=self.visit, operator=self.dentist,
+                                     step_type=TreatmentStepType.objects.get(name_en="Scaling"),
+                                     next_visit="Crown preparation 36")
+        self.assertRedirects(self.leave(), self.checkout, fetch_redirect_response=False)
+        page = self.client.get(self.checkout)
+        self.assertEqual((page.context["to_collect"], page.context["money_done"], page.context["needs_booking"]),
+                         (Decimal("300"), False, True))
+        self.assertEqual(page.context["next_visit"], "Crown preparation 36")
+        self.assertIn("purpose=Crown+preparation+36", page.context["book_url"])
+        self.assertEqual(page.context["bills"][0]["form"].initial["amount"], Decimal("300"))
+        # A part is collected here: the page stays, the receipt is listed, the rest is still to collect.
+        response = self.client.post(self.checkout, {"bill": self.bill.pk, f"pay{self.bill.pk}-amount": "100",
+                                                    f"pay{self.bill.pk}-method": "cash"})
+        self.assertRedirects(response, self.checkout, fetch_redirect_response=False)
+        page = self.client.get(self.checkout)
+        payment = PatientPayment.objects.get()
+        self.assertEqual((payment.amount, payment.bill, payment.branch), (Decimal("100"), self.bill, self.branch))
+        self.assertEqual((page.context["to_collect"], page.context["receipts"]), (Decimal("200"), [payment]))
+        # No amount: the form comes back with its note, nothing is saved.
+        again = self.client.post(self.checkout, {"bill": self.bill.pk, f"pay{self.bill.pk}-amount": "",
+                                                 f"pay{self.bill.pk}-method": "cash"})
+        self.assertIn("amount", again.context["bills"][0]["form"].errors)
+        self.assertEqual(PatientPayment.objects.count(), 1)
+        self.client.post(self.checkout, {"bill": self.bill.pk, f"pay{self.bill.pk}-amount": "200",
+                                         f"pay{self.bill.pk}-method": "cash"})
+        self.assertTrue(self.client.get(self.checkout).context["money_done"])
+        # The next visit is booked from the checkout and comes back to it.
+        when = (timezone.localtime() + timedelta(days=7)).replace(hour=11, minute=0, second=0, microsecond=0)
+        booked = self.client.post(f"/schedule/appointments/new/?patient={self.patient.pk}&checkout={self.visit.pk}", {
+            "patient_lookup": self.patient.file_number, "scheduled_at": when.strftime("%d/%m/%Y %H:%M"),
+            "duration_minutes": 30})
+        self.assertRedirects(booked, self.checkout, fetch_redirect_response=False)
+        page = self.client.get(self.checkout)
+        self.assertEqual((page.context["all_done"], len(page.context["upcoming"])), (True, 1))
+        self.assertContains(self.client.get("/schedule/today/"), f'href="{self.checkout}"')  # it can be opened again
+
+    def test_left_goes_back_to_the_board_when_nothing_is_left_to_do(self):
+        from apps.billing.receipts import pay_bill
+
+        pay_bill(self.bill, {"amount": self.bill.totals()["left"], "method": "cash"}, self.secretary)
+        Appointment.objects.create(branch=self.branch, patient=self.patient, dentist=self.dentist,
+                                   scheduled_at=timezone.now() + timedelta(days=5))
+        self.assertRedirects(self.leave(), "/schedule/today/", fetch_redirect_response=False)
+
+    def test_the_checkout_is_the_receptions_and_of_this_place(self):
+        make_user("stock", "stock")
+        self.client.login(username="stock", password=PASSWORD)
+        self.assertEqual(self.client.get(self.checkout).status_code, 403)
+        self.client.login(username="dentist", password=PASSWORD)
+        self.assertEqual(self.client.get(self.checkout).status_code, 403)  # the dentists do not collect
+
+    def test_the_booking_form_opens_on_today_with_his_dentist(self):
+        page = self.client.get(f"/schedule/appointments/new/?patient={self.patient.pk}")
+        form = page.context["form"]
+        self.assertEqual(form["scheduled_at"].value(), timezone.localdate().strftime("%d/%m/%Y"))
+        self.assertEqual(form["dentist"].value(), self.dentist.pk)
+        self.assertTrue(page.context["auto_free"])
+        self.assertContains(page, "data-auto-free")
+        self.assertContains(page, f'value="{timezone.localdate():%d/%m/%Y}"')
+        # A day without a time is not booked at midnight: the time is asked for.
+        response = self.client.post("/schedule/appointments/new/", {
+            "patient_lookup": self.patient.file_number, "scheduled_at_0": timezone.localdate().strftime("%d/%m/%Y"),
+            "scheduled_at_1": "", "duration_minutes": 30})
+        self.assertIn("scheduled_at", response.context["form"].errors)
+        self.assertEqual(Appointment.objects.count(), 1)
+        # A place tapped in the day planner keeps its own day and time.
+        page = self.client.get("/schedule/appointments/new/?at=2030-01-05T10:30")
+        self.assertFalse(page.context["auto_free"])
+        self.assertEqual(timezone.localtime(page.context["form"].initial["scheduled_at"]).hour, 10)

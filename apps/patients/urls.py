@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import calllists, consults, views
+from . import calllists, calls_today, consults, views
 
 app_name = "patients"
 
@@ -33,6 +33,8 @@ urlpatterns = [
     path("consults/<int:pk>/", consults.consult_detail, name="consult_detail"),
     path("consults/<int:pk>/edit/", consults.consult_update, name="consult_update"),
     path("consults/<int:pk>/answer/", consults.consult_answer, name="consult_answer"),
+    path("calls-today/", calls_today.calls_today, name="calls_today"),
+    path("calls-today/answer/", calls_today.calls_answer, name="calls_answer"),
     path("calls/", views.LeadListView.as_view(), name="lead_list"),
     path("calls/new/", views.LeadCreateView.as_view(), name="lead_create"),
     path("calls/<int:pk>/", views.LeadDetailView.as_view(), name="lead_detail"),

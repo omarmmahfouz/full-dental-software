@@ -401,6 +401,8 @@ class PatientRequest(TimeStampedModel):
     decided_at = models.DateTimeField(_("decided at"), null=True, blank=True)
     decision_note = models.CharField(_("supervisor's note"), max_length=255, blank=True)
     reception_note = models.CharField(_("reception's note"), max_length=255, blank=True)
+    # Round 18: he did not answer; he comes back in the calls of that day.
+    call_again_on = models.DateField(_("call again on"), null=True, blank=True)
     appointment = models.ForeignKey(Appointment, verbose_name=_("appointment"), null=True, blank=True,
                                     on_delete=models.SET_NULL, related_name="patient_requests")
 

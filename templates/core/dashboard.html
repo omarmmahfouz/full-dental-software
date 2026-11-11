@@ -71,7 +71,7 @@
   <a class="quick-tile tile-gray" href="{% url 'scheduling:day_planner' %}"><i class="bi bi-calendar3-week"></i><span>{% trans "Day planner" %}</span></a>
   {% if sees_dashboard %}<a class="quick-tile tile-purple" href="{% url 'core:overview' %}"><i class="bi bi-speedometer2"></i><span>{% trans "Dashboard" %}</span></a>{% endif %}
   <a class="quick-tile tile-green" href="{% url 'scheduling:whatsapp' %}"><i class="bi bi-whatsapp"></i><span>{% trans "WhatsApp" %}{% if whatsapp_to_send %} <b class="badge text-bg-danger">{{ whatsapp_to_send }}</b>{% endif %}</span></a>
-  <a class="quick-tile tile-blue" href="{% url 'scheduling:requests_reception' %}"><i class="bi bi-telephone-forward"></i><span>{% trans "Patients the dentists asked for" %}{% if requests_to_call %} <b class="badge text-bg-danger">{{ requests_to_call }}</b>{% endif %}</span></a>
+  {% if calls_counts is not None %}<a class="quick-tile tile-blue" href="{% url 'patients:calls_today' %}"><i class="bi bi-telephone-outbound"></i><span>{% trans "Calls today" %}{% if calls_counts.total %} <b class="badge text-bg-danger">{{ calls_counts.total }}</b>{% endif %}</span></a>{% endif %}
 </div>
 {% if coming_next or here_now %}
 <div class="row g-3 mb-3">
@@ -184,35 +184,22 @@
   </div>
   {% endif %}
 
-  {% if calls_due is not None %}
+  {% if calls_counts is not None %}
   <div class="col-lg-6">
-    <div class="card h-100">
-      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-telephone-outbound"></i> {% trans "Expected patients to call" %}</span><a href="{% url 'patients:lead_list' %}?due=1" class="small">{% trans "All" %}</a></div>
+    <div class="card h-100{% if calls_counts.total %} border-info{% endif %}">
+      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-telephone-outbound"></i> {% trans "Calls today" %} <span class="badge text-bg-{% if calls_counts.total %}info{% else %}success{% endif %}">{{ calls_counts.total }}</span></span><a href="{% url 'patients:calls_today' %}" class="small">{% trans "All" %}</a></div>
       <div class="list-group list-group-flush">
-        {% for lead in calls_due %}
-        <a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ lead.get_absolute_url }}">
-          <span>{{ lead.full_name }} <span class="text-muted small ltr">{{ lead.preferred_number }}</span></span>
-          <span class="small text-muted">{{ lead.first_call_on|date:"d/m/Y" }}</span>
+        {% for row in calls_rows %}
+        <a class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-1" href="{% url 'patients:calls_today' %}#call-{{ row.key }}">
+          <span><span class="call-kind kind-{{ row.kind }}"><i class="bi {{ row.icon }}"></i> {{ row.label }}</span> {{ row.name }} <span class="text-muted small ltr">{{ row.phone }}</span></span>
+          <span class="small">{% if row.late %}<span class="badge text-bg-danger">{% blocktrans count n=row.late %}waiting {{ n }} day{% plural %}waiting {{ n }} days{% endblocktrans %}</span>{% else %}<span class="text-muted">{% trans "today" %}</span>{% endif %}</span>
         </a>
-        {% empty %}<div class="list-group-item text-muted">{% trans "No calls due." %}</div>{% endfor %}
-      </div>
-    </div>
-  </div>
-  {% if tests_to_call %}
-  <div class="col-lg-6">
-    <div class="card h-100 border-info">
-      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-telephone-forward"></i> {% trans "Calls for a new test" %} <span class="badge text-bg-info">{{ tests_to_call_count }}</span></span><a href="{% url 'patients:recall_list' %}" class="small">{% trans "All" %}</a></div>
-      <div class="list-group list-group-flush">
-        {% for r in tests_to_call %}
-        <a class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-1" href="{% url 'patients:recall_list' %}#recall{{ r.pk }}">
-          <span>{{ r.patient.full_name }} <span class="text-muted small ltr">{{ r.patient.preferred_number }}</span></span>
-          <span class="small">{{ r.get_reason_display }} <span class="ltr">{{ r.reading }}</span> {% if r.is_late %}<span class="badge text-bg-danger">{% trans "late" %}</span>{% endif %}</span>
-        </a>
-        {% endfor %}
+        {% empty %}<div class="list-group-item text-muted">{% trans "Nobody to call now." %}</div>{% endfor %}
       </div>
     </div>
   </div>
   {% endif %}
+  {% if lab_to_send is not None %}
   <div class="col-lg-6">
     <div class="card h-100">
       <div class="card-header"><i class="bi bi-lab-request"></i> {% trans "Lab work" %}</div>
@@ -233,17 +220,6 @@
       <div><div class="fs-4 fw-bold">{{ whatsapp_to_send }}</div><div class="text-muted">{% trans "WhatsApp messages to send (new bookings and reminders)" %}</div>
         {% if whatsapp_asked %}<div class="small fw-semibold text-success">{% blocktrans count n=whatsapp_asked %}{{ n }} asked by a dentist{% plural %}{{ n }} asked by the dentists{% endblocktrans %}</div>{% endif %}</div>
     </div></a>
-  </div>
-  {% endif %}
-
-  {% if call_lists %}
-  <div class="col-lg-6">
-    <div class="card h-100 border-warning">
-      <div class="card-header d-flex justify-content-between"><span><i class="bi bi-telephone-outbound"></i> {% trans "Patients to call" %}</span><a class="small" href="{% url 'patients:calllist_list' %}">{% trans "All" %}</a></div>
-      <div class="list-group list-group-flush small">
-        {% for c in call_lists %}<a class="list-group-item list-group-item-action d-flex justify-content-between" href="{{ c.get_absolute_url }}"><span>{{ c.title }}</span><span class="badge text-bg-warning">{{ c.pending }}</span></a>{% endfor %}
-      </div>
-    </div>
   </div>
   {% endif %}
 

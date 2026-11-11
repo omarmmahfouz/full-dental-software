@@ -218,7 +218,7 @@ class PlanFinderAndCallListTests(TestCase):
         self.assertTrue(Notification.objects.filter(recipient=self.secretary, title__contains="Guided cases").exists())
 
         self.client.login(username="sec", password=PASSWORD)
-        self.assertEqual(self.client.get("/").context["call_lists"][0], call_list)
+        self.assertEqual(self.client.get("/").context["calls_counts"]["list"], 2)  # round 18: the calls card
         page = self.client.get(call_list.get_absolute_url())
         self.assertContains(page, "Guided implant surgery 36")
         self.assertContains(page, "الضرس الأول السفلي الأيسر")  # 36 explained to the secretary
@@ -1061,8 +1061,7 @@ class Round16CallListTests(TestCase):
         entry.refresh_from_db()
         self.assertEqual((entry.next_call_on, entry.is_closed, entry.is_due), (later, False, False))
         # The home page counts only the ones to call today; the list still counts him as not finished.
-        home = self.client.get("/").context["call_lists"]
-        self.assertEqual(home[0].pending, 1)
+        self.assertEqual(self.client.get("/").context["calls_counts"]["list"], 1)
         self.assertEqual(self.call_list.counts(), {"booked": 0, "closed": 0, "open": 2, "all": 2})
         page = self.client.get(self.call_list.get_absolute_url() + "?pending=1")
         self.assertEqual(len(page.context["rows"]), 2)
@@ -1264,3 +1263,131 @@ class Round16NumberSearchTests(TestCase):
         self.assertEqual(self.found("12"), ["CIC-00012"])
         # The list jumps to the file when one is found.
         self.assertEqual(self.client.get("/patients/", {"q": "12"}).status_code, 302)
+
+
+class Round18CallsTodayTests(TestCase):
+    """Round 18: one page for everyone to call today: new callers, calls for a new test, the call lists and the
+    patients a dentist asked for, the longest waiting first, with the usual answers and the booking."""
+
+    def setUp(self):
+        from decimal import Decimal
+
+        from apps.charting.models import Examination
+        from apps.clinical.models import TreatmentStepType
+        from apps.patients.calllists import create_call_list
+        from apps.patients.medical import sync_recalls
+        from apps.scheduling.models import PatientRequest
+
+        self.branch = setup_clinic()
+        self.head = make_user("head", "head_cia")
+        make_user("sec", "secretary")
+        self.dentist = make_dentist("doc", kind="fulltime")
+        today = timezone.localdate()
+        self.p1 = make_patient(self.branch)
+        self.p2 = make_patient(self.branch, name="مريض تجربة ثاني", nid="28501010101235", phone="01112223334")
+        self.p3 = make_patient(self.branch, name="مريض تجربة ثالث", nid="28501010101236", phone="01112223335")
+        self.lead = Lead.objects.create(branch=self.branch, full_name="متصل جديد", phone_primary="01009998877",
+                                        first_call_on=today - timedelta(days=4))
+        self.call_list = create_call_list("Second stage", "", [(self.p1, "36")], self.head)
+        self.entry = self.call_list.entries.get()
+        old = today - timedelta(days=100)
+        Examination.objects.create(patient=self.p2, history_only=True, medical_taken=True, hba1c=Decimal("8.4"),
+                                   hba1c_date=old, exam_date=old)
+        sync_recalls(Patient.objects.all())
+        self.recall = self.p2.medical_recalls.get()
+        self.asked = PatientRequest.objects.create(
+            dentist=self.dentist, patient=self.p3, status=PatientRequest.Status.APPROVED, minutes=45,
+            step_type=TreatmentStepType.objects.first(), decided_at=timezone.now() - timedelta(days=1))
+        self.client.login(username="sec", password=PASSWORD)
+
+    def answer(self, kind, pk, outcome, **more):
+        return self.client.post("/patients/calls-today/answer/", {"kind": kind, "pk": pk, "outcome": outcome, **more})
+
+    def test_every_kind_of_call_is_in_one_queue_the_longest_waiting_first(self):
+        page = self.client.get("/patients/calls-today/")
+        rows = list(page.context["page_obj"])
+        self.assertEqual([row["kind"] for row in rows], ["test", "lead", "doctor", "list"])
+        self.assertEqual(page.context["counts"], {"lead": 1, "test": 1, "list": 1, "doctor": 1, "total": 4})
+        self.assertEqual(rows[0]["late"], 10)  # the HbA1c of 100 days ago was due after 90
+        self.assertIn(f"call_entry={self.entry.pk}", rows[3]["book_url"])
+        self.assertIn(f"request={self.asked.pk}", rows[2]["book_url"])
+        self.assertEqual(rows[1]["book_post"], f"/patients/calls/{self.lead.pk}/book/")
+        only = self.client.get("/patients/calls-today/?kind=doctor")
+        self.assertEqual([row["name"] for row in only.context["page_obj"]], [self.p3.full_name])
+        # The home page has one card and one number for them (they were three cards and a tile).
+        home = self.client.get("/")
+        self.assertEqual(home.context["calls_counts"]["total"], 4)
+        self.assertEqual(len(home.context["calls_rows"]), 4)
+        self.assertEqual(home.context["calls_today_count"], 4)
+        self.assertNotIn("call_lists", home.context)
+
+    def test_no_answer_brings_each_kind_back_on_its_day(self):
+        from apps.patients.models import LeadCall, MedicalRecall
+
+        today = timezone.localdate()
+        self.answer("lead", self.lead.pk, "no_answer", note="مغلق")
+        self.lead.refresh_from_db()
+        self.assertEqual((self.lead.status, timezone.localtime(self.lead.next_call_at).date()),
+                         (Lead.Status.FOLLOW_UP, today + timedelta(days=1)))
+        self.assertEqual(LeadCall.objects.get().outcome, LeadCall.Outcome.NO_ANSWER)
+        self.answer("test", self.recall.pk, "later")  # he will do the test: asked again in two weeks
+        self.recall.refresh_from_db()
+        self.assertEqual((self.recall.last_outcome, self.recall.due_on),
+                         (MedicalRecall.Outcome.WILL_DO, today + timedelta(days=14)))
+        day = today + timedelta(days=6)
+        self.answer("list", self.entry.pk, "later", next_on=day.strftime("%d/%m/%Y"), note="مسافر")
+        self.entry.refresh_from_db()
+        self.assertEqual((self.entry.outcome, self.entry.next_call_on, self.entry.response, self.entry.attempts),
+                         ("call_back", day, "مسافر", 1))
+        self.answer("doctor", self.asked.pk, "no_answer")
+        self.asked.refresh_from_db()
+        self.assertEqual((self.asked.status, self.asked.call_again_on), ("approved", today + timedelta(days=1)))
+        page = self.client.get("/patients/calls-today/")
+        self.assertEqual(page.context["counts"]["total"], 0)  # nobody left for today
+        self.assertContains(page, "call-row", count=0)
+        self.assertEqual(self.client.get("/").context["calls_today_count"], 0)  # the menu's number follows at once
+
+    def test_a_final_answer_takes_him_off_the_calls(self):
+        from apps.core.models import Notification
+        from apps.patients.models import MedicalRecall
+
+        self.answer("lead", self.lead.pk, "stop")
+        self.answer("test", self.recall.pk, "stop")
+        self.answer("list", self.entry.pk, "stop")
+        self.answer("doctor", self.asked.pk, "stop", note="مسافر")
+        for item in (self.lead, self.recall, self.entry, self.asked):
+            item.refresh_from_db()
+        self.assertEqual((self.lead.status, self.recall.status, self.entry.outcome, self.asked.status),
+                         (Lead.Status.NOT_INTERESTED, MedicalRecall.Status.STOPPED, "not_interested", "cannot_come"))
+        self.assertTrue(Notification.objects.filter(recipient=self.dentist.user).exists())  # his patient cannot come
+        self.assertTrue(Notification.objects.filter(recipient=self.head).exists())  # her list is finished
+        self.assertEqual(self.client.get("/patients/calls-today/").context["counts"]["total"], 0)
+        # An answer that is not one of the kind's answers is refused.
+        self.assertEqual(self.answer("doctor", self.asked.pk, "later").status_code, 302)
+        self.asked.refresh_from_db()
+        self.assertEqual(self.asked.status, "cannot_come")
+
+    def test_booking_from_the_calls_closes_the_call(self):
+        when = (timezone.localtime() + timedelta(days=2)).replace(hour=11, minute=0, second=0, microsecond=0)
+        self.client.post(f"/schedule/appointments/new/?patient={self.p1.pk}&call_entry={self.entry.pk}", {
+            "patient_lookup": self.p1.file_number, "scheduled_at": when.strftime("%d/%m/%Y %H:%M"),
+            "duration_minutes": 30})
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.outcome, "booked")
+        self.assertEqual(self.client.get("/").context["calls_today_count"], 3)
+
+    def test_another_place_and_a_closed_part_see_nothing(self):
+        from apps.core.models import AreaAccess, Branch
+
+        cic = Branch.objects.get(code="CIC")
+        sec = self.client.get("/").wsgi_request.user
+        sec.profile.places.add(cic)
+        self.client.post("/place/", {"place": "CIC", "next": "/"})
+        self.assertEqual(self.client.get("/patients/calls-today/").context["counts"]["total"], 0)  # CIA's are not CIC's
+        self.assertEqual(self.answer("list", self.entry.pk, "no_answer").status_code, 404)
+        self.client.post("/place/", {"place": "CIA", "next": "/"})
+        AreaAccess.objects.create(role="secretary", area="calls", level=AreaAccess.Level.HIDDEN)
+        self.assertEqual(self.client.get("/patients/calls-today/").status_code, 403)
+        home = self.client.get("/")
+        self.assertNotIn("calls_today_count", home.context)
+        self.assertNotIn("calls_counts", home.context)

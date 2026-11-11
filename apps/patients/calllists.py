@@ -56,6 +56,9 @@ def link_call_entry(request, appointment):
         entry.outcome, entry.appointment, entry.next_call_on = CallListEntry.Outcome.BOOKED, appointment, None
         entry.called_at, entry.called_by = entry.called_at or timezone.now(), entry.called_by or request.user
         entry.save()
+        from .calls_today import forget_count
+
+        forget_count(appointment.branch_id)
     return entry
 
 
@@ -130,27 +133,33 @@ def calllist_detail(request, pk):
     })
 
 
+def save_entry_answer(entry, outcome, response, next_call_on, user):
+    """Write the answer of a patient of a call list. "No answer" and "call again later" keep him on the list with
+    the day to call again (tomorrow, in three days, or the day given); the list's sender is told when it is done."""
+    entry.outcome, entry.response = outcome, response
+    entry.attempts += 1
+    entry.called_at, entry.called_by = timezone.now(), user
+    entry.next_call_on = None
+    if entry.outcome in CALL_AGAIN_DAYS:  # stays on the list, to call again (round 16)
+        entry.next_call_on = next_call_on or (timezone.localdate() + timedelta(days=CALL_AGAIN_DAYS[entry.outcome]))
+    entry.save()
+    call_list = entry.call_list
+    done, total = call_list.progress
+    if done == total and call_list.created_by_id:
+        notify_users([call_list.created_by], gettext_lazy("The reception finished the list %(title)s"), "",
+                     call_list.get_absolute_url(), Notification.Level.SUCCESS, exclude=user,
+                     params={"title": call_list.title})
+    return entry
+
+
 @role_required(*FRONT_DESK)
 @require_POST
 def calllist_answer(request, pk):
     entry = get_object_or_404(CallListEntry.objects.select_related("call_list__created_by"), pk=pk)
     form = EntryForm(request.POST, prefix=f"e{entry.pk}")
     if form.is_valid():
-        entry.outcome = form.cleaned_data["outcome"]
-        entry.response = form.cleaned_data["response"]
-        entry.attempts += 1
-        entry.called_at, entry.called_by = timezone.now(), request.user
-        entry.next_call_on = None
-        if entry.outcome in CALL_AGAIN_DAYS:  # stays on the list, to call again (round 16)
-            entry.next_call_on = form.cleaned_data["next_call_on"] or (
-                timezone.localdate() + timedelta(days=CALL_AGAIN_DAYS[entry.outcome]))
-        entry.save()
-        call_list = entry.call_list
-        done, total = call_list.progress
-        if done == total and call_list.created_by_id:
-            notify_users([call_list.created_by], gettext_lazy("The reception finished the list %(title)s"), "",
-                         call_list.get_absolute_url(), Notification.Level.SUCCESS, exclude=request.user,
-                         params={"title": call_list.title})
+        save_entry_answer(entry, form.cleaned_data["outcome"], form.cleaned_data["response"],
+                          form.cleaned_data["next_call_on"], request.user)
         if entry.next_call_on:
             messages.success(request, _("Answer saved for %(name)s: still on the list, to call again on %(day)s.") % {
                 "name": entry.patient.full_name, "day": entry.next_call_on.strftime("%d/%m/%Y")})

@@ -64,6 +64,7 @@
           <ul class="dropdown-menu">
             {% if is_front_desk %}
             {% if "calls" not in hidden_areas %}
+            <li><a class="dropdown-item fw-semibold" href="{% url 'patients:calls_today' %}"><i class="bi bi-telephone-outbound"></i> {% trans "Calls today" %}{% if calls_today_count %} <span class="badge rounded-pill text-bg-danger">{{ calls_today_count }}</span>{% endif %}</a></li>
             <li><a class="dropdown-item" href="{% url 'patients:lead_list' %}"><i class="bi bi-telephone"></i> {% trans "Call list (expected patients)" %}</a></li>
             <li><a class="dropdown-item" href="{% url 'patients:calllist_list' %}"><i class="bi bi-telephone-outbound"></i> {% trans "Patients to call" %}</a></li>
             {% endif %}

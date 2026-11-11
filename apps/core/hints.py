@@ -49,6 +49,9 @@ HINTS = {
                           "needed for every patient."),
     "patients:lead_list": _("People who called but have no file yet. When one comes in, open the call and turn it "
                             "into a patient file in one click."),
+    "patients:calls_today": _("Everyone to call today, the longest waiting first: new callers, calls for a new "
+                              "test, the call lists and the patients a dentist asked for. Call, then tap Book or "
+                              "the answer; No answer brings him back tomorrow."),
     "patients:calllist_list": _("Lists of patients to call, sent by the dentists or the heads. Open a list, call each "
                                 "patient and write the answer."),
     "scheduling:today": _("Tap Arrived when the patient comes in, then In the room and Left. Left opens the "

@@ -498,3 +498,60 @@ class Round15MoneyTests(TestCase):
         self.assertContains(page, "receipt-80 bill-80")
         self.assertEqual(page.context["account"]["balance"], Decimal("400"))  # the other bill is owed too
         self.assertContains(self.client.get(self.bill.get_absolute_url() + "?a4=1"), "bill-print")
+
+
+class Round18OldDoctorBillsTests(TestCase):
+    """Round 18: a dentist's bill not collected does not drop out of sight after a month: the older ones are counted
+    on the reception's home page and listed."""
+
+    def setUp(self):
+        from datetime import timedelta
+
+        from apps.billing.models import Bill, create_bill
+        from apps.core.testing import make_dentist
+
+        self.branch = setup_clinic()
+        self.sec = make_user("sec", "secretary")
+        self.dentist = make_dentist("doc", kind="fulltime")
+        self.patient = make_patient(self.branch)
+        Service.objects.filter(name_en="Consultation").update(price=Decimal("300"))
+        consult = Service.objects.get(name_en="Consultation")
+        self.today = timezone.localdate()
+
+        def bill(days_ago, source=Bill.Source.DENTIST):
+            return create_bill(self.patient, [{"service": consult}], self.dentist.user, dentist=self.dentist,
+                               billed_on=self.today - timedelta(days=days_ago), source=source)
+
+        self.recent, self.old, self.older = bill(3), bill(45), bill(200)
+        self.reception_old = bill(60, Bill.Source.RECEPTION)  # not a dentist's bill
+        self.too_old = bill(500)  # more than a year: the owner's to decide
+        self.client.login(username="sec", password=PASSWORD)
+
+    def test_the_older_bills_are_counted_and_listed(self):
+        from apps.billing.models import bills_left, old_doctor_bills
+
+        kept = old_doctor_bills(self.branch, self.today)
+        self.assertEqual((kept["count"], kept["left"]), (2, Decimal("600")))
+        self.assertEqual(bills_left([(self.old.pk, self.patient.pk)]), {self.old.pk: Decimal("300")})
+        home = self.client.get("/")
+        self.assertEqual([row["bill"] for row in home.context["doctor_bills"]], [self.recent])
+        self.assertEqual(home.context["old_doctor_bills"]["count"], 2)
+        listed = self.client.get("/billing/bills/", {
+            "unpaid": "on", "source": "dentist", "date_from": kept["date_from"].strftime("%d/%m/%Y"),
+            "date_to": kept["date_to"].strftime("%d/%m/%Y")})
+        self.assertEqual({row["bill"] for row in listed.context["rows"]}, {self.old, self.older})
+        self.assertEqual(listed.context["total_left"], Decimal("600"))
+        everyone = self.client.get("/billing/bills/", {
+            "date_from": kept["date_from"].strftime("%d/%m/%Y"), "date_to": kept["date_to"].strftime("%d/%m/%Y")})
+        self.assertEqual(len(everyone.context["rows"]), 3)  # with the reception's bill
+
+    def test_a_payment_takes_the_bill_off_the_count_at_once(self):
+        from apps.billing.models import old_doctor_bills
+
+        self.assertEqual(old_doctor_bills(self.branch, self.today)["count"], 2)
+        # He pays 700: the oldest services first (the bill of 500 days ago, the one of 200 days, 100 of the next).
+        self.client.post(f"/billing/bills/{self.older.pk}/pay/", {"pay-amount": "300", "pay-method": "cash"})
+        kept = old_doctor_bills(self.branch, self.today)
+        self.assertEqual((kept["count"], kept["left"]), (1, Decimal("300")))
+        self.client.post(f"/billing/bills/{self.old.pk}/pay/", {"pay-amount": "300", "pay-method": "cash"})
+        self.assertEqual(self.client.get("/").context["old_doctor_bills"]["count"], 0)

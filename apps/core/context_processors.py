@@ -121,6 +121,10 @@ def app_context(request):
 
             context["requests_to_call"] = PatientRequest.objects.filter(
                 status=PatientRequest.Status.APPROVED, patient__branch=here).count()
+            if "calls" not in context["hidden_areas"]:
+                from apps.patients.calls_today import total_due
+
+                context["calls_today_count"] = total_due(here)  # every kind of call due today (round 18)
             context["waiting_count"] = WaitingEntry.objects.filter(
                 status=WaitingEntry.Status.WAITING, patient__branch=here).count()
         if roles & set(DENTISTS + (SUPERVISOR,)):
