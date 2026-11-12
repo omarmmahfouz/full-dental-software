@@ -401,14 +401,21 @@ def send_bill_to_reception(bill, user):
                          "total": f"{bill.totals()['net']:,.2f}"})
 
 
+def can_open_bill(user, bill, me=None):
+    """A bill opens for the reception, and for a dentist when it is the bill of his work (he wrote it, or it names
+    him). Used by the page and by the pages that link to a bill, so the number is a link only where it opens."""
+    if has_role(user, *FRONT_DESK):
+        return True
+    me = me if me is not None else Dentist.for_user(user)
+    mine = bill.created_by_id == user.pk or (me is not None and bill.dentist_id == me.pk)
+    return has_role(user, *CLINICAL) and mine
+
+
 def bill_detail(request, pk, pay_form=None):
     """The printed bill (the reception, and the dentists for the bills of their work)."""
     bill = get_object_or_404(Bill.objects.select_related("patient", "dentist", "created_by"), pk=pk)
-    if not has_role(request.user, *FRONT_DESK):
-        me = Dentist.for_user(request.user)
-        mine = bill.created_by_id == request.user.pk or (me is not None and bill.dentist_id == me.pk)
-        if not has_role(request.user, *CLINICAL) or not mine:
-            raise PermissionDenied
+    if not can_open_bill(request.user, bill):
+        raise PermissionDenied
     current = account(bill.patient)
     return render(request, "billing/bill.html", {
         "bill": bill, "totals": bill.totals(current), "account": current,

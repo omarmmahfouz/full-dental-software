@@ -886,12 +886,23 @@ def whatsapp_list(request):
     })
 
 
+def _bills_of(user, appointment, patient, day):
+    """The bills of a visit, each marked ``opens`` for this person (a bill opens for its own dentist only)."""
+    from apps.billing.models import Bill
+    from apps.billing.views import can_open_bill
+
+    me = Dentist.for_user(user)
+    bills = list(Bill.objects.filter(Q(appointment=appointment) | Q(patient=patient, billed_on=day)).distinct())
+    for bill in bills:
+        bill.opens = can_open_bill(user, bill, me)
+    return bills
+
+
 # ------------------------------------------------------------ the dentist's visit page
 def visit(request, pk):
     """One visit, for the dentist: who the patient is (alerts, chart, plan), what is written so
     far, and the next steps in order: treatment (with or without a bill) or surgery → suggested
     prescription → post-op instructions, lab request, next visit."""
-    from apps.billing.models import Bill
     from apps.charting.models import PlanItem, TreatmentPlan
     from apps.charting.views import chart_svg
     from apps.clinical.models import TreatmentStep
@@ -921,7 +932,7 @@ def visit(request, pk):
         "steps": steps.select_related("step_type", "operator").distinct(),
         "surgeries": surgeries, "surgery": surgery,
         "prescriptions": Prescription.objects.filter(patient=patient, prescribed_on=day),
-        "bills": Bill.objects.filter(Q(appointment=appointment) | Q(patient=patient, billed_on=day)).distinct(),
+        "bills": _bills_of(request.user, appointment, patient, day),
         "labs": appointment.lab_requests.select_related("work_type"),
         "has_notes": steps.exists() or surgeries.exists() or (exam is not None and exam.exam_date == day),
     })

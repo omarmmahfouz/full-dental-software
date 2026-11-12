@@ -1,3 +1,4 @@
+import atexit
 import io
 import shutil
 import tempfile
@@ -12,15 +13,13 @@ from apps.scheduling.models import Appointment
 from django.utils import timezone
 
 MEDIA = tempfile.mkdtemp()
+# Removed once, when the whole run ends: a class that removed it when it finished took the files of another class
+# still running beside it (the tests run in several processes), and a test failed once in a while.
+atexit.register(shutil.rmtree, MEDIA, ignore_errors=True)
 
 
 @override_settings(MEDIA_ROOT=MEDIA)
 class PatientRegistrationTests(TestCase):
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(MEDIA, ignore_errors=True)
-
     def setUp(self):
         self.branch = setup_clinic()
         self.secretary = make_user("sec", "secretary")
@@ -363,11 +362,6 @@ class PhoneCheckTests(TestCase):
 
 @override_settings(MEDIA_ROOT=MEDIA)
 class IdCardTests(TestCase):
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(MEDIA, ignore_errors=True)
-
     @staticmethod
     def photo(size=(1200, 1000), card=(300, 250, 900, 628), name="id.jpg"):
         """A grey table with a light blue card on it, as a phone photo would show."""
@@ -412,11 +406,6 @@ class IdCardTests(TestCase):
 @override_settings(MEDIA_ROOT=MEDIA)
 class XrayAndCbctTests(TestCase):
     """X-rays may be bigger than other documents, and a CBCT (too big to upload) is kept as where it is."""
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        shutil.rmtree(MEDIA, ignore_errors=True)
 
     def setUp(self):
         branch = setup_clinic()
@@ -1000,7 +989,9 @@ class Round15MedicalRecallTests(TestCase):
                          ("hba1c", "8.4%", self.old + timedelta(days=90)))
         self.assertEqual(page.context["recalls"], [recall])
         self.assertIn("https://wa.me/20", page.context["recalls"][0].whatsapp)
-        self.assertContains(self.client.get("/"), "8.4%")  # the reception's home page
+        home = self.client.get("/")  # the reception's home page: in the calls of today (round 18)
+        self.assertEqual(home.context["calls_counts"]["test"], 1)
+        self.assertIn("8.4%", home.context["calls_rows"][0]["why"])
         # Seen again: no second call for the same reading.
         self.client.get("/patients/medical-follow-up/")
         self.assertEqual(MedicalRecall.objects.count(), 1)

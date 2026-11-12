@@ -1017,3 +1017,14 @@ class Round18CheckoutAndBookingTests(TestCase):
         page = self.client.get("/schedule/appointments/new/?at=2030-01-05T10:30")
         self.assertFalse(page.context["auto_free"])
         self.assertEqual(timezone.localtime(page.context["form"].initial["scheduled_at"]).hour, 10)
+
+    def test_a_bill_on_the_visit_page_is_a_link_only_for_who_opens_it(self):
+        make_user("thead", "team_head")
+        page_url, bill_url = f"/schedule/visit/{self.visit.pk}/", self.bill.get_absolute_url()
+        self.client.login(username="thead", password=PASSWORD)  # another dentist: the bill is not his to open
+        page = self.client.get(page_url)
+        self.assertContains(page, self.bill.number)
+        self.assertNotContains(page, f'href="{bill_url}"')
+        self.assertEqual(self.client.get(bill_url).status_code, 403)
+        self.client.login(username="dentist", password=PASSWORD)  # the bill of his own work
+        self.assertContains(self.client.get(page_url), f'href="{bill_url}"')

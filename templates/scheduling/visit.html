@@ -44,7 +44,7 @@
         {% for s in surgeries %}<li class="list-group-item"><i class="bi bi-check2-circle text-success"></i> <a href="{{ s.get_absolute_url }}">{{ s.number }}</a> {% trans "Surgery chart" %}</li>{% endfor %}
         {% for p in prescriptions %}<li class="list-group-item"><i class="bi bi-capsule"></i> <a href="{{ p.get_absolute_url }}">{% trans "Prescription" %}</a></li>{% endfor %}
         {% for l in labs %}<li class="list-group-item"><i class="bi bi-lab-request"></i> <a href="{{ l.get_absolute_url }}">{{ l.number }}</a> {{ l.work_type }}</li>{% endfor %}
-        {% for b in bills %}<li class="list-group-item"><i class="bi bi-receipt"></i> <a href="{{ b.get_absolute_url }}">{{ b.number }}</a> {{ b.notes }}</li>{% endfor %}
+        {% for b in bills %}<li class="list-group-item"><i class="bi bi-receipt"></i> {% if b.opens %}<a href="{{ b.get_absolute_url }}">{{ b.number }}</a>{% else %}{{ b.number }}{% endif %} {{ b.notes }}</li>{% endfor %}
         {% if not steps and not surgeries and not prescriptions and not labs and not bills %}<li class="list-group-item text-muted">{% trans "Nothing yet." %}</li>{% endif %}
       </ul>
     </div>

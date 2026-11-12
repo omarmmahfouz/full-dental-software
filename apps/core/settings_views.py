@@ -441,11 +441,11 @@ def user_edit(request, pk=None):
                 from .security import is_easy, log_event
 
                 profile.weak_password = is_easy(data["new_password"], target)
+                log_event(SecurityEvent.Kind.PASSWORD_GIVEN, request, user=target,
+                          details=_("set in People and logins by %(owner)s") % {"owner": request.user.get_username()})
             if password and target.pk != request.user.pk:
                 # A password the owner gave (typed or made up): the person chooses their own at the first login.
                 profile.must_change_password = bool(data.get("choose_own"))
-                log_event(SecurityEvent.Kind.PASSWORD_GIVEN, request, user=target,
-                          details=_("set in People and logins by %(owner)s") % {"owner": request.user.get_username()})
             if target.pk == request.user.pk and OWNER not in data["roles"] and not target.is_superuser:
                 data["roles"] = [*data["roles"], OWNER]  # the owner cannot remove their own access
             target.username, target.first_name = data["username"], data["first_name"]

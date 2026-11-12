@@ -84,6 +84,10 @@ El Khadem's **R**, the lab's **O**).
 6. **Arabic: "remaining" and "left side" (new)**: the word *Left* was one word for "the patient left", "the money
    left" and "the left side", so the Arabic bills list and patient account said *انصرف* above the money still to pay.
    The money is now **المتبقي** and the side **يسار**.
+7. **Found while testing the round (new)**: on a visit's page, the number of a bill was a link for every dentist,
+   but a bill opens only for the reception and for its own dentist: it is now a link only where it opens. One test
+   failed once in a while when the tests ran side by side (two groups shared one folder of uploads and one removed
+   it while the other still used it): fixed.
 
 ### Round 17, the revision: links that open, news to the right place, quick with 10,000 patients
 No new list this time: the whole system was gone over for mistakes, slowness and repetition. Every page was opened as
@@ -130,7 +134,7 @@ dentists' and the owner's **AA**, the stock manager's **U**, CIC's **Q**, El Kha
    the piastre.
 8. **A test that only passed in its month**: one test used a fixed date and failed a month later, so GitHub
    showed a red mark on every push. Fixed; the whole suite was also run with the clock moved 200 days ahead. There are
-   then 461 tests (480 after round 18).
+   then 461 tests (476 after round 18).
 9. **A check that can be run again**: `python manage.py check_pages` (on the sample data or a test copy) opens
    every page each login reaches by its links and names the links that answer *not allowed*, the pages that stop
    with an error and the heavy pages. It found 48 such links before this revision; it now finds none.

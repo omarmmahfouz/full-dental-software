@@ -2056,3 +2056,19 @@ class Round18PasswordTests(TestCase):
         self.assertTrue(ClinicSettings.get().force_strong_passwords)
         response = self.make_login("easy", "demo12345")
         self.assertIn("new_password", response.context["form"].errors)
+
+    def test_a_login_made_without_a_password_gets_one_made_up_to_change(self):
+        from apps.core.models import UserProfile
+
+        response = self.client.post("/settings/users/new/", {
+            "username": "nora", "first_name": "Nora", "roles": ["secretary"], "is_active": "on", "choose_own": "on"},
+            follow=True)
+        self.assertContains(response, "nora")
+        profile = UserProfile.objects.get(user__username="nora")
+        self.assertTrue(profile.must_change_password)  # the made-up password is known to the owner too
+        # Editing her later without a new password leaves her as she is.
+        UserProfile.objects.filter(pk=profile.pk).update(must_change_password=False)
+        self.client.post(f"/settings/users/{profile.user_id}/", {
+            "username": "nora", "first_name": "Nora S.", "roles": ["secretary"], "is_active": "on",
+            "choose_own": "on"})
+        self.assertFalse(UserProfile.objects.get(pk=profile.pk).must_change_password)

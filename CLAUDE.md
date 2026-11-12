@@ -195,6 +195,29 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     links (GET only): the links that answer 403 / 405 with the page that shows them, errors, heavy pages. Run it on
     the sample data before pushing, and after `fill_big_data` to see what is slow.
   - Tests: `core.testing.setup_clinic()` clears the cache; never a fixed date where the page compares with today.
+- **Round 18 map** (the five workflow points of the revision):
+  - Calls today: `patients/calls_today.py` (`KINDS` lead / test / list / doctor, `_queries(place, today)` = what is
+    due, `rows(place, today, kind, limit)`, `counts`, `ANSWERS` per kind, `save_answer`, the view `calls_today` at
+    `/patients/calls-today/`, `calls_answer`). The answers are saved by the same code as each kind's own page:
+    `calllists.save_entry_answer`, `consults.save_recall_answer`, `patient_requests.mark_cannot_come`.
+    `PatientRequest.call_again_on` (no answer). `total_due(place)` is the menu's number (`calls_today_count`, kept
+    60 s; `forget_count` when a call is answered or booked). The reception's home has one card (`calls_counts`,
+    `calls_rows`): `calls_due`, `tests_to_call` and `call_lists` are gone.
+  - The checkout: `scheduling/checkout.py` (`checkout_facts(appointment)`, `has_something`, `booking_url`, the view
+    at `/schedule/appointments/<pk>/checkout/`); *Left* redirects there when there is something to do; a booking
+    made with `?checkout=<pk>` comes back to it; payments go through `billing.receipts.pay_bill` (the bill's page
+    too), each bill with its own `PayNowForm` (prefix `pay<bill pk>`). The board's `just_left` strip is gone.
+  - Booking: `appointment_create` opens on today (a date-only `initial["scheduled_at"]`), with the patient's
+    dentist, `auto_free` → `data-auto-free` (the page presses *Nearest free times* by itself);
+    `AppointmentForm.clean_scheduled_at` refuses a day without a time (midnight).
+  - Old bills: `billing.models.bills_left(bills)` (light), `old_doctor_bills(branch)` (kept 10 min,
+    `forget_old_bills` in `PatientPayment.save`), `RECENT_BILL_DAYS` / `OLD_BILL_DAYS`; `BillFilterForm.source`;
+    `bill_list` reads *not fully paid* lightly first.
+  - Passwords: `ClinicSettings.force_strong_passwords` is on by default (migration `core/0026`; the sample data
+    turns it off); `UserForm.choose_own` → `must_change_password` for a password the owner gives;
+    `passwords.OwnPasswordForm` refuses an easy password; the page shows `forced` / `was_easy`.
+  - Words: money still to pay is `{% trans "Remaining" %}`, a side is `{% trans "Left" context "side" %}` /
+    `pgettext_lazy("side", "Left")`; plain "Left" is "the patient left" only.
 - **Places** (CIA, CIC...): `branch_for_user(user)` is the place worked in now (session "place", set by the top-bar switch
   through `WorkingPlaceMiddleware`); `working_places(user)` = the clinic places (the owner's all, else `profile.places`
   + `profile.branch`); `switch_places(user)` adds the LAB place for the lab staff and the owner (the switch, the login).
@@ -387,6 +410,11 @@ Read this first, then `README.md` (what the system does, role by role) and the c
     expected-patient match finds the same mobile or a name spelled alike, not a very different spelling; an
     instructor's grades written by a junior rely on the junior; the lab's scan and design places are written, the
     files themselves stay on the server or the e-mail.
+  - Round 18: *Calls today* shows the first 150 of each kind (the kind's own page has them all) and its menu number
+    may be a minute old after an answer written on another page; the checkout collects for the bills of that day
+    (older debts from the patient's account); the nearest free times on the booking form are those of the room
+    schedule and the bookings, as before; the forced password change is unticked in the sample data and ticked for
+    a real clinic by the update (untick it in Settings → Clinic options to go back to the reminder).
   - Round 17: *All the data as Excel* (Settings → Backup) takes about a minute for every 10,000 patients and
     is made while the page waits; the nightly backup ZIP holds the same tables. A notification already sent before
     the revision keeps its old reader. The surgery and plan forms still read their lists once for each row (quick on
