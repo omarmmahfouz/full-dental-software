@@ -2072,3 +2072,25 @@ class Round18PasswordTests(TestCase):
             "username": "nora", "first_name": "Nora S.", "roles": ["secretary"], "is_active": "on",
             "choose_own": "on"})
         self.assertFalse(UserProfile.objects.get(pk=profile.pk).must_change_password)
+
+
+class StaticFilesTests(TestCase):
+    """The real server prepares the pages' files with collectstatic (Docker, install.bat, the online demo). It stops
+    when a script or style names a source map that is not there, so every sourceMappingURL must point to a file."""
+
+    def test_every_source_map_named_is_there(self):
+        import re
+        from pathlib import Path
+
+        from django.conf import settings
+
+        missing = []
+        for folder in settings.STATICFILES_DIRS:
+            for path in Path(folder).rglob("*"):
+                if path.suffix not in (".js", ".css") or not path.is_file():
+                    continue
+                text = path.read_text(encoding="utf-8", errors="ignore")
+                for name in re.findall(r"sourceMappingURL=([^\s*'\"]+\.map)", text):
+                    if not (path.parent / name).is_file():
+                        missing.append(f"{path.relative_to(folder)} -> {name}")
+        self.assertEqual(missing, [], "Remove the sourceMappingURL line, or add the .map file")

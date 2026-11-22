@@ -18,3 +18,7 @@ staticfiles/
 .idea/
 .DS_Store
 Thumbs.db
+
+# The online demo (deploy/cloudflare)
+deploy/cloudflare/node_modules/
+deploy/cloudflare/.wrangler/

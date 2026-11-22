@@ -1,0 +1,11 @@
+{
+  "name": "cia-dental-demo",
+  "private": true,
+  "description": "The online demo of the CIA dental system on Cloudflare Containers (see README.md).",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

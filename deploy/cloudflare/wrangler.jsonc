@@ -1,0 +1,43 @@
+// The online demo on Cloudflare (see README.md). Secrets are not here: they are set with
+//   npx wrangler secret put DJANGO_SECRET_KEY | DB_PASSWORD | DEMO_PASSWORD
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "cia-dental-demo",
+	"main": "src/index.js",
+	"compatibility_date": "2026-11-19",
+	"observability": { "enabled": true },
+	"containers": [
+		{
+			"class_name": "DentalApp",
+			"image": "./Dockerfile",
+			"image_build_context": "../..",
+			"instance_type": "basic",
+			"max_instances": 1,
+			// Next to the database (Supabase, Frankfurt): every page asks the database many times.
+			"constraints": { "regions": ["WEUR"] }
+		}
+	],
+	"durable_objects": {
+		"bindings": [{ "name": "APP", "class_name": "DentalApp" }]
+	},
+	"exports": {
+		"DentalApp": { "type": "durable-object", "storage": "sqlite" }
+	},
+	"vars": {
+		"DB_ENGINE": "postgres",
+		"DB_NAME": "postgres",
+		// Supabase project "cia-dental-demo": its own login and schema, apart from Supabase's own tables.
+		"DB_USER": "dental_demo.hhlvopauzprdsryleodu",
+		"DB_HOSTS": "aws-1-eu-central-1.pooler.supabase.com,aws-0-eu-central-1.pooler.supabase.com",
+		"DB_PORT": "5432",
+		// Behind Cloudflare: HTTPS outside, every network may open it (logins and passwords still apply).
+		"DJANGO_ALLOWED_HOSTS": "*",
+		"DJANGO_CSRF_TRUSTED_ORIGINS": "https://*.workers.dev",
+		"DJANGO_HTTPS": "1",
+		"DJANGO_SSL_REDIRECT": "0",
+		"ALLOWED_NETWORKS": "*",
+		"TRUSTED_PROXIES": "0.0.0.0/0,::/0",
+		"WEB_WORKERS": "2",
+		"WEB_THREADS": "4"
+	}
+}

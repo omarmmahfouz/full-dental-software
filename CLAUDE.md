@@ -266,6 +266,7 @@ Read this first, then `README.md` (what the system does, role by role) and the c
   longer goes back one step. The pages of a tab are still kept in `sessionStorage` ("page-trail") for the browser's
   back: on sending a main form the history entry of the form becomes the page before (the browser's back skips it).
   A POST form is sent once: the button shows *Saving…* (`data-saving-text` on `<body>`).
+- **The online demo** (`deploy/cloudflare/`, its README): Cloudflare Containers (one container, WEUR) + the Supabase project `cia-dental-demo` (login `dental_demo`, schema `dental`); `start.sh` / `demo_setup.py` fill the sample data on an empty database. `collectstatic` (Manifest storage) stops on a `sourceMappingURL` to a missing file: `StaticFilesTests` checks it.
 - **SQLite** (trial, single PC) runs in WAL mode with `transaction_mode=IMMEDIATE` and a 20 s timeout (`settings.py`).
 - **Dashboard**: `core/overview.py` (`/dashboard/`, owner / head of CIA / moderators; money for owner and moderators).
   The owner's home page always shows the four places side by side (`places_now`: CIA, EK, CIC, LAB), whatever place
