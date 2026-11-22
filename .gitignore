@@ -19,6 +19,6 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
-# The online demo (deploy/cloudflare)
-deploy/cloudflare/node_modules/
-deploy/cloudflare/.wrangler/
+# The online demo (deploy/online)
+deploy/online/cloudflare/node_modules/
+deploy/online/cloudflare/.wrangler/

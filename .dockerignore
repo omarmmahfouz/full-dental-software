@@ -6,6 +6,6 @@ backups
 staticfiles
 .env
 **/__pycache__
-deploy/cloudflare/node_modules
-deploy/cloudflare/.wrangler
+deploy/online/cloudflare/node_modules
+deploy/online/cloudflare/.wrangler
 logs

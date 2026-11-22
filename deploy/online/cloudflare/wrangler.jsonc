@@ -1,4 +1,4 @@
-// The online demo on Cloudflare (see README.md). Secrets are not here: they are set with
+// The online demo on Cloudflare (see ../README.md). Secrets are not here: they are set with
 //   npx wrangler secret put DJANGO_SECRET_KEY | DB_PASSWORD | DEMO_PASSWORD
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
@@ -9,8 +9,8 @@
 	"containers": [
 		{
 			"class_name": "DentalApp",
-			"image": "./Dockerfile",
-			"image_build_context": "../..",
+			"image": "../Dockerfile",
+			"image_build_context": "../../..",
 			"instance_type": "basic",
 			"max_instances": 1,
 			// Next to the database (Supabase, Frankfurt): every page asks the database many times.

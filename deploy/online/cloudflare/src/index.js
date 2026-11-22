@@ -1,4 +1,4 @@
-// The online demo: Cloudflare runs the system in one container (deploy/cloudflare/Dockerfile) and this Worker passes
+// The online demo: Cloudflare runs the system in one container (deploy/online/Dockerfile) and this Worker passes
 // every page to it. The container sleeps after IDLE_MS without a page and wakes at the next one (a few seconds; the
 // very first start fills the sample data and takes a few minutes, with a "starting" page that refreshes itself).
 import { DurableObject } from "cloudflare:workers";

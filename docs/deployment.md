@@ -62,12 +62,12 @@ To update to a new version: `sh deploy/update-docker.sh`. It makes a backup of a
 7. Set **`FILES_BACKUP_DIR`** in `.env` to a folder on another disk, e.g. `FILES_BACKUP_DIR=E:\CIA backup\files`.
 8. Schedule `deploy\windows\backup.bat` every night (e.g. 2 am) and `deploy\windows\reminders.bat` daily at 07:00. Before that, edit the `PGPASSWORD` line in `backup.bat`.
 
-## An online demo for a client (Cloudflare + Supabase)
+## An online demo for a client (Koyeb or Cloudflare, with Supabase)
 
 A copy on the internet with the **sample data only** (never real patients), for a client to try from anywhere:
-the system runs on Cloudflare (Workers + Containers, $5 a month plan) and its data is in a free Supabase project.
-The steps, the cost and its limits (it sleeps after 2 hours; uploaded photos are not kept) are in
-[`deploy/cloudflare/README.md`](../deploy/cloudflare/README.md).
+the system runs on Koyeb (free) or Cloudflare (a $5 a month plan) and its data is in a free Supabase project.
+The steps and the limits (it sleeps when nobody uses it; uploaded photos are not kept) are in
+[`deploy/online/README.md`](../deploy/online/README.md).
 
 ---
 
